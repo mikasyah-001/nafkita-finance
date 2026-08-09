@@ -5,7 +5,7 @@ import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target } from "lucide-react";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -27,6 +27,11 @@ export default function Home() {
   const balance = income - expense;
   const recent = transactions.slice(0, 5);
 
+  const hasTodayTx = transactions.some((t) => {
+    const d = new Date(t.date);
+    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+
   const greeting = (() => {
     const h = now.getHours();
     if (h < 11) return "Selamat pagi";
@@ -46,6 +51,19 @@ export default function Home() {
           <Settings className="w-5 h-5 text-muted-foreground" />
         </Link>
       </header>
+
+      {!hasTodayTx && (
+        <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-3.5 mb-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+            <Bell className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Pengingat harian</p>
+            <p className="text-xs text-amber-700/80 dark:text-amber-300/70">Belum ada transaksi dicatat hari ini. Yuk catat sekarang!</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-amber-600" />
+        </Link>
+      )}
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-5">
         <div className="flex items-center justify-between mb-1">
@@ -77,6 +95,13 @@ export default function Home() {
           </div>
           <p className="text-sm font-medium">Laporan</p>
           <p className="text-xs text-muted-foreground">Bulanan & zakat</p>
+        </Link>
+        <Link to="/anggaran" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center mb-2">
+            <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <p className="text-sm font-medium">Anggaran</p>
+          <p className="text-xs text-muted-foreground">Target per kategori</p>
         </Link>
         <Link to="/add" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-teal-100 dark:bg-teal-950/40 flex items-center justify-center mb-2">

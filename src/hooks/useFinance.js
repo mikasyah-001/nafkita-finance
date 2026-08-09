@@ -22,11 +22,19 @@ export function useAssets() {
   });
 }
 
+export function useBudgets() {
+  return useQuery({
+    queryKey: ["budgets"],
+    queryFn: () => base44.entities.Budget.list(),
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["categories"] });
     qc.invalidateQueries({ queryKey: ["assets"] });
+    qc.invalidateQueries({ queryKey: ["budgets"] });
   };
 }

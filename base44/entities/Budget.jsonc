@@ -1,0 +1,20 @@
+{
+  "name": "Budget",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "limit_amount": {
+      "type": "number"
+    },
+    "period": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "limit_amount",
+    "period"
+  ]
+}

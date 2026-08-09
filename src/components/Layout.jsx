@@ -1,10 +1,12 @@
 import { Outlet } from "react-router-dom";
 import BottomNav from "./BottomNav";
+import OfflineSyncManager from "./OfflineSyncManager";
 import { Toaster } from "sonner";
 
 export default function Layout() {
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto relative shadow-xl">
+      <OfflineSyncManager />
       <main className="pb-24 min-h-screen">
         <Outlet />
       </main>

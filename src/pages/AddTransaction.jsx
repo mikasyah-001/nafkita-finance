@@ -5,6 +5,7 @@ import { useCategories, useRefresh, useTemplates } from "@/hooks/useFinance";
 import { colorMap, formatRupiah } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
+import { addPending } from "@/lib/offlineQueue";
 import { ArrowLeft, Camera, ScanLine, Loader2, Check, X } from "lucide-react";
 
 const typeTabs = [
@@ -104,6 +105,22 @@ export default function AddTransaction() {
       return;
     }
     setSaving(true);
+    if (!navigator.onLine) {
+      addPending({
+        type,
+        amount: amt,
+        category: type === "sedekah" ? "Sedekah & Infaq" : category,
+        date: new Date(date).toISOString(),
+        merchant: merchant || "",
+        notes: notes || "",
+        photo_url: photoUrl || "",
+        input_by_name: user?.full_name || user?.email || "Keluarga",
+      });
+      toast.success("Tersimpan offline", { description: "Akan otomatis disinkron saat koneksi kembali." });
+      navigate("/");
+      setSaving(false);
+      return;
+    }
     try {
       await base44.entities.Transaction.create({
         type,

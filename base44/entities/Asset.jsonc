@@ -37,6 +37,14 @@
     },
     "notes": {
       "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "private"
+      ],
+      "default": "shared"
     }
   },
   "required": [
@@ -51,9 +59,18 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "data.visibility": {
+                "$ne": "private"
+              }
+            }
+          ]
         }
       ]
     },
@@ -63,9 +80,18 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "data.visibility": {
+                "$ne": "private"
+              }
+            }
+          ]
         }
       ]
     },
@@ -75,9 +101,18 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "data.visibility": {
+                "$ne": "private"
+              }
+            }
+          ]
         }
       ]
     }

@@ -36,6 +36,13 @@ export function useAssetSnapshots() {
   });
 }
 
+export function useTemplates() {
+  return useQuery({
+    queryKey: ["templates"],
+    queryFn: () => base44.entities.TransactionTemplate.list(),
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -43,5 +50,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["categories"] });
     qc.invalidateQueries({ queryKey: ["assets"] });
     qc.invalidateQueries({ queryKey: ["budgets"] });
+    qc.invalidateQueries({ queryKey: ["templates"] });
   };
 }

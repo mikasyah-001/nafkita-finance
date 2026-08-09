@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh } from "@/hooks/useFinance";
-import { colorMap } from "@/lib/finance";
+import { useCategories, useRefresh, useTemplates } from "@/hooks/useFinance";
+import { colorMap, formatRupiah } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, ScanLine, Loader2, Check, X } from "lucide-react";
@@ -17,7 +17,9 @@ export default function AddTransaction() {
   const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: categories = [] } = useCategories();
+  const { data: templates = [] } = useTemplates();
   const [user, setUser] = useState(null);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
@@ -38,6 +40,16 @@ export default function AddTransaction() {
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
+
+  const applyTemplate = (t) => {
+    setType(t.type);
+    setAmount(String(t.amount));
+    setCategory(t.category || "");
+    setMerchant(t.merchant || "");
+    setNotes(t.notes || "");
+    setSaveAsTemplate(false);
+    toast.success(`Template "${t.name}" dimuat`, { description: "Periksa tanggal lalu simpan." });
+  };
 
   const handleScan = async (e) => {
     const file = e.target.files?.[0];
@@ -103,6 +115,18 @@ export default function AddTransaction() {
         photo_url: photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
       });
+      if (saveAsTemplate) {
+        try {
+          await base44.entities.TransactionTemplate.create({
+            name: merchant || category || "Template",
+            type,
+            amount: amt,
+            category: type === "sedekah" ? "Sedekah & Infaq" : category,
+            merchant: merchant || "",
+            notes: notes || "",
+          });
+        } catch {}
+      }
       refresh();
       toast.success("Transaksi tersimpan!");
       navigate("/");
@@ -139,6 +163,34 @@ export default function AddTransaction() {
             </button>
           ))}
         </div>
+
+        {templates.length > 0 && (
+          <div>
+            <label className="text-xs text-muted-foreground mb-2 block">Template Rutin</label>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {templates.map((t) => {
+                const cat = categories.find((c) => c.name === t.category);
+                const cm = colorMap[cat?.color] || colorMap.slate;
+                const icon = t.type === "sedekah" ? "Heart" : cat?.icon || "Wallet";
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => applyTemplate(t)}
+                    className="shrink-0 flex items-center gap-2 rounded-2xl border border-border bg-card pl-2 pr-3 py-2 active:scale-95 transition-transform"
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${cm.bg}`}>
+                      <CategoryIcon name={icon} className={`w-4 h-4 ${cm.text}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium leading-tight">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatRupiah(t.amount)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div>
           <button
@@ -246,6 +298,10 @@ export default function AddTransaction() {
       </div>
 
       <div className="px-5 py-4 border-t border-border bg-background">
+        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} className="w-4 h-4 accent-primary" />
+          <span className="text-xs text-muted-foreground">Simpan sebagai template rutin</span>
+        </label>
         <button
           onClick={handleSave}
           disabled={saving}

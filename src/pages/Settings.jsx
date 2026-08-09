@@ -5,7 +5,8 @@ import { useCategories, useRefresh } from "@/hooks/useFinance";
 import { colorMap, colorOptions, defaultCategories } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Plus, Tag, Loader2, LogOut, Trash2, User } from "lucide-react";
+import { ArrowLeft, UserPlus, Plus, Tag, Loader2, LogOut, Trash2, User, Repeat } from "lucide-react";
+import TemplateManager from "@/components/TemplateManager";
 
 const iconOptions = ["Wallet", "ShoppingCart", "Car", "Lightbulb", "HeartPulse", "GraduationCap", "Gamepad2", "Gift", "Coins", "Briefcase", "Utensils", "Package"];
 
@@ -156,6 +157,10 @@ export default function Settings() {
             );
           })}
         </div>
+      </Section>
+
+      <Section title="Template Rutin">
+        <TemplateManager />
       </Section>
 
       <button onClick={handleLogout} className="w-full py-3 rounded-2xl border border-border text-red-500 font-medium text-sm flex items-center justify-center gap-2 mt-5">

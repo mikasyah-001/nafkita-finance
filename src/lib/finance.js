@@ -26,6 +26,7 @@ export const colorMap = {
   orange: { bg: "bg-orange-100 dark:bg-orange-950/40", text: "text-orange-600 dark:text-orange-400", solid: "bg-orange-500", dot: "bg-orange-500" },
   amber: { bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", solid: "bg-amber-500", dot: "bg-amber-500" },
   green: { bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", solid: "bg-emerald-500", dot: "bg-emerald-500" },
+  emerald: { bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", solid: "bg-emerald-500", dot: "bg-emerald-500" },
   teal: { bg: "bg-teal-100 dark:bg-teal-950/40", text: "text-teal-600 dark:text-teal-400", solid: "bg-teal-500", dot: "bg-teal-500" },
   blue: { bg: "bg-blue-100 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", solid: "bg-blue-500", dot: "bg-blue-500" },
   indigo: { bg: "bg-indigo-100 dark:bg-indigo-950/40", text: "text-indigo-600 dark:text-indigo-400", solid: "bg-indigo-500", dot: "bg-indigo-500" },

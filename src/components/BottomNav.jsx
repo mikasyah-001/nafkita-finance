@@ -10,7 +10,7 @@ const items = [
 
 export default function BottomNav() {
   const location = useLocation();
-  const hideNav = location.pathname === "/add";
+  const hideNav = location.pathname === "/add" || location.pathname === "/impor";
   if (hideNav) return null;
 
   return (

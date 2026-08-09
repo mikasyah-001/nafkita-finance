@@ -51,5 +51,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["assets"] });
     qc.invalidateQueries({ queryKey: ["budgets"] });
     qc.invalidateQueries({ queryKey: ["templates"] });
+    qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
   };
 }

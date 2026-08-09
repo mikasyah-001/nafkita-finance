@@ -25,7 +25,7 @@ export default function Settings() {
     if (!inviteEmail) return toast.error("Masukkan email pasangan");
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteEmail, "user");
+      await base44.users.inviteUser(inviteEmail, "admin");
       toast.success("Undangan terkirim!", { description: `${inviteEmail} akan menerima email pendaftaran.` });
       setInviteEmail("");
     } catch (e) {

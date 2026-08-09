@@ -1,0 +1,33 @@
+{
+  "name": "AssetSnapshot",
+  "type": "object",
+  "properties": {
+    "period": {
+      "type": "string"
+    },
+    "emas_value": {
+      "type": "number",
+      "default": 0
+    },
+    "investasi_value": {
+      "type": "number",
+      "default": 0
+    },
+    "bank_value": {
+      "type": "number",
+      "default": 0
+    },
+    "other_value": {
+      "type": "number",
+      "default": 0
+    },
+    "total_value": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "period",
+    "total_value"
+  ]
+}

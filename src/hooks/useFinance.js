@@ -29,6 +29,13 @@ export function useBudgets() {
   });
 }
 
+export function useAssetSnapshots() {
+  return useQuery({
+    queryKey: ["assetSnapshots"],
+    queryFn: () => base44.entities.AssetSnapshot.list("period", 24),
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {

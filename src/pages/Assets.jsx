@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3 } from "lucide-react";
 
 const types = ["bank", "emas", "investasi", "properti", "lainnya"];
 
@@ -102,9 +103,14 @@ export default function Assets() {
     <div className="px-5 pt-8">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Aset Keluarga</h1>
-        <button onClick={() => setShowForm(true)} className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+            <BarChart3 className="w-5 h-5 text-muted-foreground" />
+          </Link>
+          <button onClick={() => setShowForm(true)} className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-4 shadow-lg">

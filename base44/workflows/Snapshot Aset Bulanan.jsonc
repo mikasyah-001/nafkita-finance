@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "monthly_asset_snapshot",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "snapshot": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "snapshotAssets"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Snapshot aset bulanan",
+            "description": "Catat nilai aset per jenis"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Mencatat snapshot nilai aset (emas, investasi, bank, lainnya) setiap awal bulan untuk grafik pertumbuhan",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 0 1 * *",
+      "one_time_date": null,
+      "timezone": "Asia/Jakarta",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Snapshot Aset Bulanan"
+}

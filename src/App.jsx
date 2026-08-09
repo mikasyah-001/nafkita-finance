@@ -16,6 +16,7 @@ import Assets from '@/pages/Assets';
 import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
 import Budget from '@/pages/Budget';
+import AssetDashboard from '@/pages/AssetDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -51,6 +52,7 @@ const AuthenticatedApp = () => {
           <Route path="/aset" element={<Assets />} />
           <Route path="/laporan" element={<Reports />} />
           <Route path="/anggaran" element={<Budget />} />
+          <Route path="/aset-dashboard" element={<AssetDashboard />} />
           <Route path="/pengaturan" element={<Settings />} />
         </Route>
       </Route>

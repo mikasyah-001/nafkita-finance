@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "./CategoryIcon";
 
@@ -10,7 +11,7 @@ export default function TransactionItem({ tx, categories }) {
   const c = colorMap[color] || colorMap.slate;
 
   return (
-    <div className="flex items-center gap-3 py-3">
+    <Link to={`/transaksi/${tx.id}`} className="flex items-center gap-3 py-3 active:bg-muted/50 -mx-1 px-1 rounded-lg transition-colors">
       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${c.bg}`}>
         <CategoryIcon name={icon} className={`w-5 h-5 ${c.text}`} />
       </div>
@@ -25,6 +26,6 @@ export default function TransactionItem({ tx, categories }) {
       <div className={`text-sm font-semibold whitespace-nowrap ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
         {isIncome ? "+" : "-"}{formatRupiah(tx.amount)}
       </div>
-    </div>
+    </Link>
   );
 }

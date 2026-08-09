@@ -6,10 +6,11 @@ import { formatRupiah, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users } from "lucide-react";
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [scope, setScope] = useState("shared");
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
 
@@ -24,12 +25,12 @@ export default function Home() {
   });
   const sharedMonth = monthTx.filter((t) => t.visibility !== "private");
   const privateMonth = monthTx.filter((t) => t.visibility === "private");
-  const income = sharedMonth.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expense = sharedMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const sedekah = sharedMonth.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
+  const scopeMonth = scope === "private" ? privateMonth : sharedMonth;
+  const income = scopeMonth.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expense = scopeMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const sedekah = scopeMonth.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
-  const privateExpense = privateMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const recent = transactions.slice(0, 5);
+  const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
 
   const hasTodayTx = transactions.some((t) => {
     const d = new Date(t.date);
@@ -69,10 +70,19 @@ export default function Home() {
         </Link>
       )}
 
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Users className="w-4 h-4" /> Bersama
+        </button>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Lock className="w-4 h-4" /> Pribadi
+        </button>
+      </div>
+
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs opacity-80">Saldo bulan ini</span>
-          <Wallet className="w-4 h-4 opacity-80" />
+          <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi bulan ini" : "Saldo bersama bulan ini"}</span>
+          {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
         <p className="text-3xl font-bold tracking-tight">{formatRupiah(balance)}</p>
         <div className="flex gap-4 mt-4">
@@ -91,21 +101,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {privateExpense > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-            <Lock className="w-5 h-5 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <p className="text-xs text-muted-foreground">Pengeluaran pribadi bulan ini</p>
-            <p className="text-lg font-bold">{formatRupiah(privateExpense)}</p>
-          </div>
-          <Link to="/riwayat" className="text-xs text-muted-foreground flex items-center gap-1">
-            Lihat <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <Link to="/laporan" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">
@@ -141,10 +136,10 @@ export default function Home() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card px-4">
-        {recent.length === 0 ? (
-          <EmptyState icon={Wallet} title="Belum ada transaksi" subtitle="Tekan tombol + untuk mencatat pengeluaran atau pemasukan." />
+        {scopeRecent.length === 0 ? (
+          <EmptyState icon={scope === "private" ? Lock : Wallet} title={scope === "private" ? "Belum ada transaksi pribadi" : "Belum ada transaksi"} subtitle="Tekan tombol + untuk mencatat pengeluaran atau pemasukan." />
         ) : (
-          recent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
+          scopeRecent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
         )}
       </div>
     </div>

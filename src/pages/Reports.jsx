@@ -4,7 +4,7 @@ import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance"
 import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock } from "lucide-react";
 
 const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
 
@@ -14,6 +14,7 @@ export default function Reports() {
   const { data: categories = [] } = useCategories();
   const [cursor, setCursor] = useState(new Date());
   const [emasPrice, setEmasPrice] = useState("");
+  const [scope, setScope] = useState("shared");
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -21,11 +22,15 @@ export default function Reports() {
 
   const monthTx = useMemo(
     () => transactions.filter((t) => {
+      if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
       const d = new Date(t.date);
       return d.getMonth() === month && d.getFullYear() === year;
     }),
-    [transactions, month, year]
+    [transactions, month, year, scope]
   );
+
+  const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
+  const scopedTransactions = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
 
   const income = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -46,10 +51,10 @@ export default function Reports() {
   // Zakat calculation
   const emasPriceNum = Number(emasPrice) || 0;
   const nisab = emasPriceNum * 85;
-  const emasAssets = assets.filter((a) => a.type === "emas");
+  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const otherValue = assets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
+  const otherValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
   const totalAset = emasValue + otherValue;
   const emasWajibZakat = emasGrams >= 85;
   const uangWajibZakat = emasPriceNum > 0 && totalAset >= nisab;
@@ -64,6 +69,15 @@ export default function Reports() {
         <button onClick={prevMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
         <p className="font-medium">{monthName}</p>
         <button onClick={nextMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Users className="w-4 h-4" /> Bersama
+        </button>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Lock className="w-4 h-4" /> Pribadi
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -100,7 +114,7 @@ export default function Reports() {
         </div>
       )}
 
-      <MonthComparison transactions={transactions} categories={categories} year={year} month={month} />
+      <MonthComparison transactions={scopedTransactions} categories={categories} year={year} month={month} />
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>

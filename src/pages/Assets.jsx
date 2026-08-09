@@ -6,7 +6,7 @@ import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, asset
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3 } from "lucide-react";
+import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock } from "lucide-react";
 
 const types = ["bank", "emas", "investasi", "properti", "lainnya"];
 
@@ -17,12 +17,14 @@ export default function Assets() {
   const [saving, setSaving] = useState(false);
   const [goldPrice, setGoldPrice] = useState("");
   const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [scope, setScope] = useState("shared");
   const [form, setForm] = useState({
     name: "", type: "bank", value: "", quantity: "", unit: "",
-    purchase_date: "", purchase_price: "", owner: "", notes: "",
+    purchase_date: "", purchase_price: "", owner: "", notes: "", visibility: "shared",
   });
 
   const goldPriceNum = Number(goldPrice) || 0;
+  const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
 
   const currentValue = (a) => {
     if (a.type === "emas" && a.quantity && goldPriceNum > 0) {
@@ -31,8 +33,8 @@ export default function Assets() {
     return a.value || 0;
   };
 
-  const total = assets.reduce((s, a) => s + currentValue(a), 0);
-  const emasGrams = assets.filter((a) => a.type === "emas").reduce((s, a) => s + (a.quantity || 0), 0);
+  const total = scopedAssets.reduce((s, a) => s + currentValue(a), 0);
+  const emasGrams = scopedAssets.filter((a) => a.type === "emas").reduce((s, a) => s + (a.quantity || 0), 0);
 
   const fetchGoldPrice = async () => {
     setFetchingPrice(true);
@@ -78,10 +80,11 @@ export default function Assets() {
         purchase_price: form.purchase_price ? Number(form.purchase_price) : 0,
         owner: form.owner,
         notes: form.notes,
+        visibility: form.visibility,
       });
       refresh();
       toast.success("Aset ditambahkan");
-      setForm({ name: "", type: "bank", value: "", quantity: "", unit: "", purchase_date: "", purchase_price: "", owner: "", notes: "" });
+      setForm({ name: "", type: "bank", value: "", quantity: "", unit: "", purchase_date: "", purchase_price: "", owner: "", notes: "", visibility: "shared" });
       setShowForm(false);
     } catch {
       toast.error("Gagal menambah aset");
@@ -113,13 +116,22 @@ export default function Assets() {
         </div>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Users className="w-4 h-4" /> Bersama
+        </button>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Lock className="w-4 h-4" /> Pribadi
+        </button>
+      </div>
+
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-4 shadow-lg">
-        <p className="text-xs opacity-80">Total Nilai Aset</p>
+        <p className="text-xs opacity-80">{scope === "private" ? "Total Aset Pribadi" : "Total Nilai Aset"}</p>
         <p className="text-3xl font-bold tracking-tight">{formatRupiah(total)}</p>
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
 
-      {assets.some((a) => a.type === "emas") && (
+      {scopedAssets.some((a) => a.type === "emas") && (
         <div className="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Coins className="w-4 h-4 text-amber-600" />
@@ -149,11 +161,11 @@ export default function Assets() {
         </div>
       )}
 
-      {assets.length === 0 ? (
-        <EmptyState icon={Landmark} title="Belum ada aset" subtitle="Catat tabungan, emas, investasi, dan aset lainnya untuk memantau kekayaan dan kewajiban zakat." />
+      {scopedAssets.length === 0 ? (
+        <EmptyState icon={scope === "private" ? Lock : Landmark} title={scope === "private" ? "Belum ada aset pribadi" : "Belum ada aset"} subtitle="Catat tabungan, emas, investasi, dan aset lainnya untuk memantau kekayaan dan kewajiban zakat." />
       ) : (
         <div className="space-y-3">
-          {assets.map((a) => {
+          {scopedAssets.map((a) => {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
@@ -170,7 +182,10 @@ export default function Assets() {
                     <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{a.name}</p>
+                    <p className="text-sm font-medium truncate flex items-center gap-1">
+                      {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                      {a.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {meta.label}{a.owner ? ` • ${a.owner}` : ""}
                       {a.type === "emas" && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
@@ -264,6 +279,16 @@ export default function Assets() {
                 </Field>
               )}
 
+              <Field label="Jangkauan">
+                <div className="flex gap-2">
+                  <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                    <Users className="w-4 h-4" /> Bersama
+                  </button>
+                  <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                    <Lock className="w-4 h-4" /> Pribadi
+                  </button>
+                </div>
+              </Field>
               <Field label="Pemilik (opsional)">
                 <input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className="input" />
               </Field>

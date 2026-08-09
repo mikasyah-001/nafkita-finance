@@ -6,7 +6,7 @@ import { formatRupiah, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock } from "lucide-react";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -22,10 +22,13 @@ export default function Home() {
     const d = new Date(t.date);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
-  const income = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const sedekah = monthTx.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
+  const sharedMonth = monthTx.filter((t) => t.visibility !== "private");
+  const privateMonth = monthTx.filter((t) => t.visibility === "private");
+  const income = sharedMonth.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expense = sharedMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const sedekah = sharedMonth.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
+  const privateExpense = privateMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const recent = transactions.slice(0, 5);
 
   const hasTodayTx = transactions.some((t) => {
@@ -88,6 +91,21 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {privateExpense > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <Lock className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground">Pengeluaran pribadi bulan ini</p>
+            <p className="text-lg font-bold">{formatRupiah(privateExpense)}</p>
+          </div>
+          <Link to="/riwayat" className="text-xs text-muted-foreground flex items-center gap-1">
+            Lihat <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <Link to="/laporan" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">

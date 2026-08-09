@@ -24,9 +24,12 @@ export default function Transactions() {
   const [toDate, setToDate] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [view, setView] = useState("list");
+  const [scope, setScope] = useState("all");
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
+      if (scope === "private" && t.visibility !== "private") return false;
+      if (scope === "shared" && t.visibility === "private") return false;
       if (active !== "all" && t.type !== active) return false;
       if (category !== "all" && t.category !== category) return false;
       if (fromDate && new Date(t.date) < new Date(fromDate + "T00:00:00")) return false;
@@ -42,7 +45,7 @@ export default function Transactions() {
       }
       return true;
     });
-  }, [transactions, active, category, search, fromDate, toDate]);
+  }, [transactions, active, category, search, fromDate, toDate, scope]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -96,6 +99,20 @@ export default function Transactions() {
             }`}
           >
             {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        {[{ key: "all", label: "Semua" }, { key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setScope(s.key)}
+            className={`flex-1 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              scope === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {s.label}
           </button>
         ))}
       </div>

@@ -7,7 +7,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users } from "lucide-react";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -39,6 +39,7 @@ export default function TransactionDetail() {
         notes: tx.notes || "",
         photo_url: tx.photo_url || "",
         tags: tx.tags || [],
+        visibility: tx.visibility || "shared",
       });
     }
   }, [tx, form]);
@@ -113,6 +114,7 @@ export default function TransactionDetail() {
         notes: form.notes || "",
         photo_url: form.photo_url || "",
         tags: form.tags || [],
+        visibility: form.visibility || "shared",
       });
       refresh();
       toast.success("Transaksi diperbarui");
@@ -156,6 +158,18 @@ export default function TransactionDetail() {
                 {label}
               </button>
             ))}
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
+            <div className="flex gap-2">
+              <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                <Users className="w-4 h-4" /> Bersama
+              </button>
+              <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                <Lock className="w-4 h-4" /> Pribadi
+              </button>
+            </div>
           </div>
 
           <button onClick={() => fileRef.current?.click()} disabled={scanning} className="w-full rounded-2xl border-2 border-dashed border-border py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60">
@@ -268,6 +282,7 @@ export default function TransactionDetail() {
         <DetailRow icon={CategoryIcon} iconName={icon} cm={cm} label="Kategori" value={tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category || "-"} />
         <DetailRow icon={Calendar} label="Tanggal" value={formatDate(tx.date, "EEEE, dd MMMM yyyy • HH:mm")} />
         <DetailRow icon={User} label="Dicatat oleh" value={tx.input_by_name || "Keluarga"} />
+        <DetailRow icon={tx.visibility === "private" ? Lock : Users} label="Jangkauan" value={tx.visibility === "private" ? "Pribadi (hanya Anda)" : "Bersama Keluarga"} />
         {tx.notes && <DetailRow icon={Receipt} label="Catatan" value={tx.notes} />}
       </div>
 

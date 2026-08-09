@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "./CategoryIcon";
 
@@ -16,7 +17,8 @@ export default function TransactionItem({ tx, categories }) {
         <CategoryIcon name={icon} className={`w-5 h-5 ${c.text}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
+        <p className="text-sm font-medium truncate flex items-center gap-1">
+          {tx.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
           {tx.merchant || tx.notes || (isSedekah ? "Sedekah & Infaq" : category?.name || "Transaksi")}
         </p>
         <p className="text-xs text-muted-foreground truncate">

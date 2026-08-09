@@ -7,7 +7,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
-import { ArrowLeft, Camera, ScanLine, Loader2, Check, X } from "lucide-react";
+import { ArrowLeft, Camera, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
 
 const typeTabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -36,6 +36,7 @@ export default function AddTransaction() {
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState([]);
+  const [visibility, setVisibility] = useState("shared");
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function AddTransaction() {
         photo_url: photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
+        visibility,
       });
       toast.success("Tersimpan offline", { description: "Akan otomatis disinkron saat koneksi kembali." });
       navigate("/");
@@ -135,6 +137,7 @@ export default function AddTransaction() {
         photo_url: photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
+        visibility,
       });
       if (saveAsTemplate) {
         try {
@@ -183,6 +186,31 @@ export default function AddTransaction() {
               {t.label}
             </button>
           ))}
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setVisibility("shared")}
+              className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${
+                visibility === "shared" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4" /> Bersama Keluarga
+            </button>
+            <button
+              onClick={() => setVisibility("private")}
+              className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${
+                visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+              }`}
+            >
+              <Lock className="w-4 h-4" /> Pribadi
+            </button>
+          </div>
+          {visibility === "private" && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">Hanya Anda yang dapat melihat transaksi ini.</p>
+          )}
         </div>
 
         {templates.length > 0 && (

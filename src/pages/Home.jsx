@@ -5,6 +5,7 @@ import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
+import BudgetBars from "@/components/BudgetBars";
 import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target } from "lucide-react";
 
 export default function Home() {
@@ -111,6 +112,8 @@ export default function Home() {
           <p className="text-xs text-muted-foreground">{formatRupiah(sedekah)} bulan ini</p>
         </Link>
       </div>
+
+      <BudgetBars />
 
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">Transaksi terbaru</h2>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
+import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
 import { ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default function Transactions() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [view, setView] = useState("list");
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
@@ -166,7 +168,14 @@ export default function Transactions() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setView("list")} className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Daftar</button>
+        <button onClick={() => setView("calendar")} className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors ${view === "calendar" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Kalender</button>
+      </div>
+
+      {view === "calendar" ? (
+        <CalendarView transactions={filtered} categories={categories} />
+      ) : filtered.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Tidak ada transaksi" subtitle="Belum ada catatan yang cocok dengan filter ini." />
       ) : (
         <div className="space-y-5">

@@ -4,9 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh } from "@/hooks/useFinance";
 import { colorMap, colorOptions, defaultCategories } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import InvitationManager from "@/components/InvitationManager";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { ArrowLeft, UserPlus, Plus, Tag, Loader2, LogOut, Trash2, User, Repeat, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Tag, Loader2, LogOut, Trash2, User, Repeat, Upload } from "lucide-react";
 import TemplateManager from "@/components/TemplateManager";
 
 const iconOptions = ["Wallet", "ShoppingCart", "Car", "Lightbulb", "HeartPulse", "GraduationCap", "Gamepad2", "Gift", "Coins", "Briefcase", "Utensils", "Package"];
@@ -15,24 +16,9 @@ export default function Settings() {
   const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: categories = [] } = useCategories();
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviting, setInviting] = useState(false);
   const [showCatForm, setShowCatForm] = useState(false);
   const [cat, setCat] = useState({ name: "", type: "expense", color: "slate", icon: "Wallet" });
   const [savingCat, setSavingCat] = useState(false);
-
-  const handleInvite = async () => {
-    if (!inviteEmail) return toast.error("Masukkan email pasangan");
-    setInviting(true);
-    try {
-      await base44.users.inviteUser(inviteEmail, "admin");
-      toast.success("Undangan terkirim!", { description: `${inviteEmail} akan menerima email pendaftaran.` });
-      setInviteEmail("");
-    } catch (e) {
-      toast.error("Gagal mengundang", { description: e.message || "Periksa email dan coba lagi." });
-    }
-    setInviting(false);
-  };
 
   const handleAddCat = async () => {
     if (!cat.name) return toast.error("Isi nama kategori");
@@ -72,31 +58,19 @@ export default function Settings() {
         <h1 className="text-xl font-semibold">Pengaturan</h1>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3">
+      <Link to="/profil" className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3 active:scale-[0.99] transition-transform">
         <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
           <User className="w-6 h-6" />
         </div>
-        <div>
-          <p className="font-medium text-sm">KeluargaKu Finance</p>
-          <p className="text-xs text-muted-foreground">Akses bersama suami & istri</p>
+        <div className="flex-1">
+          <p className="font-medium text-sm">Profil Saya</p>
+          <p className="text-xs text-muted-foreground">Edit foto & nama</p>
         </div>
-      </div>
+        <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+      </Link>
 
       <Section title="Undang Pasangan">
-        <p className="text-xs text-muted-foreground mb-3">Buatkan akun untuk istri/suami agar dapat mencatat bersama.</p>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="email pasangan"
-            className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30"
-          />
-          <button onClick={handleInvite} disabled={inviting} className="px-4 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium disabled:opacity-60">
-            {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            Undang
-          </button>
-        </div>
+        <InvitationManager />
       </Section>
 
       <Section title="Kategori Transaksi">

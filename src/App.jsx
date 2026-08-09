@@ -19,6 +19,7 @@ import Budget from '@/pages/Budget';
 import AssetDashboard from '@/pages/AssetDashboard';
 import ImportReport from '@/pages/ImportReport';
 import TransactionDetail from '@/pages/TransactionDetail';
+import Profile from '@/pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
           <Route path="/impor" element={<ImportReport />} />
           <Route path="/transaksi/:id" element={<TransactionDetail />} />
           <Route path="/pengaturan" element={<Settings />} />
+          <Route path="/profil" element={<Profile />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

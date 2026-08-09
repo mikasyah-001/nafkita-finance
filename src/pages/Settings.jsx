@@ -5,7 +5,8 @@ import { useCategories, useRefresh } from "@/hooks/useFinance";
 import { colorMap, colorOptions, defaultCategories } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Plus, Tag, Loader2, LogOut, Trash2, User, Repeat } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, UserPlus, Plus, Tag, Loader2, LogOut, Trash2, User, Repeat, Upload } from "lucide-react";
 import TemplateManager from "@/components/TemplateManager";
 
 const iconOptions = ["Wallet", "ShoppingCart", "Car", "Lightbulb", "HeartPulse", "GraduationCap", "Gamepad2", "Gift", "Coins", "Briefcase", "Utensils", "Package"];
@@ -157,6 +158,13 @@ export default function Settings() {
             );
           })}
         </div>
+      </Section>
+
+      <Section title="Impor Laporan Lama">
+        <p className="text-xs text-muted-foreground mb-3">Impor transaksi dari file PDF atau Teks lama dengan pratinjau sebelum disimpan.</p>
+        <Link to="/impor" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Upload className="w-4 h-4" /> Buka Impor Laporan
+        </Link>
       </Section>
 
       <Section title="Template Rutin">

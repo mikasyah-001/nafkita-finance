@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
-import { ReceiptText, Search } from "lucide-react";
+import { ReceiptText, Search, Upload } from "lucide-react";
 
 const filters = [
   { key: "all", label: "Semua" },
@@ -45,7 +46,12 @@ export default function Transactions() {
 
   return (
     <div className="px-5 pt-8">
-      <h1 className="text-xl font-semibold mb-4">Riwayat Transaksi</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold">Riwayat Transaksi</h1>
+        <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+          <Upload className="w-4 h-4 text-muted-foreground" />
+        </Link>
+      </div>
 
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

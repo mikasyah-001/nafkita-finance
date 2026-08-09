@@ -5,7 +5,7 @@ import { useCategories, useRefresh } from "@/hooks/useFinance";
 import { formatRupiah, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, FileText, Loader2, Check, AlertCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
 
 export default function ImportReport() {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ export default function ImportReport() {
   const { data: categories = [] } = useCategories();
   const fileRef = useRef(null);
   const [user, setUser] = useState(null);
+  const [mode, setMode] = useState("file");
+  const [text, setText] = useState("");
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [rows, setRows] = useState([]);
@@ -36,6 +38,45 @@ export default function ImportReport() {
     return match ? match.name : "";
   };
 
+  const normalizeTransactions = (transactions) =>
+    (transactions || [])
+      .filter((t) => t && Number(t.amount) > 0)
+      .map((t, i) => ({
+        id: i,
+        selected: true,
+        date: normalizeDate(t.date),
+        merchant: t.merchant || "",
+        category: mapCategory(t.category),
+        amount: Number(t.amount) || 0,
+        type: t.type === "income" ? "income" : "expense",
+      }));
+
+  const parseText = async (rawText) => {
+    const catNames = categories.map((c) => c.name).join(", ");
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), merchant/tempat, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok gunakan "Lainnya"), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${rawText}`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          transactions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                date: { type: "string" },
+                merchant: { type: "string" },
+                category: { type: "string" },
+                amount: { type: "number" },
+                type: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    });
+    return normalizeTransactions(result.transactions || []);
+  };
+
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -46,34 +87,11 @@ export default function ImportReport() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const isText = file.type.startsWith("text") || file.name.endsWith(".txt");
-      const catNames = categories.map((c) => c.name).join(", ");
       let transactions = [];
-
       if (isText) {
         const res = await fetch(file_url);
-        const text = await res.text();
-        const result = await base44.integrations.Core.InvokeLLM({
-          prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), merchant/tempat, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok gunakan "Lainnya"), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${text}`,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              transactions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    date: { type: "string" },
-                    merchant: { type: "string" },
-                    category: { type: "string" },
-                    amount: { type: "number" },
-                    type: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        });
-        transactions = result.transactions || [];
+        const rawText = await res.text();
+        transactions = await parseText(rawText);
       } else {
         const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
           file_url,
@@ -97,29 +115,35 @@ export default function ImportReport() {
           },
         });
         const out = result.output;
-        transactions = Array.isArray(out) ? out : (out?.transactions || []);
+        transactions = normalizeTransactions(Array.isArray(out) ? out : out?.transactions);
       }
-
-      const normalized = transactions
-        .filter((t) => t && Number(t.amount) > 0)
-        .map((t, i) => ({
-          id: i,
-          selected: true,
-          date: normalizeDate(t.date),
-          merchant: t.merchant || "",
-          category: mapCategory(t.category),
-          amount: Number(t.amount) || 0,
-          type: t.type === "income" ? "income" : "expense",
-        }));
-
-      if (normalized.length === 0) {
+      if (transactions.length === 0) {
         setError("Tidak ada transaksi yang berhasil diekstrak dari file.");
       } else {
-        setRows(normalized);
-        toast.success(`${normalized.length} transaksi terbaca`, { description: "Periksa data sebelum disimpan." });
+        setRows(transactions);
+        toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa data sebelum disimpan." });
       }
     } catch (err) {
       setError("Gagal membaca file. Pastikan format didukung (PDF/TXT).");
+    }
+    setParsing(false);
+  };
+
+  const handleAnalyzeText = async () => {
+    if (!text.trim()) return toast.error("Masukkan teks laporan terlebih dahulu");
+    setRows([]);
+    setError("");
+    setParsing(true);
+    try {
+      const transactions = await parseText(text);
+      if (transactions.length === 0) {
+        setError("Tidak ada transaksi yang berhasil diekstrak dari teks.");
+      } else {
+        setRows(transactions);
+        toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa data sebelum disimpan." });
+      }
+    } catch (err) {
+      setError("Gagal menganalisis teks. Coba perjelas formatnya.");
     }
     setParsing(false);
   };
@@ -176,32 +200,59 @@ export default function ImportReport() {
         <h1 className="text-xl font-semibold">Impor Laporan</h1>
       </div>
 
-      <p className="text-sm text-muted-foreground mb-4">Unggah laporan pengeluaran lama (PDF atau Teks). AI akan membaca transaksinya, lalu Anda bisa memeriksa dan memilih sebelum disimpan.</p>
+      <p className="text-sm text-muted-foreground mb-4">Unggah file atau tempel teks laporan pengeluaran lama. AI akan membaca transaksinya, lalu Anda bisa memeriksa dan memilih sebelum disimpan.</p>
 
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={parsing}
-        className="w-full rounded-2xl border-2 border-dashed border-border py-8 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60"
-      >
-        {parsing ? (
-          <>
-            <Loader2 className="w-7 h-7 animate-spin text-primary" />
-            <p className="text-sm font-medium text-primary">Membaca laporan...</p>
-          </>
-        ) : (
-          <>
-            <Upload className="w-7 h-7" />
-            <p className="text-sm font-medium">Pilih file PDF / TXT</p>
-            <p className="text-xs">AI akan mengekstrak transaksi otomatis</p>
-          </>
-        )}
-      </button>
-      <input ref={fileRef} type="file" accept=".pdf,.txt,text/plain,application/pdf" className="hidden" onChange={handleFile} />
+      <div className="flex gap-2 bg-muted p-1 rounded-2xl mb-4">
+        <button onClick={() => setMode("file")} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${mode === "file" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>Unggah File</button>
+        <button onClick={() => setMode("text")} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${mode === "text" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>Tempel Teks</button>
+      </div>
 
-      {fileName && !parsing && (
-        <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-          <FileText className="w-3.5 h-3.5" /> {fileName}
-        </div>
+      {mode === "file" ? (
+        <>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={parsing}
+            className="w-full rounded-2xl border-2 border-dashed border-border py-8 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60"
+          >
+            {parsing ? (
+              <>
+                <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                <p className="text-sm font-medium text-primary">Membaca laporan...</p>
+              </>
+            ) : (
+              <>
+                <Upload className="w-7 h-7" />
+                <p className="text-sm font-medium">Pilih file PDF / TXT</p>
+                <p className="text-xs">AI akan mengekstrak transaksi otomatis</p>
+              </>
+            )}
+          </button>
+          <input ref={fileRef} type="file" accept=".pdf,.txt,text/plain,application/pdf" className="hidden" onChange={handleFile} />
+
+          {fileName && !parsing && (
+            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+              <FileText className="w-3.5 h-3.5" /> {fileName}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={8}
+            placeholder={"Tempel atau ketik teks laporan keuangan di sini...\n\nContoh:\n2 Jan 2026 - Bayar listrik PLN Rp 500.000\n5 Jan 2026 - Belanja bulanan Indomaret 350000\n10 Jan 2026 - Gaji bulanan 8.000.000"}
+            className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none"
+          />
+          <button
+            onClick={handleAnalyzeText}
+            disabled={parsing || !text.trim()}
+            className="w-full mt-3 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+          >
+            {parsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSearch className="w-5 h-5" />}
+            {parsing ? "Menganalisis..." : "Analisis Teks"}
+          </button>
+        </>
       )}
 
       {error && (

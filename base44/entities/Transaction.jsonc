@@ -1,0 +1,43 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "income",
+        "expense",
+        "sedekah"
+      ],
+      "default": "expense"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "category": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "merchant": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "input_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "amount",
+    "category",
+    "date"
+  ]
+}

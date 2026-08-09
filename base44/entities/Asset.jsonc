@@ -1,0 +1,40 @@
+{
+  "name": "Asset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "bank",
+        "emas",
+        "investasi",
+        "properti",
+        "lainnya"
+      ],
+      "default": "bank"
+    },
+    "value": {
+      "type": "number"
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "value"
+  ]
+}

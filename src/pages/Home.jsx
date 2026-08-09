@@ -1,0 +1,106 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+import { useTransactions, useCategories } from "@/hooks/useFinance";
+import { formatRupiah, formatDate } from "@/lib/finance";
+import TransactionItem from "@/components/TransactionItem";
+import EmptyState from "@/components/EmptyState";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles } from "lucide-react";
+
+export default function Home() {
+  const [user, setUser] = useState(null);
+  const { data: transactions = [] } = useTransactions();
+  const { data: categories = [] } = useCategories();
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const now = new Date();
+  const monthTx = transactions.filter((t) => {
+    const d = new Date(t.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const income = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const sedekah = monthTx.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+  const recent = transactions.slice(0, 5);
+
+  const greeting = (() => {
+    const h = now.getHours();
+    if (h < 11) return "Selamat pagi";
+    if (h < 15) return "Selamat siang";
+    if (h < 19) return "Selamat sore";
+    return "Selamat malam";
+  })();
+
+  return (
+    <div className="px-5 pt-8">
+      <header className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{greeting},</p>
+          <h1 className="text-lg font-semibold">{user?.full_name || user?.email || "Keluarga"}</h1>
+        </div>
+        <Link to="/pengaturan" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+          <Settings className="w-5 h-5 text-muted-foreground" />
+        </Link>
+      </header>
+
+      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-5">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs opacity-80">Saldo bulan ini</span>
+          <Wallet className="w-4 h-4 opacity-80" />
+        </div>
+        <p className="text-3xl font-bold tracking-tight">{formatRupiah(balance)}</p>
+        <div className="flex gap-4 mt-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 text-xs opacity-80">
+              <TrendingUp className="w-3.5 h-3.5" /> Pemasukan
+            </div>
+            <p className="font-semibold text-sm mt-0.5">{formatRupiah(income)}</p>
+          </div>
+          <div className="w-px bg-primary-foreground/20" />
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 text-xs opacity-80">
+              <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
+            </div>
+            <p className="font-semibold text-sm mt-0.5">{formatRupiah(expense)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <Link to="/laporan" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center mb-2">
+            <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+          </div>
+          <p className="text-sm font-medium">Laporan</p>
+          <p className="text-xs text-muted-foreground">Bulanan & zakat</p>
+        </Link>
+        <Link to="/add" className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-teal-100 dark:bg-teal-950/40 flex items-center justify-center mb-2">
+            <Heart className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+          </div>
+          <p className="text-sm font-medium">Sedekah</p>
+          <p className="text-xs text-muted-foreground">{formatRupiah(sedekah)} bulan ini</p>
+        </Link>
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-semibold">Transaksi terbaru</h2>
+        <Link to="/riwayat" className="text-xs text-muted-foreground flex items-center gap-1">
+          Semua <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card px-4">
+        {recent.length === 0 ? (
+          <EmptyState icon={Wallet} title="Belum ada transaksi" subtitle="Tekan tombol + untuk mencatat pengeluaran atau pemasukan." />
+        ) : (
+          recent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
+        )}
+      </div>
+    </div>
+  );
+}

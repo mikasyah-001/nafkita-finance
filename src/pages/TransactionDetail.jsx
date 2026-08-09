@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
 import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle } from "lucide-react";
@@ -37,6 +38,7 @@ export default function TransactionDetail() {
         merchant: tx.merchant || "",
         notes: tx.notes || "",
         photo_url: tx.photo_url || "",
+        tags: tx.tags || [],
       });
     }
   }, [tx, form]);
@@ -110,6 +112,7 @@ export default function TransactionDetail() {
         merchant: form.merchant || "",
         notes: form.notes || "",
         photo_url: form.photo_url || "",
+        tags: form.tags || [],
       });
       refresh();
       toast.success("Transaksi diperbarui");
@@ -219,6 +222,11 @@ export default function TransactionDetail() {
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Tambah catatan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
           </div>
 
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Tag</label>
+            <TagInput tags={form.tags || []} onChange={(t) => setForm({ ...form, tags: t })} />
+          </div>
+
           <button onClick={handleDelete} className="w-full py-3 rounded-2xl border border-red-200 dark:border-red-900/40 text-red-500 font-medium text-sm flex items-center justify-center gap-2 mt-2">
             <Trash2 className="w-4 h-4" /> Hapus Transaksi
           </button>
@@ -262,6 +270,17 @@ export default function TransactionDetail() {
         <DetailRow icon={User} label="Dicatat oleh" value={tx.input_by_name || "Keluarga"} />
         {tx.notes && <DetailRow icon={Receipt} label="Catatan" value={tx.notes} />}
       </div>
+
+      {tx.tags?.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-4 mt-4">
+          <p className="text-xs text-muted-foreground mb-2">Tag</p>
+          <div className="flex flex-wrap gap-1.5">
+            {tx.tags.map((t) => (
+              <span key={t} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">{t}</span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

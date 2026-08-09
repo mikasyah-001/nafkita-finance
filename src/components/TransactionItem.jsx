@@ -22,6 +22,13 @@ export default function TransactionItem({ tx, categories }) {
         <p className="text-xs text-muted-foreground truncate">
           {tx.input_by_name || "Keluarga"} • {formatDate(tx.date, "dd MMM, HH:mm")}
         </p>
+        {tx.tags?.length > 0 && (
+          <div className="flex gap-1 flex-wrap mt-1">
+            {tx.tags.map((t) => (
+              <span key={t} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-medium">{t}</span>
+            ))}
+          </div>
+        )}
       </div>
       <div className={`text-sm font-semibold whitespace-nowrap ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
         {isIncome ? "+" : "-"}{formatRupiah(tx.amount)}

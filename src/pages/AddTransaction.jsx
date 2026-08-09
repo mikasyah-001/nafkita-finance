@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates } from "@/hooks/useFinance";
 import { colorMap, formatRupiah } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
 import { ArrowLeft, Camera, ScanLine, Loader2, Check, X } from "lucide-react";
@@ -34,6 +35,7 @@ export default function AddTransaction() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tags, setTags] = useState([]);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -115,6 +117,7 @@ export default function AddTransaction() {
         notes: notes || "",
         photo_url: photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
+        tags,
       });
       toast.success("Tersimpan offline", { description: "Akan otomatis disinkron saat koneksi kembali." });
       navigate("/");
@@ -131,6 +134,7 @@ export default function AddTransaction() {
         notes: notes || "",
         photo_url: photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
+        tags,
       });
       if (saveAsTemplate) {
         try {
@@ -311,6 +315,11 @@ export default function AddTransaction() {
             placeholder="Tambah catatan..."
             className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none"
           />
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Tag</label>
+          <TagInput tags={tags} onChange={setTags} />
         </div>
       </div>
 

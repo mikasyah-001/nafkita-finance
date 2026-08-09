@@ -32,6 +32,13 @@
     },
     "input_by_name": {
       "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
     }
   },
   "required": [

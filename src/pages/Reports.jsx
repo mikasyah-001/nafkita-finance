@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useTransactions, useAssets } from "@/hooks/useFinance";
+import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import MonthComparison from "@/components/MonthComparison";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -10,6 +11,7 @@ const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#63
 export default function Reports() {
   const { data: transactions = [] } = useTransactions();
   const { data: assets = [] } = useAssets();
+  const { data: categories = [] } = useCategories();
   const [cursor, setCursor] = useState(new Date());
   const [emasPrice, setEmasPrice] = useState("");
 
@@ -97,6 +99,8 @@ export default function Reports() {
           </div>
         </div>
       )}
+
+      <MonthComparison transactions={transactions} categories={categories} year={year} month={month} />
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>

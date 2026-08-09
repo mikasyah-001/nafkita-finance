@@ -196,7 +196,7 @@ export default function AssetDashboard() {
   );
 }
 
-function SummaryCard({ icon: Icon, color, label, value, sub, growth }) {
+function SummaryCard({ icon: Icon, color, label, value, sub, growth = 0 }) {
   const colorClasses = {
     amber: "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
     green: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",

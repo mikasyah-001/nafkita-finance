@@ -53,6 +53,24 @@ export const defaultCategories = [
   { name: "Pemasukan Lain", type: "income", color: "cyan", icon: "Plus", is_default: true },
 ];
 
+export function formatDuration(fromDate) {
+  if (!fromDate) return "";
+  const from = new Date(fromDate);
+  if (isNaN(from)) return "";
+  const now = new Date();
+  let months = (now.getFullYear() - from.getFullYear()) * 12 + (now.getMonth() - from.getMonth());
+  if (now.getDate() < from.getDate()) months--;
+  if (months < 0) months = 0;
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  if (years > 0 && remMonths > 0) return `${years} thn ${remMonths} bln`;
+  if (years > 0) return `${years} thn`;
+  if (remMonths > 0) return `${remMonths} bln`;
+  const days = Math.floor((now - from) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Hari ini";
+  return `${days} hari`;
+}
+
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
   emas: { label: "Emas", icon: "Coins", color: "amber" },

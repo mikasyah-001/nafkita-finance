@@ -25,6 +25,13 @@
     "unit": {
       "type": "string"
     },
+    "purchase_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "purchase_price": {
+      "type": "number"
+    },
     "owner": {
       "type": "string"
     },

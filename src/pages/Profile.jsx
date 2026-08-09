@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Loader2, Check, User } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
+import FamilyMembers from "@/components/FamilyMembers";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -98,6 +99,8 @@ export default function Profile() {
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
+
+      <FamilyMembers />
     </div>
   );
 }

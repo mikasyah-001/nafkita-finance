@@ -42,20 +42,7 @@ export default function BudgetBars({ scope = "shared" }) {
   }, [transactions, categories, budgets, period, scope]);
 
   if (rows.length === 0) {
-    return (
-      <Link to="/anggaran" className="block rounded-2xl border border-dashed border-border bg-card p-4 mb-6 active:scale-[0.98] transition-transform">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center">
-            <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">Atur anggaran bulanan</p>
-            <p className="text-xs text-muted-foreground">Pantau sisa anggaran tiap kategori di sini.</p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </Link>
-    );
+    return null;
   }
 
   return (

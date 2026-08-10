@@ -42,7 +42,15 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   ))}
                 </select>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1.5">{t.date || "Tanggal hari ini"}</p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-[10px] text-muted-foreground shrink-0">Tanggal</span>
+                <input
+                  type="date"
+                  value={t.date || ""}
+                  onChange={(e) => onChange(i, { date: e.target.value })}
+                  className="flex-1 rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
+                />
+              </div>
             </div>
           ))}
         </div>

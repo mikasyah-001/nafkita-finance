@@ -12,12 +12,35 @@ export default async function(req) {
     const users = await base44.asServiceRole.entities.User.list();
     const assets = await base44.asServiceRole.entities.Asset.list();
 
-    const emasAssets = assets.filter((a) => a.type === "emas" && a.visibility !== "private");
+    const sharedAssets = assets.filter((a) => a.visibility !== "private");
+    const emasAssets = sharedAssets.filter((a) => a.type === "emas");
     const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
+    const nonEmasValue = sharedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
 
-    if (emasGrams < 85) {
-      return Response.json({ sent: 0, emasGrams, wajib: false });
+    // Cek harga emas pasar untuk nisab simpanan
+    let goldPrice = 0;
+    try {
+      const r = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: "Cari harga emas per gram di Indonesia saat ini (Antam). Jawab hanya angka harga per gram dalam Rupiah.",
+        add_context_from_internet: true,
+        response_json_schema: { type: "object", properties: { price_per_gram: { type: "number" } } },
+      });
+      goldPrice = r.price_per_gram || 0;
+    } catch (e) {
+      // abaikan gagal ambil harga
     }
+
+    const nisab = goldPrice * 85;
+    const wajibEmas = emasGrams >= 85;
+    const wajibSimpanan = goldPrice > 0 && nonEmasValue >= nisab;
+
+    if (!wajibEmas && !wajibSimpanan) {
+      return Response.json({ sent: 0, emasGrams, nonEmasValue, goldPrice, wajib: false });
+    }
+
+    const kewajiban = [];
+    if (wajibEmas) kewajiban.push("emas " + emasGrams + " gram (zakat 2,5% dari nilai emas)");
+    if (wajibSimpanan) kewajiban.push("simpanan " + nonEmasValue + " (zakat 2,5%)");
 
     let sent = 0;
     for (const u of users) {
@@ -25,11 +48,12 @@ export default async function(req) {
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: u.email,
-          subject: "Pengingat: Zakat Emas Anda 🕌",
+          subject: "Pengingat: Zakat Harta Anda 🕌",
           body:
             "Assalamu'alaikum " + (u.full_name || u.email) + ",\n\n" +
-            "Total emas keluarga Anda saat ini " + emasGrams + " gram telah mencapai nisab (85 gram). " +
-            "Jangan lupa menunaikan zakat mal sebesar 2,5% dari nilai emas Anda setelah genap 1 tahun (haul).\n\n" +
+            "Harta keluarga Anda telah mencapai nisab zakat. Kewajiban zakat yang perlu Anda tunaikan (2,5% setelah genap 1 tahun/haul):\n" +
+            kewajiban.map((k) => "- " + k).join("\n") + "\n\n" +
+            "Jangan lupa bayar zakat agar harta tetap berkah. Anda bisa tandai 'Bayarkan Zakat' di aplikasi NAFKITA setelah membayar.\n\n" +
             "Semoga Allah memberkahi harta Anda.\n\nNAFKITA"
         });
         sent++;
@@ -38,7 +62,7 @@ export default async function(req) {
       }
     }
 
-    return Response.json({ sent, emasGrams, wajib: true });
+    return Response.json({ sent, emasGrams, nonEmasValue, goldPrice, wajib: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

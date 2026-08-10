@@ -6,6 +6,8 @@ import { formatRupiah, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
+import ZakatNotifier from "@/components/ZakatNotifier";
+import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users } from "lucide-react";
 
 export default function Home() {
@@ -67,8 +69,10 @@ export default function Home() {
             <p className="text-xs text-amber-700/80 dark:text-amber-300/70">Belum ada transaksi dicatat hari ini. Yuk catat sekarang!</p>
           </div>
           <ArrowRight className="w-4 h-4 text-amber-600" />
-        </Link>
-      )}
+          </Link>
+          )}
+
+          <ZakatNotifier />
 
       <div className="flex gap-2 mb-4">
         <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
@@ -127,6 +131,8 @@ export default function Home() {
       </div>
 
       <BudgetBars scope={scope} />
+
+      <AssetGrowthTrend />
 
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">Transaksi terbaru</h2>

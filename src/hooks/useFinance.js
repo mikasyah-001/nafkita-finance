@@ -43,6 +43,13 @@ export function useTemplates() {
   });
 }
 
+export function useZakatPayments() {
+  return useQuery({
+    queryKey: ["zakatPayments"],
+    queryFn: () => base44.entities.ZakatPayment.list(),
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -52,5 +59,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["budgets"] });
     qc.invalidateQueries({ queryKey: ["templates"] });
     qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
+    qc.invalidateQueries({ queryKey: ["zakatPayments"] });
   };
 }

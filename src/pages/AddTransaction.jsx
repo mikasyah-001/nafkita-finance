@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, currencies } from "@/lib/finance";
+import { useCategories, useRefresh, useTemplates, useTransactions } from "@/hooks/useFinance";
+import { colorMap, formatRupiah, formatDate, currencies } from "@/lib/finance";
+import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ export default function AddTransaction() {
   const refresh = useRefresh();
   const { data: categories = [] } = useCategories();
   const { data: templates = [] } = useTemplates();
+  const { data: transactions = [] } = useTransactions();
   const [user, setUser] = useState(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [type, setType] = useState("expense");
@@ -113,7 +115,14 @@ export default function AddTransaction() {
     if (!multiTx || !multiTx.length) return;
     setSavingMulti(true);
     try {
-      const records = multiTx.map((t) => ({
+      const unique = dedupeBatch(multiTx);
+      const { toSave, skipped } = filterAgainstExisting(unique, transactions);
+      if (!toSave.length) {
+        toast.error("Semua transaksi duplikat", { description: "Tidak ada transaksi baru untuk disimpan." });
+        setSavingMulti(false);
+        return;
+      }
+      const records = toSave.map((t) => ({
         type: "expense",
         amount: t.amount,
         currency: t.currency || currency,
@@ -135,7 +144,7 @@ export default function AddTransaction() {
       }));
       await base44.entities.Transaction.bulkCreate(records);
       refresh();
-      toast.success(`${records.length} transaksi tersimpan!`);
+      toast.success(`${records.length} transaksi tersimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
       navigate("/");
     } catch (err) {
       toast.error("Gagal menyimpan transaksi");
@@ -143,7 +152,7 @@ export default function AddTransaction() {
     setSavingMulti(false);
   };
 
-  const handleSave = async () => {
+  const performSave = async () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) {
       toast.error("Masukkan nominal terlebih dahulu");
@@ -206,6 +215,24 @@ export default function AddTransaction() {
       toast.error("Gagal menyimpan transaksi");
     }
     setSaving(false);
+  };
+
+  const handleSave = () => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return toast.error("Masukkan nominal terlebih dahulu");
+    if (type !== "sedekah" && !category) return toast.error("Pilih kategori");
+    const dup = findDuplicate(
+      { type, amount: amt, currency, date: new Date(date).toISOString(), merchant, visibility },
+      transactions
+    );
+    if (dup) {
+      toast("Transaksi serupa sudah tercatat", {
+        description: `${dup.merchant || dup.category || "Transaksi"} • ${formatRupiah(dup.amount)} • ${formatDate(dup.date, "dd MMM yyyy, HH:mm")}`,
+        action: { label: "Tetap Simpan", onClick: performSave },
+      });
+      return;
+    }
+    performSave();
   };
 
   if (multiTx) {

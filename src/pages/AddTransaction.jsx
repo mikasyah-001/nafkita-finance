@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
-import { ArrowLeft, Camera, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
+import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
 
 const typeTabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -67,18 +67,19 @@ export default function AddTransaction() {
   const handleScan = async (e) => {
     const files = Array.from(e.target.files || []).slice(0, 5);
     if (!files.length) return;
-    if (files.length > 5) toast.message("Maksimal 5 foto", { description: "Hanya 5 foto pertama yang diproses." });
+    if (fileRef.current) fileRef.current.value = "";
     setScanning(true);
     try {
-      const uploaded = await Promise.all(files.map((f) => base44.integrations.Core.UploadFile({ file: f })));
-      const urls = uploaded.map((u) => u.file_url);
-      setPhotoUrl(urls[0]);
-      setPhotoUrls(urls);
-      const results = await Promise.all(urls.map((u) => scanReceipt(u, categories)));
+      const urls = [];
       const allTx = [];
-      results.forEach((r, idx) => {
-        (r.transactions || []).forEach((t) => allTx.push({ ...t, photo_url: urls[idx] }));
-      });
+      for (let i = 0; i < files.length; i++) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: files[i] });
+        urls.push(file_url);
+        setPhotoUrls([...urls]);
+        setPhotoUrl(file_url);
+        const { transactions } = await scanReceipt(file_url, categories);
+        (transactions || []).forEach((t) => allTx.push({ ...t, photo_url: file_url }));
+      }
       if (!allTx.length) {
         toast.error("Tidak ada transaksi terbaca", { description: "Silakan isi manual." });
         setScanning(false);
@@ -116,7 +117,7 @@ export default function AddTransaction() {
         toast.success(`${allTx.length} transaksi terbaca dari ${urls.length} foto`, { description: "Periksa kategori lalu simpan semua." });
       }
     } catch (err) {
-      toast.error("Gagal membaca bon", { description: "Silakan isi manual." });
+      toast.error("Gagal membaca bon", { description: err?.message || "Silakan isi manual." });
     }
     setScanning(false);
   };

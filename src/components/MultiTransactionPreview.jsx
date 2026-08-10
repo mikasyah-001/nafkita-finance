@@ -21,7 +21,12 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
           {items.map((t, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {t.photo_url && (
+                    <img src={t.photo_url} alt="bon" className="w-9 h-9 object-cover rounded-lg shrink-0" />
+                  )}
+                  <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
+                </div>
                 <p className="text-sm font-bold ml-2">{formatMoney(t.amount, t.currency)}</p>
               </div>
               <div className="flex gap-2">

@@ -86,6 +86,7 @@ export default function AddTransaction() {
       }
       if (allTx.length === 1) {
         const p = allTx[0];
+        if (p.photo_url) { setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
         if (p.amount) setAmount(String(p.amount));
         if (p.merchant) setMerchant(p.merchant);
         if (p.category) setCategory(p.category);

@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh } from "@/hooks/useFinance";
-import { assetTypeLabels } from "@/lib/finance";
+import { assetTypeLabels, formatRupiah } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
 
-const types = ["bank", "emas", "investasi", "properti", "lainnya"];
+const types = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"];
 
 const empty = {
   name: "", type: "bank", value: "", quantity: "", unit: "",
@@ -50,6 +50,8 @@ export default function AssetForm({ asset, onClose }) {
     if (!form.name) return toast.error("Isi nama aset");
     if (!form.value && form.type !== "emas") return toast.error("Isi nilai aset");
     if (form.type === "emas" && !form.quantity) return toast.error("Isi jumlah gram emas");
+    if (form.type === "tanah" && !form.quantity) return toast.error("Isi luas tanah");
+    if (form.type === "tanah" && !form.purchase_price) return toast.error("Isi harga beli per m²");
     setSaving(true);
     try {
       const value =
@@ -61,7 +63,7 @@ export default function AssetForm({ asset, onClose }) {
         type: form.type,
         value,
         quantity: form.quantity ? Number(form.quantity) : 0,
-        unit: form.type === "emas" ? "gram" : form.unit,
+        unit: form.type === "emas" ? "gram" : form.type === "tanah" ? "m²" : form.unit,
         purchase_date: form.purchase_date || "",
         purchase_price: form.purchase_price ? Number(form.purchase_price) : 0,
         purchase_proof_url: form.purchase_proof_url || "",
@@ -101,7 +103,7 @@ export default function AssetForm({ asset, onClose }) {
           <Field label="Jenis">
             <div className="flex gap-2 flex-wrap">
               {types.map((t) => (
-                <button key={t} onClick={() => setForm({ ...form, type: t, unit: t === "emas" ? "gram" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <button key={t} onClick={() => setForm({ ...form, type: t, unit: t === "emas" ? "gram" : t === "tanah" ? "m²" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   {assetTypeLabels[t].label}
                 </button>
               ))}
@@ -117,6 +119,21 @@ export default function AssetForm({ asset, onClose }) {
                 <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="Mis. 1350000" className="input" />
               </Field>
             </>
+          ) : form.type === "tanah" ? (
+            <>
+              <Field label="Luas Tanah (m²)">
+                <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Mis. 100" className="input" />
+              </Field>
+              <Field label="Harga Beli / m² (Rp)">
+                <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="Mis. 500000" className="input" />
+              </Field>
+              {form.purchase_price && form.quantity ? (
+                <p className="text-xs text-muted-foreground -mt-1">Total harga beli: <span className="font-medium text-foreground">{formatRupiah(Number(form.purchase_price) * Number(form.quantity))}</span></p>
+              ) : null}
+              <Field label="Perkiraan Harga Sekarang (Rp)">
+                <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
+              </Field>
+            </>
           ) : (
             <Field label="Nilai Saat Ini (Rp)">
               <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
@@ -127,7 +144,7 @@ export default function AssetForm({ asset, onClose }) {
             <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
           </Field>
 
-          {form.type !== "emas" && (
+          {form.type !== "emas" && form.type !== "tanah" && (
             <Field label="Harga Pembelian (Rp, opsional)">
               <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
             </Field>

@@ -90,5 +90,6 @@ export const assetTypeLabels = {
   emas: { label: "Emas", icon: "Coins", color: "amber" },
   investasi: { label: "Investasi", icon: "Briefcase", color: "green" },
   properti: { label: "Properti", icon: "Home", color: "violet" },
+  tanah: { label: "Tanah", icon: "Map", color: "cyan" },
   lainnya: { label: "Lainnya", icon: "Package", color: "slate" },
 };

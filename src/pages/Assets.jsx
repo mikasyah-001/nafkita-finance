@@ -42,7 +42,7 @@ export default function Assets() {
     return a.value || 0;
   };
 
-  const typeOptions = ["all", "bank", "emas", "investasi", "properti", "lainnya"];
+  const typeOptions = ["all", "bank", "emas", "investasi", "properti", "tanah", "lainnya"];
   const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
 
   const sortedAssets = [...filteredAssets].sort((a, b) => {
@@ -226,7 +226,7 @@ export default function Assets() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.type === "emas" && a.quantity ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             const isGain = gain >= 0;
@@ -247,6 +247,7 @@ export default function Assets() {
                     <p className="text-xs text-muted-foreground">
                       {meta.label}{a.owner ? ` • ${a.owner}` : ""}
                       {a.type === "emas" && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
+                      {a.type === "tanah" && a.quantity ? ` • ${formatNumber(a.quantity)} m²` : ""}
                     </p>
                   </div>
                   <div className="text-right">
@@ -270,9 +271,35 @@ export default function Assets() {
                   </div>
                 </div>
 
-                {(hasPurchase || duration) && (
+                {(hasPurchase || duration || a.type === "tanah") && (
                   <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs">
-                    {hasPurchase && (
+                    {a.type === "tanah" ? (
+                      <>
+                        <div>
+                          <p className="text-muted-foreground">Harga Beli /m²</p>
+                          <p className="font-medium">{formatRupiah(a.purchase_price)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Luas</p>
+                          <p className="font-medium">{formatNumber(a.quantity)} m²</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total Beli</p>
+                          <p className="font-medium">{formatRupiah(totalPurchase)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Perkiraan Sekarang</p>
+                          <p className="font-medium">{formatRupiah(curVal)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Perubahan</p>
+                          <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
+                            {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {isGain ? "+" : ""}{formatRupiah(gain)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                          </p>
+                        </div>
+                      </>
+                    ) : hasPurchase && (
                       <>
                         <div>
                           <p className="text-muted-foreground">Harga Beli{a.type === "emas" ? " /gr" : ""}</p>

@@ -81,6 +81,7 @@ export default function TransactionDetail() {
         amount: parsed.amount ? String(parsed.amount) : f.amount,
         merchant: parsed.merchant || f.merchant,
         category: parsed.category || f.category,
+        notes: parsed.notes || f.notes,
         date: parsed.date ? (() => { const d = new Date(parsed.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
       }));
       toast.success("Bon dibaca ulang", { description: parsed.category ? `Kategori: ${parsed.category}` : "Periksa data sebelum simpan." });

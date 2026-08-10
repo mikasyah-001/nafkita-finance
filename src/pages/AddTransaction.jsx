@@ -67,6 +67,7 @@ export default function AddTransaction() {
       if (parsed.amount) setAmount(String(parsed.amount));
       if (parsed.merchant) setMerchant(parsed.merchant);
       if (parsed.category) setCategory(parsed.category);
+      if (parsed.notes) setNotes(parsed.notes);
       if (parsed.date) {
         const d = new Date(parsed.date);
         if (!isNaN(d)) {

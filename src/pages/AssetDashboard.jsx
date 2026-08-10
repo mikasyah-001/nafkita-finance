@@ -63,7 +63,7 @@ export default function AssetDashboard() {
     try {
       const result = await base44.integrations.Core.InvokeLLM({
         prompt:
-          "Berikan data harga emas per gram di Indonesia untuk 6 bulan terakhir (termasuk bulan ini). Sertakan nama bulan (format: MMM yyyy, contoh: 'Mar 2026') dan harga per gram dalam Rupiah. Urutkan dari yang paling lama ke terbaru. Sebutkan juga nama sumber referensi data (mis. Antam, Pegadaian, Logam Mulia) dan URL jika ada.",
+          "Berikan data harga emas Antam (Aneka Logam) per gram di Indonesia untuk 6 bulan terakhir (termasuk bulan ini). Gunakan Antam sebagai sumber utama dan standar. Sertakan nama bulan (format: MMM yyyy, contoh: 'Mar 2026') dan harga per gram dalam Rupiah. Urutkan dari yang paling lama ke terbaru. Sebutkan juga nama sumber referensi data (Antam) dan URL jika ada.",
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",

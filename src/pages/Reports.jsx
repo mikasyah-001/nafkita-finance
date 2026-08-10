@@ -5,7 +5,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
 import AssetGrowthChart from "@/components/AssetGrowthChart";
-import { fetchGoldPricesMulti } from "@/lib/goldPrice";
+import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2 } from "lucide-react";
 
@@ -22,8 +22,8 @@ export default function Reports() {
 
   useEffect(() => {
     setGoldLoading(true);
-    fetchGoldPricesMulti()
-      .then((res) => { if (res.length) setEmasPrice(String(Math.round(res[0].price_per_gram))); })
+    fetchGoldPriceStandard()
+      .then((src) => { if (src) setEmasPrice(String(Math.round(src.price_per_gram))); })
       .catch(() => {})
       .finally(() => setGoldLoading(false));
   }, []);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fetchGoldPricesMulti } from "@/lib/goldPrice";
+import { fetchGoldPricesMulti, pickAntamSource, isAntamSource } from "@/lib/goldPrice";
 import { formatRupiah, formatNumber } from "@/lib/finance";
 import { toast } from "sonner";
 import { Coins, Loader2, ExternalLink, Check, Search } from "lucide-react";
@@ -16,10 +16,11 @@ export default function GoldPriceCompare({ value, onChange, grams = 0 }) {
       if (!res.length) {
         toast.error("Tidak ada sumber harga ditemukan");
       } else {
+        const std = pickAntamSource(res);
         setSources(res);
         setFetchedAt(new Date());
-        if (!value) onChange(String(Math.round(res[0].price_per_gram)));
-        toast.success(`${res.length} sumber harga emas ditemukan`, { description: "Pilih sumber untuk dipakai." });
+        if (!value) onChange(String(Math.round(std.price_per_gram)));
+        toast.success(`${res.length} sumber harga emas ditemukan`, { description: isAntamSource(std) ? "Harga Antam dipakai sebagai standar." : "Pilih sumber untuk dipakai." });
       }
     } catch {
       toast.error("Gagal mengambil harga emas");
@@ -51,13 +52,17 @@ export default function GoldPriceCompare({ value, onChange, grams = 0 }) {
       {sources.length > 0 ? (
         <div className="space-y-1.5 mt-2">
           <p className="text-[11px] text-muted-foreground">Pilih sumber referensi:</p>
-          {sources.map((s, i) => {
+          {[...sources].sort((a, b) => (isAntamSource(b) ? 1 : 0) - (isAntamSource(a) ? 1 : 0)).map((s, i) => {
             const price = Math.round(s.price_per_gram);
             const active = price === valueNum;
+            const standard = isAntamSource(s);
             return (
               <div key={i} onClick={() => onChange(String(price))} className={`w-full flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all ${active ? "bg-amber-600 text-white" : "bg-background border border-border"}`}>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-medium truncate ${active ? "text-white" : ""}`}>{s.source}</p>
+                  <p className={`text-xs font-medium truncate flex items-center gap-1.5 ${active ? "text-white" : ""}`}>
+                    {s.source}
+                    {standard && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${active ? "bg-white/20 text-white" : "bg-amber-100 dark:bg-amber-950/40 text-amber-600"}`}>Standar</span>}
+                  </p>
                   <p className={`text-[10px] truncate ${active ? "text-white/80" : "text-muted-foreground"}`}>{s.date || "—"}{grams > 0 ? ` • nilai ${formatRupiah(grams * price)}` : ""}</p>
                 </div>
                 {s.url && (

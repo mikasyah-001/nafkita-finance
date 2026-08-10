@@ -25,3 +25,17 @@ export async function fetchGoldPricesMulti() {
   });
   return (result.sources || []).filter((s) => s.price_per_gram > 0);
 }
+
+export function isAntamSource(s) {
+  return !!s && /antam|aneka logam/i.test(s.source || "");
+}
+
+export function pickAntamSource(sources) {
+  if (!sources || !sources.length) return null;
+  return sources.find(isAntamSource) || sources[0];
+}
+
+export async function fetchGoldPriceStandard() {
+  const sources = await fetchGoldPricesMulti();
+  return pickAntamSource(sources);
+}

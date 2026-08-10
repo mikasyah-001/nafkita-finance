@@ -20,6 +20,7 @@ import AssetDashboard from '@/pages/AssetDashboard';
 import ImportReport from '@/pages/ImportReport';
 import TransactionDetail from '@/pages/TransactionDetail';
 import Profile from '@/pages/Profile';
+import Categories from '@/pages/Categories';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
           <Route path="/transaksi/:id" element={<TransactionDetail />} />
           <Route path="/pengaturan" element={<Settings />} />
           <Route path="/profil" element={<Profile />} />
+          <Route path="/kategori" element={<Categories />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -6,9 +6,10 @@ import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, asset
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
+import GoldPriceCompare from "@/components/GoldPriceCompare";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -24,7 +25,6 @@ export default function Assets() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [goldPrice, setGoldPrice] = useState("");
-  const [fetchingPrice, setFetchingPrice] = useState(false);
   const [scope, setScope] = useState("shared");
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
@@ -68,27 +68,6 @@ export default function Assets() {
     return d === null || t < d ? t : d;
   }, null);
   const hasReachedHaul = earliestEmasDate != null && (Date.now() - earliestEmasDate) >= 354 * 24 * 3600 * 1000;
-
-  const fetchGoldPrice = async () => {
-    setFetchingPrice(true);
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: "Cari harga emas per gram di Indonesia saat ini (harga emas Antam atau emas batangan terbaru). Berikan harga per gram dalam Rupiah. Jawab hanya dengan angka.",
-        add_context_from_internet: true,
-        response_json_schema: { type: "object", properties: { price_per_gram: { type: "number" } } },
-      });
-      const price = result.price_per_gram;
-      if (price && price > 0) {
-        setGoldPrice(String(Math.round(price)));
-        toast.success("Harga emas diperbarui", { description: `Rp ${formatNumber(Math.round(price))} /gram` });
-      } else {
-        toast.error("Tidak dapat menemukan harga emas");
-      }
-    } catch {
-      toast.error("Gagal mengambil harga emas", { description: "Masukkan harga manual." });
-    }
-    setFetchingPrice(false);
-  };
 
   const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
   const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
@@ -172,22 +151,7 @@ export default function Assets() {
           </button>
           {emasOpen && (
             <div className="px-4 pb-4 space-y-3">
-              <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Coins className="w-3.5 h-3.5 text-amber-600" />
-                  <p className="text-xs font-medium">Harga Emas Pasar</p>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex items-center flex-1 rounded-lg bg-background border border-border px-3">
-                    <span className="text-xs text-muted-foreground">Rp</span>
-                    <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2 text-sm outline-none bg-transparent" />
-                  </div>
-                  <button onClick={fetchGoldPrice} disabled={fetchingPrice} className="px-3 rounded-lg bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
-                    {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Cek
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1.5">Nilai emas mengikuti harga pasar ini.</p>
-              </div>
+              <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />
 
               <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3">
                 <div className="flex items-center gap-1.5 mb-2">

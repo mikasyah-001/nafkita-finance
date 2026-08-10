@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, Briefcase, BarChart3, Wallet } from "lucide-react";
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, Briefcase, BarChart3, Wallet, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
+import GoldPriceCompare from "@/components/GoldPriceCompare";
 
 export default function AssetDashboard() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function AssetDashboard() {
   const [goldHistory, setGoldHistory] = useState([]);
   const [fetching, setFetching] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [goldSource, setGoldSource] = useState("");
 
   const goldPriceNum = Number(goldPrice) || 0;
 
@@ -37,6 +39,14 @@ export default function AssetDashboard() {
   const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
+  const allocColors = { "Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Lainnya": "#64748b" };
+  const allocation = ["bank", "emas", "investasi", "properti", "lainnya"]
+    .map((type) => {
+      const val = assets.filter((a) => a.type === type).reduce((s, a) => s + (a.type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
+      return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
+    })
+    .filter((x) => x.value > 0);
+
   useEffect(() => {
     (async () => {
       setSeeding(true);
@@ -53,7 +63,7 @@ export default function AssetDashboard() {
     try {
       const result = await base44.integrations.Core.InvokeLLM({
         prompt:
-          "Berikan data harga emas per gram di Indonesia untuk 6 bulan terakhir (termasuk bulan ini). Sertakan nama bulan (format: MMM yyyy, contoh: 'Mar 2026') dan harga per gram dalam Rupiah. Urutkan dari yang paling lama ke terbaru.",
+          "Berikan data harga emas per gram di Indonesia untuk 6 bulan terakhir (termasuk bulan ini). Sertakan nama bulan (format: MMM yyyy, contoh: 'Mar 2026') dan harga per gram dalam Rupiah. Urutkan dari yang paling lama ke terbaru. Sebutkan juga nama sumber referensi data (mis. Antam, Pegadaian, Logam Mulia) dan URL jika ada.",
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
@@ -65,6 +75,8 @@ export default function AssetDashboard() {
                 properties: { month: { type: "string" }, price: { type: "number" } },
               },
             },
+            source: { type: "string" },
+            url: { type: "string" },
           },
         },
       });
@@ -73,8 +85,9 @@ export default function AssetDashboard() {
         toast.error("Tidak dapat menemukan riwayat harga emas");
       } else {
         setGoldHistory(prices);
+        setGoldSource(result.source || "");
         if (prices.length > 0) setGoldPrice(String(Math.round(prices[prices.length - 1].price)));
-        toast.success("Riwayat harga emas dimuat", { description: `${prices.length} bulan data` });
+        toast.success("Riwayat harga emas dimuat", { description: `${prices.length} bulan data${result.source ? ` • ${result.source}` : ""}` });
       }
     } catch {
       toast.error("Gagal mengambil riwayat harga emas");
@@ -110,6 +123,10 @@ export default function AssetDashboard() {
         <SummaryCard icon={Briefcase} color="green" label="Investasi" value={formatRupiah(investasiValue)} sub={`${investasiAssets.length} aset`} growth={investasiPurchase > 0 ? ((investasiValue - investasiPurchase) / investasiPurchase) * 100 : 0} />
         <SummaryCard icon={Wallet} color="indigo" label="Total Aset" value={formatRupiah(totalCurrent)} sub={`Beli: ${formatRupiah(totalPurchase)}`} growth={totalGrowth} />
         <SummaryCard icon={BarChart3} color="violet" label="Snapshot" value={`${snapshots.length} bln`} sub="Data tersimpan" />
+      </div>
+
+      <div className="mb-5">
+        <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4 mb-5">
@@ -152,6 +169,9 @@ export default function AssetDashboard() {
                 </span>
               </div>
             )}
+            {goldSource && (
+              <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Sumber: {goldSource}</p>
+            )}
           </>
         ) : (
           <div className="py-10 text-center">
@@ -192,6 +212,23 @@ export default function AssetDashboard() {
           </div>
         )}
       </div>
+
+      {allocation.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-4 mt-5">
+          <h2 className="font-semibold text-sm flex items-center gap-2 mb-3"><PieChartIcon className="w-4 h-4 text-violet-500" /> Komposisi Aset</h2>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={allocation} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={42} paddingAngle={2}>
+                  {allocation.map((entry, i) => <Cell key={i} fill={allocColors[entry.name] || "#94a3b8"} />)}
+                </Pie>
+                <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

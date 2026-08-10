@@ -25,6 +25,7 @@ import Categories from '@/pages/Categories';
 import AsistenStruk from '@/pages/AsistenStruk';
 import Ringkasan from '@/pages/Ringkasan';
 import InvestmentDetail from '@/pages/InvestmentDetail';
+import Welcome from '@/pages/Welcome';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -53,6 +54,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route path="/selamat-datang" element={<Welcome />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/riwayat" element={<Transactions />} />

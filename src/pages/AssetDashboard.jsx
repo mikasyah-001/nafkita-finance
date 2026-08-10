@@ -31,11 +31,11 @@ export default function AssetDashboard() {
     if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
     return s + (a.value || 0);
   }, 0);
-  const totalPurchase = assets.reduce((s, a) => s + (a.purchase_price || 0), 0);
+  const totalPurchase = assets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
-  const emasGrowth = emasAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
-  const emasGrowthPct = emasGrowth > 0 && emasValue > 0 ? ((emasValue - emasGrowth) / emasGrowth) * 100 : 0;
+  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
   useEffect(() => {
     (async () => {

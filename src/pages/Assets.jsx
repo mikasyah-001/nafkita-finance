@@ -251,9 +251,11 @@ export default function Assets() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const gain = hasPurchase ? curVal - a.purchase_price : 0;
-            const gainPct = hasPurchase && a.purchase_price > 0 ? (gain / a.purchase_price) * 100 : 0;
+            const totalPurchase = hasPurchase ? (a.type === "emas" && a.quantity ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const gain = hasPurchase ? curVal - totalPurchase : 0;
+            const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             const isGain = gain >= 0;
+            const showChange = hasPurchase && (a.type !== "emas" || goldPriceNum > 0);
             const duration = formatDuration(a.purchase_date);
 
             return (
@@ -298,15 +300,19 @@ export default function Assets() {
                     {hasPurchase && (
                       <>
                         <div>
-                          <p className="text-muted-foreground">Harga Beli</p>
+                          <p className="text-muted-foreground">Harga Beli{a.type === "emas" ? " /gr" : ""}</p>
                           <p className="font-medium">{formatRupiah(a.purchase_price)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>
-                          <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
-                            {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                            {isGain ? "+" : ""}{formatRupiah(gain)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
-                          </p>
+                          {showChange ? (
+                            <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
+                              {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                              {isGain ? "+" : ""}{formatRupiah(gain)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground text-[11px]">Set harga emas dulu</p>
+                          )}
                         </div>
                       </>
                     )}

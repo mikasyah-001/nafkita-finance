@@ -8,6 +8,7 @@ import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
 import { scanReceipt } from "@/lib/scanReceipt";
+import MultiTransactionPreview from "@/components/MultiTransactionPreview";
 import { ArrowLeft, Camera, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
 
 const typeTabs = [
@@ -38,6 +39,8 @@ export default function AddTransaction() {
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
+  const [multiTx, setMultiTx] = useState(null);
+  const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -63,24 +66,65 @@ export default function AddTransaction() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setPhotoUrl(file_url);
-      const parsed = await scanReceipt(file_url, categories);
-      if (parsed.amount) setAmount(String(parsed.amount));
-      if (parsed.merchant) setMerchant(parsed.merchant);
-      if (parsed.category) setCategory(parsed.category);
-      if (parsed.notes) setNotes(parsed.notes);
-      if (parsed.date) {
-        const d = new Date(parsed.date);
-        if (!isNaN(d)) {
-          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-          setDate(d.toISOString().slice(0, 16));
-        }
+      const { transactions } = await scanReceipt(file_url, categories);
+      if (!transactions.length) {
+        toast.error("Tidak ada transaksi terbaca", { description: "Silakan isi manual." });
+        setScanning(false);
+        return;
       }
-      setType("expense");
-      toast.success("Bon berhasil dibaca!", { description: parsed.category ? `Kategori: ${parsed.category}` : "Periksa dan lengkapi data." });
+      if (transactions.length === 1) {
+        const p = transactions[0];
+        if (p.amount) setAmount(String(p.amount));
+        if (p.merchant) setMerchant(p.merchant);
+        if (p.category) setCategory(p.category);
+        if (p.notes) setNotes(p.notes);
+        if (p.date) {
+          const d = new Date(p.date);
+          if (!isNaN(d)) {
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            setDate(d.toISOString().slice(0, 16));
+          }
+        }
+        setType("expense");
+        toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}` : "Periksa dan lengkapi data." });
+      } else {
+        setMultiTx(transactions);
+        toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa kategori lalu simpan semua." });
+      }
     } catch (err) {
       toast.error("Gagal membaca bon", { description: "Silakan isi manual." });
     }
     setScanning(false);
+  };
+
+  const updateMulti = (i, patch) => {
+    setMultiTx((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+  };
+
+  const handleSaveAll = async () => {
+    if (!multiTx || !multiTx.length) return;
+    setSavingMulti(true);
+    try {
+      const records = multiTx.map((t) => ({
+        type: "expense",
+        amount: t.amount,
+        category: t.category || "Lainnya",
+        date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
+        merchant: t.merchant || "",
+        notes: t.notes || "",
+        photo_url: photoUrl || "",
+        input_by_name: user?.full_name || user?.email || "Keluarga",
+        tags: [],
+        visibility,
+      }));
+      await base44.entities.Transaction.bulkCreate(records);
+      refresh();
+      toast.success(`${records.length} transaksi tersimpan!`);
+      navigate("/");
+    } catch (err) {
+      toast.error("Gagal menyimpan transaksi");
+    }
+    setSavingMulti(false);
   };
 
   const handleSave = async () => {
@@ -145,6 +189,28 @@ export default function AddTransaction() {
     }
     setSaving(false);
   };
+
+  if (multiTx) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <header className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <button onClick={() => setMultiTx(null)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="font-semibold">Pratinjau Transaksi</h1>
+          <div className="w-9" />
+        </header>
+        <MultiTransactionPreview
+          items={multiTx}
+          categories={categories}
+          onChange={updateMulti}
+          onCancel={() => setMultiTx(null)}
+          onSave={handleSaveAll}
+          saving={savingMulti}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

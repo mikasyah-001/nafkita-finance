@@ -75,16 +75,17 @@ export default function TransactionDetail() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setForm((f) => ({ ...f, photo_url: file_url }));
-      const parsed = await scanReceipt(file_url, categories);
+      const { transactions } = await scanReceipt(file_url, categories);
+      const p = transactions[0] || {};
       setForm((f) => ({
         ...f,
-        amount: parsed.amount ? String(parsed.amount) : f.amount,
-        merchant: parsed.merchant || f.merchant,
-        category: parsed.category || f.category,
-        notes: parsed.notes || f.notes,
-        date: parsed.date ? (() => { const d = new Date(parsed.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
+        amount: p.amount ? String(p.amount) : f.amount,
+        merchant: p.merchant || f.merchant,
+        category: p.category || f.category,
+        notes: p.notes || f.notes,
+        date: p.date ? (() => { const d = new Date(p.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
       }));
-      toast.success("Bon dibaca ulang", { description: parsed.category ? `Kategori: ${parsed.category}` : "Periksa data sebelum simpan." });
+      toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}` : "Periksa data sebelum simpan." });
     } catch {
       toast.error("Gagal membaca bon");
     }

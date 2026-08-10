@@ -7,6 +7,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
+import { scanReceipt } from "@/lib/scanReceipt";
 import { ArrowLeft, Camera, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
 
 const typeTabs = [
@@ -62,35 +63,19 @@ export default function AddTransaction() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setPhotoUrl(file_url);
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt:
-          "Kamu adalah asisten keuangan keluarga. Analisa foto bon/struk ini. Ekstrak: total nominal yang dibayar (angka saja tanpa mata uang), nama merchant/tempat, kategori pengeluaran (pilih salah satu: Makanan, Transportasi, Belanja, Tagihan, Kesehatan, Pendidikan, Hiburan, Lainnya), dan tanggal transaksi (format ISO yyyy-mm-dd, jika tidak tertera gunakan tanggal hari ini). Jawab dalam JSON.",
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            amount: { type: "number" },
-            merchant: { type: "string" },
-            category: { type: "string" },
-            date: { type: "string" },
-          },
-        },
-      });
-      if (result.amount) setAmount(String(result.amount));
-      if (result.merchant) setMerchant(result.merchant);
-      if (result.category) {
-        const match = categories.find((c) => c.name.toLowerCase() === String(result.category).toLowerCase());
-        if (match) setCategory(match.name);
-      }
-      if (result.date) {
-        const d = new Date(result.date);
+      const parsed = await scanReceipt(file_url, categories);
+      if (parsed.amount) setAmount(String(parsed.amount));
+      if (parsed.merchant) setMerchant(parsed.merchant);
+      if (parsed.category) setCategory(parsed.category);
+      if (parsed.date) {
+        const d = new Date(parsed.date);
         if (!isNaN(d)) {
           d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
           setDate(d.toISOString().slice(0, 16));
         }
       }
       setType("expense");
-      toast.success("Bon berhasil dibaca!", { description: "Periksa dan lengkapi data sebelum menyimpan." });
+      toast.success("Bon berhasil dibaca!", { description: parsed.category ? `Kategori: ${parsed.category}` : "Periksa dan lengkapi data." });
     } catch (err) {
       toast.error("Gagal membaca bon", { description: "Silakan isi manual." });
     }

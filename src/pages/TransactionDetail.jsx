@@ -6,6 +6,7 @@ import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
+import { scanReceipt } from "@/lib/scanReceipt";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users } from "lucide-react";
 
@@ -74,25 +75,15 @@ export default function TransactionDetail() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setForm((f) => ({ ...f, photo_url: file_url }));
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: "Analisa foto bon/struk ini. Ekstrak total nominal (angka saja), nama merchant, dan tanggal (yyyy-mm-dd). Jawab JSON.",
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            amount: { type: "number" },
-            merchant: { type: "string" },
-            date: { type: "string" },
-          },
-        },
-      });
+      const parsed = await scanReceipt(file_url, categories);
       setForm((f) => ({
         ...f,
-        amount: result.amount ? String(result.amount) : f.amount,
-        merchant: result.merchant || f.merchant,
-        date: result.date ? (() => { const d = new Date(result.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
+        amount: parsed.amount ? String(parsed.amount) : f.amount,
+        merchant: parsed.merchant || f.merchant,
+        category: parsed.category || f.category,
+        date: parsed.date ? (() => { const d = new Date(parsed.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
       }));
-      toast.success("Bon dibaca ulang", { description: "Periksa data sebelum simpan." });
+      toast.success("Bon dibaca ulang", { description: parsed.category ? `Kategori: ${parsed.category}` : "Periksa data sebelum simpan." });
     } catch {
       toast.error("Gagal membaca bon");
     }

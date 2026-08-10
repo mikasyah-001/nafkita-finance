@@ -35,9 +35,10 @@ export default function Settings() {
     setSavingCat(false);
   };
 
-  const handleDeleteCat = async (id) => {
+  const handleDeleteCat = async (c) => {
+    if (c.is_default && !window.confirm(`Hapus kategori bawaan "${c.name}"? Transaksi lama dengan kategori ini tetap tersimpan.`)) return;
     try {
-      await base44.entities.Category.delete(id);
+      await base44.entities.Category.delete(c.id);
       refresh();
       toast.success("Kategori dihapus");
     } catch {
@@ -125,9 +126,7 @@ export default function Settings() {
                 </div>
                 <span className="flex-1 text-sm">{c.name}</span>
                 <span className="text-xs text-muted-foreground">{c.type === "expense" ? "Keluar" : "Masuk"}</span>
-                {!c.is_default && (
-                  <button onClick={() => handleDeleteCat(c.id)} className="text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                )}
+                <button onClick={() => handleDeleteCat(c)} className="text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             );
           })}

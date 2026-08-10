@@ -250,10 +250,9 @@ export default function Assets() {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
-            const purchaseTotal = a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0);
-            const hasPurchase = purchaseTotal > 0;
-            const gain = hasPurchase ? curVal - purchaseTotal : 0;
-            const gainPct = hasPurchase ? (gain / purchaseTotal) * 100 : 0;
+            const hasPurchase = a.purchase_price && a.purchase_price > 0;
+            const gain = hasPurchase ? curVal - a.purchase_price : 0;
+            const gainPct = hasPurchase && a.purchase_price > 0 ? (gain / a.purchase_price) * 100 : 0;
             const isGain = gain >= 0;
             const duration = formatDuration(a.purchase_date);
 
@@ -300,7 +299,7 @@ export default function Assets() {
                       <>
                         <div>
                           <p className="text-muted-foreground">Harga Beli</p>
-                          <p className="font-medium">{formatRupiah(purchaseTotal)}</p>
+                          <p className="font-medium">{formatRupiah(a.purchase_price)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>

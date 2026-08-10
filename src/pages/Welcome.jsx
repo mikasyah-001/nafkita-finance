@@ -123,7 +123,7 @@ export default function Welcome() {
       </div>
 
       {/* ───────── TRUST STRIP ───────── */}
-      <div className="px-6 -mt-6">
+      <div className="px-6 -mt-6 relative z-10">
         <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card shadow-sm p-3 text-center">
           {[
             { n: "10+", l: "Fitur" },

@@ -6,7 +6,8 @@
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      "default": "user"
     },
     "photo_url": {
       "type": "string",

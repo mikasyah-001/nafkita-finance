@@ -1,0 +1,66 @@
+{
+  "name": "Partnership",
+  "type": "object",
+  "properties": {
+    "inviter_id": {
+      "type": "string",
+      "description": "ID user yang mengundang"
+    },
+    "invitee_email": {
+      "type": "string",
+      "description": "Email pasangan yang diundang"
+    },
+    "invitee_id": {
+      "type": "string",
+      "description": "ID user pasangan setelah menerima undangan"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "inviter_id",
+    "invitee_email",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.invitee_email": "{{user.email}}"
+        },
+        {
+          "data.invitee_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.invitee_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.invitee_email": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

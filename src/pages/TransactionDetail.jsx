@@ -84,7 +84,6 @@ export default function TransactionDetail() {
         merchant: p.merchant || f.merchant,
         category: p.category || f.category,
         notes: p.notes || f.notes,
-        date: p.date ? (() => { const d = new Date(p.date); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); })() : f.date,
       }));
       toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}` : "Periksa data sebelum simpan." });
     } catch {

@@ -3,6 +3,7 @@ import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
+import UserContributionChart from "@/components/UserContributionChart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock } from "lucide-react";
 
@@ -113,6 +114,8 @@ export default function Reports() {
           </div>
         </div>
       )}
+
+      {scope === "shared" && <UserContributionChart transactions={monthTx} />}
 
       <MonthComparison transactions={scopedTransactions} categories={categories} year={year} month={month} />
 

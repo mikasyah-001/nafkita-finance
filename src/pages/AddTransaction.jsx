@@ -79,17 +79,11 @@ export default function AddTransaction() {
         if (p.merchant) setMerchant(p.merchant);
         if (p.category) setCategory(p.category);
         if (p.notes) setNotes(p.notes);
-        if (p.date) {
-          const d = new Date(p.date);
-          if (!isNaN(d)) {
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            setDate(d.toISOString().slice(0, 16));
-          }
-        }
         setType("expense");
         toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}` : "Periksa dan lengkapi data." });
       } else {
-        setMultiTx(transactions);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        setMultiTx(transactions.map((t) => ({ ...t, date: todayStr })));
         toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa kategori lalu simpan semua." });
       }
     } catch (err) {
@@ -111,7 +105,13 @@ export default function AddTransaction() {
         amount: t.amount,
         currency: t.currency || currency,
         category: t.category || "Lainnya",
-        date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
+        date: (() => {
+          const now = new Date();
+          const d = t.date ? new Date(t.date) : now;
+          if (isNaN(d)) return now.toISOString();
+          d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+          return d.toISOString();
+        })(),
         merchant: t.merchant || "",
         notes: t.notes || "",
         photo_url: photoUrl || "",

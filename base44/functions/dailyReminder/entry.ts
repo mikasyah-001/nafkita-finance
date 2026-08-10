@@ -1,17 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Block direct non-admin invocation; allow workflow (no user context)
-    try {
-      const user = await base44.auth.me();
-      if (user && user.role !== 'admin') {
-        return Response.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    } catch {
-      // no user context — invoked by scheduled workflow
+    if (!await isAuthorizedCall(req, base44)) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const users = await base44.asServiceRole.entities.User.list();

@@ -78,13 +78,30 @@ export default function TransactionDetail() {
       setForm((f) => ({ ...f, photo_url: file_url }));
       const { transactions } = await scanReceipt(file_url, categories);
       const p = transactions[0] || {};
-      setForm((f) => ({
-        ...f,
-        amount: p.amount ? String(p.amount) : f.amount,
-        merchant: p.merchant || f.merchant,
-        category: p.category || f.category,
-        notes: p.notes || f.notes,
-      }));
+      setForm((f) => {
+        const next = {
+          ...f,
+          amount: p.amount ? String(p.amount) : f.amount,
+          merchant: p.merchant || f.merchant,
+          category: p.category || f.category,
+          notes: p.notes || f.notes,
+        };
+        if (p.date) {
+          const now = new Date();
+          let d;
+          if (p.time) {
+            d = new Date(`${p.date}T${p.time}`);
+          } else {
+            d = new Date(p.date);
+            if (!isNaN(d)) d.setHours(now.getHours(), now.getMinutes(), 0, 0);
+          }
+          if (!isNaN(d)) {
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            next.date = d.toISOString().slice(0, 16);
+          }
+        }
+        return next;
+      });
       toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}` : "Periksa data sebelum simpan." });
     } catch {
       toast.error("Gagal membaca bon");

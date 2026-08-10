@@ -50,6 +50,12 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   onChange={(e) => onChange(i, { date: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
+                <input
+                  type="time"
+                  value={t.time || ""}
+                  onChange={(e) => onChange(i, { time: e.target.value })}
+                  className="rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
+                />
                 <select
                   value={t.currency || "IDR"}
                   onChange={(e) => onChange(i, { currency: e.target.value })}

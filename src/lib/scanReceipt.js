@@ -25,7 +25,8 @@ Untuk SETIAP transaksi, tentukan:
 2. MERCHANT — nama toko/merchant/penerima (singkat, tanpa nomor referensi panjang).
 3. KATEGORI — pilih salah satu dari: ${categoryList}. Jika tidak ada yang cocok, jawab "Lainnya".
 4. TANGGAL — format ISO yyyy-mm-dd. Untuk mutasi, ambil tanggal per transaksi; jika transaksi dikelompokkan di bawah header tanggal, gunakan tanggal header tersebut untuk semua transaksi di grup itu. Jika tahun hanya 2 digit, anggap 2000+tahun. Jika ragu/tidak tertera, kosongkan (jangan tebak).
-5. CATATAN — ringkasan singkat item/nama transaksi (maks 80 karakter). Kosongkan jika tidak terbaca.
+5. JAM — waktu transaksi format HH:mm (24 jam). Ambil dari jam cetak pada bon/struk atau kolom waktu pada mutasi. Jika tidak tertera, kosongkan (jangan tebak).
+6. CATATAN — ringkasan singkat item/nama transaksi (maks 80 karakter). Kosongkan jika tidak terbaca.
 
 Kembalikan array "transactions" berisi SEMUA transaksi yang terbaca. Jika hanya satu transaksi, tetap kembalikan array dengan 1 elemen. JANGAN gabungkan beberapa transaksi menjadi satu.
 
@@ -46,6 +47,7 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
               merchant: { type: "string" },
               category: { type: "string" },
               date: { type: "string" },
+              time: { type: "string" },
               notes: { type: "string" },
             },
           },
@@ -73,6 +75,17 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
     return d;
   };
 
+  const normalizeTime = (raw) => {
+    if (!raw) return "";
+    const r = String(raw).trim();
+    const m = r.match(/(\d{1,2})[:.](\d{2})/);
+    if (m) {
+      const h = Number(m[1]);
+      if (h >= 0 && h <= 23) return `${String(h).padStart(2, "0")}:${m[2]}`;
+    }
+    return "";
+  };
+
   const matchCategory = (cat) => {
     if (!cat) return "";
     const r = String(cat).toLowerCase().trim();
@@ -89,6 +102,7 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
       merchant: t.merchant ? String(t.merchant).trim() : "",
       category: matchCategory(t.category),
       date: normalizeDate(t.date),
+      time: normalizeTime(t.time),
       notes: t.notes ? String(t.notes).trim().slice(0, 120) : "",
     }))
     .filter((t) => t.amount > 0);

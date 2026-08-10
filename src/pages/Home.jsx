@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatDate } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
@@ -60,7 +60,7 @@ export default function Home() {
     { to: "/laporan", icon: Sparkles, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
     { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
     { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
-    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatRupiah(sedekah)} bulan ini` },
+    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatRupiahShort(sedekah)} bulan ini` },
   ];
 
   return (
@@ -102,27 +102,27 @@ export default function Home() {
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
-        <p className="text-3xl font-bold tracking-tight">{formatRupiah(balance)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(balance)}</p>
         <div className="flex gap-3 mt-4">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingUp className="w-3.5 h-3.5" /> Pemasukan
             </div>
-            <p className="font-semibold text-sm mt-0.5">{formatRupiah(income)}</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{formatRupiahShort(income)}</p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
             </div>
-            <p className="font-semibold text-sm mt-0.5">{formatRupiah(expense)}</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{formatRupiahShort(expense)}</p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <PiggyBank className="w-3.5 h-3.5" /> Menabung
             </div>
-            <p className="font-semibold text-sm mt-0.5">{savingsRate}%</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums">{savingsRate}%</p>
           </div>
         </div>
       </div>

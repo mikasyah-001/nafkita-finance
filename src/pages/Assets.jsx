@@ -132,7 +132,7 @@ export default function Assets() {
 
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-4 shadow-lg">
         <p className="text-xs opacity-80">{scope === "private" ? "Total Aset Pribadi" : "Total Nilai Aset"}</p>
-        <p className="text-3xl font-bold tracking-tight">{formatRupiah(total)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(total)}</p>
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
 
@@ -251,7 +251,7 @@ export default function Assets() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{formatRupiah(curVal)}</p>
+                    <p className="text-sm font-semibold tabular-nums">{formatRupiah(curVal)}</p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
                       {a.purchase_proof_url && (
                         <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">

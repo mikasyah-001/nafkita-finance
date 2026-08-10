@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatNumber, colorMap, formatDate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -93,10 +93,10 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard icon={TrendingUp} color="green" label="Pemasukan" value={formatRupiah(income)} />
-        <StatCard icon={TrendingDown} color="red" label="Pengeluaran" value={formatRupiah(expense)} />
-        <StatCard icon={Heart} color="teal" label="Sedekah" value={formatRupiah(sedekah)} />
-        <StatCard icon={Sparkles} color="violet" label="Saldo" value={formatRupiah(balance)} />
+        <StatCard icon={TrendingUp} color="green" label="Pemasukan" value={formatRupiahShort(income)} />
+        <StatCard icon={TrendingDown} color="red" label="Pengeluaran" value={formatRupiahShort(expense)} />
+        <StatCard icon={Heart} color="teal" label="Sedekah" value={formatRupiahShort(sedekah)} />
+        <StatCard icon={Sparkles} color="violet" label="Saldo" value={formatRupiahShort(balance)} />
       </div>
 
       {byCategory.length > 0 && (
@@ -194,7 +194,7 @@ function StatCard({ icon: Icon, color, label, value }) {
         <Icon className={`w-4 h-4 ${cm.text}`} />
       </div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-semibold text-sm mt-0.5">{value}</p>
+      <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{value}</p>
     </div>
   );
 }

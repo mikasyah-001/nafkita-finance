@@ -9,6 +9,15 @@ export function formatRupiah(n) {
   }).format(n || 0);
 }
 
+export function formatRupiahShort(n) {
+  const v = Number(n) || 0;
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return "Rp " + (v / 1e9).toFixed(1).replace(".", ",") + " M";
+  if (abs >= 1e6) return "Rp " + (v / 1e6).toFixed(1).replace(".", ",") + " jt";
+  if (abs >= 1e4) return "Rp " + Math.round(v / 1e3) + " rb";
+  return formatRupiah(v);
+}
+
 export const currencies = [
   { code: "IDR", label: "Rupiah", symbol: "Rp" },
   { code: "SAR", label: "Riyal Saudi", symbol: "SAR" },

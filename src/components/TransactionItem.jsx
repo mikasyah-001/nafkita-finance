@@ -32,7 +32,7 @@ export default function TransactionItem({ tx, categories }) {
           </div>
         )}
       </div>
-      <div className={`text-sm font-semibold whitespace-nowrap ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
+      <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
         {isIncome ? "+" : "-"}{formatMoney(tx.amount, tx.currency)}
       </div>
     </Link>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, Briefcase, BarChart3, Wallet, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
@@ -119,9 +119,9 @@ export default function AssetDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <SummaryCard icon={Coins} color="amber" label="Nilai Emas" value={formatRupiah(emasValue)} sub={`${formatNumber(emasGrams)} gram`} growth={emasGrowthPct} />
-        <SummaryCard icon={Briefcase} color="green" label="Investasi" value={formatRupiah(investasiValue)} sub={`${investasiAssets.length} aset`} growth={investasiPurchase > 0 ? ((investasiValue - investasiPurchase) / investasiPurchase) * 100 : 0} />
-        <SummaryCard icon={Wallet} color="indigo" label="Total Aset" value={formatRupiah(totalCurrent)} sub={`Beli: ${formatRupiah(totalPurchase)}`} growth={totalGrowth} />
+        <SummaryCard icon={Coins} color="amber" label="Nilai Emas" value={formatRupiahShort(emasValue)} sub={`${formatNumber(emasGrams)} gram`} growth={emasGrowthPct} />
+        <SummaryCard icon={Briefcase} color="green" label="Investasi" value={formatRupiahShort(investasiValue)} sub={`${investasiAssets.length} aset`} growth={investasiPurchase > 0 ? ((investasiValue - investasiPurchase) / investasiPurchase) * 100 : 0} />
+        <SummaryCard icon={Wallet} color="indigo" label="Total Aset" value={formatRupiahShort(totalCurrent)} sub={`Beli: ${formatRupiahShort(totalPurchase)}`} growth={totalGrowth} />
         <SummaryCard icon={BarChart3} color="violet" label="Snapshot" value={`${snapshots.length} bln`} sub="Data tersimpan" />
       </div>
 
@@ -256,7 +256,7 @@ function SummaryCard({ icon: Icon, color, label, value, sub, growth = 0 }) {
         )}
       </div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-semibold text-sm mt-0.5 truncate">{value}</p>
+      <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );

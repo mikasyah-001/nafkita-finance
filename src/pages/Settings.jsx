@@ -4,6 +4,8 @@ import InvitationManager from "@/components/InvitationManager";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles } from "lucide-react";
 import TemplateManager from "@/components/TemplateManager";
+import DriveBackupRestore from "@/components/DriveBackupRestore";
+import { HardDriveDownload } from "lucide-react";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -55,6 +57,10 @@ export default function Settings() {
         <Link to="/asisten-struk" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
           <Sparkles className="w-4 h-4" /> Buka Asisten Struk
         </Link>
+      </Section>
+
+      <Section title="Cadangan Google Drive">
+        <DriveBackupRestore />
       </Section>
 
       <Section title="Template Rutin">

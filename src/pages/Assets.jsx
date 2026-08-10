@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -30,6 +30,7 @@ export default function Assets() {
   const [viewProof, setViewProof] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [user, setUser] = useState(null);
+  const [emasOpen, setEmasOpen] = useState(false);
 
   useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
 
@@ -157,80 +158,90 @@ export default function Assets() {
       </div>
 
       {scopedAssets.some((a) => a.type === "emas") && (
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-4 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Coins className="w-4 h-4 text-amber-600" />
-            <p className="text-sm font-medium">Harga Emas Pasar</p>
-          </div>
-          <div className="flex gap-2">
-            <div className="flex items-center flex-1 rounded-xl bg-background border border-border px-3">
-              <span className="text-xs text-muted-foreground">Rp</span>
-              <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
+        <div className="rounded-2xl border border-border bg-card mb-4 overflow-hidden">
+          <button onClick={() => setEmasOpen((o) => !o)} className="w-full flex items-center gap-3 p-4 active:scale-[0.99] transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+              <Coins className="w-4 h-4 text-amber-600" />
             </div>
-            <button onClick={fetchGoldPrice} disabled={fetchingPrice} className="px-3 rounded-xl bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
-              {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Cek
-            </button>
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1.5">Nilai emas diperbarui otomatis mengikuti harga pasar ini.</p>
-        </div>
-      )}
-
-      {emasAssets.length > 0 && (
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Coins className="w-4 h-4 text-emerald-600" />
-            <p className="text-sm font-medium">Zakat Emas</p>
-          </div>
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between"><span className="text-muted-foreground">Total emas</span><span className="font-medium">{formatNumber(emasGrams)} gram</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Nisab</span><span className="font-medium">85 gram</span></div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Status nisab</span>
-              <span className={`flex items-center gap-1 font-medium ${wajibZakatEmas ? "text-emerald-600" : "text-muted-foreground"}`}>
-                {wajibZakatEmas ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                {wajibZakatEmas ? "Sudah mencapai nisab" : "Belum mencapai nisab"}
-              </span>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Emas & Zakat</p>
+              <p className="text-xs text-muted-foreground truncate">{formatNumber(emasGrams)} gram • {wajibZakatEmas ? "nisab tercapai" : "di bawah nisab"}{goldPriceNum > 0 ? ` • ${formatRupiah(emasValue)}` : ""}</p>
             </div>
-            {earliestEmasDate != null && (
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Status haul (1 thn)</span>
-                <span className={`font-medium ${hasReachedHaul ? "text-emerald-600" : "text-muted-foreground"}`}>
-                  {hasReachedHaul ? "Sudah genap 1 tahun" : "Belum genap 1 tahun"}
-                </span>
+            {wajibZakatEmas && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 font-medium shrink-0">Zakat</span>}
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${emasOpen ? "rotate-180" : ""}`} />
+          </button>
+          {emasOpen && (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Coins className="w-3.5 h-3.5 text-amber-600" />
+                  <p className="text-xs font-medium">Harga Emas Pasar</p>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex items-center flex-1 rounded-lg bg-background border border-border px-3">
+                    <span className="text-xs text-muted-foreground">Rp</span>
+                    <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2 text-sm outline-none bg-transparent" />
+                  </div>
+                  <button onClick={fetchGoldPrice} disabled={fetchingPrice} className="px-3 rounded-lg bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
+                    {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Cek
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">Nilai emas mengikuti harga pasar ini.</p>
               </div>
-            )}
-            {wajibZakatEmas && (
-              <>
-                <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium">{formatRupiah(emasValue)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600">{formatRupiah(zakatEmasAmount)}</span></div>
-              </>
-            )}
-          </div>
-          {wajibZakatEmas && (
-            <button onClick={handleZakatReminder} className="w-full mt-3 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
-              <Bell className="w-4 h-4" /> Ingatkan Bayar Zakat
-            </button>
+
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                  <p className="text-xs font-medium">Zakat Emas</p>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total emas</span><span className="font-medium">{formatNumber(emasGrams)} gram</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Nisab</span><span className="font-medium">85 gram</span></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status nisab</span>
+                    <span className={`flex items-center gap-1 font-medium ${wajibZakatEmas ? "text-emerald-600" : "text-muted-foreground"}`}>
+                      {wajibZakatEmas ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                      {wajibZakatEmas ? "Sudah mencapai nisab" : "Belum mencapai nisab"}
+                    </span>
+                  </div>
+                  {earliestEmasDate != null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Status haul (1 thn)</span>
+                      <span className={`font-medium ${hasReachedHaul ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {hasReachedHaul ? "Sudah genap 1 tahun" : "Belum genap 1 tahun"}
+                      </span>
+                    </div>
+                  )}
+                  {wajibZakatEmas && (
+                    <>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium">{formatRupiah(emasValue)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600">{formatRupiah(zakatEmasAmount)}</span></div>
+                    </>
+                  )}
+                </div>
+                {wajibZakatEmas && (
+                  <button onClick={handleZakatReminder} className="w-full mt-3 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
+                    <Bell className="w-4 h-4" /> Ingatkan Bayar Zakat
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {scopedAssets.length > 0 && (
-        <div className="mb-3">
-          <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+        <div className="rounded-2xl border border-border bg-card p-3 mb-3 space-y-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {typeOptions.map((t) => (
               <button key={t} onClick={() => setTypeFilter(t)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                 {t === "all" ? "Semua" : assetTypeLabels[t].label}
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {scopedAssets.length > 0 && (
-        <div className="mb-3">
-          <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground"><ArrowUpDown className="w-3.5 h-3.5" /> Urutkan</div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><ArrowUpDown className="w-3.5 h-3.5" /> Urutkan</div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {sortOptions.map((o) => (
               <button key={o.key} onClick={() => setSortBy(o.key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${sortBy === o.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                 {o.label}

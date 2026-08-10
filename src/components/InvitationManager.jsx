@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { UserPlus, Loader2, CheckCircle2, Clock, RefreshCw } from "lucide-react";
+import { UserPlus, Loader2, CheckCircle2, Clock, RefreshCw, Settings, ArrowLeft } from "lucide-react";
 
 const KEY = "keluargafin_invites";
 
@@ -20,12 +20,17 @@ export default function InvitationManager() {
   const [email, setEmail] = useState("");
   const [invites, setInvites] = useState(getInvites);
   const [users, setUsers] = useState([]);
+  const [me, setMe] = useState(null);
+  const [showManage, setShowManage] = useState(false);
   const [sending, setSending] = useState(false);
   const [resending, setResending] = useState(null);
 
   useEffect(() => {
+    base44.auth.me().then(setMe).catch(() => {});
     base44.entities.User.list().then(setUsers).catch(() => {});
   }, []);
+
+  const partners = users.filter((u) => u.id !== me?.id);
 
   const persist = (list) => {
     setInvites(list);
@@ -66,8 +71,34 @@ export default function InvitationManager() {
 
   const isAccepted = (inv) => users.some((u) => u.email === inv.email);
 
+  if (partners.length > 0 && !showManage) {
+    return (
+      <div>
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3 mb-3">
+          <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Terkoneksi dengan pasangan</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {partners.map((p) => p.full_name || p.email).join(", ")}
+            </p>
+          </div>
+        </div>
+        <button onClick={() => setShowManage(true)} className="text-xs text-primary flex items-center gap-1">
+          <Settings className="w-3.5 h-3.5" /> Kelola undangan
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
+      {partners.length > 0 && (
+        <button onClick={() => setShowManage(false)} className="text-xs text-muted-foreground flex items-center gap-1 mb-3">
+          <ArrowLeft className="w-3.5 h-3.5" /> Sembunyikan kelola
+        </button>
+      )}
       <p className="text-xs text-muted-foreground mb-3">Buatkan akun untuk istri/suami agar dapat mencatat bersama.</p>
       <div className="flex gap-2 mb-4">
         <input

@@ -137,6 +137,17 @@ export default function TransactionDetail() {
     }
   };
 
+  const handleToggleVisibility = async () => {
+    const next = tx.visibility === "private" ? "shared" : "private";
+    try {
+      await base44.entities.Transaction.update(id, { visibility: next });
+      refresh();
+      toast.success(next === "private" ? "Diubah menjadi Pribadi" : "Diubah menjadi Bersama Keluarga");
+    } catch {
+      toast.error("Gagal mengubah jangkauan");
+    }
+  };
+
   if (edit && form) {
     const availableCategories = categories.filter((c) => c.type === form.type);
     return (
@@ -296,6 +307,17 @@ export default function TransactionDetail() {
           </div>
         </div>
       )}
+
+      <button
+        onClick={handleToggleVisibility}
+        className="w-full mt-4 py-3 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+      >
+        {tx.visibility === "private" ? (
+          <><Users className="w-4 h-4" /> Jadikan Bersama Keluarga</>
+        ) : (
+          <><Lock className="w-4 h-4" /> Jadikan Pribadi</>
+        )}
+      </button>
     </div>
   );
 }

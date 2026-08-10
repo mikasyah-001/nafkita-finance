@@ -102,6 +102,17 @@ export default function Assets() {
     }
   };
 
+  const handleToggleVisibility = async (a) => {
+    const next = a.visibility === "private" ? "shared" : "private";
+    try {
+      await base44.entities.Asset.update(a.id, { visibility: next });
+      refresh();
+      toast.success(next === "private" ? "Aset diubah menjadi Pribadi" : "Aset diubah menjadi Bersama");
+    } catch {
+      toast.error("Gagal mengubah jangkauan");
+    }
+  };
+
   return (
     <div className="px-5 pt-8">
       <div className="flex items-center justify-between mb-4">
@@ -193,9 +204,18 @@ export default function Assets() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">{formatRupiah(curVal)}</p>
-                    <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 mt-1 flex items-center gap-1 ml-auto">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
+                      <button
+                        onClick={() => handleToggleVisibility(a)}
+                        className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform"
+                        title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}
+                      >
+                        {a.visibility === "private" ? <Users className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 flex items-center gap-1">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 

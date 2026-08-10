@@ -37,11 +37,15 @@ export default function InvestmentDetail() {
   const plPct = totalInvested > 0 ? (pl / totalInvested) * 100 : 0;
   const isGain = pl >= 0;
 
-  const computeUpdate = (lotsArr) => ({
-    value: Math.round(cp * lotsArr.reduce((s, l) => s + (l.quantity || 0), 0)),
-    purchase_price: Math.round(lotsArr.reduce((s, l) => s + (l.amount || 0), 0)),
-    quantity: Number(lotsArr.reduce((s, l) => s + (l.quantity || 0), 0).toFixed(4)),
-  });
+  const computeUpdate = (lotsArr) => {
+    const units = lotsArr.reduce((s, l) => s + (l.quantity || 0), 0);
+    const invested = lotsArr.reduce((s, l) => s + (l.amount || 0), 0);
+    return {
+      value: Math.round(cp > 0 ? cp * units : invested),
+      purchase_price: Math.round(invested),
+      quantity: Number(units.toFixed(4)),
+    };
+  };
 
   const handleAddLot = async () => {
     const price = Number(lot.price_per_unit);

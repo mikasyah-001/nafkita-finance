@@ -108,7 +108,7 @@ export default function Transactions() {
         ))}
       </div>
 
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex gap-1.5">
           {[{ key: "all", label: "Semua" }, { key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
             <button
@@ -203,10 +203,10 @@ export default function Transactions() {
           <p className="text-xs text-muted-foreground px-1">{filtered.length} transaksi</p>
           {grouped.map(([date, items, net]) => (
             <div key={date}>
-              <div className="flex items-center justify-between mb-1 px-1">
-                <p className="text-xs text-muted-foreground">{formatDate(date, "EEEE, dd MMMM yyyy")}</p>
+              <div className="flex items-center justify-between gap-2 mb-1 px-1">
+                <p className="text-xs text-muted-foreground truncate">{formatDate(date, "EEEE, dd MMM")}</p>
                 {net !== 0 && (
-                  <span className={`text-[11px] font-medium ${net > 0 ? "text-emerald-600" : "text-red-500"}`}>{net > 0 ? "+" : ""}{formatRupiah(net)}</span>
+                  <span className={`text-[11px] font-medium tabular-nums shrink-0 ${net > 0 ? "text-emerald-600" : "text-red-500"}`}>{net > 0 ? "+" : ""}{formatRupiah(net)}</span>
                 )}
               </div>
               <div className="rounded-2xl border border-border bg-card px-4">

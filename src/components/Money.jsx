@@ -1,0 +1,13 @@
+import { usePrivacy } from "@/lib/PrivacyContext";
+import { formatRupiah, formatRupiahShort, formatMoney } from "@/lib/finance";
+
+export default function Money({ value, format = "full", currency, className }) {
+  const { hidden } = usePrivacy();
+  const text = (() => {
+    if (hidden) return "••••••";
+    if (format === "short") return formatRupiahShort(value);
+    if (currency) return formatMoney(value, currency);
+    return formatRupiah(value);
+  })();
+  return <span className={className}>{text}</span>;
+}

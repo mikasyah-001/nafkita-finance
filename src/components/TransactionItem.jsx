@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { formatMoney, formatDate, colorMap } from "@/lib/finance";
+import { formatDate, colorMap } from "@/lib/finance";
+import Money from "./Money";
 import CategoryIcon from "./CategoryIcon";
 
 export default function TransactionItem({ tx, categories }) {
@@ -33,7 +34,7 @@ export default function TransactionItem({ tx, categories }) {
         )}
       </div>
       <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
-        {isIncome ? "+" : "-"}{formatMoney(tx.amount, tx.currency)}
+        {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
       </div>
     </Link>
   );

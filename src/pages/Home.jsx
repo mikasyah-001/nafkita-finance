@@ -9,7 +9,9 @@ import BudgetBars from "@/components/BudgetBars";
 import ZakatNotifier from "@/components/ZakatNotifier";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import MonthlySummary from "@/components/MonthlySummary";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank } from "lucide-react";
+import Money from "@/components/Money";
+import { usePrivacy } from "@/lib/PrivacyContext";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
@@ -21,6 +23,7 @@ const linkColors = {
 export default function Home() {
   const [user, setUser] = useState(null);
   const [scope, setScope] = useState("shared");
+  const { hidden, toggle } = usePrivacy();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
 
@@ -71,9 +74,14 @@ export default function Home() {
           <p className="text-sm text-muted-foreground">{greeting},</p>
           <h1 className="text-lg font-semibold">{user?.full_name || user?.email || "Keluarga"}</h1>
         </div>
-        <Link to="/pengaturan" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-          <Settings className="w-5 h-5 text-muted-foreground" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+            {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
+          </button>
+          <Link to="/pengaturan" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+            <Settings className="w-5 h-5 text-muted-foreground" />
+          </Link>
+        </div>
       </header>
 
       {!hasTodayTx && (
@@ -103,20 +111,20 @@ export default function Home() {
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(balance)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={balance} /></p>
         <div className="flex gap-3 mt-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingUp className="w-3.5 h-3.5" /> Pemasukan
             </div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{formatRupiahShort(income)}</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={income} format="short" /></p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
             </div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{formatRupiahShort(expense)}</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={expense} format="short" /></p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
           <div className="flex-1 min-w-0">

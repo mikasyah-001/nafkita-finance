@@ -38,6 +38,7 @@ export default function AddTransaction() {
   const [merchant, setMerchant] = useState("");
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoUrls, setPhotoUrls] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState([]);
@@ -64,20 +65,27 @@ export default function AddTransaction() {
   };
 
   const handleScan = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []).slice(0, 5);
+    if (!files.length) return;
+    if (files.length > 5) toast.message("Maksimal 5 foto", { description: "Hanya 5 foto pertama yang diproses." });
     setScanning(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setPhotoUrl(file_url);
-      const { transactions } = await scanReceipt(file_url, categories);
-      if (!transactions.length) {
+      const uploaded = await Promise.all(files.map((f) => base44.integrations.Core.UploadFile({ file: f })));
+      const urls = uploaded.map((u) => u.file_url);
+      setPhotoUrl(urls[0]);
+      setPhotoUrls(urls);
+      const results = await Promise.all(urls.map((u) => scanReceipt(u, categories)));
+      const allTx = [];
+      results.forEach((r, idx) => {
+        (r.transactions || []).forEach((t) => allTx.push({ ...t, photo_url: urls[idx] }));
+      });
+      if (!allTx.length) {
         toast.error("Tidak ada transaksi terbaca", { description: "Silakan isi manual." });
         setScanning(false);
         return;
       }
-      if (transactions.length === 1) {
-        const p = transactions[0];
+      if (allTx.length === 1) {
+        const p = allTx[0];
         if (p.amount) setAmount(String(p.amount));
         if (p.merchant) setMerchant(p.merchant);
         if (p.category) setCategory(p.category);
@@ -103,8 +111,8 @@ export default function AddTransaction() {
         }
         toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa dan lengkapi data." });
       } else {
-        setMultiTx(transactions);
-        toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa kategori lalu simpan semua." });
+        setMultiTx(allTx);
+        toast.success(`${allTx.length} transaksi terbaca dari ${urls.length} foto`, { description: "Periksa kategori lalu simpan semua." });
       }
     } catch (err) {
       toast.error("Gagal membaca bon", { description: "Silakan isi manual." });
@@ -144,7 +152,7 @@ export default function AddTransaction() {
         })(),
         merchant: t.merchant || "",
         notes: t.notes || "",
-        photo_url: photoUrl || "",
+        photo_url: t.photo_url || photoUrl || "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags: [],
         visibility,
@@ -372,24 +380,29 @@ export default function AddTransaction() {
               <>
                 <Loader2 className="w-7 h-7 animate-spin text-primary" />
                 <p className="text-sm font-medium text-primary">AI sedang membaca bon...</p>
+                <p className="text-xs">{photoUrls.length || 1} foto sedang diproses</p>
               </>
-            ) : photoUrl ? (
+            ) : photoUrls.length > 0 ? (
               <>
-                <img src={photoUrl} alt="bon" className="max-h-32 rounded-xl" />
-                <p className="text-xs flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Bon terunggah</p>
+                <div className="flex gap-2 flex-wrap justify-center max-w-full">
+                  {photoUrls.map((u, i) => (
+                    <img key={i} src={u} alt={`bon ${i + 1}`} className="w-16 h-16 object-cover rounded-xl" />
+                  ))}
+                </div>
+                <p className="text-xs flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> {photoUrls.length} bon terunggah</p>
               </>
             ) : (
               <>
                 <ScanLine className="w-7 h-7" />
                 <p className="text-sm font-medium">Scan Bon / Upload Foto</p>
-                <p className="text-xs">AI akan otomatis membaca nominal & kategori</p>
+                <p className="text-xs">Bisa pilih beberapa foto sekaligus (maks. 5)</p>
               </>
             )}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleScan} />
-          {photoUrl && !scanning && (
-            <button onClick={() => setPhotoUrl("")} className="mt-2 text-xs text-red-500 flex items-center gap-1">
-              <X className="w-3 h-3" /> Hapus foto
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScan} />
+          {photoUrls.length > 0 && !scanning && (
+            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-red-500 flex items-center gap-1">
+              <X className="w-3 h-3" /> Hapus semua foto
             </button>
           )}
         </div>

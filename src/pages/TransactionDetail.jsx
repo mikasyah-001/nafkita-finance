@@ -193,7 +193,7 @@ export default function TransactionDetail() {
               </>
             )}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScan} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleScan} />
           {form.photo_url && !scanning && (
             <button onClick={() => setForm({ ...form, photo_url: "" })} className="text-xs text-red-500 flex items-center gap-1"><X className="w-3 h-3" /> Hapus bon</button>
           )}

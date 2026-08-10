@@ -251,7 +251,7 @@ export default function AddTransaction() {
               </>
             )}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScan} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleScan} />
           {photoUrl && !scanning && (
             <button onClick={() => setPhotoUrl("")} className="mt-2 text-xs text-red-500 flex items-center gap-1">
               <X className="w-3 h-3" /> Hapus foto

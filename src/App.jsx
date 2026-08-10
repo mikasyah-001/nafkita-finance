@@ -22,6 +22,7 @@ import TransactionDetail from '@/pages/TransactionDetail';
 import Profile from '@/pages/Profile';
 import Categories from '@/pages/Categories';
 import AsistenStruk from '@/pages/AsistenStruk';
+import Ringkasan from '@/pages/Ringkasan';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -56,6 +57,7 @@ const AuthenticatedApp = () => {
           <Route path="/add" element={<AddTransaction />} />
           <Route path="/aset" element={<Assets />} />
           <Route path="/laporan" element={<Reports />} />
+          <Route path="/ringkasan" element={<Ringkasan />} />
           <Route path="/anggaran" element={<Budget />} />
           <Route path="/aset-dashboard" element={<AssetDashboard />} />
           <Route path="/impor" element={<ImportReport />} />

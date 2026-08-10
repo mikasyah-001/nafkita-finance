@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
 import ZakatNotifier from "@/components/ZakatNotifier";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
+import MonthlySummary from "@/components/MonthlySummary";
 import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank } from "lucide-react";
 
 const linkColors = {
@@ -143,6 +144,8 @@ export default function Home() {
           );
         })}
       </div>
+
+      <MonthlySummary scope={scope} />
 
       <BudgetBars scope={scope} />
 

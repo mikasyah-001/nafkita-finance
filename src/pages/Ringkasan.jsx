@@ -3,7 +3,9 @@ import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatRupiahShort, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart } from "lucide-react";
+import { downloadMonthlyReport } from "@/lib/exportReport";
+import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart, Download } from "lucide-react";
 
 export default function Ringkasan() {
   const { data: transactions = [] } = useTransactions();
@@ -15,7 +17,7 @@ export default function Ringkasan() {
   const month = cursor.getMonth();
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
-  const { rows, total, prevTotal, count } = useMemo(() => {
+  const { rows, total, prevTotal, count, txList } = useMemo(() => {
     const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
     const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const py = month === 0 ? year - 1 : year;
@@ -35,7 +37,10 @@ export default function Ringkasan() {
     const rows = Object.entries(map)
       .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
       .sort((a, b) => b.value - a.value);
-    return { rows, total, prevTotal, count: cur.length };
+    const txList = scoped
+      .filter((t) => inMonth(t, year, month))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return { rows, total, prevTotal, count: cur.length, txList };
   }, [transactions, scope, year, month]);
 
   const max = rows.length ? rows[0].value : 0;
@@ -44,6 +49,16 @@ export default function Ringkasan() {
   const avgPerDay = total / daysInMonth;
   const top = rows[0] || null;
   const riser = rows.length ? rows.filter((r) => r.prev > 0).sort((a, b) => (b.value - b.prev) - (a.value - a.prev))[0] : null;
+
+  const handleDownload = () => {
+    downloadMonthlyReport({
+      monthName,
+      scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
+      rows, total, prevTotal, avgPerDay, count,
+      transactions: txList,
+    });
+    toast.success("Laporan bulanan diunduh");
+  };
 
   return (
     <div className="px-5 pt-8 pb-4">
@@ -59,6 +74,14 @@ export default function Ringkasan() {
         <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-4 h-4" /> Bersama</button>
         <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-4 h-4" /> Pribadi</button>
       </div>
+
+      <button
+        onClick={handleDownload}
+        disabled={txList.length === 0}
+        className="w-full mb-4 rounded-2xl border border-border bg-card py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
+      >
+        <Download className="w-4 h-4" /> Unduh Laporan (CSV)
+      </button>
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 mb-4">
         <p className="text-xs opacity-80">Total pengeluaran</p>

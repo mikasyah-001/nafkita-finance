@@ -31,11 +31,6 @@ const advantages = [
 export default function Welcome() {
   const navigate = useNavigate();
 
-  const start = () => {
-    localStorage.setItem("nafkita_onboarded", "1");
-    navigate("/", { replace: true });
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background pb-24">
       {/* Hero */}
@@ -123,12 +118,18 @@ export default function Welcome() {
       </section>
 
       {/* CTA sticky */}
-      <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2.5">
         <button
-          onClick={start}
+          onClick={() => navigate("/register")}
           className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg"
         >
-          Mulai Menggunakan <ArrowRight className="w-5 h-5" />
+          Daftar Sekarang <ArrowRight className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => navigate("/login")}
+          className="w-full py-3 rounded-2xl border border-border bg-card text-foreground font-medium text-sm active:scale-[0.99] transition-transform"
+        >
+          Sudah punya akun? Masuk
         </button>
       </div>
     </div>

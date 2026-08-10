@@ -57,12 +57,12 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      <Route path="/selamat-datang" element={<Welcome />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route path="/selamat-datang" element={<Welcome />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/selamat-datang" replace />} />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/riwayat" element={<Transactions />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatRupiahShort, formatDate } from "@/lib/finance";
@@ -21,7 +21,6 @@ const linkColors = {
 };
 
 export default function Home() {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [scope, setScope] = useState("shared");
   const { hidden, toggle } = usePrivacy();
@@ -29,12 +28,8 @@ export default function Home() {
   const { data: categories = [] } = useCategories();
 
   useEffect(() => {
-    if (!localStorage.getItem("nafkita_onboarded")) {
-      navigate("/selamat-datang", { replace: true });
-      return;
-    }
     base44.auth.me().then(setUser).catch(() => {});
-  }, [navigate]);
+  }, []);
 
   const now = new Date();
   const monthLabel = formatDate(now, "MMMM yyyy");

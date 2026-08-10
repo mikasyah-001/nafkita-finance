@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import InvitationManager from "@/components/InvitationManager";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Tag, LogOut, User, Upload } from "lucide-react";
+import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles } from "lucide-react";
 import TemplateManager from "@/components/TemplateManager";
 
 export default function Settings() {
@@ -47,6 +47,13 @@ export default function Settings() {
         <p className="text-xs text-muted-foreground mb-3">Impor transaksi dari file PDF atau Teks lama dengan pratinjau sebelum disimpan.</p>
         <Link to="/impor" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
           <Upload className="w-4 h-4" /> Buka Impor Laporan
+        </Link>
+      </Section>
+
+      <Section title="Asisten Struk AI">
+        <p className="text-xs text-muted-foreground mb-3">Kirim foto bon, AI akan mengkategorikan transaksi & memperbarui aset terkait secara otomatis.</p>
+        <Link to="/asisten-struk" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Sparkles className="w-4 h-4" /> Buka Asisten Struk
         </Link>
       </Section>
 

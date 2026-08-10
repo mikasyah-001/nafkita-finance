@@ -21,6 +21,7 @@ import ImportReport from '@/pages/ImportReport';
 import TransactionDetail from '@/pages/TransactionDetail';
 import Profile from '@/pages/Profile';
 import Categories from '@/pages/Categories';
+import AsistenStruk from '@/pages/AsistenStruk';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
           <Route path="/pengaturan" element={<Settings />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/kategori" element={<Categories />} />
+          <Route path="/asisten-struk" element={<AsistenStruk />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -1,5 +1,5 @@
 import { Loader2, Check, X } from "lucide-react";
-import { formatRupiah } from "@/lib/finance";
+import { formatMoney } from "@/lib/finance";
 
 export default function MultiTransactionPreview({ items, categories, onChange, onCancel, onSave, saving }) {
   const expenseCats = categories.filter((c) => c.type === "expense");
@@ -22,7 +22,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
             <div key={i} className="rounded-xl border border-border p-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
-                <p className="text-sm font-bold ml-2">{formatRupiah(t.amount)}</p>
+                <p className="text-sm font-bold ml-2">{formatMoney(t.amount, t.currency)}</p>
               </div>
               <div className="flex gap-2">
                 <input
@@ -50,6 +50,15 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   onChange={(e) => onChange(i, { date: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
+                <select
+                  value={t.currency || "IDR"}
+                  onChange={(e) => onChange(i, { currency: e.target.value })}
+                  className="rounded-lg border border-border px-2 py-1 text-xs bg-background outline-none focus:ring-2 ring-primary/30"
+                >
+                  <option value="IDR">IDR</option>
+                  <option value="SAR">SAR</option>
+                  <option value="USD">USD</option>
+                </select>
               </div>
             </div>
           ))}

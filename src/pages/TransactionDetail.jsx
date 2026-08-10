@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
-import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
+import { formatRupiah, formatMoney, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
@@ -41,6 +41,7 @@ export default function TransactionDetail() {
         photo_url: tx.photo_url || "",
         tags: tx.tags || [],
         visibility: tx.visibility || "shared",
+        currency: tx.currency || "IDR",
       });
     }
   }, [tx, form]);
@@ -101,6 +102,7 @@ export default function TransactionDetail() {
       await base44.entities.Transaction.update(id, {
         type: form.type,
         amount: amt,
+        currency: form.currency || "IDR",
         category: form.type === "sedekah" ? "Sedekah & Infaq" : form.category,
         date: new Date(form.date).toISOString(),
         merchant: form.merchant || "",
@@ -173,6 +175,23 @@ export default function TransactionDetail() {
               <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
                 <Lock className="w-4 h-4" /> Pribadi
               </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
+            <div className="flex gap-2">
+              {["IDR", "SAR", "USD"].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setForm({ ...form, currency: c })}
+                  className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
+                    form.currency === c ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -269,7 +288,7 @@ export default function TransactionDetail() {
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs opacity-80">{typeLabels[tx.type]}</span>
         </div>
-        <p className="text-3xl font-bold tracking-tight">{isIncome ? "+" : "-"}{formatRupiah(tx.amount)}</p>
+        <p className="text-3xl font-bold tracking-tight">{isIncome ? "+" : "-"}{formatMoney(tx.amount, tx.currency)}</p>
         <p className="text-sm opacity-90 mt-1 truncate">{tx.merchant || tx.notes || (tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category)}</p>
       </div>
 

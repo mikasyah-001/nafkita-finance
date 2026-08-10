@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates } from "@/hooks/useFinance";
-import { colorMap, formatRupiah } from "@/lib/finance";
+import { colorMap, formatRupiah, currencies } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ export default function AddTransaction() {
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
+  const [currency, setCurrency] = useState("IDR");
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -108,6 +109,7 @@ export default function AddTransaction() {
       const records = multiTx.map((t) => ({
         type: "expense",
         amount: t.amount,
+        currency: t.currency || currency,
         category: t.category || "Lainnya",
         date: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
         merchant: t.merchant || "",
@@ -142,6 +144,7 @@ export default function AddTransaction() {
       addPending({
         type,
         amount: amt,
+        currency,
         category: type === "sedekah" ? "Sedekah & Infaq" : category,
         date: new Date(date).toISOString(),
         merchant: merchant || "",
@@ -160,6 +163,7 @@ export default function AddTransaction() {
       await base44.entities.Transaction.create({
         type,
         amount: amt,
+        currency,
         category: type === "sedekah" ? "Sedekah & Infaq" : category,
         date: new Date(date).toISOString(),
         merchant: merchant || "",
@@ -263,6 +267,23 @@ export default function AddTransaction() {
           {visibility === "private" && (
             <p className="text-[10px] text-muted-foreground mt-1.5">Hanya Anda yang dapat melihat transaksi ini.</p>
           )}
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
+          <div className="flex gap-2">
+            {currencies.map((c) => (
+              <button
+                key={c.code}
+                onClick={() => setCurrency(c.code)}
+                className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
+                  currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+                }`}
+              >
+                {c.code}
+              </button>
+            ))}
+          </div>
         </div>
 
         {templates.length > 0 && (

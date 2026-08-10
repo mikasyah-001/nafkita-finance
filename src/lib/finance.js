@@ -9,6 +9,19 @@ export function formatRupiah(n) {
   }).format(n || 0);
 }
 
+export const currencies = [
+  { code: "IDR", label: "Rupiah", symbol: "Rp" },
+  { code: "SAR", label: "Riyal Saudi", symbol: "SAR" },
+  { code: "USD", label: "Dolar AS", symbol: "$" },
+];
+
+export function formatMoney(n, currency = "IDR") {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "USD") return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+  return formatRupiah(n);
+}
+
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);
 }

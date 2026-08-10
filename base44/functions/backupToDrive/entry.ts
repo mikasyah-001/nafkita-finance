@@ -10,7 +10,7 @@ export default async function(req) {
     }
 
     // Kumpulkan seluruh data entitas (service role = akses penuh)
-    const [transactions, assets, categories, budgets, zakatPayments, snapshots, templates] = await Promise.all([
+    const [transactions, assets, categories, budgets, zakatPayments, snapshots, templates, investmentLots] = await Promise.all([
       base44.asServiceRole.entities.Transaction.list('-created_date', 5000),
       base44.asServiceRole.entities.Asset.list('-created_date', 5000),
       base44.asServiceRole.entities.Category.list('-created_date', 5000),
@@ -18,6 +18,7 @@ export default async function(req) {
       base44.asServiceRole.entities.ZakatPayment.list('-created_date', 5000),
       base44.asServiceRole.entities.AssetSnapshot.list('-created_date', 5000),
       base44.asServiceRole.entities.TransactionTemplate.list('-created_date', 5000),
+      base44.asServiceRole.entities.InvestmentLot.list('-created_date', 5000),
     ]);
 
     const now = new Date();
@@ -32,8 +33,9 @@ export default async function(req) {
         zakatPayments: zakatPayments.length,
         snapshots: snapshots.length,
         templates: templates.length,
+        investmentLots: investmentLots.length,
       },
-      data: { transactions, assets, categories, budgets, zakatPayments, snapshots, templates },
+      data: { transactions, assets, categories, budgets, zakatPayments, snapshots, templates, investmentLots },
     };
 
     const json = JSON.stringify(backup, null, 2);

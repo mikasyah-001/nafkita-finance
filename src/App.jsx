@@ -23,6 +23,7 @@ import Profile from '@/pages/Profile';
 import Categories from '@/pages/Categories';
 import AsistenStruk from '@/pages/AsistenStruk';
 import Ringkasan from '@/pages/Ringkasan';
+import InvestmentDetail from '@/pages/InvestmentDetail';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
           <Route path="/profil" element={<Profile />} />
           <Route path="/kategori" element={<Categories />} />
           <Route path="/asisten-struk" element={<AsistenStruk />} />
+          <Route path="/investasi/:id" element={<InvestmentDetail />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

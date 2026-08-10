@@ -50,6 +50,14 @@ export function useZakatPayments() {
   });
 }
 
+export function useInvestmentLots(assetId) {
+  return useQuery({
+    queryKey: ["investmentLots", assetId],
+    queryFn: () => base44.entities.InvestmentLot.filter({ asset_id: assetId }, "date", 200),
+    enabled: !!assetId,
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -60,5 +68,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["templates"] });
     qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
     qc.invalidateQueries({ queryKey: ["zakatPayments"] });
+    qc.invalidateQueries({ queryKey: ["investmentLots"] });
   };
 }

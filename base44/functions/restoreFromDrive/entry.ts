@@ -62,6 +62,7 @@ export default async function(req) {
       created.zakatPayments = await bulkCreateChunked(base44, 'ZakatPayment', clean(d.zakatPayments));
       created.snapshots = await bulkCreateChunked(base44, 'AssetSnapshot', clean(d.snapshots));
       created.templates = await bulkCreateChunked(base44, 'TransactionTemplate', clean(d.templates));
+      created.investmentLots = await bulkCreateChunked(base44, 'InvestmentLot', clean(d.investmentLots));
 
       return Response.json({
         status: 'success',

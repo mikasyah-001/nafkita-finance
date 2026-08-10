@@ -9,7 +9,7 @@ import AssetForm from "@/components/AssetForm";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Building2 } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -248,6 +248,7 @@ export default function Assets() {
                       {meta.label}{a.owner ? ` • ${a.owner}` : ""}
                       {a.type === "emas" && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "tanah" && a.quantity ? ` • ${formatNumber(a.quantity)} m²` : ""}
+                      {a.type === "investasi" && a.broker ? ` • ${a.broker}` : ""}
                     </p>
                   </div>
                   <div className="text-right">
@@ -261,6 +262,11 @@ export default function Assets() {
                       <button onClick={() => handleToggleVisibility(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}>
                         {a.visibility === "private" ? <Users className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                       </button>
+                      {a.type === "investasi" && (
+                        <Link to={`/investasi/${a.id}`} className="text-xs text-emerald-600 flex items-center gap-1 active:scale-95 transition-transform" title="Catat DCA bulanan">
+                          <Layers className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
                       <button onClick={() => openEdit(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>

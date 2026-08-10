@@ -26,6 +26,9 @@
     "unit": {
       "type": "string"
     },
+    "broker": {
+      "type": "string"
+    },
     "purchase_date": {
       "type": "string",
       "format": "date"

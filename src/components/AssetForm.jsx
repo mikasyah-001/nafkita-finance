@@ -9,7 +9,7 @@ import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
 const types = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"];
 
 const empty = {
-  name: "", type: "bank", value: "", quantity: "", unit: "",
+  name: "", type: "bank", value: "", quantity: "", unit: "", broker: "",
   purchase_date: "", purchase_price: "", purchase_proof_url: "",
   owner: "", notes: "", visibility: "shared",
 };
@@ -69,6 +69,7 @@ export default function AssetForm({ asset, onClose }) {
         purchase_proof_url: form.purchase_proof_url || "",
         owner: form.owner,
         notes: form.notes,
+        broker: form.broker || "",
         visibility: form.visibility,
       };
       if (isEdit) {
@@ -147,6 +148,12 @@ export default function AssetForm({ asset, onClose }) {
           {form.type !== "emas" && form.type !== "tanah" && (
             <Field label="Harga Pembelian (Rp, opsional)">
               <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
+            </Field>
+          )}
+
+          {form.type === "investasi" && (
+            <Field label="Tempat Pembelian / Broker (opsional)">
+              <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bibit, Stockbit, BNI Sekuritas" className="input" />
             </Field>
           )}
 

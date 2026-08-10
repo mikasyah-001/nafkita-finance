@@ -8,8 +8,10 @@ import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import { Image as SmartImage } from "@/components/ui/image";
+import Money from "@/components/Money";
+import { usePrivacy } from "@/lib/PrivacyContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Building2 } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Building2, Eye, EyeOff } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -31,6 +33,7 @@ export default function Assets() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [user, setUser] = useState(null);
   const [emasOpen, setEmasOpen] = useState(false);
+  const { hidden, toggle } = usePrivacy();
 
   useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
 
@@ -112,6 +115,9 @@ export default function Assets() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Aset Keluarga</h1>
         <div className="flex items-center gap-2">
+          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+            {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
+          </button>
           <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
@@ -132,7 +138,7 @@ export default function Assets() {
 
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-4 shadow-lg">
         <p className="text-xs opacity-80">{scope === "private" ? "Total Aset Pribadi" : "Total Nilai Aset"}</p>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(total)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={total} /></p>
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
 
@@ -144,7 +150,7 @@ export default function Assets() {
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">Emas & Zakat</p>
-              <p className="text-xs text-muted-foreground truncate">{formatNumber(emasGrams)} gram • {wajibZakatEmas ? "nisab tercapai" : "di bawah nisab"}{goldPriceNum > 0 ? ` • ${formatRupiah(emasValue)}` : ""}</p>
+              <p className="text-xs text-muted-foreground truncate">{formatNumber(emasGrams)} gram • {wajibZakatEmas ? "nisab tercapai" : "di bawah nisab"}{goldPriceNum > 0 ? <> • <Money value={emasValue} /></> : null}</p>
             </div>
             {wajibZakatEmas && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 font-medium shrink-0">Zakat</span>}
             <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${emasOpen ? "rotate-180" : ""}`} />
@@ -178,8 +184,8 @@ export default function Assets() {
                   )}
                   {wajibZakatEmas && (
                     <>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium">{formatRupiah(emasValue)}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600">{formatRupiah(zakatEmasAmount)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium"><Money value={emasValue} /></span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600"><Money value={zakatEmasAmount} /></span></div>
                     </>
                   )}
                 </div>
@@ -252,7 +258,7 @@ export default function Assets() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold tabular-nums">{formatRupiah(curVal)}</p>
+                    <p className="text-sm font-semibold tabular-nums"><Money value={curVal} /></p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
                       {a.purchase_proof_url && (
                         <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
@@ -283,7 +289,7 @@ export default function Assets() {
                       <>
                         <div>
                           <p className="text-muted-foreground">Harga Beli /m²</p>
-                          <p className="font-medium">{formatRupiah(a.purchase_price)}</p>
+                          <p className="font-medium"><Money value={a.purchase_price} /></p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Luas</p>
@@ -291,11 +297,11 @@ export default function Assets() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Total Beli</p>
-                          <p className="font-medium">{formatRupiah(totalPurchase)}</p>
+                          <p className="font-medium"><Money value={totalPurchase} /></p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Perkiraan Sekarang</p>
-                          <p className="font-medium">{formatRupiah(curVal)}</p>
+                          <p className="font-medium"><Money value={curVal} /></p>
                         </div>
                         <div className="col-span-2">
                           <p className="text-muted-foreground">Perubahan</p>
@@ -309,14 +315,14 @@ export default function Assets() {
                       <>
                         <div>
                           <p className="text-muted-foreground">Harga Beli{a.type === "emas" ? " /gr" : ""}</p>
-                          <p className="font-medium">{formatRupiah(a.purchase_price)}</p>
+                          <p className="font-medium"><Money value={a.purchase_price} /></p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>
                           {showChange ? (
                             <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
                               {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                              {isGain ? "+" : ""}{formatRupiah(gain)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                              {isGain ? "+" : ""}<Money value={gain} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>
                           ) : (
                             <p className="text-muted-foreground text-[11px]">Set harga emas dulu</p>

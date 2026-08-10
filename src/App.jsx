@@ -25,6 +25,7 @@ import Categories from '@/pages/Categories';
 import AsistenStruk from '@/pages/AsistenStruk';
 import Ringkasan from '@/pages/Ringkasan';
 import InvestmentDetail from '@/pages/InvestmentDetail';
+import Feedback from '@/pages/Feedback';
 import Welcome from '@/pages/Welcome';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
           <Route path="/kategori" element={<Categories />} />
           <Route path="/asisten-struk" element={<AsistenStruk />} />
           <Route path="/investasi/:id" element={<InvestmentDetail />} />
+          <Route path="/umpan-balik" element={<Feedback />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

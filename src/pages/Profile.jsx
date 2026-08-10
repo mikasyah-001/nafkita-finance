@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Check, User } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import FamilyMembers from "@/components/FamilyMembers";
 
@@ -98,6 +98,20 @@ export default function Profile() {
         className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
+      </button>
+
+      <button
+        onClick={() => navigate("/umpan-balik")}
+        className="w-full mt-5 rounded-2xl border border-border bg-card p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <MessageSquareHeart className="w-5 h-5 text-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Kirim Umpan Balik</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Laporan error, ide fitur, atau saran untuk pengembang</p>
+        </div>
+        <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
       </button>
 
       <FamilyMembers />

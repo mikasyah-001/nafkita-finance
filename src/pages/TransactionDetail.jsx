@@ -7,6 +7,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
 import { scanReceipt } from "@/lib/scanReceipt";
+import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users } from "lucide-react";
 
@@ -102,7 +103,11 @@ export default function TransactionDetail() {
         }
         return next;
       });
-      toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}` : "Periksa data sebelum simpan." });
+      if (p.category && p.category_new) {
+        await ensureCategories([{ name: p.category, icon: p.category_icon, color: p.category_color }], categories, "expense");
+        refresh();
+      }
+      toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa data sebelum simpan." });
     } catch {
       toast.error("Gagal membaca bon");
     }

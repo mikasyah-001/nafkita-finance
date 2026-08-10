@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates, useTransactions } from "@/hooks/useFinance";
 import { colorMap, formatRupiah, formatDate, currencies } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
+import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
@@ -96,7 +97,11 @@ export default function AddTransaction() {
           }
         }
         setType("expense");
-        toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}` : "Periksa dan lengkapi data." });
+        if (p.category && p.category_new) {
+          await ensureCategories([{ name: p.category, icon: p.category_icon, color: p.category_color }], categories, "expense");
+          refresh();
+        }
+        toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa dan lengkapi data." });
       } else {
         setMultiTx(transactions);
         toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa kategori lalu simpan semua." });
@@ -122,6 +127,8 @@ export default function AddTransaction() {
         setSavingMulti(false);
         return;
       }
+      const proposals = toSave.filter((t) => t.category).map((t) => ({ name: t.category, icon: t.category_icon, color: t.category_color }));
+      await ensureCategories(proposals, categories, "expense");
       const records = toSave.map((t) => ({
         type: "expense",
         amount: t.amount,

@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 
 /**
  * Reads a receipt/bon image via LLM and returns parsed transaction fields.
@@ -23,7 +24,7 @@ Tugas: temukan SEMUA transaksi yang tertera pada foto. Satu foto bisa berisi:
 Untuk SETIAP transaksi, tentukan:
 1. TOTAL — nominal dibayar (number bulat, tanpa "Rp"/titik/koma). Untuk bon, ambil baris TOTAL/GRAND TOTAL/JUMLAH BAYAR terakhir. Untuk mutasi, ambil nominal per baris (abaikan tanda minus/kurung).
 2. MERCHANT — nama toko/merchant/penerima (singkat, tanpa nomor referensi panjang).
-3. KATEGORI — pilih salah satu dari: ${categoryList}. Jika tidak ada yang cocok, jawab "Lainnya".
+3. KATEGORI — pilih salah satu dari: ${categoryList}. Jika tidak ada yang cocok, JANGAN pakai "Lainnya"; usulkan kategori baru yang tepat (nama singkat Indonesia, 1-2 kata, mis. "Kesehatan", "Hiburan", "Olahraga", "Perawatan", "Donasi", "Kopi"). Sertakan category_icon (salah satu: Wallet, ShoppingCart, Car, ReceiptText, HeartPulse, GraduationCap, Gamepad2, Gift, PiggyBank, Landmark, Coins, Briefcase, Utensils, Bus, Lightbulb, Package, Sparkles, Home, Heart) dan category_color (salah satu: orange, blue, pink, red, teal, indigo, violet, green, amber, cyan, rose, slate) yang paling sesuai.
 4. TANGGAL — format ISO yyyy-mm-dd. Untuk mutasi, ambil tanggal per transaksi; jika transaksi dikelompokkan di bawah header tanggal, gunakan tanggal header tersebut untuk semua transaksi di grup itu. Jika tahun hanya 2 digit, anggap 2000+tahun. Jika ragu/tidak tertera, kosongkan (jangan tebak).
 5. JAM — waktu transaksi format HH:mm (24 jam). Ambil dari jam cetak pada bon/struk atau kolom waktu pada mutasi. Jika tidak tertera, kosongkan (jangan tebak).
 6. CATATAN — ringkasan singkat item/nama transaksi (maks 80 karakter). Kosongkan jika tidak terbaca.
@@ -46,6 +47,8 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
               amount: { type: "number" },
               merchant: { type: "string" },
               category: { type: "string" },
+              category_icon: { type: "string" },
+              category_color: { type: "string" },
               date: { type: "string" },
               time: { type: "string" },
               notes: { type: "string" },
@@ -87,24 +90,30 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
   };
 
   const matchCategory = (cat) => {
-    if (!cat) return "";
+    if (!cat) return { name: "", isNew: false };
     const r = String(cat).toLowerCase().trim();
-    return (
+    const existing =
       expenseNames.find((n) => n.toLowerCase() === r) ||
-      expenseNames.find((n) => n.toLowerCase().includes(r) || r.includes(n.toLowerCase())) ||
-      ""
-    );
+      expenseNames.find((n) => n.toLowerCase().includes(r) || r.includes(n.toLowerCase()));
+    if (existing) return { name: existing, isNew: false };
+    return { name: String(cat).trim(), isNew: true };
   };
 
   const items = (result.transactions || [])
-    .map((t) => ({
-      amount: Number(t.amount) > 0 ? Math.round(Number(t.amount)) : 0,
-      merchant: t.merchant ? String(t.merchant).trim() : "",
-      category: matchCategory(t.category),
-      date: normalizeDate(t.date),
-      time: normalizeTime(t.time),
-      notes: t.notes ? String(t.notes).trim().slice(0, 120) : "",
-    }))
+    .map((t) => {
+      const cat = matchCategory(t.category);
+      return {
+        amount: Number(t.amount) > 0 ? Math.round(Number(t.amount)) : 0,
+        merchant: t.merchant ? String(t.merchant).trim() : "",
+        category: cat.name,
+        category_new: cat.isNew,
+        category_icon: cat.isNew ? sanitizeIcon(t.category_icon) : "",
+        category_color: cat.isNew ? sanitizeColor(t.category_color) : "",
+        date: normalizeDate(t.date),
+        time: normalizeTime(t.time),
+        notes: t.notes ? String(t.notes).trim().slice(0, 120) : "",
+      };
+    })
     .filter((t) => t.amount > 0);
 
   return { transactions: items };

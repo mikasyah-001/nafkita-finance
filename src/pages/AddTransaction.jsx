@@ -292,6 +292,7 @@ export default function AddTransaction() {
               onClick={() => {
                 setType(t.key);
                 setCategory("");
+                if (t.key === "income") setMerchant("");
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                 type === t.key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
@@ -460,15 +461,17 @@ export default function AddTransaction() {
           />
         </div>
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">{type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
-          <input
-            value={merchant}
-            onChange={(e) => setMerchant(e.target.value)}
-            placeholder={type === "sedekah" ? "Mis. Masjid, Yatim..." : "Mis. Indomaret, Toko A..."}
-            className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30"
-          />
-        </div>
+        {type !== "income" && (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">{type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
+            <input
+              value={merchant}
+              onChange={(e) => setMerchant(e.target.value)}
+              placeholder={type === "sedekah" ? "Mis. Masjid, Yatim..." : "Mis. Indomaret, Toko A..."}
+              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30"
+            />
+          </div>
+        )}
 
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>

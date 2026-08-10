@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt } from "lucide-react";
+import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -28,6 +28,10 @@ export default function Assets() {
   const [scope, setScope] = useState("shared");
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [user, setUser] = useState(null);
+
+  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
 
   const goldPriceNum = Number(goldPrice) || 0;
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
@@ -37,7 +41,10 @@ export default function Assets() {
     return a.value || 0;
   };
 
-  const sortedAssets = [...scopedAssets].sort((a, b) => {
+  const typeOptions = ["all", "bank", "emas", "investasi", "properti", "lainnya"];
+  const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
+
+  const sortedAssets = [...filteredAssets].sort((a, b) => {
     switch (sortBy) {
       case "value_desc": return currentValue(b) - currentValue(a);
       case "value_asc": return currentValue(a) - currentValue(b);
@@ -48,7 +55,18 @@ export default function Assets() {
   });
 
   const total = scopedAssets.reduce((s, a) => s + currentValue(a), 0);
-  const emasGrams = scopedAssets.filter((a) => a.type === "emas").reduce((s, a) => s + (a.quantity || 0), 0);
+  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
+  const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
+  const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
+  const nisabGrams = 85;
+  const wajibZakatEmas = emasGrams >= nisabGrams;
+  const zakatEmasAmount = wajibZakatEmas ? emasValue * 0.025 : 0;
+  const earliestEmasDate = emasAssets.reduce((d, a) => {
+    if (!a.purchase_date) return d;
+    const t = new Date(a.purchase_date).getTime();
+    return d === null || t < d ? t : d;
+  }, null);
+  const hasReachedHaul = earliestEmasDate != null && (Date.now() - earliestEmasDate) >= 354 * 24 * 3600 * 1000;
 
   const fetchGoldPrice = async () => {
     setFetchingPrice(true);
@@ -92,6 +110,20 @@ export default function Assets() {
       toast.success(next === "private" ? "Aset diubah menjadi Pribadi" : "Aset diubah menjadi Bersama");
     } catch {
       toast.error("Gagal mengubah jangkauan");
+    }
+  };
+
+  const handleZakatReminder = async () => {
+    if (!user?.email) { toast.error("Email tidak ditemukan"); return; }
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: user.email,
+        subject: "Pengingat: Zakat Emas Anda 🕌",
+        body: `Assalamu'alaikum ${user.full_name || user.email},\n\nTotal emas Anda saat ini ${formatNumber(emasGrams)} gram telah mencapai nisab (85 gram). Jangan lupa menunaikan zakat mal sebesar 2,5% dari nilai emas Anda setelah genap 1 tahun (haul).\n\nPerkiraan zakat: ${formatRupiah(zakatEmasAmount)}\n\nSemoga Allah memberkahi harta Anda.\n\nNAFKITA`,
+      });
+      toast.success("Pengingat zakat dikirim", { description: `Ke ${user.email}` });
+    } catch {
+      toast.error("Gagal mengirim pengingat");
     }
   };
 
@@ -143,6 +175,58 @@ export default function Assets() {
         </div>
       )}
 
+      {emasAssets.length > 0 && (
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Coins className="w-4 h-4 text-emerald-600" />
+            <p className="text-sm font-medium">Zakat Emas</p>
+          </div>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex justify-between"><span className="text-muted-foreground">Total emas</span><span className="font-medium">{formatNumber(emasGrams)} gram</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Nisab</span><span className="font-medium">85 gram</span></div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Status nisab</span>
+              <span className={`flex items-center gap-1 font-medium ${wajibZakatEmas ? "text-emerald-600" : "text-muted-foreground"}`}>
+                {wajibZakatEmas ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                {wajibZakatEmas ? "Sudah mencapai nisab" : "Belum mencapai nisab"}
+              </span>
+            </div>
+            {earliestEmasDate != null && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Status haul (1 thn)</span>
+                <span className={`font-medium ${hasReachedHaul ? "text-emerald-600" : "text-muted-foreground"}`}>
+                  {hasReachedHaul ? "Sudah genap 1 tahun" : "Belum genap 1 tahun"}
+                </span>
+              </div>
+            )}
+            {wajibZakatEmas && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium">{formatRupiah(emasValue)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600">{formatRupiah(zakatEmasAmount)}</span></div>
+              </>
+            )}
+          </div>
+          {wajibZakatEmas && (
+            <button onClick={handleZakatReminder} className="w-full mt-3 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
+              <Bell className="w-4 h-4" /> Ingatkan Bayar Zakat
+            </button>
+          )}
+        </div>
+      )}
+
+      {scopedAssets.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+            {typeOptions.map((t) => (
+              <button key={t} onClick={() => setTypeFilter(t)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                {t === "all" ? "Semua" : assetTypeLabels[t].label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {scopedAssets.length > 0 && (
         <div className="mb-3">
           <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground"><ArrowUpDown className="w-3.5 h-3.5" /> Urutkan</div>
@@ -158,6 +242,8 @@ export default function Assets() {
 
       {scopedAssets.length === 0 ? (
         <EmptyState icon={scope === "private" ? Lock : Landmark} title={scope === "private" ? "Belum ada aset pribadi" : "Belum ada aset"} subtitle="Catat tabungan, emas, investasi, dan aset lainnya untuk memantau kekayaan dan kewajiban zakat." />
+      ) : filteredAssets.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">Tidak ada aset untuk filter ini.</div>
       ) : (
         <div className="space-y-3">
           {sortedAssets.map((a) => {

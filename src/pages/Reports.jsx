@@ -55,7 +55,7 @@ export default function Reports() {
   const nisab = emasPriceNum * 85;
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-  const emasValue = emasAssets.reduce((s, a) => s + (a.value || 0), 0);
+  const emasValue = emasPriceNum > 0 ? emasGrams * emasPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
   const otherValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
   const totalAset = emasValue + otherValue;
   const emasWajibZakat = emasGrams >= 85;

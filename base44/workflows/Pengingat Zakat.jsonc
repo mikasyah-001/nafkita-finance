@@ -1,0 +1,47 @@
+{
+  "name": "Pengingat Zakat",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 1 3 *",
+      "one_time_date": null,
+      "timezone": "Asia/Jakarta",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Pengingat tahunan (1 Maret pkl 08:00) untuk bayar zakat emas saat total emas keluarga mencapai nisab (85 gram)",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "zakat_reminder",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_zakat_reminder": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "zakatReminder",
+            "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Kirim pengingat zakat emas",
+            "description": "Email ke keluarga jika total emas >= nisab (85 gram)"
+          }
+        }
+      }
+    ]
+  }
+}

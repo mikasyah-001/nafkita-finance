@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
 import AssetGrowthChart from "@/components/AssetGrowthChart";
+import { fetchGoldPricesMulti } from "@/lib/goldPrice";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2 } from "lucide-react";
 
 const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
 
@@ -17,6 +18,15 @@ export default function Reports() {
   const [cursor, setCursor] = useState(new Date());
   const [emasPrice, setEmasPrice] = useState("");
   const [scope, setScope] = useState("shared");
+  const [goldLoading, setGoldLoading] = useState(false);
+
+  useEffect(() => {
+    setGoldLoading(true);
+    fetchGoldPricesMulti()
+      .then((res) => { if (res.length) setEmasPrice(String(Math.round(res[0].price_per_gram))); })
+      .catch(() => {})
+      .finally(() => setGoldLoading(false));
+  }, []);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -120,13 +130,20 @@ export default function Reports() {
 
       <MonthComparison transactions={scopedTransactions} categories={categories} year={year} month={month} />
 
-      <AssetGrowthChart assets={scopedAssets} />
+      <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} />
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>
         <p className="text-xs text-muted-foreground mb-3">Zakat mal 2,5% untuk harta yang mencapai nisab (85 gram emas).</p>
 
-        <label className="text-xs text-muted-foreground block mb-1.5">Harga emas per gram (Rp)</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs text-muted-foreground">Harga emas per gram (Rp)</label>
+          {goldLoading ? (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat real-time</span>
+          ) : emasPriceNum > 0 ? (
+            <span className="text-[10px] text-emerald-600 font-medium">real-time</span>
+          ) : null}
+        </div>
         <input
           type="number"
           value={emasPrice}

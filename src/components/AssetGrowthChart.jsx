@@ -4,34 +4,35 @@ import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 
-const typeColors = { bank: "#3b82f6", emas: "#f59e0b", investasi: "#10b981", properti: "#8b5cf6", lainnya: "#64748b" };
+const typeColors = { bank: "#3b82f6", emas: "#f59e0b", investasi: "#10b981", properti: "#8b5cf6", tanah: "#06b6d4", lainnya: "#64748b" };
 
-export default function AssetGrowthChart({ assets }) {
+export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
   const byType = useMemo(() => {
     const map = {};
     assets.forEach((a) => {
       const t = a.type || "lainnya";
-      map[t] = (map[t] || 0) + (a.value || 0);
+      const cur = a.type === "emas" && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0);
+      map[t] = (map[t] || 0) + cur;
     });
     return Object.entries(map)
       .map(([type, total]) => ({ type, label: assetTypeLabels[type]?.label || type, total }))
       .sort((a, b) => b.total - a.total);
-  }, [assets]);
+  }, [assets, goldPrice]);
 
   const perAsset = useMemo(
     () =>
       assets.map((a) => {
         const purchase = a.purchase_price
-          ? a.type === "emas" && a.quantity
+          ? (a.type === "emas" || a.type === "tanah") && a.quantity
             ? a.purchase_price * a.quantity
             : a.purchase_price
           : 0;
-        const current = a.value || 0;
+        const current = a.type === "emas" && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0);
         const gain = purchase > 0 ? current - purchase : 0;
         const gainPct = purchase > 0 ? (gain / purchase) * 100 : 0;
         return { ...a, purchase, current, gain, gainPct };
       }),
-    [assets]
+    [assets, goldPrice]
   );
 
   if (!assets.length) return null;

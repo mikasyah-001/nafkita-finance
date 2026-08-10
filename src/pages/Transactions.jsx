@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatDate } from "@/lib/finance";
+import { formatDate, formatRupiah } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
@@ -54,7 +54,12 @@ export default function Transactions() {
       if (!map[key]) map[key] = [];
       map[key].push(t);
     });
-    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+    return Object.entries(map)
+      .map(([date, items]) => {
+        const net = items.reduce((s, t) => s + (t.type === "income" ? t.amount : t.type === "expense" ? -t.amount : 0), 0);
+        return [date, items, net];
+      })
+      .sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
   const hasActiveFilter = category !== "all" || fromDate || toDate;
@@ -103,18 +108,22 @@ export default function Transactions() {
         ))}
       </div>
 
-      <div className="flex gap-2 mb-4">
-        {[{ key: "all", label: "Semua" }, { key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
-          <button
-            key={s.key}
-            onClick={() => setScope(s.key)}
-            className={`flex-1 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              scope === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex gap-1.5">
+          {[{ key: "all", label: "Semua" }, { key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setScope(s.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${scope === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          <button onClick={() => setView("list")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Daftar</button>
+          <button onClick={() => setView("calendar")} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${view === "calendar" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Kalender</button>
+        </div>
       </div>
 
       {showFilter && (
@@ -185,20 +194,21 @@ export default function Transactions() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setView("list")} className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Daftar</button>
-        <button onClick={() => setView("calendar")} className={`flex-1 py-2 rounded-xl text-xs font-medium transition-colors ${view === "calendar" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Kalender</button>
-      </div>
-
       {view === "calendar" ? (
         <CalendarView transactions={filtered} categories={categories} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Tidak ada transaksi" subtitle="Belum ada catatan yang cocok dengan filter ini." />
       ) : (
         <div className="space-y-5">
-          {grouped.map(([date, items]) => (
+          <p className="text-xs text-muted-foreground px-1">{filtered.length} transaksi</p>
+          {grouped.map(([date, items, net]) => (
             <div key={date}>
-              <p className="text-xs text-muted-foreground mb-1 px-1">{formatDate(date, "EEEE, dd MMMM yyyy")}</p>
+              <div className="flex items-center justify-between mb-1 px-1">
+                <p className="text-xs text-muted-foreground">{formatDate(date, "EEEE, dd MMMM yyyy")}</p>
+                {net !== 0 && (
+                  <span className={`text-[11px] font-medium ${net > 0 ? "text-emerald-600" : "text-red-500"}`}>{net > 0 ? "+" : ""}{formatRupiah(net)}</span>
+                )}
+              </div>
               <div className="rounded-2xl border border-border bg-card px-4">
                 {items.map((t) => (
                   <TransactionItem key={t.id} tx={t} categories={categories} />

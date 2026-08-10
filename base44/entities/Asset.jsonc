@@ -32,6 +32,9 @@
     "purchase_price": {
       "type": "number"
     },
+    "purchase_proof_url": {
+      "type": "string"
+    },
     "owner": {
       "type": "string"
     },

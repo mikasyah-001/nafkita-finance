@@ -5,33 +5,47 @@ import { useAssets, useRefresh } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
+import AssetForm from "@/components/AssetForm";
+import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock } from "lucide-react";
+import { Landmark, Plus, Loader2, Trash2, X, Coins, RefreshCw, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt } from "lucide-react";
 
-const types = ["bank", "emas", "investasi", "properti", "lainnya"];
+const sortOptions = [
+  { key: "updated", label: "Terbaru" },
+  { key: "value_desc", label: "Nilai ↓" },
+  { key: "value_asc", label: "Nilai ↑" },
+  { key: "date_desc", label: "Beli ↓" },
+  { key: "date_asc", label: "Beli ↑" },
+];
 
 export default function Assets() {
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
   const [goldPrice, setGoldPrice] = useState("");
   const [fetchingPrice, setFetchingPrice] = useState(false);
   const [scope, setScope] = useState("shared");
-  const [form, setForm] = useState({
-    name: "", type: "bank", value: "", quantity: "", unit: "",
-    purchase_date: "", purchase_price: "", owner: "", notes: "", visibility: "shared",
-  });
+  const [sortBy, setSortBy] = useState("updated");
+  const [viewProof, setViewProof] = useState(null);
 
   const goldPriceNum = Number(goldPrice) || 0;
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
 
   const currentValue = (a) => {
-    if (a.type === "emas" && a.quantity && goldPriceNum > 0) {
-      return a.quantity * goldPriceNum;
-    }
+    if (a.type === "emas" && a.quantity && goldPriceNum > 0) return a.quantity * goldPriceNum;
     return a.value || 0;
   };
+
+  const sortedAssets = [...scopedAssets].sort((a, b) => {
+    switch (sortBy) {
+      case "value_desc": return currentValue(b) - currentValue(a);
+      case "value_asc": return currentValue(a) - currentValue(b);
+      case "date_desc": return new Date(b.purchase_date || 0) - new Date(a.purchase_date || 0);
+      case "date_asc": return new Date(a.purchase_date || 0) - new Date(b.purchase_date || 0);
+      default: return new Date(b.updated_date || 0) - new Date(a.updated_date || 0);
+    }
+  });
 
   const total = scopedAssets.reduce((s, a) => s + currentValue(a), 0);
   const emasGrams = scopedAssets.filter((a) => a.type === "emas").reduce((s, a) => s + (a.quantity || 0), 0);
@@ -40,13 +54,9 @@ export default function Assets() {
     setFetchingPrice(true);
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt:
-          "Cari harga emas per gram di Indonesia saat ini (harga emas Antam atau emas batangan terbaru). Berikan harga per gram dalam Rupiah. Jawab hanya dengan angka.",
+        prompt: "Cari harga emas per gram di Indonesia saat ini (harga emas Antam atau emas batangan terbaru). Berikan harga per gram dalam Rupiah. Jawab hanya dengan angka.",
         add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: { price_per_gram: { type: "number" } },
-        },
+        response_json_schema: { type: "object", properties: { price_per_gram: { type: "number" } } },
       });
       const price = result.price_per_gram;
       if (price && price > 0) {
@@ -61,36 +71,8 @@ export default function Assets() {
     setFetchingPrice(false);
   };
 
-  const handleSave = async () => {
-    if (!form.name) return toast.error("Isi nama aset");
-    if (!form.value && form.type !== "emas") return toast.error("Isi nilai aset");
-    if (form.type === "emas" && !form.quantity) return toast.error("Isi jumlah gram emas");
-    setSaving(true);
-    try {
-      const value = form.type === "emas" && form.quantity && form.purchase_price
-        ? Number(form.quantity) * Number(form.purchase_price)
-        : Number(form.value);
-      await base44.entities.Asset.create({
-        name: form.name,
-        type: form.type,
-        value,
-        quantity: form.quantity ? Number(form.quantity) : 0,
-        unit: form.type === "emas" ? "gram" : form.unit,
-        purchase_date: form.purchase_date || "",
-        purchase_price: form.purchase_price ? Number(form.purchase_price) : 0,
-        owner: form.owner,
-        notes: form.notes,
-        visibility: form.visibility,
-      });
-      refresh();
-      toast.success("Aset ditambahkan");
-      setForm({ name: "", type: "bank", value: "", quantity: "", unit: "", purchase_date: "", purchase_price: "", owner: "", notes: "", visibility: "shared" });
-      setShowForm(false);
-    } catch {
-      toast.error("Gagal menambah aset");
-    }
-    setSaving(false);
-  };
+  const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
+  const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
 
   const handleDelete = async (id) => {
     try {
@@ -121,7 +103,7 @@ export default function Assets() {
           <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
-          <button onClick={() => setShowForm(true)} className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+          <button onClick={openAdd} className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
             <Plus className="w-5 h-5" />
           </button>
         </div>
@@ -151,24 +133,26 @@ export default function Assets() {
           <div className="flex gap-2">
             <div className="flex items-center flex-1 rounded-xl bg-background border border-border px-3">
               <span className="text-xs text-muted-foreground">Rp</span>
-              <input
-                type="number"
-                value={goldPrice}
-                onChange={(e) => setGoldPrice(e.target.value)}
-                placeholder="harga / gram"
-                className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"
-              />
+              <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
             </div>
-            <button
-              onClick={fetchGoldPrice}
-              disabled={fetchingPrice}
-              className="px-3 rounded-xl bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60"
-            >
-              {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Cek
+            <button onClick={fetchGoldPrice} disabled={fetchingPrice} className="px-3 rounded-xl bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
+              {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Cek
             </button>
           </div>
           <p className="text-[11px] text-muted-foreground mt-1.5">Nilai emas diperbarui otomatis mengikuti harga pasar ini.</p>
+        </div>
+      )}
+
+      {scopedAssets.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground"><ArrowUpDown className="w-3.5 h-3.5" /> Urutkan</div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+            {sortOptions.map((o) => (
+              <button key={o.key} onClick={() => setSortBy(o.key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${sortBy === o.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -176,7 +160,7 @@ export default function Assets() {
         <EmptyState icon={scope === "private" ? Lock : Landmark} title={scope === "private" ? "Belum ada aset pribadi" : "Belum ada aset"} subtitle="Catat tabungan, emas, investasi, dan aset lainnya untuk memantau kekayaan dan kewajiban zakat." />
       ) : (
         <div className="space-y-3">
-          {scopedAssets.map((a) => {
+          {sortedAssets.map((a) => {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
@@ -205,14 +189,18 @@ export default function Assets() {
                   <div className="text-right">
                     <p className="text-sm font-semibold">{formatRupiah(curVal)}</p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
-                      <button
-                        onClick={() => handleToggleVisibility(a)}
-                        className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform"
-                        title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}
-                      >
+                      {a.purchase_proof_url && (
+                        <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
+                          <Receipt className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => handleToggleVisibility(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}>
                         {a.visibility === "private" ? <Users className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                       </button>
-                      <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 flex items-center gap-1">
+                      <button onClick={() => openEdit(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 flex items-center gap-1" title="Hapus aset">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -250,87 +238,18 @@ export default function Assets() {
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center max-w-md mx-auto">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowForm(false)} />
-          <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Tambah Aset</h2>
-              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <Field label="Nama Aset">
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mis. Tabungan BCA, Emas 10gr" className="input" />
-              </Field>
-              <Field label="Jenis">
-                <div className="flex gap-2 flex-wrap">
-                  {types.map((t) => (
-                    <button key={t} onClick={() => setForm({ ...form, type: t, unit: t === "emas" ? "gram" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {assetTypeLabels[t].label}
-                    </button>
-                  ))}
-                </div>
-              </Field>
+      {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 
-              {form.type === "emas" ? (
-                <>
-                  <Field label="Jumlah (gram)">
-                    <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" className="input" />
-                  </Field>
-                  <Field label="Harga Beli / gram (Rp)">
-                    <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="Mis. 1350000" className="input" />
-                  </Field>
-                </>
-              ) : (
-                <Field label="Nilai Saat Ini (Rp)">
-                  <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
-                </Field>
-              )}
-
-              <Field label="Tanggal Pembelian (opsional)">
-                <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
-              </Field>
-
-              {form.type !== "emas" && (
-                <Field label="Harga Pembelian (Rp, opsional)">
-                  <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
-                </Field>
-              )}
-
-              <Field label="Jangkauan">
-                <div className="flex gap-2">
-                  <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                    <Users className="w-4 h-4" /> Bersama
-                  </button>
-                  <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                    <Lock className="w-4 h-4" /> Pribadi
-                  </button>
-                </div>
-              </Field>
-              <Field label="Pemilik (opsional)">
-                <input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className="input" />
-              </Field>
-              <Field label="Catatan (opsional)">
-                <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input" />
-              </Field>
-              <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan Aset"}
-              </button>
-            </div>
+      {viewProof && (
+        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-5" onClick={() => setViewProof(null)}>
+          <button className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="max-w-md w-full max-h-[85vh] rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <SmartImage src={viewProof} alt="Bukti pembelian" className="w-full" fittingType="fit" />
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="text-xs text-muted-foreground mb-1.5 block">{label}</label>
-      {children}
     </div>
   );
 }

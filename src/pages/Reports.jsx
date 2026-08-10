@@ -4,6 +4,7 @@ import { formatRupiah, formatNumber, colorMap, formatDate } from "@/lib/finance"
 import CategoryIcon from "@/components/CategoryIcon";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
+import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock } from "lucide-react";
 
@@ -118,6 +119,8 @@ export default function Reports() {
       {scope === "shared" && <UserContributionChart transactions={monthTx} />}
 
       <MonthComparison transactions={scopedTransactions} categories={categories} year={year} month={month} />
+
+      <AssetGrowthChart assets={scopedAssets} />
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>

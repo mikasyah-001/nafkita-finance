@@ -1,0 +1,47 @@
+{
+  "name": "Cadangan Mingguan ke Google Drive",
+  "description": "Mengunggah cadangan seluruh data transaksi & aset ke Google Drive setiap hari Senin pukul 02:00",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 2 * * 1",
+      "one_time_date": null,
+      "timezone": "Asia/Jakarta",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "weekly_drive_backup",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "backup": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "backupToDrive",
+            "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Cadangkan ke Google Drive",
+            "description": "Unggah data transaksi & aset"
+          }
+        }
+      }
+    ]
+  }
+}

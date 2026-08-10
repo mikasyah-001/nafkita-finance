@@ -11,7 +11,10 @@
         "snapshot": {
           "call": "invoke_backend_function",
           "with": {
-            "function_name": "snapshotAssets"
+            "function_name": "snapshotAssets",
+            "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
+            }
           },
           "then": "end",
           "x-base44": {

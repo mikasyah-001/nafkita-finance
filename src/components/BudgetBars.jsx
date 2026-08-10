@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useBudgets } from "@/hooks/useFinance";
-import { formatRupiah, colorMap } from "@/lib/finance";
+import { colorMap } from "@/lib/finance";
+import Money from "@/components/Money";
 import { Target, ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function BudgetBars({ scope = "shared" }) {
@@ -67,15 +68,15 @@ export default function BudgetBars({ scope = "shared" }) {
                   {r.name}
                 </span>
                 <span className={`text-xs font-medium ${r.over ? "text-red-500" : r.near ? "text-amber-600" : "text-muted-foreground"}`}>
-                  {r.over ? `Lebih ${formatRupiah(Math.abs(r.remaining))}` : `Sisa ${formatRupiah(r.remaining)}`}
+                  {r.over ? <>Lebih <Money value={Math.abs(r.remaining)} /></> : <>Sisa <Money value={r.remaining} /></>}
                 </span>
               </div>
               <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${r.pct}%` }} />
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-muted-foreground">{formatRupiah(r.spent)} terpakai</span>
-                <span className="text-[10px] text-muted-foreground">dari {formatRupiah(r.limit)}</span>
+                <span className="text-[10px] text-muted-foreground"><Money value={r.spent} /> terpakai</span>
+                <span className="text-[10px] text-muted-foreground">dari <Money value={r.limit} /></span>
               </div>
             </div>
           );

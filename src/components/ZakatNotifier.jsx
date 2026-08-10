@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useZakatPayments, useRefresh } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber } from "@/lib/finance";
+import { formatNumber } from "@/lib/finance";
+import Money from "@/components/Money";
 import { toast } from "sonner";
 import { Coins, Wallet, CheckCircle2, Bell, Loader2 } from "lucide-react";
 
@@ -31,7 +32,7 @@ export default function ZakatNotifier() {
     obligations.push({ type: "emas", label: "Zakat Emas", icon: Coins, amount: emasValue * 0.025, detail: `${formatNumber(emasGrams)} gram • nisab 85 gr` });
   }
   if (goldPriceNum > 0 && nonEmasValue >= 85 * goldPriceNum && !isPaid("simpanan")) {
-    obligations.push({ type: "simpanan", label: "Zakat Simpanan", icon: Wallet, amount: nonEmasValue * 0.025, detail: `Simpanan ${formatRupiah(nonEmasValue)} ≥ nisab` });
+    obligations.push({ type: "simpanan", label: "Zakat Simpanan", icon: Wallet, amount: nonEmasValue * 0.025, detail: <>Simpanan <Money value={nonEmasValue} /> ≥ nisab</> });
   }
 
   const handlePay = async (ob) => {
@@ -80,7 +81,7 @@ export default function ZakatNotifier() {
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-muted-foreground">Zakat 2,5%</p>
-                      <p className="text-sm font-semibold text-emerald-600">{formatRupiah(ob.amount)}</p>
+                      <p className="text-sm font-semibold text-emerald-600"><Money value={ob.amount} /></p>
                     </div>
                   </div>
                   <button

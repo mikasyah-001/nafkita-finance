@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useAssetSnapshots } from "@/hooks/useFinance";
 import { formatRupiah } from "@/lib/finance";
+import { usePrivacy } from "@/lib/PrivacyContext";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
 import { BarChart3, ArrowRight } from "lucide-react";
 
 export default function AssetGrowthTrend() {
   const { data: snapshots = [] } = useAssetSnapshots();
+  const { hidden } = usePrivacy();
 
   const data = [...snapshots]
     .sort((a, b) => a.period.localeCompare(b.period))
@@ -35,8 +37,8 @@ export default function AssetGrowthTrend() {
           <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`} />
-            <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (hidden ? "" : `${(v / 1000000).toFixed(0)}jt`)} />
+            <Tooltip formatter={(v) => (hidden ? "••••••" : formatRupiah(v))} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
             <Legend wrapperStyle={{ fontSize: 10 }} />
             <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
             <Line type="monotone" dataKey="Emas" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />

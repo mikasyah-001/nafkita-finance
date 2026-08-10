@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatDate, colorMap } from "@/lib/finance";
+import { formatDate, colorMap } from "@/lib/finance";
+import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import { PieChart, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 
@@ -49,7 +50,7 @@ export default function MonthlySummary({ scope = "shared" }) {
       <div className="flex items-end justify-between mb-3">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Total pengeluaran</p>
-          <p className="text-xl font-bold tabular-nums break-words">{formatRupiah(total)}</p>
+          <p className="text-xl font-bold tabular-nums break-words"><Money value={total} /></p>
         </div>
         {prevTotal > 0 && (
           <span className={`text-xs font-medium flex items-center gap-1 shrink-0 ${total <= prevTotal ? "text-emerald-600" : "text-red-500"}`}>
@@ -72,7 +73,7 @@ export default function MonthlySummary({ scope = "shared" }) {
                   <CategoryIcon name={cat?.icon || "Wallet"} className={`w-3.5 h-3.5 ${cm.text}`} />
                 </div>
                 <span className="text-xs font-medium flex-1 truncate">{r.name}</span>
-                <span className="text-xs font-semibold tabular-nums shrink-0">{formatRupiahShort(r.value)}</span>
+                <span className="text-xs font-semibold tabular-nums shrink-0"><Money value={r.value} format="short" /></span>
                 <span className="text-[10px] text-muted-foreground tabular-nums w-9 text-right shrink-0">{share.toFixed(0)}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">

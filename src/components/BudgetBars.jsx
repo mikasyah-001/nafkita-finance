@@ -4,7 +4,7 @@ import { useTransactions, useCategories, useBudgets } from "@/hooks/useFinance";
 import { formatRupiah, colorMap } from "@/lib/finance";
 import { Target, ArrowRight, AlertTriangle } from "lucide-react";
 
-export default function BudgetBars() {
+export default function BudgetBars({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: budgets = [] } = useBudgets();
@@ -15,14 +15,15 @@ export default function BudgetBars() {
   const rows = useMemo(() => {
     const monthTx = transactions.filter((t) => {
       const d = new Date(t.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === "expense";
+      const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === "expense" && inScope;
     });
     const spent = {};
     monthTx.forEach((t) => {
       spent[t.category] = (spent[t.category] || 0) + t.amount;
     });
     const budgetMap = {};
-    budgets.filter((b) => b.period === period).forEach((b) => {
+    budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope).forEach((b) => {
       budgetMap[b.category] = b.limit_amount;
     });
     return categories
@@ -38,7 +39,7 @@ export default function BudgetBars() {
       })
       .sort((a, b) => b.pct - a.pct);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, categories, budgets, period]);
+  }, [transactions, categories, budgets, period, scope]);
 
   if (rows.length === 0) {
     return (

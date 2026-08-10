@@ -5,7 +5,7 @@ import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Target, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, Wallet, AlertTriangle, CheckCircle2, Users, Lock } from "lucide-react";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
@@ -14,6 +14,7 @@ export default function Budget() {
   const refresh = useRefresh();
   const [cursor, setCursor] = useState(new Date());
   const [limits, setLimits] = useState({});
+  const [scope, setScope] = useState("shared");
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -26,9 +27,10 @@ export default function Budget() {
     () =>
       transactions.filter((t) => {
         const d = new Date(t.date);
-        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense";
+        const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
+        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope;
       }),
-    [transactions, month, year]
+    [transactions, month, year, scope]
   );
 
   const spentByCategory = useMemo(() => {
@@ -39,7 +41,7 @@ export default function Budget() {
     return map;
   }, [monthTx]);
 
-  const periodBudgets = budgets.filter((b) => b.period === period);
+  const periodBudgets = budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope);
   const budgetMap = useMemo(() => {
     const map = {};
     periodBudgets.forEach((b) => {
@@ -69,7 +71,7 @@ export default function Budget() {
       if (existing) {
         await base44.entities.Budget.update(existing.id, { limit_amount: num });
       } else {
-        await base44.entities.Budget.create({ category: catName, limit_amount: num, period });
+        await base44.entities.Budget.create({ category: catName, limit_amount: num, period, visibility: scope });
       }
       refresh();
       toast.success("Anggaran disimpan");
@@ -91,10 +93,19 @@ export default function Budget() {
         <button onClick={nextMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Users className="w-4 h-4" /> Bersama
+        </button>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Lock className="w-4 h-4" /> Pribadi
+        </button>
+      </div>
+
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-5 shadow-lg">
         <div className="flex items-center gap-2 mb-1">
           <Target className="w-4 h-4 opacity-80" />
-          <span className="text-xs opacity-80">Total Anggaran vs Pengeluaran</span>
+          <span className="text-xs opacity-80">{scope === "private" ? "Anggaran Pribadi" : "Anggaran Bersama Keluarga"}</span>
         </div>
         <p className="text-2xl font-bold">{formatRupiah(totalSpent)} <span className="text-sm font-normal opacity-70">/ {formatRupiah(totalLimit)}</span></p>
         {totalLimit > 0 && (
@@ -175,7 +186,7 @@ export default function Budget() {
       )}
 
       <p className="text-xs text-muted-foreground mt-4 text-center">
-        Masukkan batas anggaran per kategori. Batas akan otomatis berlaku untuk bulan {monthName}.
+        Anggaran {scope === "private" ? "pribadi" : "bersama"} untuk {monthName}. Hanya transaksi {scope === "private" ? "pribadi" : "bersama"} yang dihitung.
       </p>
     </div>
   );

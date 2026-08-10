@@ -126,7 +126,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <BudgetBars />
+      <BudgetBars scope={scope} />
 
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">Transaksi terbaru</h2>

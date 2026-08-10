@@ -10,6 +10,14 @@
     },
     "period": {
       "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "private"
+      ],
+      "default": "shared"
     }
   },
   "required": [

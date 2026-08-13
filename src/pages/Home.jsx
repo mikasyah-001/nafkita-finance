@@ -11,6 +11,7 @@ import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import MonthlySummary from "@/components/MonthlySummary";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
+import { useScope } from "@/lib/ScopeContext";
 import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff } from "lucide-react";
 
 const linkColors = {
@@ -22,7 +23,7 @@ const linkColors = {
 
 export default function Home() {
   const [user, setUser] = useState(null);
-  const [scope, setScope] = useState("shared");
+  const { scope, setScope } = useScope();
   const { hidden, toggle } = usePrivacy();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();

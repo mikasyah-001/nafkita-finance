@@ -6,6 +6,7 @@ import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
 import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
+import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2 } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default function Reports() {
   const { data: categories = [] } = useCategories();
   const [cursor, setCursor] = useState(new Date());
   const [emasPrice, setEmasPrice] = useState("");
-  const [scope, setScope] = useState("shared");
+  const { scope, setScope } = useScope();
   const [goldLoading, setGoldLoading] = useState(false);
 
   useEffect(() => {

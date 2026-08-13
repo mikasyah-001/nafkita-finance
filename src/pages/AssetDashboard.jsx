@@ -4,15 +4,18 @@ import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
 import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
+import { useScope } from "@/lib/ScopeContext";
 
 export default function AssetDashboard() {
   const navigate = useNavigate();
-  const { data: assets = [] } = useAssets();
+  const { data: allAssets = [] } = useAssets();
   const { data: snapshots = [], refetch } = useAssetSnapshots();
+  const { scope, setScope } = useScope();
+  const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
   const [goldPrice, setGoldPrice] = useState("");
   const [goldHistory, setGoldHistory] = useState([]);
   const [fetching, setFetching] = useState(false);
@@ -21,20 +24,20 @@ export default function AssetDashboard() {
 
   const goldPriceNum = Number(goldPrice) || 0;
 
-  const emasAssets = assets.filter((a) => a.type === "emas");
+  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasStored = emasAssets.reduce((s, a) => s + (a.value || 0), 0);
   const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasStored;
 
-  const investasiAssets = assets.filter((a) => a.type === "investasi");
+  const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
   const investasiValue = investasiAssets.reduce((s, a) => s + (a.value || 0), 0);
   const investasiPurchase = investasiAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
 
-  const totalCurrent = assets.reduce((s, a) => {
+  const totalCurrent = scopedAssets.reduce((s, a) => {
     if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
     return s + (a.value || 0);
   }, 0);
-  const totalPurchase = assets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
   const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
@@ -43,14 +46,14 @@ export default function AssetDashboard() {
   const allocColors = { "Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
   const allocation = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
-      const val = assets.filter((a) => a.type === type).reduce((s, a) => s + (a.type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
+      const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + (a.type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
 
   const typeTotals = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
-      const list = assets.filter((a) => a.type === type);
+      const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
       const purchase = list.reduce((s, a) => s + (type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
@@ -129,6 +132,15 @@ export default function AssetDashboard() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-semibold">Dashboard Aset</h1>
+      </div>
+
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Users className="w-4 h-4" /> Bersama
+        </button>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Lock className="w-4 h-4" /> Pribadi
+        </button>
       </div>
 
       <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-3 shadow-lg">

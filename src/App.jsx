@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PrivacyProvider } from '@/lib/PrivacyContext';
+import { ScopeProvider } from '@/lib/ScopeContext';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Transactions from '@/pages/Transactions';
@@ -94,13 +95,15 @@ function App() {
   return (
     <AuthProvider>
       <PrivacyProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <ScrollToTop />
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </QueryClientProvider>
+        <ScopeProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <ScrollToTop />
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </ScopeProvider>
       </PrivacyProvider>
     </AuthProvider>
   )

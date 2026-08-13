@@ -5,13 +5,14 @@ import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import { downloadMonthlyReport } from "@/lib/exportReport";
 import { toast } from "sonner";
+import { useScope } from "@/lib/ScopeContext";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart, Download } from "lucide-react";
 
 export default function Ringkasan() {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const [cursor, setCursor] = useState(new Date());
-  const [scope, setScope] = useState("shared");
+  const { scope, setScope } = useScope();
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();

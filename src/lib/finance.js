@@ -31,6 +31,12 @@ export function formatMoney(n, currency = "IDR") {
   return formatRupiah(n);
 }
 
+export function formatMoneyShort(n, currency = "IDR") {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "IDR") return formatRupiahShort(n);
+  return formatMoney(n, c);
+}
+
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);
 }

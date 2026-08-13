@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
@@ -54,7 +54,9 @@ export default function AssetDashboard() {
       const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
       const purchase = list.reduce((s, a) => s + (type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
-      return { type, value, purchase, growth, count: list.length };
+      const curSet = [...new Set(list.map((a) => a.currency || "IDR"))];
+      const currency = curSet.length === 1 ? curSet[0] : "IDR";
+      return { type, value, purchase, growth, count: list.length, currency };
     })
     .filter((t) => t.count > 0);
 
@@ -167,7 +169,7 @@ export default function AssetDashboard() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{meta.label}</p>
-              <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatRupiahShort(t.value)}</p>
+              <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, t.currency)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
             </div>
           );

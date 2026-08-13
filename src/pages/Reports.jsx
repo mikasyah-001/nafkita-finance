@@ -8,7 +8,10 @@ import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2, Download } from "lucide-react";
+import ExpenseTrendAnalysis from "@/components/ExpenseTrendAnalysis";
+import { downloadReportPdf } from "@/lib/exportReportPdf";
+import { toast } from "sonner";
 
 const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
 
@@ -61,6 +64,43 @@ export default function Reports() {
   const prevMonth = () => setCursor(new Date(year, month - 1, 1));
   const nextMonth = () => setCursor(new Date(year, month + 1, 1));
 
+  const byCategoryPrev = useMemo(() => {
+    const pm = month === 0 ? 11 : month - 1;
+    const py = month === 0 ? year - 1 : year;
+    const map = {};
+    scopedTransactions.filter((t) => t.type === "expense").forEach((t) => {
+      const d = new Date(t.date);
+      if (d.getMonth() === pm && d.getFullYear() === py) map[t.category] = (map[t.category] || 0) + t.amount;
+    });
+    return map;
+  }, [scopedTransactions, month, year]);
+
+  const categoryRows = byCategory.map((c) => ({ name: c.name, value: c.value, prev: byCategoryPrev[c.name] || 0 }));
+
+  const [exporting, setExporting] = useState(false);
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await downloadReportPdf({
+        monthName,
+        scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
+        stats: [
+          { label: "Pemasukan", value: formatRupiah(income) },
+          { label: "Pengeluaran", value: formatRupiah(expense) },
+          { label: "Sedekah", value: formatRupiah(sedekah) },
+          { label: "Saldo", value: formatRupiah(balance) },
+        ],
+        categoryRows,
+        transactions: monthTx,
+      });
+      toast.success("Laporan PDF diunduh");
+    } catch {
+      toast.error("Gagal membuat PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Zakat calculation
   const emasPriceNum = Number(emasPrice) || 0;
   const nisab = emasPriceNum * 85;
@@ -92,6 +132,14 @@ export default function Reports() {
           <Lock className="w-4 h-4" /> Pribadi
         </button>
       </div>
+
+      <button
+        onClick={handleExportPdf}
+        disabled={exporting || monthTx.length === 0}
+        className="w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
+      >
+        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Unduh Laporan + Bukti (PDF)
+      </button>
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard icon={TrendingUp} color="green" label="Pemasukan" value={formatRupiahShort(income)} />
@@ -130,6 +178,8 @@ export default function Reports() {
       {scope === "shared" && <UserContributionChart transactions={monthTx} />}
 
       <MonthComparison transactions={scopedTransactions} categories={categories} year={year} month={month} />
+
+      <ExpenseTrendAnalysis transactions={scopedTransactions} categories={categories} year={year} month={month} />
 
       <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} />
 

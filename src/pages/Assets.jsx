@@ -255,10 +255,11 @@ export default function Assets() {
                       {a.type === "emas" && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "tanah" && a.quantity ? ` • ${formatNumber(a.quantity)} m²` : ""}
                       {a.type === "investasi" && a.broker ? ` • ${a.broker}` : ""}
+                      {a.type === "bank" && a.broker ? ` • ${a.broker}` : ""}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold tabular-nums"><Money value={curVal} /></p>
+                    <p className="text-sm font-semibold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
                       {a.purchase_proof_url && (
                         <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
@@ -315,14 +316,14 @@ export default function Assets() {
                       <>
                         <div>
                           <p className="text-muted-foreground">Harga Beli{a.type === "emas" ? " /gr" : ""}</p>
-                          <p className="font-medium"><Money value={a.purchase_price} /></p>
+                          <p className="font-medium"><Money value={a.purchase_price} currency={a.currency} /></p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>
                           {showChange ? (
                             <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
                               {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                              {isGain ? "+" : ""}<Money value={gain} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                              {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>
                           ) : (
                             <p className="text-muted-foreground text-[11px]">Set harga emas dulu</p>

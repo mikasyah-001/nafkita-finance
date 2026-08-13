@@ -20,6 +20,15 @@
     "value": {
       "type": "number"
     },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "IDR",
+        "USD",
+        "SAR"
+      ],
+      "default": "IDR"
+    },
     "quantity": {
       "type": "number"
     },

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh } from "@/hooks/useFinance";
-import { assetTypeLabels, formatRupiah } from "@/lib/finance";
+import { assetTypeLabels, formatRupiah, currencies } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
@@ -11,7 +11,7 @@ const types = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"];
 const empty = {
   name: "", type: "bank", value: "", quantity: "", unit: "", broker: "",
   purchase_date: "", purchase_price: "", purchase_proof_url: "",
-  owner: "", notes: "", visibility: "shared",
+  owner: "", notes: "", visibility: "shared", currency: "IDR",
 };
 
 export default function AssetForm({ asset, onClose }) {
@@ -31,6 +31,7 @@ export default function AssetForm({ asset, onClose }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+  const sym = (currencies.find((c) => c.code === form.currency) || currencies[0]).symbol;
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -70,6 +71,7 @@ export default function AssetForm({ asset, onClose }) {
         owner: form.owner,
         notes: form.notes,
         broker: form.broker || "",
+        currency: form.currency || "IDR",
         visibility: form.visibility,
       };
       if (isEdit) {
@@ -136,9 +138,20 @@ export default function AssetForm({ asset, onClose }) {
               </Field>
             </>
           ) : (
-            <Field label="Nilai Saat Ini (Rp)">
-              <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
-            </Field>
+            <>
+              <Field label="Mata Uang">
+                <div className="flex gap-2">
+                  {currencies.map((c) => (
+                    <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                      {c.code}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label={`Nilai Saat Ini (${sym})`}>
+                <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
+              </Field>
+            </>
           )}
 
           <Field label="Tanggal Pembelian (opsional)">
@@ -146,8 +159,21 @@ export default function AssetForm({ asset, onClose }) {
           </Field>
 
           {form.type !== "emas" && form.type !== "tanah" && (
-            <Field label="Harga Pembelian (Rp, opsional)">
+            <Field label={`Harga Pembelian (${sym}, opsional)`}>
               <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
+            </Field>
+          )}
+
+          {form.type === "bank" && (
+            <Field label="Bank / Tempat Simpan">
+              <div className="flex gap-2 flex-wrap mb-2">
+                {["BCA", "Mandiri", "BNI", "BRI", "Cash"].map((b) => (
+                  <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+              <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. BCA, Bank Syariah, Cash..." className="input" />
             </Field>
           )}
 

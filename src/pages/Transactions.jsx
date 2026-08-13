@@ -6,6 +6,7 @@ import TransactionItem from "@/components/TransactionItem";
 import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
 import { ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw } from "lucide-react";
+import { useScope } from "@/lib/ScopeContext";
 
 const typeFilters = [
   { key: "all", label: "Semua" },
@@ -24,7 +25,7 @@ export default function Transactions() {
   const [toDate, setToDate] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [view, setView] = useState("list");
-  const [scope, setScope] = useState("all");
+  const { scope, setScope } = useScope();
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
@@ -110,7 +111,7 @@ export default function Transactions() {
 
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex gap-1.5">
-          {[{ key: "all", label: "Semua" }, { key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
+          {[{ key: "shared", label: "Bersama" }, { key: "private", label: "Pribadi" }].map((s) => (
             <button
               key={s.key}
               onClick={() => setScope(s.key)}

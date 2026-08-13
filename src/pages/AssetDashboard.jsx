@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, Briefcase, BarChart3, Wallet, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
+import CategoryIcon from "@/components/CategoryIcon";
 
 export default function AssetDashboard() {
   const navigate = useNavigate();
@@ -46,6 +47,16 @@ export default function AssetDashboard() {
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
+
+  const typeTotals = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
+    .map((type) => {
+      const list = assets.filter((a) => a.type === type);
+      const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
+      const purchase = list.reduce((s, a) => s + (type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+      const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
+      return { type, value, purchase, growth, count: list.length };
+    })
+    .filter((t) => t.count > 0);
 
   useEffect(() => {
     (async () => {
@@ -118,11 +129,49 @@ export default function AssetDashboard() {
         <h1 className="text-xl font-semibold">Dashboard Aset</h1>
       </div>
 
+      <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-3 shadow-lg">
+        <p className="text-xs opacity-80">Total Nilai Aset</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiahShort(totalCurrent)}</p>
+        <div className="flex gap-4 mt-2 text-xs">
+          <div>
+            <p className="opacity-80">Nilai Beli</p>
+            <p className="font-semibold tabular-nums">{formatRupiahShort(totalPurchase)}</p>
+          </div>
+          <div>
+            <p className="opacity-80">Pertumbuhan</p>
+            <p className="font-semibold tabular-nums flex items-center gap-1">{totalGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}{totalGrowth >= 0 ? "+" : ""}{totalGrowth.toFixed(1)}%</p>
+          </div>
+          <div>
+            <p className="opacity-80">Jenis Aset</p>
+            <p className="font-semibold tabular-nums">{typeTotals.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground mb-2 px-1">Total per Jenis Aset</p>
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <SummaryCard icon={Coins} color="amber" label="Nilai Emas" value={formatRupiahShort(emasValue)} sub={`${formatNumber(emasGrams)} gram`} growth={emasGrowthPct} />
-        <SummaryCard icon={Briefcase} color="green" label="Investasi" value={formatRupiahShort(investasiValue)} sub={`${investasiAssets.length} aset`} growth={investasiPurchase > 0 ? ((investasiValue - investasiPurchase) / investasiPurchase) * 100 : 0} />
-        <SummaryCard icon={Wallet} color="indigo" label="Total Aset" value={formatRupiahShort(totalCurrent)} sub={`Beli: ${formatRupiahShort(totalPurchase)}`} growth={totalGrowth} />
-        <SummaryCard icon={BarChart3} color="violet" label="Snapshot" value={`${snapshots.length} bln`} sub="Data tersimpan" />
+        {typeTotals.map((t) => {
+          const meta = assetTypeLabels[t.type];
+          const cm = colorMap[meta.color] || colorMap.slate;
+          return (
+            <div key={t.type} className="rounded-2xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
+                  <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
+                </div>
+                {t.growth !== 0 && (
+                  <span className={`text-[10px] font-medium flex items-center gap-0.5 ${t.growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {t.growth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {t.growth >= 0 ? "+" : ""}{t.growth.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{meta.label}</p>
+              <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatRupiahShort(t.value)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mb-5">
@@ -229,35 +278,6 @@ export default function AssetDashboard() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SummaryCard({ icon: Icon, color, label, value, sub, growth = 0 }) {
-  const colorClasses = {
-    amber: "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
-    green: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",
-    indigo: "bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400",
-    violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
-  };
-  const cm = colorClasses[color] || colorClasses.indigo;
-  const isPositive = growth >= 0;
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-        {growth !== 0 && (
-          <span className={`text-[10px] font-medium flex items-center gap-0.5 ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
-            {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {isPositive ? "+" : ""}{growth.toFixed(1)}%
-          </span>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }

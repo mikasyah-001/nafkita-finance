@@ -42,12 +42,12 @@ export function downloadMonthlyReport({ monthName, scopeLabel, rows, total, prev
   lines.push("");
 
   lines.push("DETAIL TRANSAKSI");
-  lines.push(rowToCsv(["Tanggal", "Jenis", "Kategori", "Merchant", "Nominal (IDR)", "Catatan", "Diinput", "Mata Uang"]));
+  lines.push(rowToCsv(["Tanggal", "Jenis", "Kategori", "Merchant", "Nominal (IDR)", "Catatan", "Diinput", "Mata Uang", "Link Bukti Struk"]));
   transactions.forEach((t) => {
     lines.push(rowToCsv([
       new Date(t.date).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }),
       TYPE_LABEL[t.type] || t.type, t.category || "", t.merchant || "", t.amount,
-      t.notes || "", t.input_by_name || "", t.currency || "IDR",
+      t.notes || "", t.input_by_name || "", t.currency || "IDR", t.photo_url || "",
     ]));
   });
 

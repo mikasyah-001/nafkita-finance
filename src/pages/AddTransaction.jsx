@@ -89,8 +89,8 @@ export default function AddTransaction() {
         const p = allTx[0];
         if (p.photo_url) { setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
         if (p.amount) setAmount(String(p.amount));
-        if (p.merchant) setMerchant(p.merchant);
-        if (p.category) setCategory(p.category);
+        if (p.merchant && type !== "income") setMerchant(p.merchant);
+        if (p.category && type === "expense") setCategory(p.category);
         if (p.notes) setNotes(p.notes);
         if (p.date) {
           const now = new Date();
@@ -106,12 +106,11 @@ export default function AddTransaction() {
             setDate(d.toISOString().slice(0, 16));
           }
         }
-        setType("expense");
-        if (p.category && p.category_new) {
+        if (p.category && p.category_new && type === "expense") {
           await ensureCategories([{ name: p.category, icon: p.category_icon, color: p.category_color }], categories, "expense");
           refresh();
         }
-        toast.success("Bon berhasil dibaca!", { description: p.category ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa dan lengkapi data." });
+        toast.success("Bon berhasil dibaca!", { description: p.category && type === "expense" ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa dan lengkapi data." });
       } else {
         setMultiTx(allTx);
         toast.success(`${allTx.length} transaksi terbaca dari ${urls.length} foto`, { description: "Periksa kategori lalu simpan semua." });

@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
 import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -21,6 +21,7 @@ export default function AssetDashboard() {
   const [fetching, setFetching] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [goldSource, setGoldSource] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
   const goldPriceNum = Number(goldPrice) || 0;
 
@@ -162,31 +163,83 @@ export default function AssetDashboard() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mb-2 px-1">Total per Jenis Aset</p>
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 pb-1">
+        <button onClick={() => setActiveTab("all")} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${activeTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+          <Layers className="w-3.5 h-3.5" /> Semua
+        </button>
         {typeTotals.map((t) => {
           const meta = assetTypeLabels[t.type];
-          const cm = colorMap[meta.color] || colorMap.slate;
           return (
-            <div key={t.type} className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
-                  <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
-                </div>
-                {t.growth !== 0 && (
-                  <span className={`text-[10px] font-medium flex items-center gap-0.5 ${t.growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                    {t.growth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {t.growth >= 0 ? "+" : ""}{t.growth.toFixed(1)}%
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{meta.label}</p>
-              <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, t.currency)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
-            </div>
+            <button key={t.type} onClick={() => setActiveTab(t.type)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${activeTab === t.type ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              <CategoryIcon name={meta.icon} className="w-3.5 h-3.5" /> {meta.label}
+            </button>
           );
         })}
       </div>
+
+      {activeTab === "all" ? (
+        <>
+          <p className="text-xs text-muted-foreground mb-2 px-1">Total per Jenis Aset</p>
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            {typeTotals.map((t) => {
+              const meta = assetTypeLabels[t.type];
+              const cm = colorMap[meta.color] || colorMap.slate;
+              return (
+                <div key={t.type} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
+                      <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
+                    </div>
+                    {t.growth !== 0 && (
+                      <span className={`text-[10px] font-medium flex items-center gap-0.5 ${t.growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                        {t.growth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {t.growth >= 0 ? "+" : ""}{t.growth.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{meta.label}</p>
+                  <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, t.currency)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-3 mb-5">
+          {scopedAssets.filter((a) => a.type === activeTab).map((a) => {
+            const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
+            const cm = colorMap[meta.color] || colorMap.slate;
+            const curVal = a.type === "emas" && goldPriceNum > 0 && a.quantity ? a.quantity * goldPriceNum : (a.value || 0);
+            const hasPurchase = a.purchase_price && a.purchase_price > 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const gain = hasPurchase ? curVal - totalPurchase : 0;
+            const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
+            return (
+              <div key={a.id} className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cm.bg}`}>
+                  <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{a.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {meta.label}{a.broker ? ` • ${a.broker}` : ""}{a.quantity ? ` • ${formatNumber(a.quantity)} ${a.type === "emas" ? "gr" : a.type === "tanah" ? "m²" : (a.unit || "")}` : ""}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold tabular-nums">{formatMoneyShort(curVal, a.currency)}</p>
+                  {hasPurchase && (
+                    <p className={`text-[10px] flex items-center gap-0.5 justify-end ${gain >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {gain >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {gain >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mb-5">
         <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />

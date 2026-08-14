@@ -46,7 +46,7 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      window.location.href = safeReturnTo();
+      window.location.href = "/sambungkan-pasangan";
     } catch (err) {
       setError(err.message || "Invalid verification code");
     } finally {

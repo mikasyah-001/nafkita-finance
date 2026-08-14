@@ -32,6 +32,7 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import PartnerOnboarding from '@/pages/PartnerOnboarding';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
           <Route path="/transaksi/:id" element={<TransactionDetail />} />
           <Route path="/pengaturan" element={<Settings />} />
           <Route path="/profil" element={<Profile />} />
+          <Route path="/sambungkan-pasangan" element={<PartnerOnboarding />} />
           <Route path="/kategori" element={<Categories />} />
           <Route path="/asisten-struk" element={<AsistenStruk />} />
           <Route path="/investasi/:id" element={<InvestmentDetail />} />

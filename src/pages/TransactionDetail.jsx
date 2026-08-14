@@ -9,7 +9,8 @@ import { Image as SmartImage } from "@/components/ui/image";
 import { scanReceipt } from "@/lib/scanReceipt";
 import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, EyeOff } from "lucide-react";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -19,9 +20,11 @@ export default function TransactionDetail() {
   const refresh = useRefresh();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const { user } = useAuth();
   const fileRef = useRef(null);
 
   const tx = transactions.find((t) => t.id === id);
+  const isOwner = !!tx && !!user && tx.created_by_id === user.id;
 
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -300,9 +303,15 @@ export default function TransactionDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-semibold">Detail Transaksi</h1>
-        <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-          <Pencil className="w-4 h-4" />
-        </button>
+        {isOwner ? (
+          <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+            <Pencil className="w-4 h-4" />
+          </button>
+        ) : (
+          <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center" title="Transaksi milik pasangan — hanya bisa dilihat">
+            <EyeOff className="w-4 h-4 text-muted-foreground" />
+          </span>
+        )}
       </div>
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-4">
@@ -341,16 +350,18 @@ export default function TransactionDetail() {
         </div>
       )}
 
-      <button
-        onClick={handleToggleVisibility}
-        className="w-full mt-4 py-3 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
-      >
-        {tx.visibility === "private" ? (
-          <><Users className="w-4 h-4" /> Jadikan Bersama Keluarga</>
-        ) : (
-          <><Lock className="w-4 h-4" /> Jadikan Pribadi</>
-        )}
-      </button>
+      {isOwner && (
+        <button
+          onClick={handleToggleVisibility}
+          className="w-full mt-4 py-3 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+        >
+          {tx.visibility === "private" ? (
+            <><Users className="w-4 h-4" /> Jadikan Bersama Keluarga</>
+          ) : (
+            <><Lock className="w-4 h-4" /> Jadikan Pribadi</>
+          )}
+        </button>
+      )}
     </div>
   );
 }

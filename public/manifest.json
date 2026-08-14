@@ -1,0 +1,19 @@
+{
+  "name": "NAFKITA — Atur Nafkah, Tumbuhkan Berkah",
+  "short_name": "NAFKITA",
+  "description": "Aplikasi manajemen keuangan keluarga cerdas: catat transaksi bersama pasangan, scan bon AI, kelola aset & zakat, pantau anggaran.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "https://base44.com/logo_v2.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import BottomNav from "./BottomNav";
 import OfflineSyncManager from "./OfflineSyncManager";
 import NotificationToaster from "./NotificationToaster";
+import InstallPrompt from "./InstallPrompt";
 import { Toaster } from "sonner";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
 
@@ -15,6 +16,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <BottomNav />
+      <InstallPrompt />
       <Toaster position="top-center" richColors closeButton />
     </div>
   );

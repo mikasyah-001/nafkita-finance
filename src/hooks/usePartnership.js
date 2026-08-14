@@ -54,16 +54,35 @@ export function usePartnership() {
     if (sentInvites.length > 0 || incomingRequests.length > 0)
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
-      await base44.users.inviteUser(email, "admin");
+      // Undang ke aplikasi; abaikan error bila pasangan sudah terdaftar.
+      try { await base44.users.inviteUser(email, "admin"); } catch {}
       await base44.entities.Partnership.create({
         inviter_id: me.id,
         invitee_email: email,
         status: "pending",
       });
       refresh();
-      toast.success("Undangan terkirim", { description: `Ke ${email}` });
+      toast.success("Undangan terkirim", { description: `Ke ${email}. Pasangan akan menerima email undangan.` });
     } catch (e) {
       toast.error("Gagal mengundang", { description: e?.message || "Coba lagi." });
+    }
+  };
+
+  const connectByCode = async (code) => {
+    if (!code) return toast.error("Masukkan kode referensi");
+    if (hasPartner) return toast.error("Anda sudah terhubung dengan pasangan");
+    if (sentInvites.length > 0 || incomingRequests.length > 0)
+      return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
+    try {
+      const res = await base44.functions.invoke("connectByRefCode", { code });
+      refresh();
+      toast.success("Permintaan koneksi terkirim", {
+        description: `Menunggu ${res?.target?.full_name || res?.target?.email || "pasangan"} menyetujui.`,
+      });
+      return true;
+    } catch (e) {
+      toast.error("Gagal menghubungkan", { description: e?.message || "Periksa kode dan coba lagi." });
+      return false;
     }
   };
 
@@ -118,6 +137,7 @@ export function usePartnership() {
     sentInvites,
     incomingRequests,
     invite,
+    connectByCode,
     resend,
     cancelInvite,
     acceptRequest,

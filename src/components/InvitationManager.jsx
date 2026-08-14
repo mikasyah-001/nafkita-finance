@@ -2,17 +2,20 @@ import { useState } from "react";
 import { usePartnership } from "@/hooks/usePartnership";
 import { toast } from "sonner";
 import {
-  UserPlus, Loader2, Clock, RefreshCw, Settings, ArrowLeft, X, Heart, User as UserIcon,
+  UserPlus, Loader2, Clock, RefreshCw, Settings, ArrowLeft, X, Heart, User as UserIcon, Link2,
 } from "lucide-react";
 
 export default function InvitationManager() {
   const {
     me, users, partners, hasPartner, sentInvites, incomingRequests,
-    invite, resend, cancelInvite, acceptRequest, declineRequest, loading,
+    invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, loading,
   } = usePartnership();
 
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [mode, setMode] = useState("email");
   const [sending, setSending] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [busy, setBusy] = useState(null);
   const [showManage, setShowManage] = useState(false);
 
@@ -22,6 +25,15 @@ export default function InvitationManager() {
     await invite(target);
     setSending(false);
     setEmail("");
+  };
+
+  const handleConnect = async () => {
+    const c = code.trim();
+    if (!c) return;
+    setConnecting(true);
+    const ok = await connectByCode(c);
+    setConnecting(false);
+    if (ok) setCode("");
   };
 
   const run = async (key, fn) => {
@@ -102,25 +114,65 @@ export default function InvitationManager() {
 
       {!hasPartner && sentInvites.length === 0 && incomingRequests.length === 0 && (
         <>
-          <p className="text-xs text-muted-foreground mb-3">
-            Buatkan akun untuk istri/suami agar dapat mencatat bersama. Pasangan hanya dapat terhubung melalui undangan email yang disetujui.
-          </p>
-          <div className="flex gap-2 mb-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email pasangan"
-              className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30"
-            />
+          <div className="flex gap-1 bg-muted p-1 rounded-xl mb-3">
             <button
-              onClick={handleSend}
-              disabled={sending}
-              className="px-4 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium disabled:opacity-60"
+              onClick={() => setMode("email")}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${mode === "email" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
             >
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Undang
+              Via Email
+            </button>
+            <button
+              onClick={() => setMode("code")}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${mode === "code" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+            >
+              Via Kode Referensi
             </button>
           </div>
+
+          {mode === "email" ? (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                Undang istri/suami lewat email. Pasangan menerima email undangan, register, lalu menyetujui koneksi.
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email pasangan"
+                  className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={sending}
+                  className="px-4 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium disabled:opacity-60"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Undang
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                Pasangan sudah register & login? Minta <strong>kode referensi</strong> dari halaman Profil pasangan, lalu masukkan di sini. Pasangan menyetujui koneksi setelahnya.
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="mis. NK1A2B3"
+                  className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-mono uppercase tracking-wider outline-none focus:ring-2 ring-primary/30"
+                />
+                <button
+                  onClick={handleConnect}
+                  disabled={connecting}
+                  className="px-4 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium disabled:opacity-60"
+                >
+                  {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />} Hubungkan
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
 

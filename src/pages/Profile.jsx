@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import FamilyMembers from "@/components/FamilyMembers";
+import { deriveRefCode } from "@/lib/refCode";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -13,7 +14,21 @@ export default function Profile() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef(null);
+
+  const myCode = deriveRefCode(user?.id);
+
+  const copyCode = async () => {
+    if (!myCode) return;
+    try {
+      await navigator.clipboard.writeText(myCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Gagal menyalin kode");
+    }
+  };
 
   useEffect(() => {
     base44.auth
@@ -99,6 +114,29 @@ export default function Profile() {
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
+
+      <div className="rounded-2xl border border-border bg-card p-4 mt-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Hash className="w-4 h-4 text-primary" />
+          <p className="text-sm font-semibold">Kode Referensi Pasangan</p>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Bagikan kode ini ke pasangan. Pasangan memasukkannya di{" "}
+          <span className="font-medium">Pengaturan → Undang Pasangan → Via Kode Referensi</span>{" "}
+          untuk menghubungkan akun keduanya.
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-xl bg-muted px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.15em]">
+            {myCode || "—"}
+          </div>
+          <button
+            onClick={copyCode}
+            className="px-4 py-3 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium active:scale-95 transition-transform"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
+          </button>
+        </div>
+      </div>
 
       <button
         onClick={() => navigate("/umpan-balik")}

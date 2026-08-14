@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { getAppUrl } from "../../shared/appUrl.ts";
 
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -7,8 +8,9 @@ const formatIDR = (n) => "Rp" + Math.round(Number(n) || 0).toLocaleString("id-ID
 
 const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function buildEmail(name, periodLabel, summary) {
+function buildEmail(name, periodLabel, summary, appUrl) {
   const greeting = esc(name) || "Keluarga";
+  const btnHref = esc(appUrl || "https://nafkita.base44.app");
   const rows = summary.topCategories.length
     ? summary.topCategories.map(([cat, val], i) =>
         `<tr><td style="padding:9px 14px;color:#475569;font-size:13px;border-bottom:1px solid #f1f5f9;">${i + 1}. ${esc(cat)}</td><td style="padding:9px 14px;color:#0f172a;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #f1f5f9;white-space:nowrap;">${formatIDR(val)}</td></tr>`
@@ -60,7 +62,7 @@ function buildEmail(name, periodLabel, summary) {
         <tr><td style="padding:8px 26px 26px;">
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
             <tr><td style="background:#6366f1;border-radius:12px;padding:13px 26px;">
-              <p style="margin:0;color:#ffffff;font-size:14px;font-weight:600;text-align:center;">Buka NAFKITA &amp; tinjau anggaran bersama</p>
+              <a href="${btnHref}" target="_blank" rel="noopener" style="display:block;margin:0;color:#ffffff;font-size:14px;font-weight:600;text-align:center;text-decoration:none;">Buka NAFKITA &amp; tinjau anggaran bersama</a>
             </td></tr>
           </table>
         </td></tr>
@@ -130,7 +132,7 @@ export default async function(req) {
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: email,
             subject: `📊 Ringkasan Keuangan ${periodLabel} - NAFKITA`,
-            body: buildEmail(name, periodLabel, summary)
+            body: buildEmail(name, periodLabel, summary, getAppUrl(req))
           });
           sent++;
         } catch (e) {

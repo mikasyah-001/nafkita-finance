@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { getAppUrl } from "../../shared/appUrl.ts";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -9,8 +10,9 @@ const formatTodayID = (d) =>
 
 const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-const buildEmail = (name, dateLabel) => {
+const buildEmail = (name, dateLabel, appUrl) => {
   const greeting = esc(name) || "Keluarga";
+  const btnHref = esc(appUrl || "https://nafkita.base44.app");
   return `<!DOCTYPE html>
 <html lang="id">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -40,7 +42,7 @@ const buildEmail = (name, dateLabel) => {
         <tr><td style="padding:8px 26px 26px;">
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
             <tr><td style="background:#6366f1;border-radius:12px;padding:13px 26px;">
-              <p style="margin:0;color:#ffffff;font-size:14px;font-weight:600;text-align:center;">Buka NAFKITA di ponselmu &amp; catat sekarang</p>
+              <a href="${btnHref}" target="_blank" rel="noopener" style="display:block;margin:0;color:#ffffff;font-size:14px;font-weight:600;text-align:center;text-decoration:none;">Buka NAFKITA di ponselmu &amp; catat sekarang</a>
             </td></tr>
           </table>
         </td></tr>
@@ -81,7 +83,7 @@ export default async function(req) {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: u.email,
           subject: "🌙 Pengingat Malam: Catat transaksi hari ini",
-          body: buildEmail(u.full_name, dateLabel)
+          body: buildEmail(u.full_name, dateLabel, getAppUrl(req))
         });
         sent++;
       } catch (e) {

@@ -25,6 +25,8 @@ export default function TransactionDetail() {
 
   const tx = transactions.find((t) => t.id === id);
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
+  const isAdmin = user?.role === "admin";
+  const canManage = isOwner || isAdmin;
 
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -190,17 +192,19 @@ export default function TransactionDetail() {
             ))}
           </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
-            <div className="flex gap-2">
-              <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                <Users className="w-4 h-4" /> Bersama
-              </button>
-              <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                <Lock className="w-4 h-4" /> Pribadi
-              </button>
+          {isOwner && (
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
+              <div className="flex gap-2">
+                <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                  <Users className="w-4 h-4" /> Bersama
+                </button>
+                <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                  <Lock className="w-4 h-4" /> Pribadi
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
@@ -303,7 +307,7 @@ export default function TransactionDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-semibold">Detail Transaksi</h1>
-        {isOwner ? (
+        {canManage ? (
           <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
             <Pencil className="w-4 h-4" />
           </button>

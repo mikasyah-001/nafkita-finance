@@ -101,13 +101,15 @@ export default function Reports() {
     }
   };
 
-  // Zakat calculation
+  // Zakat calculation (nisab dihitung dari harga emas dalam IDR, jadi hanya aset IDR yang dihitung)
   const emasPriceNum = Number(emasPrice) || 0;
   const nisab = emasPriceNum * 85;
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasPriceNum > 0 ? emasGrams * emasPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const otherValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
+  const otherAssetsIDR = scopedAssets.filter((a) => a.type !== "emas" && (a.currency || "IDR") === "IDR");
+  const nonIDRAssets = scopedAssets.filter((a) => a.type !== "emas" && (a.currency || "IDR") !== "IDR");
+  const otherValue = otherAssetsIDR.reduce((s, a) => s + (a.value || 0), 0);
   const totalAset = emasValue + otherValue;
   const emasWajibZakat = emasGrams >= 85;
   const uangWajibZakat = emasPriceNum > 0 && totalAset >= nisab;
@@ -207,7 +209,12 @@ export default function Reports() {
           <div className="space-y-2 text-sm">
             <Row label="Nisab (85 gr emas)" value={formatRupiah(nisab)} />
             <Row label="Total emas" value={`${formatNumber(emasGrams)} gr (${formatRupiah(emasValue)})`} />
-            <Row label="Total aset lain" value={formatRupiah(otherValue)} />
+            <Row label="Total aset lain (IDR)" value={formatRupiah(otherValue)} />
+            {nonIDRAssets.length > 0 && (
+              <p className="text-[10px] text-muted-foreground italic">
+                {nonIDRAssets.length} aset non-IDR ({nonIDRAssets.map((a) => `${a.name} (${a.currency})`).join(", ")}) tidak ikut dihitung karena nisab dalam IDR.
+              </p>
+            )}
             <div className="border-t border-border my-2" />
             <Row label="Total harta" value={formatRupiah(totalAset)} bold />
 

@@ -129,22 +129,15 @@ export default function AddTransaction() {
     if (!multiTx || !multiTx.length) return;
     setSavingMulti(true);
     try {
-      const unique = dedupeBatch(multiTx);
-      const { toSave, skipped } = filterAgainstExisting(unique, transactions);
-      if (!toSave.length) {
-        toast.error("Semua transaksi duplikat", { description: "Tidak ada transaksi baru untuk disimpan." });
-        setSavingMulti(false);
-        return;
-      }
-      const proposals = toSave.filter((t) => t.category).map((t) => ({ name: t.category, icon: t.category_icon, color: t.category_color }));
+      const proposals = multiTx.filter((t) => t.category).map((t) => ({ name: t.category, icon: t.category_icon, color: t.category_color }));
       await ensureCategories(proposals, categories, "expense");
-      const records = toSave.map((t) => ({
+      const now = new Date();
+      const records = multiTx.map((t) => ({
         type: "expense",
         amount: t.amount,
         currency: t.currency || currency,
         category: t.category || "Lainnya",
         date: (() => {
-          const now = new Date();
           if (!t.date) return now.toISOString();
           const d = t.time ? new Date(`${t.date}T${t.time}`) : new Date(t.date);
           if (isNaN(d)) return now.toISOString();
@@ -158,9 +151,16 @@ export default function AddTransaction() {
         tags: [],
         visibility,
       }));
-      await base44.entities.Transaction.bulkCreate(records);
+      const unique = dedupeBatch(records);
+      const { toSave, skipped } = filterAgainstExisting(unique, transactions);
+      if (!toSave.length) {
+        toast.error("Semua transaksi duplikat", { description: "Tidak ada transaksi baru untuk disimpan." });
+        setSavingMulti(false);
+        return;
+      }
+      await base44.entities.Transaction.bulkCreate(toSave);
       refresh();
-      toast.success(`${records.length} transaksi tersimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
+      toast.success(`${toSave.length} transaksi tersimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
       navigate("/");
     } catch (err) {
       toast.error("Gagal menyimpan transaksi");

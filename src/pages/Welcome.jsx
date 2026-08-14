@@ -4,6 +4,8 @@ import {
   Layers, EyeOff, Cloud, Bell, Heart, ShieldCheck, Sparkles, Check,
   PiggyBank, Landmark, TrendingUp, Star, Zap, Quote,
   Home as HomeIcon, Moon, Plus,
+  MessageSquare, Link2, Smartphone, Globe, LineChart, FileText,
+  MailCheck, RefreshCw, BellRing,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -26,15 +28,23 @@ const flagshipSteps = [
 
 const features = [
   { icon: ScanLine, bg: "bg-violet-100 dark:bg-violet-950/40", text: "text-violet-600 dark:text-violet-400", title: "Scan Bon AI", desc: "Foto bon otomatis dibaca AI. Bisa 5 foto sekaligus — kategori, nominal & merchant terisi sendiri." },
+  { icon: MessageSquare, bg: "bg-violet-100 dark:bg-violet-950/40", text: "text-violet-600 dark:text-violet-400", title: "Asisten Struk AI", desc: "Ngobrol dengan asisten AI untuk catat transaksi, tanya pengeluaran, dan ringkas keuangan." },
   { icon: Wallet, bg: "bg-indigo-100 dark:bg-indigo-950/40", text: "text-indigo-600 dark:text-indigo-400", title: "Catat Transaksi", desc: "Pengeluaran, pemasukan, dan sedekah dengan kategori & tag yang rapi." },
-  { icon: Coins, bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", title: "Aset & Zakat", desc: "Kelola emas, investasi, properti. Kalkulator zakat otomatis berbasis nisab 85 gr." },
   { icon: Users, bg: "bg-teal-100 dark:bg-teal-950/40", text: "text-teal-600 dark:text-teal-400", title: "Kas Bersama & Pribadi", desc: "Catat keuangan keluarga bersama, sekaligus jaga privasi transaksi pribadi." },
+  { icon: Link2, bg: "bg-teal-100 dark:bg-teal-950/40", text: "text-teal-600 dark:text-teal-400", title: "Koneksi Pasangan", desc: "Hubungkan suami-istri lewat kode referensi unik. Transaksi bersama tersinkron otomatis." },
+  { icon: BellRing, bg: "bg-orange-100 dark:bg-orange-950/40", text: "text-orange-600 dark:text-orange-400", title: "Notifikasi Pasangan", desc: "Notifikasi real-time saat pasangan mencatat transaksi bersama." },
+  { icon: Landmark, bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", title: "Aset & Investasi", desc: "Kelola emas, investasi DCA, properti, & tanah dengan mata uang masing-masing." },
+  { icon: LineChart, bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", title: "Dasbor Aset", desc: "Grafik pertumbuhan aset & emas, snapshot bulanan, dan distribusi portofolio." },
+  { icon: Coins, bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", title: "Kalkulator Zakat", desc: "Zakat emas & simpanan otomatis berbasis nisab 85 gr + harga emas real-time." },
   { icon: Target, bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-600 dark:text-rose-400", title: "Anggaran", desc: "Target pengeluaran per kategori dengan progress bar & peringatan batas." },
-  { icon: BarChart3, bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-600 dark:text-sky-400", title: "Laporan & Ringkasan", desc: "Grafik bulanan, perbandingan bulan lalu, dan tren pertumbuhan aset." },
-  { icon: Layers, bg: "bg-emerald-100 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", title: "DCA Investasi", desc: "Catat investasi berkala per aset, pantau rata-rata biaya & untung rugi." },
+  { icon: BarChart3, bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-600 dark:text-sky-400", title: "Laporan & Ringkasan", desc: "Grafik bulanan, perbandingan bulan lalu, tren, dan ekspor PDF lengkap dengan bukti." },
+  { icon: Globe, bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-600 dark:text-sky-400", title: "Multi-Mata Uang", desc: "Catat aset & transaksi dalam IDR, USD, atau SAR sesuai jenis aset." },
   { icon: EyeOff, bg: "bg-slate-100 dark:bg-slate-800/60", text: "text-slate-600 dark:text-slate-300", title: "Mode Privasi", desc: "Sembunyikan semua nominal dengan satu ketukan — aman dari mata orang lain." },
-  { icon: Cloud, bg: "bg-blue-100 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", title: "Cadangan Otomatis", desc: "Backup data transaksi & aset ke Google Drive setiap minggu secara otomatis." },
-  { icon: Bell, bg: "bg-orange-100 dark:bg-orange-950/40", text: "text-orange-600 dark:text-orange-400", title: "Pengingat Harian", desc: "Email pengingat agar tidak lupa mencatat transaksi setiap hari." },
+  { icon: RefreshCw, bg: "bg-indigo-100 dark:bg-indigo-950/40", text: "text-indigo-600 dark:text-indigo-400", title: "Sinkron Offline", desc: "Tetap bisa mencatat tanpa internet. Data tersinkron otomatis saat online kembali." },
+  { icon: Cloud, bg: "bg-blue-100 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", title: "Cadangan Google Drive", desc: "Backup data transaksi & aset ke Google Drive setiap minggu secara otomatis." },
+  { icon: MailCheck, bg: "bg-orange-100 dark:bg-orange-950/40", text: "text-orange-600 dark:text-orange-400", title: "Pengingat & Ringkasan Email", desc: "Email pengingat harian & ringkasan laporan bulanan otomatis ke kotak masuk Anda." },
+  { icon: Smartphone, bg: "bg-violet-100 dark:bg-violet-950/40", text: "text-violet-600 dark:text-violet-400", title: "Pasang di HP (PWA)", desc: "Instal NAFKITA di layar utama seperti aplikasi native — cepat & ringan." },
+  { icon: FileText, bg: "bg-slate-100 dark:bg-slate-800/60", text: "text-slate-600 dark:text-slate-300", title: "Umpan Balik", desc: "Kirim saran atau lapor bug langsung dari aplikasi untuk bantu kami berkembang." },
 ];
 
 const personas = [
@@ -49,6 +59,8 @@ const advantages = [
   "Berjalan offline, sinkron otomatis saat online kembali",
   "Data aman dengan cadangan Google Drive mingguan",
   "Berkah dengan pelacakan sedekah & kalkulator zakat",
+  "Dukungan multi-mata uang (IDR, USD, SAR) untuk aset & investasi",
+  "Bisa dipasang di layar utama HP seperti aplikasi native (PWA)",
   "Gratis digunakan, tanpa biaya langganan",
 ];
 
@@ -126,7 +138,7 @@ export default function Welcome() {
       <div className="px-6 -mt-6 relative z-10">
         <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card shadow-sm p-3 text-center">
           {[
-            { n: "10+", l: "Fitur" },
+            { n: "18+", l: "Fitur" },
             { n: "100%", l: "Privat" },
             { n: "Gratis", l: "Selamanya" },
           ].map((s) => (
@@ -143,7 +155,7 @@ export default function Welcome() {
         <SectionLabel>Perkenalan</SectionLabel>
         <h2 className="text-xl font-bold mt-1.5 mb-2.5">Apa itu NAFKITA?</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          NAFKITA adalah aplikasi manajemen keuangan keluarga yang cerdas. Anda dan pasangan dapat mencatat pengeluaran, pemasukan, dan aset — bersama atau pribadi — memindai struk dengan AI, melacak zakat & sedekah, hingga memantau anggaran. Semua dalam satu genggaman, dirancang khusus untuk keluarga Muslim di Indonesia.
+          NAFKITA adalah aplikasi manajemen keuangan keluarga yang cerdas. Hubungkan akun Anda dengan pasangan lewat kode referensi, lalu catat pengeluaran, pemasukan, dan aset — bersama atau pribadi — dengan multi-mata uang. Pindai struk dengan AI, ngobrol dengan Asisten Struk, kelola investasi DCA & emas, hitung zakat, pantau anggaran, dan terima ringkasan bulanan via email. Semua dalam satu genggaman, dirancang khusus untuk keluarga Muslim di Indonesia.
         </p>
 
         <div className="grid grid-cols-3 gap-2.5 mt-4">

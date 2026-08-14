@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatRupiah, formatNumber, colorMap, assetTypeLabels } from "@/lib/finance";
+import { formatRupiah, formatMoney, formatNumber, colorMap, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
@@ -82,9 +82,9 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   {hasPurchase ? (
-                    <p className="text-xs text-muted-foreground truncate">{formatRupiah(a.purchase)} → {formatRupiah(a.current)}</p>
+                    <p className="text-xs text-muted-foreground truncate">{formatMoney(a.purchase, a.currency)} → {formatMoney(a.current, a.currency)}</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Nilai {formatRupiah(a.current)}</p>
+                    <p className="text-xs text-muted-foreground">Nilai {formatMoney(a.current, a.currency)}</p>
                   )}
                 </div>
                 {hasPurchase && (
@@ -93,7 +93,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
                       {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {isGain ? "+" : ""}{a.gainPct.toFixed(1)}%
                     </p>
-                    <p>{isGain ? "+" : ""}{formatRupiah(a.gain)}</p>
+                    <p>{isGain ? "+" : ""}{formatMoney(a.gain, a.currency)}</p>
                   </div>
                 )}
               </div>

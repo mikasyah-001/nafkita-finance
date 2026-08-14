@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatDate } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatDate } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
@@ -13,17 +13,13 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff, ScanLine, PieChart, FileText, Upload, Tags, MessageSquare } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
   indigo: "bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400",
   amber: "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
   teal: "bg-teal-100 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400",
-  rose: "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400",
-  emerald: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",
-  sky: "bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400",
-  fuchsia: "bg-fuchsia-100 dark:bg-fuchsia-950/40 text-fuchsia-600 dark:text-fuchsia-400",
 };
 
 export default function Home() {
@@ -70,11 +66,7 @@ export default function Home() {
     { to: "/laporan", icon: Sparkles, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
     { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
     { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
-    { to: "/aset-dashboard", icon: PieChart, color: "teal", label: "Dasbor Aset", sub: "Grafik & tren" },
-    { to: "/ringkasan", icon: FileText, color: "emerald", label: "Ringkasan", sub: "Snapshot keuangan" },
-    { to: "/kategori", icon: Tags, color: "fuchsia", label: "Kategori", sub: "Atur kategori" },
-    { to: "/impor", icon: Upload, color: "sky", label: "Impor", sub: "Upload laporan" },
-    { to: "/umpan-balik", icon: MessageSquare, color: "rose", label: "Umpan Balik", sub: "Saran & laporan" },
+    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatRupiahShort(sedekah)} bulan ini` },
   ];
 
   return (
@@ -147,20 +139,6 @@ export default function Home() {
         </div>
       </div>
 
-      <Link to="/asisten-struk" className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white p-4 mb-4 active:scale-[0.98] transition-transform shadow-md">
-        <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-          <ScanLine className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold flex items-center gap-1.5">Asisten Struk AI <Sparkles className="w-3.5 h-3.5" /></p>
-          <p className="text-xs text-white/80">Foto bon, AI catatkan otomatis</p>
-        </div>
-        <ArrowRight className="w-4 h-4 text-white/80" />
-      </Link>
-
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-sm">Menu & Fasilitas</h2>
-      </div>
       <div className="grid grid-cols-2 gap-3 mb-4">
         {quickLinks.map((q) => {
           const Icon = q.icon;

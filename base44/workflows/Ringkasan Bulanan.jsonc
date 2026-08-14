@@ -1,0 +1,47 @@
+{
+  "name": "Ringkasan Bulanan",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 1 * *",
+      "one_time_date": null,
+      "timezone": "Asia/Jakarta",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Mengirim ringkasan laporan keuangan bulanan ke email user dan pasangan setiap tanggal 1 pukul 08:00 untuk meninjau anggaran bersama",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "monthly_report",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_report": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendMonthlyReport",
+            "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Kirim ringkasan bulanan",
+            "description": "Email ringkasan ke user & pasangan"
+          }
+        }
+      }
+    ]
+  }
+}

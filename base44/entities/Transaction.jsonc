@@ -71,18 +71,9 @@
           "created_by_id": "{{user.id}}"
         },
         {
-          "$and": [
-            {
-              "user_condition": {
-                "role": "admin"
-              }
-            },
-            {
-              "data.visibility": {
-                "$ne": "private"
-              }
-            }
-          ]
+          "user_condition": {
+            "role": "admin"
+          }
         }
       ]
     },

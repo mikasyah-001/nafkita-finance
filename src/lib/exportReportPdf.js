@@ -10,16 +10,16 @@ function loadImageDataUrl(url) {
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        const maxW = 420;
+        const maxW = 1200;
         const scale = Math.min(1, maxW / (img.naturalWidth || maxW));
         const canvas = document.createElement("canvas");
-        canvas.width = (img.naturalWidth || maxW) * scale;
-        canvas.height = (img.naturalHeight || 240) * scale;
+        canvas.width = Math.max(1, (img.naturalWidth || maxW) * scale);
+        canvas.height = Math.max(1, (img.naturalHeight || 800) * scale);
         const ctx = canvas.getContext("2d");
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
+        resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), w: canvas.width, h: canvas.height });
       } catch {
         resolve(null);
       }
@@ -88,14 +88,20 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
     }
     y += 4;
     if (t.photo_url) {
-      const dataUrl = await loadImageDataUrl(t.photo_url);
-      const imgW = 240; const imgH = 150;
-      if (y + imgH > pageH - margin) { doc.addPage(); y = margin; }
-      if (dataUrl) {
-        try { doc.addImage(dataUrl, "JPEG", margin, y, imgW, imgH); } catch { doc.text("[Bukti tidak dapat dimuat]", margin, y); }
+      const img = await loadImageDataUrl(t.photo_url);
+      if (img) {
+        const maxW = pageW - 2 * margin;
+        const maxH = pageH - margin - y;
+        let imgW = img.w;
+        let imgH = img.h;
+        const scale = Math.min(maxW / imgW, maxH / imgH, 1);
+        imgW *= scale;
+        imgH *= scale;
+        if (imgH < 80) { doc.addPage(); y = margin; imgW = img.w; imgH = img.h; const s2 = Math.min((pageW - 2 * margin) / imgW, (pageH - 2 * margin) / imgH, 1); imgW *= s2; imgH *= s2; }
+        try { doc.addImage(img.dataUrl, "JPEG", margin, y, imgW, imgH); } catch { doc.text("[Bukti tidak dapat dimuat]", margin, y); y += 14; }
         y += imgH + 8;
       } else {
-        doc.text("[Bukti tidak dapat dimuat]", margin, y); y += 14;
+        ensure(14); doc.text("[Bukti tidak dapat dimuat]", margin, y); y += 14;
       }
     }
     y += 8;

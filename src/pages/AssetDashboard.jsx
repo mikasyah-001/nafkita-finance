@@ -8,6 +8,7 @@ import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChar
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
+import ZakatStatus from "@/components/ZakatStatus";
 import { useScope } from "@/lib/ScopeContext";
 
 export default function AssetDashboard() {
@@ -33,6 +34,8 @@ export default function AssetDashboard() {
   const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
   const investasiValue = investasiAssets.reduce((s, a) => s + (a.value || 0), 0);
   const investasiPurchase = investasiAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
+
+  const nonEmasValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
 
   const totalCurrent = scopedAssets.reduce((s, a) => {
     if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
@@ -240,6 +243,13 @@ export default function AssetDashboard() {
           })}
         </div>
       )}
+
+      <ZakatStatus
+        emasGrams={emasGrams}
+        emasValue={emasValue}
+        nonEmasValue={nonEmasValue}
+        goldPrice={goldPriceNum}
+      />
 
       <div className="mb-5">
         <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />

@@ -27,7 +27,8 @@
             "function_name": "notifyPartnerTransaction",
             "args": {
               "transaction_id": "${ .trigger.entity_id }",
-              "event_type": "${ .trigger.event_type }"
+              "event_type": "${ .trigger.event_type }",
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
             }
           },
           "then": "end",

@@ -1,16 +1,35 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { secrets } from "base44:runtime";
 
 const formatRupiah = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
+
+const checkToken = (provided) => {
+  const expected = secrets.get("WORKFLOW_TOKEN");
+  if (!expected || !provided) return false;
+  if (provided.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+};
 
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    if (!await isAuthorizedCall(req, base44)) {
+
+    // Otorisasi: admin (konteks user) ATAU token workflow (shared secret).
+    // Body dibaca sekali agar token + transaction_id bisa dipakai bersama.
+    let isAdmin = false;
+    try {
+      const user = await base44.auth.me();
+      if (user) isAdmin = user.role === "admin";
+    } catch {}
+
+    const body = await req.json().catch(() => ({}));
+
+    if (!isAdmin && !checkToken(body.token)) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
     const txId = body.transaction_id;
     const eventType = body.event_type || 'create';
     if (!txId) return Response.json({ error: 'transaction_id required' }, { status: 400 });

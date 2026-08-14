@@ -33,6 +33,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import PartnerOnboarding from '@/pages/PartnerOnboarding';
+import Admin from '@/pages/Admin';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -84,6 +85,7 @@ const AuthenticatedApp = () => {
           <Route path="/asisten-struk" element={<AsistenStruk />} />
           <Route path="/investasi/:id" element={<InvestmentDetail />} />
           <Route path="/umpan-balik" element={<Feedback />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

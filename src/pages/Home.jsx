@@ -10,6 +10,7 @@ import ZakatNotifier from "@/components/ZakatNotifier";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import MonthlySummary from "@/components/MonthlySummary";
 import Money from "@/components/Money";
+import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff } from "lucide-react";
@@ -76,6 +77,7 @@ export default function Home() {
           <h1 className="text-lg font-semibold">{user?.full_name || user?.email || "Keluarga"}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>

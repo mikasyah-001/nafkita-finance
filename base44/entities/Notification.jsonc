@@ -1,0 +1,64 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "target_user_id": {
+      "type": "string",
+      "description": "ID user penerima notifikasi"
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nama pasangan yang melakukan aksi"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "created",
+        "updated"
+      ],
+      "default": "created"
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "ref_id": {
+      "type": "string",
+      "description": "ID transaksi terkait"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "tx_type": {
+      "type": "string"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "target_user_id",
+    "action",
+    "title",
+    "read"
+  ],
+  "rls": {
+    "read": {
+      "data.target_user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.target_user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.target_user_id": "{{user.id}}"
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

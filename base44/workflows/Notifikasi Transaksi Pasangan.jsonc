@@ -1,0 +1,42 @@
+{
+  "name": "Notifikasi Transaksi Pasangan",
+  "description": "Membuat notifikasi untuk pasangan saat transaksi bersama dibuat atau diperbarui",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "Transaction",
+      "events": [
+        "create",
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.visibility == \"shared\" }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notify_partner_transaction",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notify": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyPartnerTransaction",
+            "args": {
+              "transaction_id": "${ .trigger.entity_id }",
+              "event_type": "${ .trigger.event_type }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Buat notifikasi pasangan",
+            "description": "Transaksi bersama dibuat/diperbarui"
+          }
+        }
+      }
+    ]
+  }
+}

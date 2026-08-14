@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatRupiah, formatMoney, formatNumber, colorMap, assetTypeLabels } from "@/lib/finance";
+import { formatMoney, formatNumber, colorMap, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
@@ -15,7 +15,12 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
       map[t] = (map[t] || 0) + cur;
     });
     return Object.entries(map)
-      .map(([type, total]) => ({ type, label: assetTypeLabels[type]?.label || type, total }))
+      .map(([type, total]) => {
+        const list = assets.filter((a) => (a.type || "lainnya") === type);
+        const curSet = [...new Set(list.map((a) => a.currency || "IDR"))];
+        const currency = curSet.length === 1 ? curSet[0] : "IDR";
+        return { type, label: assetTypeLabels[type]?.label || type, total, currency };
+      })
       .sort((a, b) => b.total - a.total);
   }, [assets, goldPrice]);
 
@@ -46,7 +51,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
             <BarChart data={byType} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={55} />
               <YAxis tickFormatter={(v) => formatNumber(v)} tick={{ fontSize: 10 }} width={48} />
-              <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+              <Tooltip formatter={(v, _n, item) => formatMoney(v, item?.payload?.currency)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
               <Bar dataKey="total" radius={[6, 6, 0, 0]}>
                 {byType.map((d, i) => (
                   <Cell key={i} fill={typeColors[d.type] || "#64748b"} />
@@ -60,7 +65,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
             <div key={d.type} className="flex items-center gap-2 text-xs">
               <span className="w-3 h-3 rounded-full" style={{ background: typeColors[d.type] || "#64748b" }} />
               <span className="flex-1 text-muted-foreground truncate">{d.label}</span>
-              <span className="font-medium">{formatRupiah(d.total)}</span>
+              <span className="font-medium">{formatMoney(d.total, d.currency)}</span>
             </div>
           ))}
         </div>

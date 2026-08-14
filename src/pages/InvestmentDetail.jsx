@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, formatDate } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
 
@@ -111,11 +111,11 @@ export default function InvestmentDetail() {
         <div className="flex items-center gap-1.5 text-xs opacity-80 mb-1"><Briefcase className="w-3.5 h-3.5" /> Instrumen Investasi</div>
         <p className="text-sm font-medium truncate">{asset.name}</p>
         {asset.broker && <p className="text-xs opacity-80 flex items-center gap-1 mt-0.5"><Building2 className="w-3 h-3" /> {asset.broker}</p>}
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-3 break-words">{formatRupiah(currentValue)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-3 break-words">{formatMoney(currentValue, asset.currency)}</p>
         <div className="flex gap-3 mt-3 text-xs">
           <div className="flex-1 min-w-0">
             <p className="opacity-80">Total Beli</p>
-            <p className="font-semibold tabular-nums truncate">{formatRupiah(totalInvested)}</p>
+            <p className="font-semibold tabular-nums truncate">{formatMoney(totalInvested, asset.currency)}</p>
           </div>
           <div className="w-px bg-white/20" />
           <div className="flex-1 min-w-0">
@@ -125,13 +125,13 @@ export default function InvestmentDetail() {
           <div className="w-px bg-white/20" />
           <div className="flex-1 min-w-0">
             <p className="opacity-80">Rata-rata</p>
-            <p className="font-semibold tabular-nums truncate">{formatRupiah(Math.round(avgPrice))}</p>
+            <p className="font-semibold tabular-nums truncate">{formatMoney(Math.round(avgPrice), asset.currency)}</p>
           </div>
         </div>
         {totalInvested > 0 && (
           <div className="mt-3 flex items-center gap-1.5 text-sm font-medium">
             {isGain ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {isGain ? "+" : ""}{formatRupiah(pl)} ({isGain ? "+" : ""}{plPct.toFixed(1)}%)
+            {isGain ? "+" : ""}{formatMoney(pl, asset.currency)} ({isGain ? "+" : ""}{plPct.toFixed(1)}%)
           </div>
         )}
       </div>
@@ -142,7 +142,7 @@ export default function InvestmentDetail() {
           <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
           <button onClick={async () => { if (asset && cp > 0) { try { await base44.entities.Asset.update(asset.id, { value: Math.round(currentValue) }); refresh(); toast.success("Nilai aset diperbarui"); } catch { toast.error("Gagal memperbarui"); } } }} className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium shrink-0">Simpan</button>
         </div>
-        {cp > 0 && totalUnits > 0 && <p className="text-xs text-muted-foreground mt-2">Nilai saat ini: <span className="font-medium text-foreground">{formatRupiah(currentValue)}</span></p>}
+        {cp > 0 && totalUnits > 0 && <p className="text-xs text-muted-foreground mt-2">Nilai saat ini: <span className="font-medium text-foreground">{formatMoney(currentValue, asset.currency)}</span></p>}
       </div>
 
       <button onClick={() => setShowForm(true)} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 mb-4 active:scale-[0.99] transition-transform">
@@ -170,12 +170,12 @@ export default function InvestmentDetail() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{formatDate(l.date, "dd MMM yyyy")}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatNumber(l.quantity)} unit • {formatRupiah(Math.round(l.price_per_unit))}/unit
+                    {formatNumber(l.quantity)} unit • {formatMoney(Math.round(l.price_per_unit), asset.currency)}/unit
                   </p>
                   {l.notes && <p className="text-xs text-muted-foreground mt-1 italic truncate">"{l.notes}"</p>}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold tabular-nums">{formatRupiah(l.amount)}</p>
+                  <p className="text-sm font-semibold tabular-nums">{formatMoney(l.amount, asset.currency)}</p>
                   <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-red-500 flex items-center gap-1 mt-1 ml-auto">
                     <Trash2 className="w-3.5 h-3.5" /> Hapus
                   </button>
@@ -208,7 +208,7 @@ export default function InvestmentDetail() {
                 <input type="number" value={lot.quantity} onChange={(e) => setLot({ ...lot, quantity: e.target.value })} placeholder="Mis. 10" className="input" />
               </div>
               {lot.price_per_unit && lot.quantity ? (
-                <p className="text-xs text-muted-foreground -mt-1">Total beli: <span className="font-medium text-foreground">{formatRupiah(Number(lot.price_per_unit) * Number(lot.quantity))}</span></p>
+                <p className="text-xs text-muted-foreground -mt-1">Total beli: <span className="font-medium text-foreground">{formatMoney(Number(lot.price_per_unit) * Number(lot.quantity), asset.currency)}</span></p>
               ) : null}
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>

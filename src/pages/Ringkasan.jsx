@@ -6,12 +6,14 @@ import EmptyState from "@/components/EmptyState";
 import { downloadMonthlyReport } from "@/lib/exportReport";
 import { toast } from "sonner";
 import { useScope } from "@/lib/ScopeContext";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart, Download } from "lucide-react";
+import { Image } from "@/components/ui/image";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart, Download, ChevronDown } from "lucide-react";
 
 export default function Ringkasan() {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const [cursor, setCursor] = useState(new Date());
+  const [expanded, setExpanded] = useState(null);
   const { scope, setScope } = useScope();
 
   const year = cursor.getFullYear();
@@ -121,9 +123,16 @@ export default function Ringkasan() {
             const share = total > 0 ? (r.value / total) * 100 : 0;
             const diff = r.value - r.prev;
             const diffPct = r.prev > 0 ? (diff / r.prev) * 100 : 0;
+            const isOpen = expanded === r.name;
+            const txs = txList
+              .filter((t) => t.category === r.name && t.type === "expense")
+              .sort((a, b) => new Date(b.date) - new Date(a.date));
             return (
               <div key={r.name} className="rounded-2xl border border-border bg-card p-3.5">
-                <div className="flex items-center gap-2.5 mb-2">
+                <button
+                  onClick={() => setExpanded(isOpen ? null : r.name)}
+                  className="flex items-center gap-2.5 mb-2 w-full text-left"
+                >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cm.bg}`}>
                     <CategoryIcon name={cat?.icon || "Wallet"} className={`w-4 h-4 ${cm.text}`} />
                   </div>
@@ -136,12 +145,35 @@ export default function Ringkasan() {
                       {diff < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}{Math.abs(diffPct).toFixed(0)}%
                     </span>
                   )}
-                </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </button>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div className={`h-full rounded-full ${cm.solid}`} style={{ width: `${pct}%` }} />
                 </div>
                 {r.prev > 0 && (
                   <p className="text-[10px] text-muted-foreground mt-1.5 tabular-nums">Bulan lalu {formatRupiahShort(r.prev)} {diff < 0 ? "(turun)" : diff > 0 ? "(naik)" : ""}</p>
+                )}
+                {isOpen && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
+                    {txs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Tidak ada transaksi.</p>
+                    ) : (
+                      txs.map((t) => (
+                        <div key={t.id} className="flex items-center gap-2.5">
+                          {t.photo_url ? (
+                            <Image src={t.photo_url} alt="bukti" className="w-9 h-9 rounded-lg shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-muted shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{t.merchant || t.notes || r.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{formatDate(t.date, "dd MMM, HH:mm")}</p>
+                          </div>
+                          <p className="text-xs font-semibold tabular-nums shrink-0">{formatRupiah(t.amount)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             );

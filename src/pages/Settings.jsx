@@ -4,8 +4,7 @@ import InvitationManager from "@/components/InvitationManager";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles } from "lucide-react";
 import TemplateManager from "@/components/TemplateManager";
-import DriveBackupRestore from "@/components/DriveBackupRestore";
-import { HardDriveDownload } from "lucide-react";
+import LocalBackupRestore from "@/components/LocalBackupRestore";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -59,8 +58,8 @@ export default function Settings() {
         </Link>
       </Section>
 
-      <Section title="Cadangan Google Drive">
-        <DriveBackupRestore />
+      <Section title="Cadangan Lokal">
+        <LocalBackupRestore />
       </Section>
 
       <Section title="Template Rutin">

@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { formatRupiah } from "@/lib/finance";
+import { formatMoney } from "@/lib/finance";
 
 const TYPE_LABEL = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -29,7 +29,8 @@ function loadImageDataUrl(url) {
   });
 }
 
-export async function downloadReportPdf({ monthName, scopeLabel, stats, categoryRows, transactions }) {
+export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR", stats, categoryRows, transactions }) {
+  const cur = currency;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -41,7 +42,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
   doc.text("Laporan Keuangan - NAFKITA", margin, y); y += 22;
   doc.setFont("helvetica", "normal"); doc.setFontSize(10);
   doc.text(`Periode: ${monthName}`, margin, y); y += 14;
-  doc.text(`Cakupan: ${scopeLabel}`, margin, y); y += 20;
+  doc.text(`Cakupan: ${scopeLabel} • Mata Uang: ${cur}`, margin, y); y += 20;
 
   doc.setFont("helvetica", "bold"); doc.setFontSize(12);
   doc.text("Ringkasan", margin, y); y += 16;
@@ -52,7 +53,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
   if (categoryRows.length) {
     ensure(30);
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("Pengeluaran per Kategori", margin, y); y += 16;
+    doc.text(`Pengeluaran per Kategori (${cur})`, margin, y); y += 16;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     doc.text("Kategori", margin, y); doc.text("Bulan Ini", margin + 200, y); doc.text("Bulan Lalu", margin + 290, y); doc.text("Selisih", margin + 380, y); y += 4;
     doc.setLineDash([]); doc.line(margin, y, pageW - margin, y); y += 12;
@@ -60,10 +61,10 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
     categoryRows.forEach((r) => {
       ensure(16);
       doc.text(String(r.name).slice(0, 30), margin, y);
-      doc.text(formatRupiah(r.value), margin + 200, y);
-      doc.text(formatRupiah(r.prev), margin + 290, y);
+      doc.text(formatMoney(r.value, cur), margin + 200, y);
+      doc.text(formatMoney(r.prev, cur), margin + 290, y);
       const diff = r.value - r.prev;
-      doc.text((diff >= 0 ? "+" : "") + formatRupiah(diff), margin + 380, y);
+      doc.text((diff >= 0 ? "+" : "") + formatMoney(diff, cur), margin + 380, y);
       y += 14;
     });
     y += 16;
@@ -79,7 +80,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
     doc.text(`${new Date(t.date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })} • ${TYPE_LABEL[t.type] || t.type}`, margin, y); y += 14;
     doc.setFont("helvetica", "normal"); doc.setFontSize(9);
     doc.text(`Kategori: ${t.category || "-"}`, margin, y); y += 12;
-    doc.text(`Nominal: ${formatRupiah(t.amount)} (${t.currency || "IDR"})`, margin, y); y += 12;
+    doc.text(`Nominal: ${formatMoney(t.amount, t.currency || cur)} (${t.currency || cur})`, margin, y); y += 12;
     if (t.merchant) { ensure(12); doc.text(`Merchant: ${t.merchant}`, margin, y); y += 12; }
     if (t.input_by_name) { ensure(12); doc.text(`Diinput: ${t.input_by_name}`, margin, y); y += 12; }
     if (t.notes) {
@@ -108,5 +109,5 @@ export async function downloadReportPdf({ monthName, scopeLabel, stats, category
     doc.setLineDash([2, 2]); doc.line(margin, y, pageW - margin, y); doc.setLineDash([]); y += 10;
   }
 
-  doc.save(`Laporan_NAFKITA_${monthName.replace(/\s+/g, "_")}_${scopeLabel}.pdf`);
+  doc.save(`Laporan_NAFKITA_${monthName.replace(/\s+/g, "_")}_${scopeLabel}_${cur}.pdf`);
 }

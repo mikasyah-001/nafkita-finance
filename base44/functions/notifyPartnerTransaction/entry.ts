@@ -1,7 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from "base44:runtime";
 
-const formatRupiah = (n) => "Rp" + Number(n || 0).toLocaleString("id-ID");
+const formatMoney = (n, cur) => {
+  const c = (cur || "IDR").toUpperCase();
+  const v = Number(n || 0);
+  if (c === "USD") return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (c === "SAR") return "SAR " + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "Rp" + v.toLocaleString("id-ID");
+};
 
 const checkToken = (provided) => {
   const expected = secrets.get("WORKFLOW_TOKEN");
@@ -66,7 +72,7 @@ export default async function(req) {
     const sign = tx.type === 'income' ? '+' : '-';
     const label = tx.merchant || tx.notes || (tx.type === 'sedekah' ? 'Sedekah & Infaq' : tx.category) || 'Transaksi';
     const title = eventType === 'update' ? 'Pasangan memperbarui transaksi' : 'Transaksi baru dari pasangan';
-    const bodyText = `${sign}${formatRupiah(tx.amount)} • ${label}`;
+    const bodyText = `${sign}${formatMoney(tx.amount, tx.currency)} • ${label}`;
 
     await base44.asServiceRole.entities.Notification.create({
       target_user_id: partnerId,

@@ -1,11 +1,11 @@
 import { usePrivacy } from "@/lib/PrivacyContext";
-import { formatRupiah, formatRupiahShort, formatMoney } from "@/lib/finance";
+import { formatRupiah, formatRupiahShort, formatMoney, formatMoneyShort } from "@/lib/finance";
 
 export default function Money({ value, format = "full", currency, className }) {
   const { hidden } = usePrivacy();
   const text = (() => {
     if (hidden) return "••••••";
-    if (format === "short") return formatRupiahShort(value);
+    if (format === "short") return formatMoneyShort(value, currency || "IDR");
     if (currency) return formatMoney(value, currency);
     return formatRupiah(value);
   })();

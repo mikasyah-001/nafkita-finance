@@ -19,24 +19,34 @@ export default function BudgetBars({ scope = "shared" }) {
       const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === "expense" && inScope;
     });
+    // spent per (category, currency)
     const spent = {};
     monthTx.forEach((t) => {
-      spent[t.category] = (spent[t.category] || 0) + t.amount;
+      const c = t.currency || "IDR";
+      const key = `${t.category}||${c}`;
+      spent[key] = (spent[key] || 0) + t.amount;
     });
     const budgetMap = {};
-    budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope).forEach((b) => {
-      budgetMap[b.category] = b.limit_amount;
+    budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).forEach((b) => {
+      budgetMap[`${b.category}||${b.currency || "IDR"}`] = b;
     });
     return categories
-      .filter((c) => c.type === "expense" && budgetMap[c.name] > 0)
-      .map((c) => {
-        const limit = budgetMap[c.name];
-        const s = spent[c.name] || 0;
-        const remaining = limit - s;
-        const pct = Math.min(100, (s / limit) * 100);
-        const over = s > limit;
-        const near = !over && remaining < limit * 0.2;
-        return { name: c.name, color: c.color, spent: s, limit, remaining, pct, over, near };
+      .filter((c) => c.type === "expense")
+      .flatMap((c) => {
+        const result = [];
+        ["IDR", "SAR", "USD"].forEach((cur) => {
+          const key = `${c.name}||${cur}`;
+          const b = budgetMap[key];
+          if (!b) return;
+          const s = spent[key] || 0;
+          const limit = b.limit_amount;
+          const remaining = limit - s;
+          const pct = Math.min(100, (s / limit) * 100);
+          const over = s > limit;
+          const near = !over && remaining < limit * 0.2;
+          result.push({ name: c.name, color: c.color, spent: s, limit, remaining, pct, over, near, currency: cur });
+        });
+        return result;
       })
       .sort((a, b) => b.pct - a.pct);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,22 +71,22 @@ export default function BudgetBars({ scope = "shared" }) {
           const cm = colorMap[r.color] || colorMap.slate;
           const barColor = r.over ? "bg-red-500" : r.near ? "bg-amber-500" : cm.solid;
           return (
-            <div key={r.name}>
+            <div key={`${r.name}-${r.currency}`}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium flex items-center gap-1.5">
                   {r.over && <AlertTriangle className="w-3 h-3 text-red-500" />}
-                  {r.name}
+                  {r.name} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
                 </span>
                 <span className={`text-xs font-medium ${r.over ? "text-red-500" : r.near ? "text-amber-600" : "text-muted-foreground"}`}>
-                  {r.over ? <>Lebih <Money value={Math.abs(r.remaining)} /></> : <>Sisa <Money value={r.remaining} /></>}
+                  {r.over ? <>Lebih <Money value={Math.abs(r.remaining)} currency={r.currency} /></> : <>Sisa <Money value={r.remaining} currency={r.currency} /></>}
                 </span>
               </div>
               <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${r.pct}%` }} />
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-muted-foreground"><Money value={r.spent} /> terpakai</span>
-                <span className="text-[10px] text-muted-foreground">dari <Money value={r.limit} /></span>
+                <span className="text-[10px] text-muted-foreground"><Money value={r.spent} currency={r.currency} /> terpakai</span>
+                <span className="text-[10px] text-muted-foreground">dari <Money value={r.limit} currency={r.currency} /></span>
               </div>
             </div>
           );

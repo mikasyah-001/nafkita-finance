@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
-import { formatRupiah, colorMap } from "@/lib/finance";
+import { formatRupiah, colorMap, currencies } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
@@ -22,9 +22,11 @@ export default function ImportReport() {
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
+  const [importCurrency, setImportCurrency] = useState("IDR");
+  const [importVisibility, setImportVisibility] = useState("shared");
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then((u) => { setUser(u); if (u?.default_currency) setImportCurrency(u.default_currency); }).catch(() => {});
   }, []);
 
   const normalizeDate = (d) => {
@@ -52,6 +54,8 @@ export default function ImportReport() {
         category: mapCategory(t.category),
         amount: Number(t.amount) || 0,
         type: t.type === "income" ? "income" : "expense",
+        currency: ["SAR", "USD"].includes((t.currency || "").toUpperCase()) ? t.currency.toUpperCase() : (t.currency ? t.currency.toUpperCase() : importCurrency),
+        visibility: importVisibility,
       }));
 
   const parseText = async (rawText) => {
@@ -72,6 +76,7 @@ export default function ImportReport() {
                 category: { type: "string" },
                 amount: { type: "number" },
                 type: { type: "string" },
+                currency: { type: "string" },
               },
             },
             },
@@ -113,6 +118,7 @@ export default function ImportReport() {
                     category: { type: "string" },
                     amount: { type: "number" },
                     type: { type: "string" },
+                    currency: { type: "string" },
                   },
                 },
               },
@@ -179,11 +185,13 @@ export default function ImportReport() {
       const payload = selected.map((r) => ({
         type: r.type,
         amount: r.amount,
+        currency: r.currency || importCurrency,
         category: r.category,
         date: new Date(`${r.date}T${r.time || "12:00"}`).toISOString(),
         merchant: r.merchant || "",
         notes: "Diimpor dari laporan",
         photo_url: "",
+        visibility: r.visibility || importVisibility,
         input_by_name: user?.full_name || user?.email || "Keluarga",
       }));
       const unique = dedupeBatch(payload);
@@ -306,6 +314,13 @@ export default function ImportReport() {
                     <input type="time" value={r.time || ""} onChange={(e) => updateRow(r.id, "time", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
                     <input type="number" value={r.amount} onChange={(e) => updateRow(r.id, "amount", Number(e.target.value))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
                     <input value={r.merchant} onChange={(e) => updateRow(r.id, "merchant", e.target.value)} placeholder="Merchant / No Transaksi" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
+                    <select value={r.currency} onChange={(e) => updateRow(r.id, "currency", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
+                      {currencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                    </select>
+                    <select value={r.visibility} onChange={(e) => updateRow(r.id, "visibility", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
+                      <option value="shared">Bersama</option>
+                      <option value="private">Pribadi</option>
+                    </select>
                     <select value={r.category} onChange={(e) => updateRow(r.id, "category", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background col-span-2">
                       <option value="">Pilih kategori</option>
                       {categories.filter((c) => c.type === r.type).map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}

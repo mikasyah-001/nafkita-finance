@@ -8,31 +8,43 @@ export function useCategories() {
   });
 }
 
+// Transaksi/aset/anggaran diambil lewat backend function yang memperhitungkan
+// relasi Partnership — sehingga pasangan (role "user") ikut melihat data bersama,
+// tanpa perlu hak admin. Paginasi penuh dilakukan di sisi function.
 export function useTransactions() {
   return useQuery({
     queryKey: ["transactions"],
-    queryFn: () => base44.entities.Transaction.list("-date", 500),
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listVisibleTransactions", {});
+      return res.data.transactions || [];
+    },
   });
 }
 
 export function useAssets() {
   return useQuery({
     queryKey: ["assets"],
-    queryFn: () => base44.entities.Asset.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listVisibleAssets", {});
+      return res.data.assets || [];
+    },
   });
 }
 
 export function useBudgets() {
   return useQuery({
     queryKey: ["budgets"],
-    queryFn: () => base44.entities.Budget.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listVisibleBudgets", {});
+      return res.data.budgets || [];
+    },
   });
 }
 
 export function useAssetSnapshots() {
   return useQuery({
     queryKey: ["assetSnapshots"],
-    queryFn: () => base44.entities.AssetSnapshot.list("period", 24),
+    queryFn: () => base44.entities.AssetSnapshot.list("period", 500),
   });
 }
 
@@ -53,9 +65,13 @@ export function useZakatPayments() {
 export function useInvestmentLots(assetId) {
   return useQuery({
     queryKey: ["investmentLots", assetId],
-    queryFn: () => base44.entities.InvestmentLot.filter({ asset_id: assetId }, "date", 200),
+    queryFn: () => base44.entities.InvestmentLot.filter({ asset_id: assetId }, "date", 500),
     enabled: !!assetId,
   });
+}
+
+export function useMe() {
+  return useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
 }
 
 export function useRefresh() {
@@ -69,5 +85,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
     qc.invalidateQueries({ queryKey: ["zakatPayments"] });
     qc.invalidateQueries({ queryKey: ["investmentLots"] });
+    qc.invalidateQueries({ queryKey: ["me"] });
   };
 }

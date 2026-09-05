@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRefresh } from "@/hooks/useFinance";
+import { useRefresh, useTransactions } from "@/hooks/useFinance";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { getPending, removePending } from "@/lib/offlineQueue";
+import { getPending, removePending, toBackendTx } from "@/lib/offlineQueue";
+import { findDuplicate } from "@/lib/duplicateDetect";
 import { toast } from "sonner";
 import { WifiOff, RefreshCw, CloudUpload } from "lucide-react";
 
 export default function OfflineSyncManager() {
   const online = useOnlineStatus();
   const refresh = useRefresh();
+  const { data: transactions = [] } = useTransactions();
   const [pending, setPending] = useState(getPending());
   const [syncing, setSyncing] = useState(false);
 
@@ -17,18 +19,32 @@ export default function OfflineSyncManager() {
     if (list.length === 0) return;
     setSyncing(true);
     let ok = 0;
+    const failed = [];
     for (const tx of list) {
       try {
-        await base44.entities.Transaction.create(tx);
+        const payload = toBackendTx(tx);
+        // Cek duplikat terhadap transaksi yang sudah ada di server.
+        if (findDuplicate(payload, transactions)) {
+          removePending(tx._localId);
+          continue;
+        }
+        await base44.entities.Transaction.create(payload);
         removePending(tx._localId);
         ok++;
-      } catch {}
+      } catch (e) {
+        failed.push({ tx, error: e?.message || "Gagal menyinkronkan" });
+      }
     }
     setPending(getPending());
     setSyncing(false);
     if (ok > 0) {
       refresh();
       toast.success(`${ok} transaksi disinkronkan`, { description: "Data offline kini tersimpan di server." });
+    }
+    if (failed.length > 0) {
+      toast.error(`${failed.length} transaksi gagal disinkron`, {
+        description: failed[0].error,
+      });
     }
   };
 

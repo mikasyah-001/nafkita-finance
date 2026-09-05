@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatDate, colorMap } from "@/lib/finance";
+import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
+import { formatMoney, formatMoneyShort, formatDate, colorMap, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
 import { downloadMonthlyReport } from "@/lib/exportReport";
 import { toast } from "sonner";
@@ -12,16 +13,18 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, Recei
 export default function Ringkasan() {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const { data: me } = useMe();
   const [cursor, setCursor] = useState(new Date());
   const [expanded, setExpanded] = useState(null);
   const { scope, setScope } = useScope();
+  const [currency, setCurrency] = useState(me?.default_currency || "IDR");
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
-  const { rows, total, prevTotal, count, txList } = useMemo(() => {
-    const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
+  const { rows, total, prevTotal, count, txList, activeCurs } = useMemo(() => {
+    const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private") && (t.currency || "IDR") === currency);
     const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const py = month === 0 ? year - 1 : year;
     const pm = month === 0 ? 11 : month - 1;
@@ -43,8 +46,16 @@ export default function Ringkasan() {
     const txList = scoped
       .filter((t) => inMonth(t, year, month))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return { rows, total, prevTotal, count: cur.length, txList };
-  }, [transactions, scope, year, month]);
+    const monthAll = transactions.filter((t) => {
+      if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
+      const d = new Date(t.date);
+      return d.getMonth() === month && d.getFullYear() === year;
+    });
+    const activeCurs = activeCurrencies(summarizeByCurrency(monthAll));
+    return { rows, total, prevTotal, count: cur.length, txList, activeCurs };
+  }, [transactions, scope, year, month, currency]);
+
+  const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
 
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
@@ -57,6 +68,7 @@ export default function Ringkasan() {
     downloadMonthlyReport({
       monthName,
       scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
+      currency: cur,
       rows, total, prevTotal, avgPerDay, count,
       transactions: txList,
     });
@@ -73,10 +85,14 @@ export default function Ringkasan() {
         <button onClick={() => setCursor(new Date(year, month + 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-3">
         <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-4 h-4" /> Bersama</button>
         <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-4 h-4" /> Pribadi</button>
       </div>
+
+      {activeCurs.length > 0 && (
+        <div className="mb-4"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+      )}
 
       <button
         onClick={handleDownload}
@@ -87,12 +103,12 @@ export default function Ringkasan() {
       </button>
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 mb-4">
-        <p className="text-xs opacity-80">Total pengeluaran</p>
-        <p className="text-2xl sm:text-3xl font-bold tabular-nums break-words">{formatRupiah(total)}</p>
+        <p className="text-xs opacity-80">Total pengeluaran ({cur})</p>
+        <p className="text-2xl sm:text-3xl font-bold tabular-nums break-words">{formatMoney(total, cur)}</p>
         <div className="flex gap-4 mt-3 text-xs">
           <div className="min-w-0">
             <p className="opacity-80">Rata-rata/hari</p>
-            <p className="font-semibold tabular-nums">{formatRupiahShort(avgPerDay)}</p>
+            <p className="font-semibold tabular-nums">{formatMoneyShort(avgPerDay, cur)}</p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
           <div className="min-w-0">
@@ -112,7 +128,7 @@ export default function Ringkasan() {
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState icon={ReceiptText} title="Belum ada pengeluaran" subtitle={`Tidak ada catatan pengeluaran ${scope === "private" ? "pribadi" : "bersama"} di ${monthName}.`} />
+        <EmptyState icon={ReceiptText} title="Belum ada pengeluaran" subtitle={`Tidak ada catatan pengeluaran ${scope === "private" ? "pribadi" : "bersama"} ${cur} di ${monthName}.`} />
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground px-1 flex items-center gap-1.5"><PieChart className="w-3.5 h-3.5" /> {rows.length} kategori • diurut dari terbesar</p>
@@ -138,7 +154,7 @@ export default function Ringkasan() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums truncate">{formatRupiah(r.value)} • {share.toFixed(0)}% • {r.count} transaksi</p>
+                    <p className="text-xs text-muted-foreground tabular-nums truncate">{formatMoney(r.value, cur)} • {share.toFixed(0)}% • {r.count} transaksi</p>
                   </div>
                   {r.prev > 0 && diff !== 0 && (
                     <span className={`text-[10px] font-medium flex items-center gap-0.5 shrink-0 ${diff < 0 ? "text-emerald-600" : "text-red-500"}`}>
@@ -151,7 +167,7 @@ export default function Ringkasan() {
                   <div className={`h-full rounded-full ${cm.solid}`} style={{ width: `${pct}%` }} />
                 </div>
                 {r.prev > 0 && (
-                  <p className="text-[10px] text-muted-foreground mt-1.5 tabular-nums">Bulan lalu {formatRupiahShort(r.prev)} {diff < 0 ? "(turun)" : diff > 0 ? "(naik)" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1.5 tabular-nums">Bulan lalu {formatMoneyShort(r.prev, cur)} {diff < 0 ? "(turun)" : diff > 0 ? "(naik)" : ""}</p>
                 )}
                 {isOpen && (
                   <div className="mt-3 pt-3 border-t border-border space-y-2">
@@ -169,7 +185,7 @@ export default function Ringkasan() {
                             <p className="text-xs font-medium truncate">{t.merchant || t.notes || r.name}</p>
                             <p className="text-[10px] text-muted-foreground">{formatDate(t.date, "dd MMM, HH:mm")}</p>
                           </div>
-                          <p className="text-xs font-semibold tabular-nums shrink-0">{formatRupiah(t.amount)}</p>
+                          <p className="text-xs font-semibold tabular-nums shrink-0">{formatMoney(t.amount, cur)}</p>
                         </div>
                       ))
                     )}

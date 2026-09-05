@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useTemplates, useCategories, useRefresh } from "@/hooks/useFinance";
-import { colorMap, formatRupiah } from "@/lib/finance";
+import { useTemplates, useCategories, useRefresh, useMe } from "@/hooks/useFinance";
+import { colorMap, formatMoney, currencies, currencySymbol } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Lock } from "lucide-react";
 
 const typeOptions = [
   { k: "expense", l: "Pengeluaran" },
@@ -15,10 +15,15 @@ const typeOptions = [
 export default function TemplateManager() {
   const { data: templates = [] } = useTemplates();
   const { data: categories = [] } = useCategories();
+  const { data: me } = useMe();
   const refresh = useRefresh();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tpl, setTpl] = useState({ name: "", type: "expense", amount: "", category: "", merchant: "", notes: "" });
+  const [tpl, setTpl] = useState({ name: "", type: "expense", amount: "", currency: "IDR", category: "", merchant: "", notes: "", visibility: "shared" });
+
+  useEffect(() => {
+    if (me?.default_currency) setTpl((p) => (p.currency && p.currency !== "IDR" ? p : { ...p, currency: me.default_currency }));
+  }, [me]);
 
   const availableCategories = categories.filter((c) => c.type === tpl.type);
 
@@ -32,13 +37,15 @@ export default function TemplateManager() {
         name: tpl.name,
         type: tpl.type,
         amount: amt,
+        currency: tpl.currency,
         category: tpl.type === "sedekah" ? "Sedekah & Infaq" : tpl.category,
         merchant: tpl.merchant || "",
         notes: tpl.notes || "",
+        visibility: tpl.visibility,
       });
       refresh();
       toast.success("Template ditambahkan");
-      setTpl({ name: "", type: "expense", amount: "", category: "", merchant: "", notes: "" });
+      setTpl({ name: "", type: "expense", amount: "", currency: me?.default_currency || "IDR", category: "", merchant: "", notes: "", visibility: "shared" });
       setShowForm(false);
     } catch {
       toast.error("Gagal menambah template");
@@ -73,8 +80,13 @@ export default function TemplateManager() {
               <button key={t.k} onClick={() => setTpl({ ...tpl, type: t.k, category: "" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.type === t.k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{t.l}</button>
             ))}
           </div>
+          <div className="flex gap-1">
+            {currencies.map((c) => (
+              <button key={c.code} onClick={() => setTpl({ ...tpl, currency: c.code })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.currency === c.code ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.code}</button>
+            ))}
+          </div>
           <div className="flex items-center rounded-lg border border-border px-3">
-            <span className="text-xs text-muted-foreground mr-1">Rp</span>
+            <span className="text-xs text-muted-foreground mr-1">{currencySymbol(tpl.currency)}</span>
             <input type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
           </div>
           {tpl.type !== "sedekah" && (
@@ -84,6 +96,10 @@ export default function TemplateManager() {
             </select>
           )}
           <input value={tpl.merchant} onChange={(e) => setTpl({ ...tpl, merchant: e.target.value })} placeholder="Merchant (opsional)" className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none" />
+          <div className="flex gap-2">
+            <button onClick={() => setTpl({ ...tpl, visibility: "shared" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility !== "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-3 h-3" /> Bersama</button>
+            <button onClick={() => setTpl({ ...tpl, visibility: "private" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-3 h-3" /> Pribadi</button>
+          </div>
           <button onClick={handleSave} disabled={saving} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simpan Template"}
           </button>
@@ -105,7 +121,7 @@ export default function TemplateManager() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{formatRupiah(t.amount)}{t.category ? ` • ${t.category}` : ""}</p>
+                <p className="text-xs text-muted-foreground">{formatMoney(t.amount, t.currency)}{t.category ? ` • ${t.category}` : ""}{t.visibility === "private" ? " • Pribadi" : ""}</p>
               </div>
               <button onClick={() => handleDelete(t.id)} className="text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>

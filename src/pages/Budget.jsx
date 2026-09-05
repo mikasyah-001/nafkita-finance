@@ -1,20 +1,23 @@
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useBudgets, useRefresh } from "@/hooks/useFinance";
-import { formatRupiah, formatDate, colorMap } from "@/lib/finance";
+import { useTransactions, useCategories, useBudgets, useRefresh, useMe } from "@/hooks/useFinance";
+import { formatMoney, formatDate, colorMap, currencySymbol, CURRENCY_CODES } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Target, Wallet, AlertTriangle, CheckCircle2, Users, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Users, Lock } from "lucide-react";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: budgets = [] } = useBudgets();
+  const { data: me } = useMe();
   const refresh = useRefresh();
   const [cursor, setCursor] = useState(new Date());
   const [limits, setLimits] = useState({});
   const [scope, setScope] = useState("shared");
+  const [currency, setCurrency] = useState(me?.default_currency || "IDR");
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -28,25 +31,23 @@ export default function Budget() {
       transactions.filter((t) => {
         const d = new Date(t.date);
         const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
-        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope;
+        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope && (t.currency || "IDR") === currency;
       }),
-    [transactions, month, year, scope]
+    [transactions, month, year, scope, currency]
   );
 
   const spentByCategory = useMemo(() => {
     const map = {};
-    monthTx.forEach((t) => {
-      map[t.category] = (map[t.category] || 0) + t.amount;
-    });
+    monthTx.forEach((t) => { map[t.category] = (map[t.category] || 0) + t.amount; });
     return map;
   }, [monthTx]);
 
-  const periodBudgets = budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope);
+  const periodBudgets = budgets.filter(
+    (b) => b.period === period && (b.visibility || "shared") === scope && (b.currency || "IDR") === currency
+  );
   const budgetMap = useMemo(() => {
     const map = {};
-    periodBudgets.forEach((b) => {
-      map[b.category] = b;
-    });
+    periodBudgets.forEach((b) => { map[b.category] = b; });
     return map;
   }, [periodBudgets]);
 
@@ -66,12 +67,16 @@ export default function Budget() {
     const val = limits[catName];
     if (val === undefined) return;
     const num = Number(val);
+    if (val !== "" && (!Number.isFinite(num) || num <= 0)) {
+      toast.error("Nominal anggaran harus positif", { description: `${catName}: masukkan angka lebih dari 0.` });
+      return;
+    }
     const existing = budgetMap[catName];
     try {
       if (existing) {
         await base44.entities.Budget.update(existing.id, { limit_amount: num });
       } else {
-        await base44.entities.Budget.create({ category: catName, limit_amount: num, period, visibility: scope });
+        await base44.entities.Budget.create({ category: catName, limit_amount: num, currency, period, visibility: scope });
       }
       refresh();
       toast.success("Anggaran disimpan");
@@ -102,12 +107,14 @@ export default function Budget() {
         </button>
       </div>
 
+      <div className="mb-4"><CurrencyTabs currencies={CURRENCY_CODES} value={currency} onChange={setCurrency} /></div>
+
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-5 shadow-lg">
         <div className="flex items-center gap-2 mb-1">
           <Target className="w-4 h-4 opacity-80" />
-          <span className="text-xs opacity-80">{scope === "private" ? "Anggaran Pribadi" : "Anggaran Bersama Keluarga"}</span>
+          <span className="text-xs opacity-80">{scope === "private" ? "Anggaran Pribadi" : "Anggaran Bersama Keluarga"} • {currency}</span>
         </div>
-        <p className="text-2xl font-bold">{formatRupiah(totalSpent)} <span className="text-sm font-normal opacity-70">/ {formatRupiah(totalLimit)}</span></p>
+        <p className="text-2xl font-bold">{formatMoney(totalSpent, currency)} <span className="text-sm font-normal opacity-70">/ {formatMoney(totalLimit, currency)}</span></p>
         {totalLimit > 0 && (
           <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
             <div
@@ -138,10 +145,10 @@ export default function Budget() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">Terpakai {formatRupiah(spent)}</p>
+                    <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
                   </div>
                   <div className="flex items-center rounded-xl border border-border px-2 focus-within:ring-2 ring-primary/30">
-                    <span className="text-xs text-muted-foreground">Rp</span>
+                    <span className="text-xs text-muted-foreground">{currencySymbol(currency)}</span>
                     <input
                       type="number"
                       value={getLimit(c.name)}
@@ -165,15 +172,15 @@ export default function Budget() {
                       <span className="text-muted-foreground">{Math.round(pct)}% terpakai</span>
                       {over ? (
                         <span className="text-red-500 flex items-center gap-1 font-medium">
-                          <AlertTriangle className="w-3 h-3" /> Lebih {formatRupiah(Math.abs(remaining))}
+                          <AlertTriangle className="w-3 h-3" /> Lebih {formatMoney(Math.abs(remaining), currency)}
                         </span>
                       ) : remaining < limit * 0.2 ? (
                         <span className="text-amber-600 flex items-center gap-1 font-medium">
-                          <AlertTriangle className="w-3 h-3" /> Sisa {formatRupiah(remaining)}
+                          <AlertTriangle className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>
                       ) : (
                         <span className="text-emerald-600 flex items-center gap-1 font-medium">
-                          <CheckCircle2 className="w-3 h-3" /> Sisa {formatRupiah(remaining)}
+                          <CheckCircle2 className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>
                       )}
                     </div>
@@ -186,7 +193,7 @@ export default function Budget() {
       )}
 
       <p className="text-xs text-muted-foreground mt-4 text-center">
-        Anggaran {scope === "private" ? "pribadi" : "bersama"} untuk {monthName}. Hanya transaksi {scope === "private" ? "pribadi" : "bersama"} yang dihitung.
+        Anggaran {scope === "private" ? "pribadi" : "bersama"} {currency} untuk {monthName}. Hanya transaksi {scope === "private" ? "pribadi" : "bersama"} bermata uang {currency} yang dihitung.
       </p>
     </div>
   );

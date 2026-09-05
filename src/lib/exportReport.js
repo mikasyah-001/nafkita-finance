@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/finance";
+
 function csvCell(v) {
   const s = v == null ? "" : String(v);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -12,17 +14,19 @@ const pct = (n, d) => (d > 0 ? +((n / d) * 100).toFixed(1) : 0);
 
 const TYPE_LABEL = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
-export function downloadMonthlyReport({ monthName, scopeLabel, rows, total, prevTotal, avgPerDay, count, transactions }) {
+export function downloadMonthlyReport({ monthName, scopeLabel, currency = "IDR", rows, total, prevTotal, avgPerDay, count, transactions }) {
+  const cur = currency;
   const lines = [];
 
   lines.push("Laporan Keuangan Bulanan - NAFKITA");
   lines.push(rowToCsv(["Field", "Nilai"]));
   lines.push(rowToCsv(["Periode", monthName]));
   lines.push(rowToCsv(["Cakupan", scopeLabel]));
+  lines.push(rowToCsv(["Mata Uang", cur]));
   lines.push("");
 
   lines.push("RINGKASAN PENGELUARAN PER KATEGORI");
-  lines.push(rowToCsv(["Kategori", "Jumlah (IDR)", "Jumlah Transaksi", "Persen (%)", "Bulan Lalu (IDR)", "Selisih (IDR)", "Perubahan (%)"]));
+  lines.push(rowToCsv(["Kategori", `Jumlah (${cur})`, "Jumlah Transaksi", "Persen (%)", `Bulan Lalu (${cur})`, `Selisih (${cur})`, "Perubahan (%)"]));
   rows.forEach((r) => {
     lines.push(rowToCsv([
       r.name, r.value, r.count, pct(r.value, total),
@@ -34,20 +38,20 @@ export function downloadMonthlyReport({ monthName, scopeLabel, rows, total, prev
 
   lines.push("STATISTIK");
   lines.push(rowToCsv(["Metrik", "Nilai"]));
-  lines.push(rowToCsv(["Total Pengeluaran (IDR)", total]));
-  lines.push(rowToCsv(["Rata-rata per Hari (IDR)", Math.round(avgPerDay)]));
+  lines.push(rowToCsv([`Total Pengeluaran (${cur})`, total]));
+  lines.push(rowToCsv([`Rata-rata per Hari (${cur})`, Math.round(avgPerDay)]));
   lines.push(rowToCsv(["Jumlah Transaksi", count]));
-  lines.push(rowToCsv(["Total Bulan Lalu (IDR)", prevTotal]));
+  lines.push(rowToCsv([`Total Bulan Lalu (${cur})`, prevTotal]));
   lines.push(rowToCsv(["Perubahan vs Bulan Lalu (%)", prevTotal > 0 ? pct(total - prevTotal, prevTotal) : 0]));
   lines.push("");
 
   lines.push("DETAIL TRANSAKSI");
-  lines.push(rowToCsv(["Tanggal", "Jenis", "Kategori", "Merchant", "Nominal (IDR)", "Catatan", "Diinput", "Mata Uang", "Link Bukti Struk"]));
+  lines.push(rowToCsv(["Tanggal", "Jenis", "Kategori", "Merchant", `Nominal (${cur})`, "Catatan", "Diinput", "Mata Uang", "Link Bukti Struk"]));
   transactions.forEach((t) => {
     lines.push(rowToCsv([
       new Date(t.date).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }),
       TYPE_LABEL[t.type] || t.type, t.category || "", t.merchant || "", t.amount,
-      t.notes || "", t.input_by_name || "", t.currency || "IDR", t.photo_url || "",
+      t.notes || "", t.input_by_name || "", t.currency || cur, t.photo_url || "",
     ]));
   });
 
@@ -56,7 +60,7 @@ export function downloadMonthlyReport({ monthName, scopeLabel, rows, total, prev
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Laporan_Keuangan_${monthName.replace(/\s+/g, "_")}_${scopeLabel}.csv`;
+  a.download = `Laporan_Keuangan_${monthName.replace(/\s+/g, "_")}_${scopeLabel}_${cur}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatDate, formatRupiah } from "@/lib/finance";
+import { formatDate, formatMoney } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
@@ -57,8 +57,12 @@ export default function Transactions() {
     });
     return Object.entries(map)
       .map(([date, items]) => {
-        const net = items.reduce((s, t) => s + (t.type === "income" ? t.amount : t.type === "expense" ? -t.amount : 0), 0);
-        return [date, items, net];
+        const nets = {};
+        items.forEach((t) => {
+          const c = t.currency || "IDR";
+          nets[c] = (nets[c] || 0) + (t.type === "income" ? t.amount : t.type === "expense" ? -t.amount : 0);
+        });
+        return [date, items, nets];
       })
       .sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
@@ -202,13 +206,13 @@ export default function Transactions() {
       ) : (
         <div className="space-y-5">
           <p className="text-xs text-muted-foreground px-1">{filtered.length} transaksi</p>
-          {grouped.map(([date, items, net]) => (
+          {grouped.map(([date, items, nets]) => (
             <div key={date}>
               <div className="flex items-center justify-between gap-2 mb-1 px-1">
                 <p className="text-xs text-muted-foreground truncate">{formatDate(date, "EEEE, dd MMM")}</p>
-                {net !== 0 && (
-                  <span className={`text-[11px] font-medium tabular-nums shrink-0 ${net > 0 ? "text-emerald-600" : "text-red-500"}`}>{net > 0 ? "+" : ""}{formatRupiah(net)}</span>
-                )}
+                {Object.entries(nets).filter(([, v]) => v !== 0).map(([c, v]) => (
+                  <span key={c} className={`text-[11px] font-medium tabular-nums shrink-0 ${v > 0 ? "text-emerald-600" : "text-red-500"}`}>{v > 0 ? "+" : ""}{formatMoney(v, c)}</span>
+                ))}
               </div>
               <div className="rounded-2xl border border-border bg-card px-4">
                 {items.map((t) => (

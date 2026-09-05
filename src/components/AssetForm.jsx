@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRefresh } from "@/hooks/useFinance";
+import { useRefresh, useMe } from "@/hooks/useFinance";
 import { assetTypeLabels, formatRupiah, currencies } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
@@ -31,6 +31,10 @@ export default function AssetForm({ asset, onClose }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+  const { data: me } = useMe();
+  useEffect(() => {
+    if (!isEdit && me?.default_currency) setForm((f) => (f.currency ? f : { ...f, currency: me.default_currency }));
+  }, [me, isEdit]);
   const sym = (currencies.find((c) => c.code === form.currency) || currencies[0]).symbol;
 
   const handleUpload = async (e) => {

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useAssetSnapshots } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
+import { useAssets, useAssetSnapshots, useMe } from "@/hooks/useFinance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
+import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
 import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
@@ -16,7 +17,9 @@ export default function AssetDashboard() {
   const { data: allAssets = [] } = useAssets();
   const { data: snapshots = [], refetch } = useAssetSnapshots();
   const { scope, setScope } = useScope();
-  const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
+  const { data: me } = useMe();
+  const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private") && (a.currency || "IDR") === currency);
   const [goldPrice, setGoldPrice] = useState("");
   const [goldHistory, setGoldHistory] = useState([]);
   const [fetching, setFetching] = useState(false);
@@ -121,6 +124,7 @@ export default function AssetDashboard() {
   }));
 
   const snapshotChartData = [...snapshots]
+    .filter((s) => (s.currency || "IDR") === currency)
     .sort((a, b) => a.period.localeCompare(b.period))
     .map((s) => ({
       period: s.period.slice(5) + "/" + s.period.slice(2, 4),
@@ -138,7 +142,7 @@ export default function AssetDashboard() {
         <h1 className="text-xl font-semibold">Dashboard Aset</h1>
       </div>
 
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-3">
         <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
           <Users className="w-4 h-4" /> Bersama
         </button>
@@ -147,13 +151,15 @@ export default function AssetDashboard() {
         </button>
       </div>
 
+      <div className="mb-5"><CurrencyTabs currencies={["IDR", "SAR", "USD"]} value={currency} onChange={setCurrency} /></div>
+
       <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-3 shadow-lg">
         <p className="text-xs opacity-80">Total Nilai Aset</p>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiahShort(totalCurrent)}</p>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatMoneyShort(totalCurrent, currency)}</p>
         <div className="flex gap-4 mt-2 text-xs">
           <div>
             <p className="opacity-80">Nilai Beli</p>
-            <p className="font-semibold tabular-nums">{formatRupiahShort(totalPurchase)}</p>
+            <p className="font-semibold tabular-nums">{formatMoneyShort(totalPurchase, currency)}</p>
           </div>
           <div>
             <p className="opacity-80">Pertumbuhan</p>

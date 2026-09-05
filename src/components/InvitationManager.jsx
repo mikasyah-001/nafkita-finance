@@ -8,7 +8,7 @@ import {
 export default function InvitationManager() {
   const {
     me, users, partners, hasPartner, sentInvites, incomingRequests,
-    invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, loading,
+    invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, disconnect, loading,
   } = usePartnership();
 
   const [email, setEmail] = useState("");
@@ -60,9 +60,18 @@ export default function InvitationManager() {
             </p>
           </div>
         </div>
-        <button onClick={() => setShowManage(true)} className="text-xs text-primary flex items-center gap-1">
-          <Settings className="w-3.5 h-3.5" /> Kelola undangan
-        </button>
+        <div className="flex items-center gap-3 mt-3">
+          <button onClick={() => setShowManage(true)} className="text-xs text-primary flex items-center gap-1">
+            <Settings className="w-3.5 h-3.5" /> Kelola undangan
+          </button>
+          <button
+            onClick={() => run("disc", disconnect)}
+            disabled={busy === "disc"}
+            className="text-xs text-red-500 flex items-center gap-1 disabled:opacity-60"
+          >
+            {busy === "disc" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Putuskan koneksi
+          </button>
+        </div>
       </div>
     );
   }

@@ -21,3 +21,11 @@ export function removePending(localId) {
   localStorage.setItem(KEY, JSON.stringify(list));
   return list;
 }
+
+// Menghapus field internal antrean lokal sebelum dikirim ke backend,
+// agar tidak ikut tersimpan di entitas transaksi.
+export function toBackendTx(tx) {
+  if (!tx) return tx;
+  const { _localId, ...rest } = tx;
+  return rest;
+}

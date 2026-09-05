@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories } from "@/hooks/useFinance";
-import { formatRupiah, formatRupiahShort, formatDate } from "@/lib/finance";
+import { useTransactions, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
+import { formatMoneyShort, formatDate, summarizeByCurrency, computeSavingsRate, activeCurrencies } from "@/lib/finance";
+import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
 import ZakatNotifier from "@/components/ZakatNotifier";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import MonthlySummary from "@/components/MonthlySummary";
+import ProjectionPanel from "@/components/ProjectionPanel";
+import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff, Check } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
@@ -23,15 +26,17 @@ const linkColors = {
 };
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const { data: me } = useMe();
+  const user = me;
   const { scope, setScope } = useScope();
   const { hidden, toggle } = usePrivacy();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const refresh = useRefresh();
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
+  const defaultCur = user?.default_currency || "IDR";
+  const [currency, setCurrency] = useState(defaultCur);
+  useEffect(() => { setCurrency(defaultCur); }, [defaultCur]);
 
   const now = new Date();
   const monthLabel = formatDate(now, "MMMM yyyy");
@@ -42,17 +47,41 @@ export default function Home() {
   const sharedMonth = monthTx.filter((t) => t.visibility !== "private");
   const privateMonth = monthTx.filter((t) => t.visibility === "private");
   const scopeMonth = scope === "private" ? privateMonth : sharedMonth;
-  const income = scopeMonth.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expense = scopeMonth.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const sedekah = scopeMonth.filter((t) => t.type === "sedekah").reduce((s, t) => s + t.amount, 0);
-  const balance = income - expense;
-  const savingsRate = income > 0 ? Math.round((balance / income) * 100) : 0;
+
+  const summary = summarizeByCurrency(scopeMonth);
+  const activeCurs = activeCurrencies(summary);
+  const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
+  const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
+  const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
+
   const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
 
   const hasTodayTx = transactions.some((t) => {
     const d = new Date(t.date);
     return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
+
+  const noTransactionsAtAll = transactions.length === 0;
+
+  const loadSampleData = async () => {
+    try {
+      const cur = defaultCur;
+      const amt = (idr, sar, usd) => (cur === "SAR" ? sar : cur === "USD" ? usd : idr);
+      const now = new Date();
+      const d = (offset) => { const x = new Date(now); x.setDate(x.getDate() - offset); x.setHours(10, 0, 0, 0); return x.toISOString(); };
+      const name = user?.full_name || "Saya";
+      await base44.entities.Transaction.bulkCreate([
+        { type: "income", amount: amt(8000000, 8000, 2000), currency: cur, category: "Gaji", date: d(3), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
+        { type: "expense", amount: amt(50000, 50, 15), currency: cur, category: "Makanan", date: d(2), merchant: "Restoran", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
+        { type: "expense", amount: amt(120000, 120, 35), currency: cur, category: "Belanja", date: d(1), merchant: "Pasar", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
+        { type: "sedekah", amount: amt(100000, 100, 25), currency: cur, category: "Sedekah & Infaq", date: d(0), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
+      ]);
+      refresh();
+      toast.success("Data contoh dimuat", { description: "4 transaksi contoh ditambahkan." });
+    } catch {
+      toast.error("Gagal memuat data contoh");
+    }
+  };
 
   const greeting = (() => {
     const h = now.getHours();
@@ -66,7 +95,7 @@ export default function Home() {
     { to: "/laporan", icon: Sparkles, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
     { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
     { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
-    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatRupiahShort(sedekah)} bulan ini` },
+    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
   ];
 
   return (
@@ -87,7 +116,7 @@ export default function Home() {
         </div>
       </header>
 
-      {!hasTodayTx && (
+      {!hasTodayTx && !noTransactionsAtAll && (
         <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-3.5 mb-4 active:scale-[0.98] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
             <Bell className="w-4 h-4 text-amber-600" />
@@ -98,6 +127,24 @@ export default function Home() {
           </div>
           <ArrowRight className="w-4 h-4 text-amber-600" />
         </Link>
+      )}
+
+      {noTransactionsAtAll && (
+        <div className="rounded-2xl border border-border bg-card p-5 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-sm">Selamat datang di NAFKITA!</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Mulai kelola keuangan keluarga dalam 3 langkah singkat.</p>
+          <div className="space-y-2.5">
+            <OnboardingStep to="/pengaturan" icon={Wallet} title="Pilih mata uang utama" desc="Atur IDR/SAR/USD default di Pengaturan." />
+            <OnboardingStep to="/add" icon={Check} title="Catat transaksi pertama" desc="Pengeluaran, pemasukan, atau sedekah." />
+            <OnboardingStep to="/sambungkan-pasangan" icon={Heart} title="Hubungkan pasangan" desc="Catat bersama suami/istri." />
+          </div>
+          <button onClick={loadSampleData} className="w-full mt-3 py-2.5 rounded-xl bg-muted text-xs font-medium text-muted-foreground active:scale-[0.99] transition-transform">
+            Muat data contoh untuk eksplorasi
+          </button>
+        </div>
       )}
 
       <div className="flex gap-2 mb-4">
@@ -114,27 +161,28 @@ export default function Home() {
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={balance} /></p>
-        <div className="flex gap-3 mt-4">
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
+        <div className="mt-2"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+        <div className="flex gap-3 mt-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingUp className="w-3.5 h-3.5" /> Pemasukan
             </div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={income} format="short" /></p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={s.income} format="short" currency={cur} /></p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
             </div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={expense} format="short" /></p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate"><Money value={s.expense} format="short" currency={cur} /></p>
           </div>
           <div className="w-px bg-primary-foreground/20" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
               <PiggyBank className="w-3.5 h-3.5" /> Menabung
             </div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums">{savingsRate}%</p>
+            <p className="font-semibold text-sm mt-0.5 tabular-nums">{savings.label ? savings.label : `${savings.rate}%`}</p>
           </div>
         </div>
       </div>
@@ -155,6 +203,8 @@ export default function Home() {
           );
         })}
       </div>
+
+      <ProjectionPanel />
 
       <MonthlySummary scope={scope} />
 
@@ -179,5 +229,20 @@ export default function Home() {
 
       <ZakatNotifier />
     </div>
+  );
+}
+
+function OnboardingStep({ to, icon: Icon, title, desc }) {
+  return (
+    <Link to={to} className="flex items-center gap-3 rounded-xl border border-border p-3 active:scale-[0.99] transition-transform">
+      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground truncate">{desc}</p>
+      </div>
+      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+    </Link>
   );
 }

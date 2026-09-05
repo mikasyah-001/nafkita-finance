@@ -37,6 +37,48 @@ export function formatMoneyShort(n, currency = "IDR") {
   return formatMoney(n, c);
 }
 
+export const CURRENCY_CODES = ["IDR", "SAR", "USD"];
+
+export function currencySymbol(code) {
+  const c = (code || "IDR").toUpperCase();
+  if (c === "USD") return "$";
+  if (c === "SAR") return "SAR";
+  return "Rp";
+}
+
+// Ringkasan transaksi dipisah per mata uang (tanpa konversi).
+// Saldo = pemasukan − pengeluaran − sedekah.
+export function summarizeByCurrency(txs) {
+  const out = {};
+  CURRENCY_CODES.forEach((c) => { out[c] = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 }; });
+  (txs || []).forEach((t) => {
+    const c = (t.currency || "IDR").toUpperCase();
+    if (!out[c]) return;
+    const amt = Number(t.amount) || 0;
+    if (t.type === "income") out[c].income += amt;
+    else if (t.type === "expense") out[c].expense += amt;
+    else if (t.type === "sedekah") out[c].sedekah += amt;
+    out[c].count += 1;
+  });
+  CURRENCY_CODES.forEach((c) => { out[c].balance = out[c].income - out[c].expense - out[c].sedekah; });
+  return out;
+}
+
+// Savings rate memperhitungkan sedekah, dijepit 0–100% dengan label saat di luar rentang.
+export function computeSavingsRate(income, expense, sedekah) {
+  const inc = Number(income) || 0;
+  const net = inc - (Number(expense) || 0) - (Number(sedekah) || 0);
+  if (inc <= 0) return { rate: 0, label: "n/a" };
+  const rate = (net / inc) * 100;
+  if (rate < 0) return { rate: 0, label: "<0%" };
+  if (rate > 100) return { rate: 100, label: ">100%" };
+  return { rate: Math.round(rate), label: null };
+}
+
+export function activeCurrencies(summary) {
+  return CURRENCY_CODES.filter((c) => summary && summary[c] && summary[c].count > 0);
+}
+
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);
 }

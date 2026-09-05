@@ -1,21 +1,55 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { resolvePartnerId, txVisibleTo } from "../../shared/partnerResolve.ts";
 import { getAppUrl } from "../../shared/appUrl.ts";
 
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const CURRENCIES = ["IDR", "SAR", "USD"];
 
-const formatIDR = (n) => "Rp" + Math.round(Number(n) || 0).toLocaleString("id-ID");
+const fmt = (n, cur) => {
+  const c = (cur || "IDR").toUpperCase();
+  const v = Math.round(Number(n) || 0);
+  if (c === "USD") return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (c === "SAR") return "SAR " + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "Rp" + v.toLocaleString("id-ID");
+};
 
 const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function buildEmail(name, periodLabel, summary, appUrl) {
+function buildEmail(name, periodLabel, perCurrency, appUrl) {
   const greeting = esc(name) || "Keluarga";
   const btnHref = esc(appUrl || "https://nafkita.base44.app");
-  const rows = summary.topCategories.length
-    ? summary.topCategories.map(([cat, val], i) =>
-        `<tr><td style="padding:9px 14px;color:#475569;font-size:13px;border-bottom:1px solid #f1f5f9;">${i + 1}. ${esc(cat)}</td><td style="padding:9px 14px;color:#0f172a;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #f1f5f9;white-space:nowrap;">${formatIDR(val)}</td></tr>`
-      ).join("")
-    : `<tr><td colspan="2" style="padding:14px;color:#94a3b8;font-size:13px;text-align:center;">Tidak ada pengeluaran bulan ini</td></tr>`;
+
+  const blocks = CURRENCIES.map((cur) => {
+    const s = perCurrency[cur];
+    if (!s || s.count === 0) return "";
+    const rows = s.topCategories.length
+      ? s.topCategories.map(([cat, val], i) =>
+          `<tr><td style="padding:9px 14px;color:#475569;font-size:13px;border-bottom:1px solid #f1f5f9;">${i + 1}. ${esc(cat)}</td><td style="padding:9px 14px;color:#0f172a;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #f1f5f9;white-space:nowrap;">${fmt(val, cur)}</td></tr>`
+        ).join("")
+      : `<tr><td colspan="2" style="padding:14px;color:#94a3b8;font-size:13px;text-align:center;">Tidak ada pengeluaran</td></tr>`;
+    return `
+      <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
+        <p style="margin:0;color:#64748b;font-size:12px;">Pemasukan (${cur})</p>
+        <p style="margin:4px 0 0;color:#059669;font-size:18px;font-weight:700;">${fmt(s.income, cur)}</p>
+      </td></tr>
+      <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+        <p style="margin:0;color:#64748b;font-size:12px;">Pengeluaran (${cur})</p>
+        <p style="margin:4px 0 0;color:#ef4444;font-size:18px;font-weight:700;">${fmt(s.expense, cur)}</p>
+      </td></tr>
+      <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+        <p style="margin:0;color:#64748b;font-size:12px;">Sedekah (${cur})</p>
+        <p style="margin:4px 0 0;color:#0d9488;font-size:18px;font-weight:700;">${fmt(s.sedekah, cur)}</p>
+      </td></tr>
+      <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+        <p style="margin:0;color:#64748b;font-size:12px;">Saldo Bersih (${cur})</p>
+        <p style="margin:4px 0 0;color:${s.balance >= 0 ? "#059669" : "#ef4444"};font-size:20px;font-weight:700;">${s.balance >= 0 ? "+" : ""}${fmt(s.balance, cur)}</p>
+      </td></tr>
+      <tr><td style="padding:10px 18px 14px;">
+        <p style="margin:0 0 6px;color:#334155;font-size:12px;font-weight:600;">Top 5 Pengeluaran (${cur})</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">${rows}</table>
+      </td></tr>`;
+  }).filter(Boolean).join("");
 
   return `<!DOCTYPE html>
 <html lang="id">
@@ -29,35 +63,9 @@ function buildEmail(name, periodLabel, summary, appUrl) {
           <h1 style="margin:10px 0 0;color:#ffffff;font-size:23px;font-weight:700;line-height:1.25;">Halo, ${greeting} 👋</h1>
           <p style="margin:8px 0 0;color:#e0e7ff;font-size:13px;">Ringkasan keuangan bulan ${esc(periodLabel)}</p>
         </td></tr>
-        <tr><td style="padding:26px 26px 8px;">
-          <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.65;">
-            Saatnya meninjau anggaran bersama pasangan. Berikut ringkasan keuangan keluarga kamu bulan lalu.
-          </p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin-bottom:18px;">
-            <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
-              <p style="margin:0;color:#64748b;font-size:12px;">Pemasukan</p>
-              <p style="margin:4px 0 0;color:#059669;font-size:18px;font-weight:700;">${formatIDR(summary.income)}</p>
-            </td></tr>
-            <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
-              <p style="margin:0;color:#64748b;font-size:12px;">Pengeluaran</p>
-              <p style="margin:4px 0 0;color:#ef4444;font-size:18px;font-weight:700;">${formatIDR(summary.expense)}</p>
-            </td></tr>
-            <tr><td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
-              <p style="margin:0;color:#64748b;font-size:12px;">Sedekah</p>
-              <p style="margin:4px 0 0;color:#0d9488;font-size:18px;font-weight:700;">${formatIDR(summary.sedekah)}</p>
-            </td></tr>
-            <tr><td style="padding:14px 18px;">
-              <p style="margin:0;color:#64748b;font-size:12px;">Saldo Bersih</p>
-              <p style="margin:4px 0 0;color:${summary.balance >= 0 ? "#059669" : "#ef4444"};font-size:20px;font-weight:700;">${summary.balance >= 0 ? "+" : ""}${formatIDR(summary.balance)}</p>
-            </td></tr>
-          </table>
-          <p style="margin:0 0 10px;color:#334155;font-size:14px;font-weight:600;">Top 5 Pengeluaran per Kategori</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
-            ${rows}
-          </table>
-          <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
-            Total <strong>${summary.count} transaksi</strong> tercatat bulan ini. Buka NAFKITA untuk melihat detail lengkap dan merencanakan anggaran bulan ini bersama pasangan.
-          </p>
+        <tr><td style="padding:22px 22px 6px;">
+          <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">Total dipisah per mata uang (IDR/SAR/USD) tanpa konversi. Saldo = pemasukan − pengeluaran − sedekah.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">${blocks}</table>
         </td></tr>
         <tr><td style="padding:8px 26px 26px;">
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
@@ -77,6 +85,27 @@ function buildEmail(name, periodLabel, summary, appUrl) {
 </html>`;
 }
 
+const computeSummary = (txs) => {
+  const perCurrency = {};
+  CURRENCIES.forEach((cur) => {
+    const inCur = txs.filter((t) => (t.currency || "IDR") === cur);
+    const income = inCur.filter((t) => t.type === "income").reduce((s, t) => s + (t.amount || 0), 0);
+    const expense = inCur.filter((t) => t.type === "expense").reduce((s, t) => s + (t.amount || 0), 0);
+    const sedekah = inCur.filter((t) => t.type === "sedekah").reduce((s, t) => s + (t.amount || 0), 0);
+    const catMap = {};
+    inCur.filter((t) => t.type === "expense").forEach((t) => {
+      if (t.category) catMap[t.category] = (catMap[t.category] || 0) + (t.amount || 0);
+    });
+    perCurrency[cur] = {
+      income, expense, sedekah,
+      balance: income - expense - sedekah,
+      topCategories: Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5),
+      count: inCur.length,
+    };
+  });
+  return perCurrency;
+};
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -85,15 +114,15 @@ export default async function(req) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const users = await base44.asServiceRole.entities.User.list();
+    const users = await base44.asServiceRole.entities.User.list('-created_date', 5000);
     const partnerships = await base44.asServiceRole.entities.Partnership.filter({ status: "active" });
 
     const userMap = {};
-    users.forEach((u) => { userMap[u.id] = u; });
+    users.forEach((u) => { if (u && u.id) userMap[u.id] = u; });
 
     const paired = new Set();
     const couples = [];
-    partnerships.forEach((p) => {
+    (partnerships || []).forEach((p) => {
       if (p.inviter_id && p.invitee_id) {
         paired.add(p.inviter_id);
         paired.add(p.invitee_id);
@@ -109,20 +138,7 @@ export default async function(req) {
 
     const allTx = await base44.asServiceRole.entities.Transaction.filter({
       date: { $gte: monthStart.toISOString(), $lt: monthEnd.toISOString() }
-    });
-
-    const computeSummary = (txs) => {
-      const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + (t.amount || 0), 0);
-      const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + (t.amount || 0), 0);
-      const sedekah = txs.filter((t) => t.type === "sedekah").reduce((s, t) => s + (t.amount || 0), 0);
-      const balance = income - expense;
-      const catMap = {};
-      txs.filter((t) => t.type === "expense").forEach((t) => {
-        if (t.category) catMap[t.category] = (catMap[t.category] || 0) + (t.amount || 0);
-      });
-      const topCategories = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      return { income, expense, sedekah, balance, topCategories, count: txs.length };
-    };
+    }, '-date', 5000);
 
     let sent = 0;
     const sendTo = async (emails, summary, name) => {
@@ -135,9 +151,7 @@ export default async function(req) {
             body: buildEmail(name, periodLabel, summary, getAppUrl(req))
           });
           sent++;
-        } catch (e) {
-          // skip individual send errors
-        }
+        } catch (e) { /* skip */ }
       }
     };
 
@@ -145,15 +159,15 @@ export default async function(req) {
       const a = userMap[aId];
       const b = userMap[bId];
       if (!a && !b) continue;
-      const txs = allTx.filter((t) => t.visibility !== "private" && (t.created_by_id === aId || t.created_by_id === bId));
+      const txs = (allTx || []).filter((t) => t.visibility !== "private" && (t.created_by_id === aId || t.created_by_id === bId));
       const summary = computeSummary(txs);
       const name = a?.full_name || b?.full_name || "Keluarga";
       await sendTo([a?.email, b?.email].filter(Boolean), summary, name);
     }
 
     for (const u of users) {
-      if (paired.has(u.id) || !u.email) continue;
-      const txs = allTx.filter((t) => t.created_by_id === u.id);
+      if (!u || !u.id || paired.has(u.id) || !u.email) continue;
+      const txs = (allTx || []).filter((t) => t.created_by_id === u.id);
       const summary = computeSummary(txs);
       await sendTo([u.email], summary, u.full_name);
     }

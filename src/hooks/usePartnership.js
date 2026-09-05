@@ -55,7 +55,7 @@ export function usePartnership() {
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
       // Undang ke aplikasi; abaikan error bila pasangan sudah terdaftar.
-      try { await base44.users.inviteUser(email, "admin"); } catch {}
+      try { await base44.users.inviteUser(email, "user"); } catch {}
       await base44.entities.Partnership.create({
         inviter_id: me.id,
         invitee_email: email,
@@ -75,9 +75,10 @@ export function usePartnership() {
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
       const res = await base44.functions.invoke("connectByRefCode", { code });
+      const r = res?.data || res;
       refresh();
       toast.success("Permintaan koneksi terkirim", {
-        description: `Menunggu ${res?.target?.full_name || res?.target?.email || "pasangan"} menyetujui.`,
+        description: `Menunggu ${r?.target?.full_name || r?.target?.email || "pasangan"} menyetujui.`,
       });
       return true;
     } catch (e) {
@@ -88,7 +89,7 @@ export function usePartnership() {
 
   const resend = async (p) => {
     try {
-      await base44.users.inviteUser(p.invitee_email, "admin");
+      await base44.users.inviteUser(p.invitee_email, "user");
       toast.success("Undangan dikirim ulang", { description: `Ke ${p.invitee_email}` });
     } catch (e) {
       toast.error("Gagal mengirim ulang", { description: e?.message });
@@ -128,6 +129,18 @@ export function usePartnership() {
     }
   };
 
+  const disconnect = async () => {
+    const active = partnerships.find((p) => p.status === "active" && (p.inviter_id === me?.id || p.invitee_id === me?.id));
+    if (!active) return toast.error("Tidak ada pasangan terhubung");
+    try {
+      await base44.entities.Partnership.delete(active.id);
+      refresh();
+      toast.success("Koneksi pasangan diputus");
+    } catch {
+      toast.error("Gagal memutuskan koneksi");
+    }
+  };
+
   return {
     me,
     users,
@@ -142,6 +155,7 @@ export function usePartnership() {
     cancelInvite,
     acceptRequest,
     declineRequest,
+    disconnect,
     refresh,
     loading: meQ.isLoading || partnershipsQ.isLoading || usersQ.isLoading,
   };

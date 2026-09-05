@@ -1,36 +1,46 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTransactions, useCategories } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
 import { formatDate, colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
+import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
 import { PieChart, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
+
+const CURS = ["IDR", "SAR", "USD"];
 
 export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const { data: me } = useMe();
+  const [currency, setCurrency] = useState(me?.default_currency || "IDR");
 
   const now = new Date();
-  const { rows, total, prevTotal } = useMemo(() => {
+  const { rows, total, prevTotal, activeCurs, cur } = useMemo(() => {
     const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
     const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
     const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const cur = scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth()));
-    const prev = scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm));
-    const map = {};
-    cur.forEach((t) => { map[t.category] = (map[t.category] || 0) + t.amount; });
-    const prevMap = {};
-    prev.forEach((t) => { prevMap[t.category] = (prevMap[t.category] || 0) + t.amount; });
-    const total = cur.reduce((s, t) => s + t.amount, 0);
-    const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
-    const rows = Object.entries(map)
-      .map(([name, value]) => ({ name, value, prev: prevMap[name] || 0 }))
+    const map = {}, prevMap = {}, totals = {}, prevTotals = {};
+    CURS.forEach((c) => { map[c] = {}; prevMap[c] = {}; totals[c] = 0; prevTotals[c] = 0; });
+    scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).forEach((t) => {
+      const c = (t.currency || "IDR"); if (!map[c]) return;
+      map[c][t.category] = (map[c][t.category] || 0) + t.amount; totals[c] += t.amount;
+    });
+    scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm)).forEach((t) => {
+      const c = (t.currency || "IDR"); if (!prevMap[c]) return;
+      prevMap[c][t.category] = (prevMap[c][t.category] || 0) + t.amount; prevTotals[c] += t.amount;
+    });
+    const activeCurs = CURS.filter((c) => totals[c] > 0);
+    const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
+    const rows = Object.entries(map[cur] || {})
+      .map(([name, value]) => ({ name, value, prev: (prevMap[cur] || {})[name] || 0 }))
       .sort((a, b) => b.value - a.value);
-    return { rows, total, prevTotal };
-  }, [transactions, scope]);
+    return { rows, total: totals[cur] || 0, prevTotal: prevTotals[cur] || 0, activeCurs, cur };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, scope, currency]);
 
-  if (total === 0) return null;
+  if (total === 0 && activeCurs.length === 0) return null;
 
   const monthLabel = formatDate(now, "MMMM yyyy");
   const max = rows.length ? rows[0].value : 0;
@@ -47,10 +57,14 @@ export default function MonthlySummary({ scope = "shared" }) {
         <Link to="/ringkasan" className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
       </div>
 
+      {activeCurs.length > 0 && (
+        <div className="mb-3"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+      )}
+
       <div className="flex items-end justify-between mb-3">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Total pengeluaran</p>
-          <p className="text-xl font-bold tabular-nums break-words"><Money value={total} /></p>
+          <p className="text-xl font-bold tabular-nums break-words"><Money value={total} currency={cur} /></p>
         </div>
         {prevTotal > 0 && (
           <span className={`text-xs font-medium flex items-center gap-1 shrink-0 ${total <= prevTotal ? "text-emerald-600" : "text-red-500"}`}>
@@ -73,7 +87,7 @@ export default function MonthlySummary({ scope = "shared" }) {
                   <CategoryIcon name={cat?.icon || "Wallet"} className={`w-3.5 h-3.5 ${cm.text}`} />
                 </div>
                 <span className="text-xs font-medium flex-1 truncate">{r.name}</span>
-                <span className="text-xs font-semibold tabular-nums shrink-0"><Money value={r.value} format="short" /></span>
+                <span className="text-xs font-semibold tabular-nums shrink-0"><Money value={r.value} format="short" currency={cur} /></span>
                 <span className="text-[10px] text-muted-foreground tabular-nums w-9 text-right shrink-0">{share.toFixed(0)}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">

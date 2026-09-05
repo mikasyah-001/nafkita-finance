@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates, useTransactions } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatDate, currencies } from "@/lib/finance";
+import { colorMap, formatRupiah, formatMoney, formatDate, currencies, currencySymbol } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -49,7 +49,10 @@ export default function AddTransaction() {
   const fileRef = useRef(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then((u) => {
+      setUser(u);
+      if (u?.default_currency) setCurrency(u.default_currency);
+    }).catch(() => {});
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
@@ -60,6 +63,8 @@ export default function AddTransaction() {
     setCategory(t.category || "");
     setMerchant(t.merchant || "");
     setNotes(t.notes || "");
+    setCurrency(t.currency || "IDR");
+    setVisibility(t.visibility || "shared");
     setSaveAsTemplate(false);
     toast.success(`Template "${t.name}" dimuat`, { description: "Periksa tanggal lalu simpan." });
   };
@@ -218,9 +223,11 @@ export default function AddTransaction() {
             name: merchant || category || "Template",
             type,
             amount: amt,
+            currency,
             category: type === "sedekah" ? "Sedekah & Infaq" : category,
             merchant: merchant || "",
             notes: notes || "",
+            visibility,
           });
         } catch {}
       }
@@ -363,7 +370,7 @@ export default function AddTransaction() {
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-medium leading-tight">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{formatRupiah(t.amount)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatMoney(t.amount, t.currency)}</p>
                     </div>
                   </button>
                 );
@@ -412,7 +419,7 @@ export default function AddTransaction() {
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
           <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-            <span className="text-lg text-muted-foreground mr-1">Rp</span>
+            <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
             <input
               type="number"
               inputMode="numeric"

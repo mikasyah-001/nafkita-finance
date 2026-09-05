@@ -8,6 +8,15 @@
     "limit_amount": {
       "type": "number"
     },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "IDR",
+        "SAR",
+        "USD"
+      ],
+      "default": "IDR"
+    },
     "period": {
       "type": "string"
     },

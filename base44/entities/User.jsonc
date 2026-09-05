@@ -13,6 +13,42 @@
       "type": "string",
       "format": "uri",
       "description": "URL foto profil pengguna"
+    },
+    "default_currency": {
+      "type": "string",
+      "enum": [
+        "IDR",
+        "SAR",
+        "USD"
+      ],
+      "default": "IDR",
+      "description": "Mata uang utama pengguna untuk tampilan default"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Apakah onboarding awal sudah selesai"
+    },
+    "projection_assumptions": {
+      "type": "object",
+      "description": "Asumi proyeksi keuangan pengguna",
+      "properties": {
+        "monthly_income_growth": {
+          "type": "number",
+          "default": 0,
+          "description": "Pertumbuhan pemasukan bulanan (persen)"
+        },
+        "monthly_expense_growth": {
+          "type": "number",
+          "default": 0,
+          "description": "Pertumbuhan pengeluaran bulanan (persen)"
+        },
+        "months_ahead": {
+          "type": "number",
+          "default": 6,
+          "description": "Jumlah bulan ke depan untuk forecast"
+        }
+      }
     }
   },
   "required": [

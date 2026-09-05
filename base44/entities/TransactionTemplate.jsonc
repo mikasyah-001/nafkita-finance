@@ -17,6 +17,15 @@
     "amount": {
       "type": "number"
     },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "IDR",
+        "SAR",
+        "USD"
+      ],
+      "default": "IDR"
+    },
     "category": {
       "type": "string"
     },
@@ -25,6 +34,14 @@
     },
     "notes": {
       "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "private"
+      ],
+      "default": "shared"
     }
   },
   "required": [

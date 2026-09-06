@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, Users, Link2, Receipt,
-  Trash2, UserCircle, Search, Loader2, ChevronDown,
+  Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
@@ -26,6 +26,8 @@ export default function Admin() {
   const [txPage, setTxPage] = useState([]);
   const [txHasMore, setTxHasMore] = useState(false);
   const [txLoadingMore, setTxLoadingMore] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   // Periksa role admin dahulu, baru muat data.
   useEffect(() => {
@@ -79,6 +81,24 @@ export default function Admin() {
     if (me?.role === "admin") loadTransactions(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txUserFilter]);
+
+  const loadAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const logs = await base44.entities.AuditLog.list("-created_date", 100);
+      setAuditLogs(logs || []);
+    } catch (e) {
+      toast.error("Gagal memuat audit log", { description: e?.message });
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
+
+  // Muat audit log saat tab aktif.
+  useEffect(() => {
+    if (me?.role === "admin" && tab === "audit" && auditLogs.length === 0) loadAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const isAdmin = me?.role === "admin";
 
@@ -173,10 +193,11 @@ export default function Admin() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-3 w-full mb-4">
+        <TabsList className="grid grid-cols-4 w-full mb-4">
           <TabsTrigger value="pengguna"><Users className="w-4 h-4 mr-1" />User</TabsTrigger>
           <TabsTrigger value="koneksi"><Link2 className="w-4 h-4 mr-1" />Koneksi</TabsTrigger>
           <TabsTrigger value="transaksi"><Receipt className="w-4 h-4 mr-1" />Transaksi</TabsTrigger>
+          <TabsTrigger value="audit"><ScrollText className="w-4 h-4 mr-1" />Audit</TabsTrigger>
         </TabsList>
 
         {/* USERS */}
@@ -321,6 +342,40 @@ export default function Admin() {
               {txLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />} Muat lebih banyak
             </button>
           )}
+        </TabsContent>
+
+        {/* AUDIT LOG — riwayat tindakan admin */}
+        <TabsContent value="audit" className="space-y-2">
+          <p className="text-xs text-muted-foreground mb-1">
+            {auditLoading ? "Memuat…" : `${auditLogs.length} entri terakhir`}
+          </p>
+          {auditLoading && (
+            <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          )}
+          {!auditLoading && auditLogs.length === 0 && (
+            <p className="text-sm text-muted-foreground py-8 text-center">Belum ada catatan audit.</p>
+          )}
+          {!auditLoading && auditLogs.map((log) => (
+            <div key={log.id} className="rounded-2xl border border-border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">
+                    {log.actor_name || log.actor_email || "Admin"}
+                  </p>
+                  <p className="text-xs text-primary font-medium mt-0.5">{log.action}</p>
+                  {log.target_label && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">Target: {log.target_label}</p>
+                  )}
+                  {log.details && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{log.details}</p>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                  {formatDate(log.created_date, "dd MMM, HH:mm")}
+                </p>
+              </div>
+            </div>
+          ))}
         </TabsContent>
       </Tabs>
     </div>

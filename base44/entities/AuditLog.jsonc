@@ -1,0 +1,72 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "actor_id": {
+      "type": "string",
+      "description": "ID user yang melakukan aksi"
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nama user yang melakukan aksi"
+    },
+    "actor_email": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "description": "Jenis aksi: terminate_partnership, view_admin_data, export_data, dll"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "partnership",
+        "user",
+        "transaction",
+        "system"
+      ],
+      "default": "system"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID entitas target (opsional)"
+    },
+    "target_label": {
+      "type": "string",
+      "description": "Label deskriptif target (mis. email pasangan)"
+    },
+    "details": {
+      "type": "string",
+      "description": "Detail tambahan tentang aksi"
+    },
+    "ip_address": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "actor_id",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

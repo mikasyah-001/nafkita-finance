@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { getActorName, notifyPartnershipLifecycle } from "../../shared/notifyCommon.ts";
+import { logAdminAction } from "../../shared/auditLog.ts";
 
 // Mengakhiri Partnership (soft-delete): batalkan undangan, tolak permintaan,
 // atau putuskan koneksi aktif. Record dipertahankan dengan status terminal
@@ -59,6 +60,21 @@ export default async function (req) {
       ended_by: me.id,
       end_reason: reason,
     });
+
+    // Catat ke audit log bila aksi dilakukan admin.
+    if (isAdmin) {
+      const targetLabel = p.invitee_email || p.invitee_id || partnership_id;
+      await logAdminAction(base44, {
+        actor_id: me.id,
+        actor_name: me.full_name || me.email,
+        actor_email: me.email,
+        action: `terminate_partnership:${terminalStatus}`,
+        target_type: "partnership",
+        target_id: partnership_id,
+        target_label: targetLabel,
+        details: reason ? `Alasan: ${reason}` : `Status sebelumnya: ${p.status}`,
+      });
+    }
 
     // === Notifikasi lifecycle pasangan ===
     // Beri tahu pihak lain (bukan pelaku) tentang perubahan status hubungan.

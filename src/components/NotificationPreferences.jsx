@@ -9,10 +9,15 @@ export default function NotificationPreferences() {
   const [pref, setPref] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [amountDraft, setAmountDraft] = useState("0");
 
   useEffect(() => {
     base44.entities.NotificationPreference.list("-created_date", 1)
-      .then((list) => setPref((list && list[0]) || null))
+      .then((list) => {
+        const loaded = (list && list[0]) || null;
+        setPref(loaded);
+        setAmountDraft(String(loaded?.min_amount || 0));
+      })
       .catch(() => toast.error("Gagal memuat preferensi"))
       .finally(() => setLoading(false));
   }, []);
@@ -27,11 +32,11 @@ export default function NotificationPreferences() {
         await base44.entities.NotificationPreference.update(prev.id, { [field]: value });
       } else {
         const created = await base44.entities.NotificationPreference.create({
-          mute: field === "mute" ? value : false,
-          min_amount: field === "min_amount" ? value : 0,
-          daily_digest: field === "daily_digest" ? value : false,
-          hide_amount: field === "hide_amount" ? value : false,
-          channel: field === "channel" ? value : "in_app",
+          mute: !!next.mute,
+          min_amount: Math.max(0, Number(next.min_amount) || 0),
+          daily_digest: !!next.daily_digest,
+          hide_amount: !!next.hide_amount,
+          channel: next.channel || "in_app",
         });
         setPref(created);
       }
@@ -40,6 +45,12 @@ export default function NotificationPreferences() {
       setPref(prev);
     }
     setSaving(false);
+  };
+
+  const saveAmount = () => {
+    const value = Math.max(0, Number(amountDraft) || 0);
+    setAmountDraft(String(value));
+    if (value !== (pref?.min_amount || 0)) update("min_amount", value);
   };
 
   if (loading) {
@@ -90,9 +101,12 @@ export default function NotificationPreferences() {
         <input
           type="number"
           inputMode="numeric"
-          value={pref?.min_amount || 0}
+          value={amountDraft}
+          min="0"
           disabled={saving}
-          onChange={(e) => update("min_amount", Number(e.target.value) || 0)}
+          onChange={(e) => setAmountDraft(e.target.value)}
+          onBlur={saveAmount}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
         />
       </div>
@@ -139,13 +153,18 @@ function ToggleRow({ icon: Icon, label, desc, value, onChange, disabled }) {
         </div>
       </div>
       <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        aria-label={`${label}: ${value ? "Aktif" : "Nonaktif"}`}
         onClick={() => onChange(!value)}
         disabled={disabled}
-        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-60 ${
-          value ? "bg-primary" : "bg-muted border border-border"
+        className={`h-8 min-w-[82px] px-2.5 rounded-lg transition-colors shrink-0 text-[10px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60 ${
+          value ? "bg-primary text-primary-foreground" : "bg-muted border border-border text-muted-foreground"
         }`}
       >
-        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+        <span className={`w-2 h-2 rounded-full ${value ? "bg-primary-foreground" : "bg-muted-foreground/50"}`} />
+        {value ? "Aktif" : "Nonaktif"}
       </button>
     </div>
   );

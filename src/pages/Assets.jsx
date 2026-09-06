@@ -12,7 +12,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Building2, Eye, EyeOff } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Eye, EyeOff } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },

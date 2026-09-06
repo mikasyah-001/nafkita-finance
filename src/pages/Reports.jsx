@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTransactions, useAssets, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
 import { base44 } from "@/api/base44Client";
-import { formatRupiah, formatMoney, formatNumber, colorMap, formatDate, summarizeByCurrency, activeCurrencies, computeZakat, NISAB_GRAM } from "@/lib/finance";
+import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -9,8 +9,10 @@ import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2, Globe, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, Users, Lock, Loader2, Globe, RefreshCw, ArrowRight } from "lucide-react";
 import ExpenseTrendAnalysis from "@/components/ExpenseTrendAnalysis";
+import ProjectionPanel from "@/components/ProjectionPanel";
+import { Link } from "react-router-dom";
 import { downloadReportPdf } from "@/lib/exportReportPdf";
 import { downloadReportXlsx } from "@/lib/exportReportXlsx";
 import { downloadMonthlyReport } from "@/lib/exportReport";
@@ -293,18 +295,8 @@ export default function Reports() {
     }
   };
 
-  // Zakat (nisab dalam IDR, jadi hanya aset IDR yang dihitung)
+  // Harga emas dipakai AssetGrowthChart; kalkulator zakat pindah ke halaman /zakat.
   const emasPriceNum = Number(emasPrice) || 0;
-  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
-  const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-  const emasValue = emasPriceNum > 0 ? emasGrams * emasPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const otherAssetsIDR = scopedAssets.filter((a) => a.type !== "emas" && (a.currency || "IDR") === "IDR");
-  const nonIDRAssets = scopedAssets.filter((a) => a.type !== "emas" && (a.currency || "IDR") !== "IDR");
-  const otherValue = otherAssetsIDR.reduce((s, a) => s + (a.value || 0), 0);
-  const totalAset = emasValue + otherValue;
-  // Perhitungan zakat terpusat via computeZakat — seragam dengan ZakatStatus & ZakatNotifier.
-  const { nisab, emasReached: emasWajibZakat, simpananReached: uangWajibZakat, zakatEmas, zakatSimpanan: zakatUang } =
-    computeZakat({ emasGrams, emasValue, nonEmasValue: otherValue, goldPrice: emasPriceNum });
 
   return (
     <div className="px-5 pt-8 space-y-5">
@@ -387,6 +379,8 @@ export default function Reports() {
         <StatCard icon={Sparkles} color="violet" label="Saldo" value={formatMoney((consolidated ? consolidatedSummary?.balance : s.balance) || 0, cur)} />
       </div>
 
+      <ProjectionPanel scope={scope} />
+
       {(consolidated ? consolidatedByCategory : byCategory).length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4">
           <h2 className="font-semibold text-sm mb-3">Pengeluaran per Kategori ({cur}){consolidated ? " • Konsolidasi" : ""}</h2>
@@ -422,61 +416,16 @@ export default function Reports() {
 
       <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} />
 
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>
-        <p className="text-xs text-muted-foreground mb-3">Zakat mal 2,5% untuk harta yang mencapai nisab ({NISAB_GRAM} gram emas). Nisab dihitung dalam IDR.</p>
-
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs text-muted-foreground">Harga emas per gram (Rp)</label>
-          {goldLoading ? (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat real-time</span>
-          ) : emasPriceNum > 0 ? (
-            <span className="text-[10px] text-emerald-600 font-medium">real-time</span>
-          ) : null}
+      <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 active:scale-[0.99] transition-transform">
+        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+          <Coins className="w-5 h-5 text-emerald-600" />
         </div>
-        <input
-          type="number"
-          value={emasPrice}
-          onChange={(e) => setEmasPrice(e.target.value)}
-          placeholder="Mis. 1.500.000"
-          className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 mb-3"
-        />
-
-        {emasPriceNum > 0 && (
-          <div className="space-y-2 text-sm">
-            <Row label={`Nisab (${NISAB_GRAM} gr emas)`} value={formatRupiah(nisab)} />
-            <Row label="Total emas" value={`${formatNumber(emasGrams)} gr (${formatRupiah(emasValue)})`} />
-            <Row label="Total aset lain (IDR)" value={formatRupiah(otherValue)} />
-            {nonIDRAssets.length > 0 && (
-              <p className="text-[10px] text-muted-foreground italic">
-                {nonIDRAssets.length} aset non-IDR ({nonIDRAssets.map((a) => `${a.name} (${a.currency})`).join(", ")}) tidak ikut dihitung karena nisab dalam IDR.
-              </p>
-            )}
-            <div className="border-t border-border my-2" />
-            <Row label="Total harta" value={formatRupiah(totalAset)} bold />
-
-            <div className={`rounded-xl p-3 ${emasWajibZakat ? "bg-amber-50 dark:bg-amber-950/30" : "bg-muted"}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {emasWajibZakat ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
-                <span className="text-xs font-medium">Zakat Emas</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {emasWajibZakat ? `Wajib zakat (≥${NISAB_GRAM} gr). Zakat 2,5% = ${formatRupiah(zakatEmas)}` : `Belum wajib (${formatNumber(emasGrams)} gr < ${NISAB_GRAM} gr)`}
-              </p>
-            </div>
-
-            <div className={`rounded-xl p-3 ${uangWajibZakat ? "bg-amber-50 dark:bg-amber-950/30" : "bg-muted"}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {uangWajibZakat ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
-                <span className="text-xs font-medium">Zakat Simpanan/Uang</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {uangWajibZakat ? `Wajib zakat (≥nisab). Zakat 2,5% = ${formatRupiah(zakatUang)}` : `Belum wajib (simpanan < nisab)`}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">Kelola Zakat</p>
+          <p className="text-xs text-muted-foreground">Kalkulator nisab, pengingat & pembayaran zakat mal</p>
+        </div>
+        <ArrowRight className="w-4 h-4 text-emerald-600 shrink-0" />
+      </Link>
     </div>
   );
 }
@@ -490,15 +439,6 @@ function StatCard({ icon: Icon, color, label, value }) {
       </div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{value}</p>
-    </div>
-  );
-}
-
-function Row({ label, value, bold }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={bold ? "font-semibold" : ""}>{value}</span>
     </div>
   );
 }

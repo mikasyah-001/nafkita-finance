@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, NISAB_GRAM } from "@/lib/finance";
+import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
-import GoldPriceCompare from "@/components/GoldPriceCompare";
+import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import { Image as SmartImage } from "@/components/ui/image";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Bell, AlertCircle, CheckCircle2, ChevronDown, Layers, Eye, EyeOff, History } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -32,11 +32,7 @@ export default function Assets() {
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
-  const [user, setUser] = useState(null);
-  const [emasOpen, setEmasOpen] = useState(false);
   const { hidden, toggle } = usePrivacy();
-
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
 
   const goldPriceNum = Number(goldPrice) || 0;
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
@@ -62,16 +58,6 @@ export default function Assets() {
   const total = scopedAssets.reduce((s, a) => s + currentValue(a), 0);
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-  const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const nisabGrams = NISAB_GRAM;
-  const wajibZakatEmas = emasGrams >= nisabGrams;
-  const zakatEmasAmount = wajibZakatEmas ? emasValue * 0.025 : 0;
-  const earliestEmasDate = emasAssets.reduce((d, a) => {
-    if (!a.purchase_date) return d;
-    const t = new Date(a.purchase_date).getTime();
-    return d === null || t < d ? t : d;
-  }, null);
-  const hasReachedHaul = earliestEmasDate != null && (Date.now() - earliestEmasDate) >= 354 * 24 * 3600 * 1000;
 
   const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
   const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
@@ -94,20 +80,6 @@ export default function Assets() {
       toast.success(next === "private" ? "Aset diubah menjadi Pribadi" : "Aset diubah menjadi Bersama");
     } catch {
       toast.error("Gagal mengubah jangkauan");
-    }
-  };
-
-  const handleZakatReminder = async () => {
-    if (!user?.email) { toast.error("Email tidak ditemukan"); return; }
-    try {
-      await base44.integrations.Core.SendEmail({
-        to: user.email,
-        subject: "Pengingat: Zakat Emas Anda 🕌",
-        body: `Assalamu'alaikum ${user.full_name || user.email},\n\nTotal emas Anda saat ini ${formatNumber(emasGrams)} gram telah mencapai nisab (85 gram). Jangan lupa menunaikan zakat mal sebesar 2,5% dari nilai emas Anda setelah genap 1 tahun (haul).\n\nPerkiraan zakat: ${formatRupiah(zakatEmasAmount)}\n\nSemoga Allah memberkahi harta Anda.\n\nNAFKITA`,
-      });
-      toast.success("Pengingat zakat dikirim", { description: `Ke ${user.email}` });
-    } catch {
-      toast.error("Gagal mengirim pengingat");
     }
   };
 
@@ -144,62 +116,19 @@ export default function Assets() {
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
 
-      {scopedAssets.some((a) => a.type === "emas") && (
-        <div className="rounded-2xl border border-border bg-card mb-4 overflow-hidden">
-          <button onClick={() => setEmasOpen((o) => !o)} className="w-full flex items-center gap-3 p-4 active:scale-[0.99] transition-transform">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
-              <Coins className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Emas & Zakat</p>
-              <p className="text-xs text-muted-foreground truncate">{formatNumber(emasGrams)} gram • {wajibZakatEmas ? "nisab tercapai" : "di bawah nisab"}{goldPriceNum > 0 ? <> • <Money value={emasValue} /></> : null}</p>
-            </div>
-            {wajibZakatEmas && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 font-medium shrink-0">Zakat</span>}
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${emasOpen ? "rotate-180" : ""}`} />
-          </button>
-          {emasOpen && (
-            <div className="px-4 pb-4 space-y-3">
-              <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />
+      <AssetGrowthTrend />
 
-              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Coins className="w-3.5 h-3.5 text-emerald-600" />
-                  <p className="text-xs font-medium">Zakat Emas</p>
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total emas</span><span className="font-medium">{formatNumber(emasGrams)} gram</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Nisab</span><span className="font-medium">85 gram</span></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Status nisab</span>
-                    <span className={`flex items-center gap-1 font-medium ${wajibZakatEmas ? "text-emerald-600" : "text-muted-foreground"}`}>
-                      {wajibZakatEmas ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                      {wajibZakatEmas ? "Sudah mencapai nisab" : "Belum mencapai nisab"}
-                    </span>
-                  </div>
-                  {earliestEmasDate != null && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Status haul (1 thn)</span>
-                      <span className={`font-medium ${hasReachedHaul ? "text-emerald-600" : "text-muted-foreground"}`}>
-                        {hasReachedHaul ? "Sudah genap 1 tahun" : "Belum genap 1 tahun"}
-                      </span>
-                    </div>
-                  )}
-                  {wajibZakatEmas && (
-                    <>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Nilai emas</span><span className="font-medium"><Money value={emasValue} /></span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Zakat 2,5%</span><span className="font-semibold text-emerald-600"><Money value={zakatEmasAmount} /></span></div>
-                    </>
-                  )}
-                </div>
-                {wajibZakatEmas && (
-                  <button onClick={handleZakatReminder} className="w-full mt-3 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
-                    <Bell className="w-4 h-4" /> Ingatkan Bayar Zakat
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      {scopedAssets.length > 0 && (
+        <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 mb-4 active:scale-[0.99] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+            <Coins className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Kelola Zakat</p>
+            <p className="text-xs text-muted-foreground">Kalkulator nisab, pengingat & pembayaran zakat</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-emerald-600 shrink-0" />
+        </Link>
       )}
 
       {scopedAssets.length > 0 && (

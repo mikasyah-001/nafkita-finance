@@ -7,10 +7,7 @@ import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
 import BudgetBars from "@/components/BudgetBars";
-import ZakatNotifier from "@/components/ZakatNotifier";
-import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import MonthlySummary from "@/components/MonthlySummary";
-import ProjectionPanel from "@/components/ProjectionPanel";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
@@ -215,13 +212,9 @@ export default function Home() {
         })}
       </div>
 
-      <ProjectionPanel scope={scope} />
-
       <MonthlySummary scope={scope} />
 
       <BudgetBars scope={scope} />
-
-      <AssetGrowthTrend />
 
       <div className="flex items-center justify-between mb-2 mt-2">
         <h2 className="font-semibold">Transaksi terbaru</h2>
@@ -237,8 +230,6 @@ export default function Home() {
           scopeRecent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
         )}
       </div>
-
-      <ZakatNotifier />
     </div>
   );
 }

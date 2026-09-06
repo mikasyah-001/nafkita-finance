@@ -15,6 +15,7 @@ const moreItems = [
   { to: "/tagihan-berulang", icon: RefreshCw, label: "Tagihan Berulang" },
   { to: "/rekonsiliasi", icon: Scale, label: "Rekonsiliasi" },
   { to: "/target-tabungan", icon: Target, label: "Target Tabungan" },
+  { to: "/zakat", icon: HandCoins, label: "Zakat" },
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },

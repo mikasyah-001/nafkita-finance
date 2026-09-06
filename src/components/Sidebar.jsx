@@ -1,7 +1,7 @@
 import { NavLink, Link } from "react-router-dom";
 import {
   Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
-  PiggyBank, ScanLine, Upload, Tags, User, Settings, MessageSquare,
+  PiggyBank, Upload, Tags, User, Settings, MessageSquare,
   Shield, Sparkles,
 } from "lucide-react";
 
@@ -15,7 +15,6 @@ const mainItems = [
 ];
 
 const toolItems = [
-  { to: "/asisten-struk", icon: ScanLine, label: "Asisten Struk" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },
 ];

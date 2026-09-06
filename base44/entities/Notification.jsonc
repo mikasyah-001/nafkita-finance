@@ -48,6 +48,16 @@
     "amount": {
       "type": "number"
     },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "IDR",
+        "SAR",
+        "USD"
+      ],
+      "default": "IDR",
+      "description": "Mata uang nominal transaksi/aset (disinkronkan dari entitas sumber)"
+    },
     "tx_type": {
       "type": "string"
     },

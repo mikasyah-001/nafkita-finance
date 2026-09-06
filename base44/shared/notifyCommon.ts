@@ -77,6 +77,7 @@ export async function createNotificationIdempotent(base44, payload) {
     body: payload.body || "",
     ref_id: payload.ref_id || null,
     amount: payload.amount ?? null,
+    currency: payload.currency || null,
     tx_type: payload.tx_type || null,
     read: false,
   });

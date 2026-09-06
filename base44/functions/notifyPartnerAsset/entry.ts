@@ -102,6 +102,7 @@ export default async function (req) {
       body: bodyText,
       ref_id: assetId,
       amount: value,
+      currency: asset.currency || "IDR",
     });
 
     await maybeSendEmail(base44, pref, partnerEmail, actorName, title, bodyText);

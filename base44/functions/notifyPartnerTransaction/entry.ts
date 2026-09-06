@@ -113,6 +113,7 @@ export default async function (req) {
       body: bodyText,
       ref_id: txId,
       amount,
+      currency: tx.currency || "IDR",
       tx_type: tx.type,
     });
 

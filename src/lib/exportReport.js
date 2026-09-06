@@ -1,7 +1,9 @@
 import { formatMoney } from "@/lib/finance";
 
 function csvCell(v) {
-  const s = v == null ? "" : String(v);
+  let s = v == null ? "" : String(v);
+  // Cegah formula injection saat CSV dibuka di Excel/Sheets.
+  if (/^[=+\-@]/.test(s)) s = `\'${s}`;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

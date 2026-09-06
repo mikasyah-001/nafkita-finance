@@ -104,7 +104,7 @@ export function computeSavingsRate(income, expense, sedekah) {
 }
 
 export function activeCurrencies(summary) {
-  return CURRENCY_CODES.filter((c) => summary && summary[c] && summary[c].count > 0);
+  return Object.keys(summary || {}).filter((c) => summary[c]?.count > 0);
 }
 
 // Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).

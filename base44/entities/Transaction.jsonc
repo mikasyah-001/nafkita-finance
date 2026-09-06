@@ -56,6 +56,10 @@
         "private"
       ],
       "default": "shared"
+    },
+    "linked_asset_id": {
+      "type": "string",
+      "description": "ID aset bank yang saldonya disesuaikan otomatis saat transaksi ini dibuat/diubah/dihapus"
     }
   },
   "required": [
@@ -88,46 +92,10 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "$and": [
-            {
-              "user_condition": {
-                "role": "admin"
-              }
-            },
-            {
-              "data.visibility": {
-                "$ne": "private"
-              }
-            }
-          ]
-        }
-      ]
+      "created_by_id": "{{user.id}}"
     },
     "delete": {
-      "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "$and": [
-            {
-              "user_condition": {
-                "role": "admin"
-              }
-            },
-            {
-              "data.visibility": {
-                "$ne": "private"
-              }
-            }
-          ]
-        }
-      ]
+      "created_by_id": "{{user.id}}"
     }
   }
 }

@@ -423,7 +423,12 @@ export default function Admin() {
                   <Landmark className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{a.name || "Tanpa Nama"}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                    {a.name || "Tanpa Nama"}
+                    {a.visibility === "private" && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-medium shrink-0">private</span>
+                    )}
+                  </p>
                   <p className="text-[11px] text-muted-foreground truncate">
                     {owner?.full_name || owner?.email || "—"} • {a.type || "lainnya"}
                   </p>

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, ScanLine, Wallet, Coins, Users, Target, BarChart3,
-  Layers, EyeOff, Cloud, Bell, Heart, ShieldCheck, Sparkles, Check,
+  EyeOff, Cloud, Heart, ShieldCheck, Sparkles, Check,
   PiggyBank, Landmark, TrendingUp, Star, Zap, Quote,
   Home as HomeIcon, Moon, Plus,
   MessageSquare, Link2, Smartphone, Globe, LineChart, FileText,

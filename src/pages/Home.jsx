@@ -168,7 +168,12 @@ export default function Home() {
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
-        <div className="mt-2"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+        {activeCurs.length > 1 && (
+          <div className="mt-3">
+            <p className="text-[10px] font-medium text-white/65 mb-1.5">Mata uang yang ditampilkan</p>
+            <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} variant="inverse" />
+          </div>
+        )}
         <div className="flex gap-3 mt-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">

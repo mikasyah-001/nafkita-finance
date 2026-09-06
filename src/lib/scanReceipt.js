@@ -114,7 +114,7 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
         date: normalizeDate(t.date),
         time: normalizeTime(t.time),
         notes: t.notes ? String(t.notes).trim().slice(0, 120) : "",
-        currency: ["IDR", "SAR", "USD"].includes(String(t.currency || "").toUpperCase()) ? String(t.currency).toUpperCase() : "IDR",
+        currency: /^[A-Z]{3}$/.test(String(t.currency || "").toUpperCase()) ? String(t.currency).toUpperCase() : "IDR",
       };
     })
     .filter((t) => t.amount > 0);

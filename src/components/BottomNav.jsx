@@ -14,7 +14,7 @@ export default function BottomNav() {
   if (hideNav) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border z-50">
+    <nav className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border z-50">
       <div className="flex items-end justify-around h-16 px-2 relative">
         {items.slice(0, 2).map((it) => (
           <NavItem key={it.to} {...it} />

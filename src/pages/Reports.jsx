@@ -97,6 +97,11 @@ export default function Reports() {
 
   const summary = summarizeByCurrency(periodTxAll);
   const activeCurs = activeCurrencies(summary);
+  // Saat ada lebih dari satu mata uang aktif, otomatis aktifkan konsolidasi
+  // agar tab mata uang menampilkan nilai terkonversi (bukan filter per mata uang).
+  useEffect(() => {
+    if (activeCurs.length > 1) setConsolidated(true);
+  }, [activeCurs.length]);
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
   const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
 
@@ -189,6 +194,13 @@ export default function Reports() {
       setFetchingRates(false);
     }
   };
+
+  // Otomatis ambil kurs saat konsolidasi aktif tapi belum ada kurs tersimpan.
+  useEffect(() => {
+    if (consolidated && exchangeRates.length === 0 && activeCurs.length > 1 && !fetchingRates) {
+      handleFetchRates();
+    }
+  }, [consolidated, exchangeRates.length, activeCurs.length, currency]);
 
   const exportStats = consolidated && consolidatedSummary
     ? [
@@ -315,8 +327,8 @@ export default function Reports() {
         </button>
       </div>
 
-      {activeCurs.length > 0 && !consolidated && (
-        <div><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+      {activeCurs.length > 0 && (
+        <div><CurrencyTabs currencies={activeCurs} value={cur} onChange={(c) => { setCurrency(c); setConsolidated(true); }} /></div>
       )}
 
       {activeCurs.length > 1 && (

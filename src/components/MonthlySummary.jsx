@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
 import { formatDate, colorMap } from "@/lib/finance";
@@ -14,6 +14,7 @@ export default function MonthlySummary({ scope = "shared" }) {
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const now = new Date();
   const { rows, total, prevTotal, activeCurs, cur } = useMemo(() => {

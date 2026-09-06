@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAssetSnapshots, useMe } from "@/hooks/useFinance";
 import { formatMoney, CURRENCY_CODES } from "@/lib/finance";
@@ -12,6 +12,7 @@ export default function AssetGrowthTrend() {
   const { data: me } = useMe();
   const { hidden } = usePrivacy();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const byCur = useMemo(() => {
     const map = {};

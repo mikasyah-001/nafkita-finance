@@ -45,7 +45,7 @@ export default function AssetDashboard() {
     if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
     return s + (a.value || 0);
   }, 0);
-  const totalPurchase = scopedAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + ((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
   const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
@@ -63,7 +63,7 @@ export default function AssetDashboard() {
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
-      const purchase = list.reduce((s, a) => s + (type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+      const purchase = list.reduce((s, a) => s + ((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
       const curSet = [...new Set(list.map((a) => a.currency || "IDR"))];
       const currency = curSet.length === 1 ? curSet[0] : "IDR";

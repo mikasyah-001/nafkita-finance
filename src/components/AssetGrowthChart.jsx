@@ -27,6 +27,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0 }) {
   const perAsset = useMemo(
     () =>
       assets.map((a) => {
+        // Emas & tanah: harga beli per unit (gram/m²) × quantity. Lainnya: total langsung.
         const purchase = a.purchase_price
           ? (a.type === "emas" || a.type === "tanah") && a.quantity
             ? a.purchase_price * a.quantity

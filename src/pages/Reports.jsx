@@ -195,7 +195,7 @@ export default function Reports() {
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Kalkulator Zakat</h2>
-        <p className="text-xs text-muted-foreground mb-3">Zakat mal 2,5% untuk harta yang mencapai nisab (85 gram emas). Nisab dihitung dalam IDR.</p>
+        <p className="text-xs text-muted-foreground mb-3">Zakat mal 2,5% untuk harta yang mencapai nisab ({NISAB_GRAM} gram emas). Nisab dihitung dalam IDR.</p>
 
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-xs text-muted-foreground">Harga emas per gram (Rp)</label>
@@ -215,7 +215,7 @@ export default function Reports() {
 
         {emasPriceNum > 0 && (
           <div className="space-y-2 text-sm">
-            <Row label="Nisab (85 gr emas)" value={formatRupiah(nisab)} />
+            <Row label={`Nisab (${NISAB_GRAM} gr emas)`} value={formatRupiah(nisab)} />
             <Row label="Total emas" value={`${formatNumber(emasGrams)} gr (${formatRupiah(emasValue)})`} />
             <Row label="Total aset lain (IDR)" value={formatRupiah(otherValue)} />
             {nonIDRAssets.length > 0 && (
@@ -232,7 +232,7 @@ export default function Reports() {
                 <span className="text-xs font-medium">Zakat Emas</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {emasWajibZakat ? `Wajib zakat (≥85 gr). Zakat 2,5% = ${formatRupiah(zakatEmas)}` : `Belum wajib (${formatNumber(emasGrams)} gr < 85 gr)`}
+                {emasWajibZakat ? `Wajib zakat (≥${NISAB_GRAM} gr). Zakat 2,5% = ${formatRupiah(zakatEmas)}` : `Belum wajib (${formatNumber(emasGrams)} gr < ${NISAB_GRAM} gr)`}
               </p>
             </div>
 

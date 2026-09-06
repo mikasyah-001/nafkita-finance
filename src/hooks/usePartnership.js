@@ -5,6 +5,9 @@ import { toast } from "sonner";
 // Koneksi pasangan berbasis server (entitas Partnership).
 // Hanya suami-istri yang saling terhubung melalui undangan email.
 // Pasangan aktif = ada record Partnership berstatus "active" yang melibatkan user ini.
+const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
+const complement = (r) => (r === "suami" ? "istri" : "suami");
+
 export function usePartnership() {
   const qc = useQueryClient();
 
@@ -145,6 +148,19 @@ export function usePartnership() {
     }
   };
 
+  const updateRole = async (role) => {
+    if (!hasPartner) return toast.error("Belum ada pasangan terhubung");
+    try {
+      const res = await base44.functions.invoke("updatePartnershipRole", { role });
+      if (res?.data?.error) throw new Error(res.data.error);
+      refresh();
+      toast.success("Peran diperbarui", { description: `Anda: ${ROLE_LABEL[role]} • Pasangan: ${ROLE_LABEL[complement(role)]}` });
+    } catch (e) {
+      const msg = e?.message || "Gagal memperbarui peran";
+      toast.error(msg.includes("no_active") ? "Tidak ada koneksi aktif" : "Gagal memperbarui peran", { description: msg });
+    }
+  };
+
   const disconnect = async (reason) => {
     const active = partnerships.find((p) => p.status === "active" && (p.inviter_id === me?.id || p.invitee_id === me?.id));
     if (!active) return toast.error("Tidak ada pasangan terhubung");
@@ -173,6 +189,7 @@ export function usePartnership() {
     cancelInvite,
     acceptRequest,
     declineRequest,
+    updateRole,
     disconnect,
     refresh,
     loading: meQ.isLoading || partnershipsQ.isLoading || usersQ.isLoading,

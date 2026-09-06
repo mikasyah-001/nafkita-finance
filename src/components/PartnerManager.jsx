@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePartnership } from "@/hooks/usePartnership";
 import { Image as SmartImage } from "@/components/ui/image";
 import {
@@ -16,7 +16,7 @@ export default function PartnerManager() {
   const {
     users, partners, hasPartner, sentInvites, incomingRequests,
     myRole, partnerRole,
-    invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, disconnect, loading,
+    invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, updateRole, disconnect, loading,
   } = usePartnership();
 
   const [email, setEmail] = useState("");
@@ -29,6 +29,19 @@ export default function PartnerManager() {
   const [showManage, setShowManage] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [reason, setReason] = useState("");
+  const [manageRole, setManageRole] = useState(myRole || "suami");
+  const [savingRole, setSavingRole] = useState(false);
+
+  // Sinkronkan pilihan peran saat data hook diperbarui.
+  useEffect(() => {
+    if (myRole) setManageRole(myRole);
+  }, [myRole]);
+
+  const handleSaveRole = async () => {
+    setSavingRole(true);
+    await updateRole(manageRole);
+    setSavingRole(false);
+  };
 
   const handleSend = async () => {
     const target = email.trim();
@@ -59,6 +72,7 @@ export default function PartnerManager() {
 
   if (hasPartner && !showManage) {
     const partner = partners[0];
+    const rolesDeclared = !!(myRole && partnerRole);
     return (
       <div>
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3 mb-3">
@@ -72,10 +86,20 @@ export default function PartnerManager() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{partner?.full_name || partner?.email || "Pasangan"}</p>
             <p className="text-xs text-muted-foreground truncate">
-              {partnerRole ? `${ROLE_LABEL[partnerRole]} • Anda: ${myRole ? ROLE_LABEL[myRole] : "—"}` : "Terkoneksi"}
+              {rolesDeclared
+                ? `${ROLE_LABEL[partnerRole]} • Anda: ${ROLE_LABEL[myRole]}`
+                : "Terkoneksi • peran belum dideklarasikan"}
             </p>
           </div>
         </div>
+        {!rolesDeclared && (
+          <div className="mb-3 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-2.5 flex items-center gap-2">
+            <Heart className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+              Deklarasikan peran suami/istri agar status hubungan lengkap.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3 mt-3">
           <button onClick={() => setShowManage(true)} className="text-xs text-primary flex items-center gap-1">
             <Settings className="w-3.5 h-3.5" /> Kelola undangan
@@ -124,6 +148,47 @@ export default function PartnerManager() {
           <ArrowLeft className="w-3.5 h-3.5" /> Sembunyikan kelola
         </button>
       )}
+
+      {hasPartner && (() => {
+        const partner = partners[0];
+        const rolesDeclared = !!(myRole && partnerRole);
+        return (
+          <div className="mb-4 rounded-xl border border-border bg-muted/30 p-3">
+            <p className="text-xs font-medium mb-1">Koneksi Aktif</p>
+            <p className="text-sm font-medium truncate mb-3">
+              {partner?.full_name || partner?.email || "Pasangan"}
+              {rolesDeclared && (
+                <span className="text-xs text-muted-foreground font-normal"> • {ROLE_LABEL[partnerRole]} ⇄ {ROLE_LABEL[myRole]}</span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground mb-2">Deklarasikan peran Anda</p>
+            <div className="flex gap-2 mb-2">
+              {["suami", "istri"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setManageRole(r)}
+                  className={`flex-1 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+                    manageRole === r ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  <UserIcon className="w-4 h-4" /> {ROLE_LABEL[r]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-3">
+              Pasangan otomatis tercatat sebagai {ROLE_LABEL[complement(manageRole)]}.
+            </p>
+            <button
+              onClick={handleSaveRole}
+              disabled={savingRole || (rolesDeclared && manageRole === myRole)}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              {savingRole ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
+              {rolesDeclared && manageRole === myRole ? "Peran tersimpan" : "Simpan peran"}
+            </button>
+          </div>
+        );
+      })()}
 
       {incomingRequests.length > 0 && (
         <div className="mb-4">

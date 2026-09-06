@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useAssets, useCategories, useMe } from "@/hooks/useFinance";
-import { formatRupiah, formatMoney, formatNumber, colorMap, formatDate, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
+import { formatRupiah, formatMoney, formatNumber, colorMap, formatDate, summarizeByCurrency, activeCurrencies, computeZakat, NISAB_GRAM } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -109,7 +109,6 @@ export default function Reports() {
 
   // Zakat (nisab dalam IDR, jadi hanya aset IDR yang dihitung)
   const emasPriceNum = Number(emasPrice) || 0;
-  const nisab = emasPriceNum * 85;
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasPriceNum > 0 ? emasGrams * emasPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
@@ -117,11 +116,9 @@ export default function Reports() {
   const nonIDRAssets = scopedAssets.filter((a) => a.type !== "emas" && (a.currency || "IDR") !== "IDR");
   const otherValue = otherAssetsIDR.reduce((s, a) => s + (a.value || 0), 0);
   const totalAset = emasValue + otherValue;
-  const emasWajibZakat = emasGrams >= 85;
-  // Simpanan (aset non-emas) dipisahkan dari emas — nisab simpanan = 85 gr emas, tidak mencampur emas.
-  const uangWajibZakat = emasPriceNum > 0 && otherValue >= nisab;
-  const zakatEmas = emasWajibZakat ? emasValue * 0.025 : 0;
-  const zakatUang = uangWajibZakat ? otherValue * 0.025 : 0;
+  // Perhitungan zakat terpusat via computeZakat — seragam dengan ZakatStatus & ZakatNotifier.
+  const { nisab, emasReached: emasWajibZakat, simpananReached: uangWajibZakat, zakatEmas, zakatSimpanan: zakatUang } =
+    computeZakat({ emasGrams, emasValue, nonEmasValue: otherValue, goldPrice: emasPriceNum });
 
   return (
     <div className="px-5 pt-8 space-y-5">

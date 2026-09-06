@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useZakatPayments, useRefresh } from "@/hooks/useFinance";
-import { formatNumber } from "@/lib/finance";
+import { formatNumber, computeZakat, NISAB_GRAM } from "@/lib/finance";
 import Money from "@/components/Money";
 import { toast } from "sonner";
 import { Coins, Wallet, CheckCircle2, Bell, Loader2 } from "lucide-react";
@@ -27,12 +27,14 @@ export default function ZakatNotifier() {
   const myPayments = zakatPayments.filter((z) => z.created_by_id === user?.id);
   const isPaid = (type) => myPayments.some((z) => z.year === year && z.zakat_type === type && z.status === "paid");
 
+  const { emasReached, simpananReached, zakatEmas, zakatSimpanan } = computeZakat({ emasGrams, emasValue, nonEmasValue, goldPrice: goldPriceNum });
+
   const obligations = [];
-  if (emasGrams >= 85 && !isPaid("emas")) {
-    obligations.push({ type: "emas", label: "Zakat Emas", icon: Coins, amount: emasValue * 0.025, detail: `${formatNumber(emasGrams)} gram • nisab 85 gr` });
+  if (emasReached && !isPaid("emas")) {
+    obligations.push({ type: "emas", label: "Zakat Emas", icon: Coins, amount: zakatEmas, detail: `${formatNumber(emasGrams)} gram • nisab ${NISAB_GRAM} gr` });
   }
-  if (goldPriceNum > 0 && nonEmasValue >= 85 * goldPriceNum && !isPaid("simpanan")) {
-    obligations.push({ type: "simpanan", label: "Zakat Simpanan", icon: Wallet, amount: nonEmasValue * 0.025, detail: <>Simpanan <Money value={nonEmasValue} /> ≥ nisab</> });
+  if (simpananReached && !isPaid("simpanan")) {
+    obligations.push({ type: "simpanan", label: "Zakat Simpanan", icon: Wallet, amount: zakatSimpanan, detail: <>Simpanan <Money value={nonEmasValue} /> ≥ nisab</> });
   }
 
   const handlePay = async (ob) => {

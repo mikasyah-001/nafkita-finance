@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { useZakatPayments, useRefresh } from "@/hooks/useFinance";
-import { formatNumber } from "@/lib/finance";
+import { formatNumber, computeZakat, NISAB_GRAM } from "@/lib/finance";
 import Money from "@/components/Money";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Coins, Wallet, CheckCircle2, Bell, Loader2, Sparkles, AlertTriangle, Info } from "lucide-react";
-
-const NISAB_GRAM = 85;
 
 export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
   const { data: zakatPayments = [] } = useZakatPayments();
@@ -20,9 +18,8 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
   const myPayments = zakatPayments.filter((z) => z.created_by_id === user?.id);
   const isPaid = (type) => myPayments.some((z) => z.year === year && z.zakat_type === type && z.status === "paid");
 
-  const emasReachedNisab = emasGrams >= NISAB_GRAM;
-  const simpananNisabValue = goldPrice > 0 ? NISAB_GRAM * goldPrice : 0;
-  const simpananReachedNisab = goldPrice > 0 && nonEmasValue >= simpananNisabValue;
+  const { emasReached: emasReachedNisab, simpananReached: simpananReachedNisab, nisab: simpananNisabValue, zakatEmas, zakatSimpanan } =
+    computeZakat({ emasGrams, emasValue, nonEmasValue, goldPrice });
 
   const obligations = [];
   if (emasReachedNisab && !isPaid("emas")) {
@@ -30,7 +27,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
       type: "emas",
       label: "Zakat Emas",
       icon: Coins,
-      amount: emasValue * 0.025,
+      amount: zakatEmas,
       detail: `${formatNumber(emasGrams)} gram • nisab ${NISAB_GRAM} gr`,
     });
   }
@@ -39,7 +36,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
       type: "simpanan",
       label: "Zakat Simpanan",
       icon: Wallet,
-      amount: nonEmasValue * 0.025,
+      amount: zakatSimpanan,
       detail: <>Simpanan <Money value={nonEmasValue} /> ≥ nisab</>,
     });
   }
@@ -120,7 +117,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
               {emasReachedNisab
                 ? `Melebihi nisab • zakat 2,5% = `
                 : `Kurang ${formatNumber(NISAB_GRAM - emasGrams)} gr menuju nisab`}
-              {emasReachedNisab && <span className="font-semibold text-amber-600"><Money value={emasValue * 0.025} /></span>}
+              {emasReachedNisab && <span className="font-semibold text-amber-600"><Money value={zakatEmas} /></span>}
             </p>
           </>
         ) : (
@@ -162,7 +159,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
           </div>
           <p className="text-[10px] text-muted-foreground mt-1.5">
             {simpananReachedNisab ? (
-              <>Melebihi nisab • zakat 2,5% = <span className="font-semibold text-indigo-600"><Money value={nonEmasValue * 0.025} /></span></>
+              <>Melebihi nisab • zakat 2,5% = <span className="font-semibold text-indigo-600"><Money value={zakatSimpanan} /></span></>
             ) : (
               <>Kurang <Money value={simpananNisabValue - nonEmasValue} /> menuju nisab</>
             )}

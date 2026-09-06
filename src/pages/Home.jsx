@@ -204,7 +204,7 @@ export default function Home() {
         })}
       </div>
 
-      <ProjectionPanel />
+      <ProjectionPanel scope={scope} />
 
       <MonthlySummary scope={scope} />
 

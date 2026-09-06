@@ -1,10 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
-  ArrowLeft, ShieldCheck, Users, Link2, Receipt, Lock, Unlock,
-  Trash2, UserCircle, Search, Loader2,
+  ArrowLeft, ShieldCheck, Users, Link2, Receipt, Lock,
+  Trash2, UserCircle, Search, Loader2, ChevronDown,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
@@ -17,62 +17,86 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [partnerships, setPartnerships] = useState([]);
-  const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [tab, setTab] = useState("pengguna");
   const [txFilter, setTxFilter] = useState("");
   const [txUserFilter, setTxUserFilter] = useState("all");
-  const [aId, setAId] = useState("");
-  const [bId, setBId] = useState("");
-  const [connecting, setConnecting] = useState(false);
+  const [txPage, setTxPage] = useState([]);
+  const [txHasMore, setTxHasMore] = useState(false);
+  const [txLoadingMore, setTxLoadingMore] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
+  // Periksa role admin dahulu, baru muat data.
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const m = await base44.auth.me();
+        setMe(m);
+        if (m?.role !== "admin") return;
+        const [u, p, c] = await Promise.all([
+          base44.entities.User.list(),
+          base44.entities.Partnership.list("-created_date", 500),
+          base44.entities.Category.list(),
+        ]);
+        setUsers(u || []);
+        setPartnerships(p || []);
+        setCategories(c || []);
+        loadTransactions(true);
+      } catch (e) {
+        toast.error("Gagal memuat data admin", { description: e?.message });
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadTransactions = useCallback(async (reset) => {
+    if (reset) setTxPage([]);
+    setTxLoadingMore(true);
     try {
-      const [m, u, p, t, c] = await Promise.all([
-        base44.auth.me(),
-        base44.entities.User.list(),
-        base44.entities.Partnership.list(),
-        base44.entities.Transaction.list("-date", 200),
-        base44.entities.Category.list(),
-      ]);
-      setMe(m);
-      setUsers(u);
-      setPartnerships(p);
-      setTransactions(t);
-      setCategories(c);
+      const before = reset || txPage.length === 0 ? undefined : txPage[txPage.length - 1]?.date;
+      const res = await base44.functions.invoke("adminListTransactions", {
+        before_date: before,
+        user_filter: txUserFilter !== "all" ? txUserFilter : undefined,
+        limit: 100,
+      });
+      const data = res?.data || {};
+      const newTx = data.transactions || [];
+      setTxPage((prev) => (reset ? newTx : [...prev, ...newTx]));
+      setTxHasMore(!!data.has_more);
     } catch (e) {
-      toast.error("Gagal memuat data admin", { description: e?.message });
+      toast.error("Gagal memuat transaksi", { description: e?.message });
     } finally {
-      setLoading(false);
+      setTxLoadingMore(false);
     }
-  };
+  }, [txPage, txUserFilter]);
 
-  useEffect(() => { load(); }, []);
+  // Muat ulang transaksi saat filter user berubah.
+  useEffect(() => {
+    if (me?.role === "admin") loadTransactions(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txUserFilter]);
 
   const isAdmin = me?.role === "admin";
 
-  // Map user id -> user object
   const userMap = useMemo(() => {
     const map = {};
-    users.forEach((u) => (map[u.id] = u));
+    (users || []).forEach((u) => (map[u.id] = u));
     return map;
   }, [users]);
 
-  // Active partnership per user
   const partnerOf = useMemo(() => {
     const map = {};
-    partnerships.filter((p) => p.status === "active").forEach((p) => {
+    (partnerships || []).filter((p) => p.status === "active").forEach((p) => {
       if (p.inviter_id) map[p.inviter_id] = p.invitee_id || p.invitee_email;
       if (p.invitee_id) map[p.invitee_id] = p.inviter_id;
     });
     return map;
   }, [partnerships]);
 
-  // Filtered transactions
   const filteredTx = useMemo(() => {
-    let list = transactions;
-    if (txUserFilter !== "all") list = list.filter((t) => t.created_by_id === txUserFilter);
+    let list = txPage;
     if (txFilter.trim()) {
       const q = txFilter.toLowerCase();
       list = list.filter(
@@ -83,7 +107,7 @@ export default function Admin() {
       );
     }
     return list;
-  }, [transactions, txFilter, txUserFilter]);
+  }, [txPage, txFilter]);
 
   if (loading) {
     return (
@@ -110,35 +134,12 @@ export default function Admin() {
     return u ? u.full_name || u.email : idOrEmail;
   };
 
-  const handleConnect = async () => {
-    if (!aId || !bId) return toast.error("Pilih kedua pengguna");
-    if (aId === bId) return toast.error("Pengguna tidak boleh sama");
-    const a = userMap[aId], b = userMap[bId];
-    if (!a?.email || !b?.email) return toast.error("Data email tidak ditemukan");
-    setConnecting(true);
-    try {
-      await base44.entities.Partnership.create({
-        inviter_id: a.id,
-        invitee_email: b.email,
-        invitee_id: b.id,
-        status: "active",
-      });
-      toast.success("Pasangan terhubung", { description: `${a.full_name || a.email} ⇄ ${b.full_name || b.email}` });
-      setAId(""); setBId("");
-      load();
-    } catch (e) {
-      toast.error("Gagal menghubungkan", { description: e?.message });
-    } finally {
-      setConnecting(false);
-    }
-  };
-
   const handleDisconnect = async (p) => {
     if (!confirm("Putuskan koneksi pasangan ini?")) return;
     try {
-      await base44.entities.Partnership.delete(p.id);
+      await base44.functions.invoke("terminatePartnership", { partnership_id: p.id });
       toast.success("Koneksi diputus");
-      load();
+      setPartnerships((prev) => prev.filter((x) => x.id !== p.id));
     } catch (e) {
       toast.error("Gagal memutuskan", { description: e?.message });
     }
@@ -197,29 +198,12 @@ export default function Admin() {
           })}
         </TabsContent>
 
-        {/* CONNECTIONS */}
+        {/* CONNECTIONS — read-only; koneksi hanya via undangan */}
         <TabsContent value="koneksi" className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="font-semibold text-sm mb-1 flex items-center gap-2"><Link2 className="w-4 h-4" /> Hubungkan Manual</h2>
-            <p className="text-xs text-muted-foreground mb-3">Sambungkan dua pengguna sebagai pasangan secara langsung.</p>
-            <div className="space-y-2">
-              <select value={aId} onChange={(e) => setAId(e.target.value)} className="input">
-                <option value="">— Pilih Pengguna 1 —</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-              </select>
-              <select value={bId} onChange={(e) => setBId(e.target.value)} className="input">
-                <option value="">— Pilih Pengguna 2 —</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-              </select>
-              <button
-                onClick={handleConnect}
-                disabled={connecting}
-                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                Hubungkan Pasangan
-              </button>
-            </div>
+          <div className="rounded-2xl border border-border bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground">
+              Koneksi pasangan hanya dapat dibuat melalui undangan email/kode referensi oleh pengguna sendiri. Admin tidak membuat koneksi manual. Daftar di bawah bersifat read-only; admin dapat memutuskan koneksi bila diperlukan.
+            </p>
           </div>
 
           <div>
@@ -255,7 +239,7 @@ export default function Admin() {
           </div>
         </TabsContent>
 
-        {/* TRANSACTIONS */}
+        {/* TRANSACTIONS — non-private lintas keluarga, paginated */}
         <TabsContent value="transaksi" className="space-y-3">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -273,7 +257,11 @@ export default function Admin() {
             </select>
           </div>
 
-          {filteredTx.length === 0 && <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada transaksi.</p>}
+          <p className="text-[11px] text-muted-foreground">
+            Menampilkan {filteredTx.length} transaksi non-private{txHasMore ? " (ada lagi)" : ""}. Pencarian berlaku atas data yang sudah dimuat.
+          </p>
+
+          {filteredTx.length === 0 && !txLoadingMore && <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada transaksi.</p>}
 
           {filteredTx.map((tx) => {
             const isIncome = tx.type === "income";
@@ -294,7 +282,6 @@ export default function Admin() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate flex items-center gap-1">
-                    {tx.visibility === "private" && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
                     {tx.merchant || tx.notes || (isSedekah ? "Sedekah" : tx.category || "Transaksi")}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate">
@@ -307,6 +294,16 @@ export default function Admin() {
               </Link>
             );
           })}
+
+          {txHasMore && (
+            <button
+              onClick={() => loadTransactions(false)}
+              disabled={txLoadingMore}
+              className="w-full py-2.5 rounded-xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              {txLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />} Muat lebih banyak
+            </button>
+          )}
         </TabsContent>
       </Tabs>
     </div>

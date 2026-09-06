@@ -9,7 +9,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
-import { adjustLinkedAsset, txEffect } from "@/lib/linkedAsset";
+import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
 import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
@@ -59,7 +59,7 @@ export default function AddTransaction() {
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
-  const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency);
+  const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
 
   const applyTemplate = (t) => {
     setType(t.type);
@@ -210,7 +210,7 @@ export default function AddTransaction() {
       return;
     }
     try {
-      await base44.entities.Transaction.create({
+      await saveTransactionWithAsset({
         type,
         amount: amt,
         currency,
@@ -224,7 +224,6 @@ export default function AddTransaction() {
         visibility,
         linked_asset_id: linkedAssetId || undefined,
       });
-      if (linkedAssetId) await adjustLinkedAsset(linkedAssetId, txEffect({ type, amount: amt }));
       if (saveAsTemplate) {
         try {
           await base44.entities.TransactionTemplate.create({

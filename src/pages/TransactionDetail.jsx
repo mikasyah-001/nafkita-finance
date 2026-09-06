@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useAssets } from "@/hooks/useFinance";
-import { formatRupiah, formatMoney, formatDate, colorMap } from "@/lib/finance";
-import { adjustOnUpdate, adjustLinkedAsset, txEffect } from "@/lib/linkedAsset";
+import { formatRupiah, formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
+import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
@@ -25,7 +25,9 @@ export default function TransactionDetail() {
   const { user } = useAuth();
   const fileRef = useRef(null);
 
-  const tx = transactions.find((t) => t.id === id);
+  const [adminTx, setAdminTx] = useState(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const tx = transactions.find((t) => t.id === id) || adminTx;
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
   const canManage = isOwner;
 
@@ -33,6 +35,21 @@ export default function TransactionDetail() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(null);
   const [scanning, setScanning] = useState(false);
+
+  // Admin fallback: bila transaksi tidak ada di daftar terlihat (milik user lain
+  // yang bukan pasangan), admin dapat membuka detail lewat endpoint admin khusus.
+  useEffect(() => {
+    if (!transactions.find((t) => t.id === id) && user?.role === "admin" && id) {
+      setAdminLoading(true);
+      base44.functions.invoke("adminGetTransaction", { id })
+        .then((res) => setAdminTx(res?.data?.transaction || null))
+        .catch(() => setAdminTx(null))
+        .finally(() => setAdminLoading(false));
+    } else {
+      setAdminTx(null);
+      setAdminLoading(false);
+    }
+  }, [transactions, user, id]);
 
   useEffect(() => {
     if (tx && !form) {
@@ -55,6 +72,13 @@ export default function TransactionDetail() {
   }, [tx, form]);
 
   if (!tx) {
+    if (adminLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     return (
       <div className="px-5 pt-8">
         <div className="flex items-center gap-3 mb-6">
@@ -127,8 +151,7 @@ export default function TransactionDetail() {
     if (form.type !== "sedekah" && !form.category) return toast.error("Pilih kategori");
     setSaving(true);
     try {
-      const newTx = { type: form.type, amount: amt, linked_asset_id: form.linked_asset_id || undefined };
-      await base44.entities.Transaction.update(id, {
+      await saveTransactionWithAsset({
         type: form.type,
         amount: amt,
         currency: form.currency || "IDR",
@@ -140,8 +163,7 @@ export default function TransactionDetail() {
         tags: form.tags || [],
         visibility: form.visibility || "shared",
         linked_asset_id: form.linked_asset_id || undefined,
-      });
-      await adjustOnUpdate(tx, newTx);
+      }, id);
       refresh();
       toast.success("Transaksi diperbarui");
       setEdit(false);
@@ -154,8 +176,7 @@ export default function TransactionDetail() {
 
   const handleDelete = async () => {
     try {
-      if (tx.linked_asset_id) await adjustLinkedAsset(tx.linked_asset_id, -txEffect(tx));
-      await base44.entities.Transaction.delete(id);
+      await deleteTransactionWithAsset(id);
       refresh();
       toast.success("Transaksi dihapus");
       navigate(-1);
@@ -177,7 +198,7 @@ export default function TransactionDetail() {
 
   if (edit && form) {
     const availableCategories = categories.filter((c) => c.type === form.type);
-    const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === (form.currency || "IDR"));
+    const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === (form.currency || "IDR") && a.created_by_id === user?.id);
     return (
       <div className="min-h-screen flex flex-col">
         <header className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -273,7 +294,7 @@ export default function TransactionDetail() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <span className="text-lg text-muted-foreground mr-1">Rp</span>
+              <span className="text-lg text-muted-foreground mr-1">{currencySymbol(form.currency || "IDR")}</span>
               <input type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
           </div>

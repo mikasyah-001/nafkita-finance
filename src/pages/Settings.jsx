@@ -9,6 +9,7 @@ import { useMe } from "@/hooks/useFinance";
 import { currencies } from "@/lib/finance";
 import TemplateManager from "@/components/TemplateManager";
 import LocalBackupRestore from "@/components/LocalBackupRestore";
+import DriveBackup from "@/components/DriveBackup";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -72,6 +73,10 @@ export default function Settings() {
 
       <Section title="Cadangan Lokal">
         <LocalBackupRestore />
+      </Section>
+
+      <Section title="Cadangan ke Google Drive">
+        <DriveBackup />
       </Section>
 
       <Section title="Template Rutin">

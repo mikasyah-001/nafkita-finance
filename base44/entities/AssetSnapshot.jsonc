@@ -18,6 +18,15 @@
     "period": {
       "type": "string"
     },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "own",
+        "family"
+      ],
+      "default": "family",
+      "description": "own = hanya aset milik sendiri; family = termasuk aset shared pasangan"
+    },
     "emas_value": {
       "type": "number",
       "default": 0

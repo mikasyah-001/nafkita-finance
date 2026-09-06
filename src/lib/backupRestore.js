@@ -15,7 +15,7 @@ export const BACKUP_ENTITIES = [
 
 export const BACKUP_VERSION = 2;
 
-const STRIP = ["id", "created_date", "updated_date"];
+const STRIP = ["id", "created_date", "updated_date", "created_by_id"];
 const strip = (r) => { const c = { ...r }; STRIP.forEach((k) => delete c[k]); return c; };
 
 const assetFp = (a) => [String(a.name || "").toLowerCase().trim(), a.type || "", a.currency || "IDR"].join("|");

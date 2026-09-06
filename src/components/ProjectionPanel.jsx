@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useTransactions, useMe } from "@/hooks/useFinance";
+import { useMemo, useState, useEffect } from "react";
+import { useTransactions, useAssets, useMe } from "@/hooks/useFinance";
 import { summarizeByCurrency, formatMoneyShort, CURRENCY_CODES, activeCurrencies } from "@/lib/finance";
 import { base44 } from "@/api/base44Client";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -8,17 +8,20 @@ import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
 
 const MONTH_LABEL = (d) => d.toLocaleString("id-ID", { month: "short" });
+const clamp = (v, min, max) => Math.min(Math.max(Number(v) || 0, min), max);
 
-export default function ProjectionPanel() {
+export default function ProjectionPanel({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
+  const { data: assets = [] } = useAssets();
   const { data: me } = useMe();
   const assumptions = me?.projection_assumptions || {};
-  const monthsAhead = Number(assumptions.months_ahead ?? 6);
-  const incGrowth = (Number(assumptions.monthly_income_growth) || 0) / 100;
-  const expGrowth = (Number(assumptions.monthly_expense_growth) || 0) / 100;
+  const monthsAhead = clamp(Math.round(Number(assumptions.months_ahead ?? 6)), 1, 12);
+  const incGrowth = clamp(assumptions.monthly_income_growth ?? 0, -50, 200) / 100;
+  const expGrowth = clamp(assumptions.monthly_expense_growth ?? 0, -50, 200) / 100;
   const defaultCur = me?.default_currency || "IDR";
 
   const [currency, setCurrency] = useState(defaultCur);
+  useEffect(() => { setCurrency(defaultCur); }, [defaultCur]);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState({
@@ -27,12 +30,21 @@ export default function ProjectionPanel() {
     months_ahead: monthsAhead,
   });
 
+  // Currency tabs dihitung dari SELURUH transaksi terlihat (sebelum filter mata uang),
+  // agar pengguna dapat berpindah ke mata uang lain yang memiliki data.
+  const allActiveCurs = activeCurrencies(summarizeByCurrency(transactions));
+  const cur = allActiveCurs.includes(currency) || allActiveCurs.length === 0 ? currency : (allActiveCurs[0] || defaultCur);
+
+  // Filter transaksi sesuai scope (Bersama/Pribadi) + mata uang terpilih.
   const scoped = useMemo(
-    () => transactions.filter((t) => (t.currency || "IDR") === currency),
-    [transactions, currency]
+    () => transactions.filter((t) => {
+      const scopeMatch = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
+      return scopeMatch && (t.currency || "IDR") === cur;
+    }),
+    [transactions, scope, cur]
   );
 
-  const { chartData, avgIncome, avgExpense, forecastEnd } = useMemo(() => {
+  const { chartData, avgIncome, avgOutflow, forecastEnd } = useMemo(() => {
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -44,19 +56,38 @@ export default function ProjectionPanel() {
         const d = new Date(t.date);
         return d.getFullYear() === mo.y && d.getMonth() === mo.m;
       });
-      const s = summarizeByCurrency(txs)[currency];
-      return { label: mo.label, Riil: Math.round(s.balance), income: s.income, expense: s.expense };
+      const s = summarizeByCurrency(txs)[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0 };
+      // Sedekah termasuk dalam arus keluar untuk baseline forecast.
+      return { label: mo.label, net: Math.round(s.balance), income: s.income, outflow: s.expense + s.sedekah };
     });
-    const avgIncome = hist.reduce((s, h) => s + h.income, 0) / (hist.length || 1);
-    const avgExpense = hist.reduce((s, h) => s + h.expense, 0) / (hist.length || 1);
 
+    // Rata-rata hanya atas bulan yang punya data (skip bulan kosong).
+    const monthsWithData = hist.filter((h) => h.income > 0 || h.outflow > 0);
+    const denom = monthsWithData.length || 1;
+    const avgIncome = monthsWithData.reduce((s, h) => s + h.income, 0) / denom;
+    const avgOutflow = monthsWithData.reduce((s, h) => s + h.outflow, 0) / denom;
+
+    // Saldo awal aktual: total aset bank mata uang terpilih sesuai scope.
+    const startBalance = assets
+      .filter((a) => a.type === "bank" && (a.currency || "IDR") === cur && (scope === "private" ? a.visibility === "private" : a.visibility !== "private"))
+      .reduce((s, a) => s + (a.value || 0), 0);
+
+    // Riil: cumulative net yang di-offset agar titik terakhir = saldo aktual saat ini,
+    // sehingga garis riil terhubung mulus ke forecast yang dimulai dari saldo aktual.
+    const net6 = hist.reduce((s, h) => s + h.net, 0);
+    let cumHist = startBalance - net6;
+    const histCum = hist.map((h) => {
+      cumHist += h.net;
+      return { label: h.label, Riil: Math.round(cumHist) };
+    });
+
+    // Forecast dimulai dari saldo aktual, lalu mengakumulasi arus kas masa depan.
     const forecast = [];
-    let cumRealist = 0, cumOptimist = 0, cumPessimist = 0;
-    const lastLabel = hist.length ? hist[hist.length - 1].label : "";
+    let cumRealist = startBalance, cumOptimist = startBalance, cumPessimist = startBalance;
     for (let i = 1; i <= monthsAhead; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const incR = avgIncome * Math.pow(1 + incGrowth, i);
-      const expR = avgExpense * Math.pow(1 + expGrowth, i);
+      const expR = avgOutflow * Math.pow(1 + expGrowth, i);
       const realist = incR - expR;
       const optimist = incR * 1.1 - expR * 0.9;
       const pessimist = incR * 0.9 - expR * 1.1;
@@ -71,24 +102,21 @@ export default function ProjectionPanel() {
       });
     }
     return {
-      chartData: [...hist.map((h) => ({ label: h.label, Riil: h.Riil })), ...forecast],
+      chartData: [...histCum, ...forecast],
       avgIncome,
-      avgExpense,
+      avgOutflow,
       forecastEnd: cumRealist,
     };
-  }, [scoped, currency, monthsAhead, incGrowth, expGrowth]);
-
-  const activeCurs = activeCurrencies(summarizeByCurrency(scoped));
-  const cur = activeCurs.includes(currency) || activeCurs.length === 0 ? currency : (activeCurs[0] || defaultCur);
+  }, [scoped, cur, monthsAhead, incGrowth, expGrowth, assets, scope]);
 
   const saveAssumptions = async () => {
     setSaving(true);
     try {
       await base44.auth.updateMe({
         projection_assumptions: {
-          monthly_income_growth: Number(draft.monthly_income_growth) || 0,
-          monthly_expense_growth: Number(draft.monthly_expense_growth) || 0,
-          months_ahead: Number(draft.months_ahead) || 6,
+          monthly_income_growth: clamp(draft.monthly_income_growth, -50, 200),
+          monthly_expense_growth: clamp(draft.monthly_expense_growth, -50, 200),
+          months_ahead: clamp(Math.round(Number(draft.months_ahead) || 6), 1, 12),
         },
       });
       toast.success("Asumsi proyeksi disimpan");
@@ -99,14 +127,15 @@ export default function ProjectionPanel() {
     setSaving(false);
   };
 
-  const hasData = avgIncome > 0 || avgExpense > 0;
+  const hasData = avgIncome > 0 || avgOutflow > 0;
+  const tabsList = allActiveCurs.length ? allActiveCurs : CURRENCY_CODES;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="font-semibold text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-indigo-500" /> Proyeksi Cash Flow</h2>
-          <p className="text-xs text-muted-foreground">Perkiraan {monthsAhead} bulan ke depan ({cur})</p>
+          <p className="text-xs text-muted-foreground">Perkiraan {monthsAhead} bulan ke depan ({cur}) • {scope === "private" ? "Pribadi" : "Bersama"}</p>
         </div>
         <button onClick={() => setOpen(!open)} className="text-xs text-muted-foreground flex items-center gap-1">
           <SlidersHorizontal className="w-3.5 h-3.5" /> Asumsi
@@ -114,7 +143,7 @@ export default function ProjectionPanel() {
       </div>
 
       <div className="mb-3">
-        <CurrencyTabs currencies={activeCurs.length ? activeCurs : CURRENCY_CODES} value={cur} onChange={setCurrency} />
+        <CurrencyTabs currencies={tabsList} value={cur} onChange={setCurrency} />
       </div>
 
       {open && (
@@ -152,8 +181,8 @@ export default function ProjectionPanel() {
               <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgIncome, cur)}</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
-              <p className="text-muted-foreground text-[10px]">Rata-rata pengeluaran</p>
-              <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgExpense, cur)}</p>
+              <p className="text-muted-foreground text-[10px]">Rata-rata arus keluar</p>
+              <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgOutflow, cur)}</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
               <p className="text-muted-foreground text-[10px]">Saldo proyeksi</p>
@@ -175,7 +204,7 @@ export default function ProjectionPanel() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Rentang optimis/pesimis mengasumsikan variasi ±10% pemasukan & pengeluaran. Bukan jaminan finansial.</p>
+          <p className="text-[10px] text-muted-foreground mt-2">Forecast dimulai dari saldo aset bank aktual, termasuk sedekah dalam arus keluar. Rentang optimis/pesimis ±10%. Bukan jaminan finansial.</p>
         </>
       )}
     </div>

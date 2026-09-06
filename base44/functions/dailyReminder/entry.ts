@@ -1,6 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { getAppUrl } from "../../shared/appUrl.ts";
+import { startOfTodayInTz, userTz } from "../../shared/timezone.ts";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -57,41 +58,58 @@ const buildEmail = (name, dateLabel, appUrl) => {
 </html>`;
 };
 
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
 
-    if (!await isAuthorizedCall(req, base44)) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!(await isAuthorizedCall(req, base44))) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const users = await base44.asServiceRole.entities.User.list();
 
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const transactions = await base44.asServiceRole.entities.Transaction.filter({
-      date: { $gte: start.toISOString() }
-    });
+    // Tentukan "hari ini" per timezone pengguna (default Asia/Riyadh).
+    // Kelompokkan user berdasarkan timezone agar batas "hari ini" tepat.
+    const byTz = {};
+    for (const u of users) {
+      if (!u.email) continue;
+      const tz = userTz(u);
+      if (!byTz[tz]) byTz[tz] = [];
+      byTz[tz].push(u);
+    }
 
-    const recordedIds = new Set(transactions.map((t) => t.created_by_id).filter(Boolean));
-    const toRemind = users.filter((u) => u.email && !recordedIds.has(u.id));
-
-    const dateLabel = formatTodayID(new Date());
     let sent = 0;
-    for (const u of toRemind) {
-      try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: u.email,
-          subject: "🌙 Pengingat Malam: Catat transaksi hari ini",
-          body: buildEmail(u.full_name, dateLabel, getAppUrl(req))
-        });
-        sent++;
-      } catch (e) {
-        // skip individual send errors
+    let totalReminded = 0;
+
+    for (const tz of Object.keys(byTz)) {
+      const tzUsers = byTz[tz];
+      const start = startOfTodayInTz(tz);
+      const transactions = await base44.asServiceRole.entities.Transaction.filter({
+        date: { $gte: start.toISOString() }
+      });
+      const recordedIds = new Set(transactions.map((t) => t.created_by_id).filter(Boolean));
+      const toRemind = tzUsers.filter((u) => !recordedIds.has(u.id));
+      totalReminded += toRemind.length;
+
+      // Label tanggal dalam timezone pengguna.
+      const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+      const dateLabel = formatTodayID(nowInTz);
+
+      for (const u of toRemind) {
+        try {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: u.email,
+            subject: "🌙 Pengingat Malam: Catat transaksi hari ini",
+            body: buildEmail(u.full_name, dateLabel, getAppUrl(req))
+          });
+          sent++;
+        } catch {
+          // skip individual send errors
+        }
       }
     }
 
-    return Response.json({ sent, total_users: users.length, reminded: toRemind.length });
+    return Response.json({ sent, total_users: users.length, reminded: totalReminded });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

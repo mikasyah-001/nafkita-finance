@@ -1,35 +1,39 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMe, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useMe, useRefresh } from "@/hooks/useFinance";
 import { currencies as builtIn } from "@/lib/finance";
 import { toast } from "sonner";
-import { Plus, Check, Loader2, Trash2, Star } from "lucide-react";
+import { Plus, Check, Loader2, Trash2, Star, Power } from "lucide-react";
 
 export default function CurrencyManager() {
   const { data: me } = useMe();
   const refresh = useRefresh();
-  const userCurrencies = useUserCurrencies();
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ code: "", label: "", symbol: "" });
 
-  const active = me?.active_currencies?.length ? me.active_currencies : [me?.default_currency || "IDR"];
-  const custom = me?.custom_currencies || [];
-  const defaultCur = me?.default_currency || "IDR";
+  const defaultCur = (me?.default_currency || "IDR").toUpperCase();
+  const custom = (me?.custom_currencies || []).map((c) => ({ ...c, code: String(c.code || "").toUpperCase() }));
+  const storedActive = (me?.active_currencies || []).map((c) => String(c).toUpperCase());
+  const active = [...new Set([...(storedActive.length ? storedActive : [defaultCur]), defaultCur])];
 
-  const fullList = [...builtIn, ...custom];
+  const fullList = [...builtIn, ...custom.filter((c) => !builtIn.some((b) => b.code === c.code))];
   const activeSet = new Set(active);
-  const inactiveBuiltIn = builtIn.filter((c) => !activeSet.has(c.code));
+  const inactiveCurrencies = fullList.filter((c) => !activeSet.has(c.code));
 
-  const persist = async (patch) => {
+  const persist = async (patch, successMessage) => {
     setSaving(true);
     try {
       await base44.auth.updateMe(patch);
       refresh();
-    } catch {
-      toast.error("Gagal menyimpan mata uang");
+      if (successMessage) toast.success(successMessage);
+      return true;
+    } catch (error) {
+      toast.error("Gagal menyimpan mata uang", { description: error?.message });
+      return false;
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const toggle = (code) => {
@@ -41,27 +45,29 @@ export default function CurrencyManager() {
     } else {
       set.add(code);
     }
-    persist({ active_currencies: Array.from(set) });
+    persist({ active_currencies: Array.from(set) }, set.has(code) ? `${code} diaktifkan` : `${code} dinonaktifkan`);
   };
 
   const setDefault = (code) => {
     const newActive = active.includes(code) ? active : [...active, code];
-    persist({ default_currency: code, active_currencies: newActive });
-    toast.success("Mata uang utama diperbarui");
+    persist({ default_currency: code, active_currencies: newActive }, `${code} menjadi mata uang utama`);
   };
 
   const addCustom = () => {
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
     const symbol = form.symbol.trim();
-    if (!code || !label || !symbol) return toast.error("Lengkapi kode, nama, dan simbol");
+    if (!/^[A-Z]{3}$/.test(code)) return toast.error("Kode mata uang harus 3 huruf, misalnya KWD");
+    if (!label || !symbol) return toast.error("Lengkapi nama dan simbol");
     if (fullList.some((c) => c.code === code)) return toast.error("Kode mata uang sudah ada");
     const newCustom = [...custom, { code, label, symbol }];
     const newActive = active.includes(code) ? active : [...active, code];
-    setForm({ code: "", label: "", symbol: "" });
-    setShowAdd(false);
-    persist({ custom_currencies: newCustom, active_currencies: newActive });
-    toast.success(`Mata uang ${code} ditambahkan`);
+    persist({ custom_currencies: newCustom, active_currencies: newActive }, `Mata uang ${code} ditambahkan`).then((ok) => {
+      if (ok) {
+        setForm({ code: "", label: "", symbol: "" });
+        setShowAdd(false);
+      }
+    });
   };
 
   const removeCustom = (code) => {
@@ -69,7 +75,7 @@ export default function CurrencyManager() {
     persist({
       custom_currencies: custom.filter((c) => c.code !== code),
       active_currencies: active.filter((c) => c !== code),
-    });
+    }, `${code} dihapus dari daftar`);
   };
 
   return (
@@ -118,34 +124,36 @@ export default function CurrencyManager() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                {!isCustom && (
-                  <button
-                    onClick={() => toggle(code)}
-                    disabled={saving || isDefault}
-                    className="relative w-10 h-6 rounded-full bg-primary transition-colors disabled:opacity-50 shrink-0"
-                    aria-label="Aktif/Nonaktif"
-                  >
-                    <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => toggle(code)}
+                  disabled={saving || isDefault}
+                  aria-label={`Nonaktifkan ${code}`}
+                  aria-pressed="true"
+                  className="h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-medium flex items-center gap-1 disabled:opacity-40 shrink-0"
+                >
+                  <Power className="w-3 h-3" /> Aktif
+                </button>
               </div>
             );
           })}
         </div>
       </div>
 
-      {inactiveBuiltIn.length > 0 && (
+      {inactiveCurrencies.length > 0 && (
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Tambah dari Daftar</p>
           <div className="flex flex-wrap gap-2">
-            {inactiveBuiltIn.map((c) => (
+            {inactiveCurrencies.map((c) => (
               <button
                 key={c.code}
                 onClick={() => toggle(c.code)}
                 disabled={saving}
+                aria-label={`Aktifkan ${c.code}`}
+                aria-pressed="false"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium active:scale-95 disabled:opacity-50"
               >
-                <Plus className="w-3 h-3" /> {c.code} · {c.label}
+                <Power className="w-3 h-3" /> Nonaktif · {c.code}
               </button>
             ))}
           </div>
@@ -156,7 +164,7 @@ export default function CurrencyManager() {
         <div className="rounded-xl border border-border p-3 space-y-2.5">
           <p className="text-xs font-medium">Mata Uang Kustom</p>
           <div className="grid grid-cols-3 gap-2">
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().slice(0, 4) })} placeholder="Kode" className="input py-2" />
+            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
             <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
             <input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
           </div>

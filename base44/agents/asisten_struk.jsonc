@@ -24,7 +24,7 @@
     },
     {
       "function_name": "adjustLinkedAsset",
-      "description": "Menyesuaikan saldo aset bank yang ditautkan ke transaksi (delta positif menambah, negatif mengurangi). Dipakai alih-alih update Asset langsung agar aset shared pasangan tetap bisa disesuaikan lewat validasi Partnership."
+      "description": "Menyesuaikan saldo aset bank yang ditautkan ke transaksi (delta positif menambah, negatif mengurangi)."
     }
   ],
   "context_files": [],
@@ -44,6 +44,7 @@
   "voice_config": {
     "voice_id": null
   },
+  "emails_settings": null,
   "allow_anonymous_access": false,
   "name": "asisten_struk"
 }

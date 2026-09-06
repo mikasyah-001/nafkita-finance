@@ -28,6 +28,7 @@ Untuk SETIAP transaksi, tentukan:
 4. TANGGAL — format ISO yyyy-mm-dd. Untuk mutasi, ambil tanggal per transaksi; jika transaksi dikelompokkan di bawah header tanggal, gunakan tanggal header tersebut untuk semua transaksi di grup itu. Jika tahun hanya 2 digit, anggap 2000+tahun. Jika ragu/tidak tertera, kosongkan (jangan tebak).
 5. JAM — waktu transaksi format HH:mm (24 jam). Ambil dari jam cetak pada bon/struk atau kolom waktu pada mutasi. Jika tidak tertera, kosongkan (jangan tebak).
 6. CATATAN — ringkasan singkat item/nama transaksi (maks 80 karakter). Kosongkan jika tidak terbaca.
+7. MATA UANG — kode mata uang yang tertera (IDR/SAR/USD). Bila tidak tertera, isi "IDR".
 
 Kembalikan array "transactions" berisi SEMUA transaksi yang terbaca. Jika hanya satu transaksi, tetap kembalikan array dengan 1 elemen. JANGAN gabungkan beberapa transaksi menjadi satu.
 
@@ -52,6 +53,7 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
               date: { type: "string" },
               time: { type: "string" },
               notes: { type: "string" },
+              currency: { type: "string" },
             },
           },
         },
@@ -112,6 +114,7 @@ Jawab HANYA dengan JSON valid sesuai skema.`;
         date: normalizeDate(t.date),
         time: normalizeTime(t.time),
         notes: t.notes ? String(t.notes).trim().slice(0, 120) : "",
+        currency: ["IDR", "SAR", "USD"].includes(String(t.currency || "").toUpperCase()) ? String(t.currency).toUpperCase() : "IDR",
       };
     })
     .filter((t) => t.amount > 0);

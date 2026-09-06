@@ -1,50 +1,34 @@
 import { useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useRefresh } from "@/hooks/useFinance";
+import { useRefresh, useMe } from "@/hooks/useFinance";
+import { exportBackup, importBackup, BACKUP_ENTITIES } from "@/lib/backupRestore";
 import { toast } from "sonner";
 import { Download, Upload, Loader2, FileJson, AlertTriangle, Check } from "lucide-react";
 
-const ENTITIES = [
-  { key: "Transaction", label: "Transaksi" },
-  { key: "Asset", label: "Aset" },
-  { key: "Category", label: "Kategori" },
-  { key: "Budget", label: "Anggaran" },
-  { key: "ZakatPayment", label: "Zakat" },
-  { key: "AssetSnapshot", label: "Snapshot Aset" },
-  { key: "TransactionTemplate", label: "Template" },
-  { key: "InvestmentLot", label: "Lot Investasi" },
-];
-
-const STRIP = ["id", "created_date", "updated_date", "created_by_id"];
-
-function clean(arr) {
-  return (arr || []).map((r) => {
-    const c = { ...r };
-    STRIP.forEach((k) => delete c[k]);
-    return c;
-  });
-}
+const labelMap = {
+  transactions: "Transaksi",
+  assets: "Aset",
+  categories: "Kategori",
+  budgets: "Anggaran",
+  zakatPayments: "Zakat",
+  snapshots: "Snapshot Aset",
+  templates: "Template",
+  investmentLots: "Lot Investasi",
+};
 
 export default function LocalBackupRestore() {
   const refresh = useRefresh();
+  const { data: me } = useMe();
   const fileRef = useRef(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [pending, setPending] = useState(null);
+  const [mode, setMode] = useState("merge");
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      const data = {};
-      for (const e of ENTITIES) {
-        data[e.key] = await base44.entities[e.key].list("-created_date", 5000);
-      }
-      const backup = {
-        app: "NAFKITA",
-        exported_at: new Date().toISOString(),
-        counts: Object.fromEntries(ENTITIES.map((e) => [e.key, data[e.key].length])),
-        data,
-      };
+      const backup = await exportBackup();
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -54,7 +38,7 @@ export default function LocalBackupRestore() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      const total = Object.values(backup.counts).reduce((s, n) => s + n, 0);
+      const total = Object.values(backup.counts || {}).reduce((s, n) => s + n, 0);
       toast.success("Cadangan diunduh", { description: `${total} data disimpan ke perangkat.` });
     } catch {
       toast.error("Gagal membuat cadangan");
@@ -72,6 +56,8 @@ export default function LocalBackupRestore() {
         const parsed = JSON.parse(reader.result);
         if (!parsed || !parsed.data || !parsed.counts) throw new Error();
         setPending(parsed);
+        setMode("merge");
+        setConfirmReplace(false);
       } catch {
         toast.error("File cadangan tidak valid");
       }
@@ -81,24 +67,26 @@ export default function LocalBackupRestore() {
 
   const handleImport = async () => {
     if (!pending) return;
+    if (mode === "replace" && !confirmReplace) {
+      setConfirmReplace(true);
+      return;
+    }
     setImporting(true);
     try {
-      const d = pending.data || {};
-      const created = {};
-      for (const e of ENTITIES) {
-        const records = clean(d[e.key]);
-        created[e.key] = records.length
-          ? (await base44.entities[e.key].bulkCreate(records)).length || 0
-          : 0;
-      }
-      const total = Object.values(created).reduce((s, n) => s + n, 0);
-      toast.success("Cadangan dipulihkan", { description: `${total} data ditambahkan kembali.` });
+      const result = await importBackup(pending, mode, me?.id);
+      const total = Object.values(result).reduce((s, n) => s + (n || 0), 0);
+      toast.success("Cadangan dipulihkan", {
+        description: mode === "replace"
+          ? `${total} data dimuat ulang (data lama dihapus).`
+          : `${total} data baru ditambahkan (duplikat dilewati).`,
+      });
       refresh();
+      setPending(null);
+      setConfirmReplace(false);
     } catch {
       toast.error("Gagal memulihkan cadangan");
     }
     setImporting(false);
-    setPending(null);
   };
 
   const fmtDate = (iso) => {
@@ -111,7 +99,7 @@ export default function LocalBackupRestore() {
 
   return (
     <div>
-      <p className="text-xs text-muted-foreground mb-3">Cadangkan data Anda ke file di perangkat ini. Setiap akun membuat dan memulihkan cadangannya sendiri.</p>
+      <p className="text-xs text-muted-foreground mb-3">Cadangkan data Anda ke file di perangkat ini. Format kompatibel dengan cadangan Google Drive. Setiap akun membuat dan memulihkan cadangannya sendiri.</p>
 
       <button
         onClick={handleExport}
@@ -127,24 +115,51 @@ export default function LocalBackupRestore() {
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <p className="text-xs flex-1">Pulihkan cadangan ini? Data akan ditambahkan ke data saat ini.</p>
+            <p className="text-xs flex-1">Pilih mode pemulihan, lalu konfirmasi.</p>
           </div>
           <div className="rounded-lg bg-background/60 p-2.5 mb-2.5">
             <p className="text-[10px] text-muted-foreground mb-1">Dibuat: {fmtDate(pending.exported_at)}</p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-              {ENTITIES.map((e) => (
+              {BACKUP_ENTITIES.map((e) => (
                 <p key={e.key} className="text-[11px] text-muted-foreground flex justify-between">
-                  <span>{e.label}</span>
+                  <span>{labelMap[e.key] || e.key}</span>
                   <span className="tabular-nums font-medium text-foreground">{pending.counts?.[e.key] ?? 0}</span>
                 </p>
               ))}
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={handleImport} disabled={importing} className="flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60">
-              {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Pulihkan
+
+          <div className="flex gap-2 mb-2.5">
+            <button
+              onClick={() => { setMode("merge"); setConfirmReplace(false); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "merge" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              Gabung
             </button>
-            <button onClick={() => setPending(null)} disabled={importing} className="px-3 py-1.5 rounded-lg bg-muted text-xs font-medium">Batal</button>
+            <button
+              onClick={() => { setMode("replace"); setConfirmReplace(false); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "replace" ? "bg-red-500 text-white" : "bg-muted text-muted-foreground"}`}
+            >
+              Ganti total
+            </button>
+          </div>
+          {mode === "merge" && (
+            <p className="text-[10px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
+          )}
+          {mode === "replace" && (
+            <p className="text-[10px] text-red-600 mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleImport}
+              disabled={importing}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60 ${mode === "replace" ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}
+            >
+              {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              {mode === "replace" && confirmReplace ? "Yakin? Data dihapus" : mode === "replace" ? "Pulihkan (Ganti total)" : "Pulihkan (Gabung)"}
+            </button>
+            <button onClick={() => { setPending(null); setConfirmReplace(false); }} disabled={importing} className="px-3 py-1.5 rounded-lg bg-muted text-xs font-medium">Batal</button>
           </div>
         </div>
       ) : (

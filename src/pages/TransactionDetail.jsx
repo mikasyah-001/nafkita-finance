@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTransactions, useAssets } from "@/hooks/useFinance";
 import { formatRupiah, formatMoney, formatDate, colorMap } from "@/lib/finance";
+import { adjustOnUpdate, adjustLinkedAsset, txEffect } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { Image as SmartImage } from "@/components/ui/image";
@@ -20,13 +21,13 @@ export default function TransactionDetail() {
   const refresh = useRefresh();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const { data: assets = [] } = useAssets();
   const { user } = useAuth();
   const fileRef = useRef(null);
 
   const tx = transactions.find((t) => t.id === id);
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
-  const isAdmin = user?.role === "admin";
-  const canManage = isOwner || isAdmin;
+  const canManage = isOwner;
 
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,7 @@ export default function TransactionDetail() {
         tags: tx.tags || [],
         visibility: tx.visibility || "shared",
         currency: tx.currency || "IDR",
+        linked_asset_id: tx.linked_asset_id || "",
       });
     }
   }, [tx, form]);
@@ -125,6 +127,7 @@ export default function TransactionDetail() {
     if (form.type !== "sedekah" && !form.category) return toast.error("Pilih kategori");
     setSaving(true);
     try {
+      const newTx = { type: form.type, amount: amt, linked_asset_id: form.linked_asset_id || undefined };
       await base44.entities.Transaction.update(id, {
         type: form.type,
         amount: amt,
@@ -136,7 +139,9 @@ export default function TransactionDetail() {
         photo_url: form.photo_url || "",
         tags: form.tags || [],
         visibility: form.visibility || "shared",
+        linked_asset_id: form.linked_asset_id || undefined,
       });
+      await adjustOnUpdate(tx, newTx);
       refresh();
       toast.success("Transaksi diperbarui");
       setEdit(false);
@@ -149,6 +154,7 @@ export default function TransactionDetail() {
 
   const handleDelete = async () => {
     try {
+      if (tx.linked_asset_id) await adjustLinkedAsset(tx.linked_asset_id, -txEffect(tx));
       await base44.entities.Transaction.delete(id);
       refresh();
       toast.success("Transaksi dihapus");
@@ -171,6 +177,7 @@ export default function TransactionDetail() {
 
   if (edit && form) {
     const availableCategories = categories.filter((c) => c.type === form.type);
+    const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === (form.currency || "IDR"));
     return (
       <div className="min-h-screen flex flex-col">
         <header className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -212,7 +219,7 @@ export default function TransactionDetail() {
               {["IDR", "SAR", "USD"].map((c) => (
                 <button
                   key={c}
-                  onClick={() => setForm({ ...form, currency: c })}
+                  onClick={() => setForm({ ...form, currency: c, linked_asset_id: "" })}
                   className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
                     form.currency === c ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
                   }`}
@@ -222,6 +229,23 @@ export default function TransactionDetail() {
               ))}
             </div>
           </div>
+
+          {bankAssets.length > 0 && (
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
+              <select
+                value={form.linked_asset_id || ""}
+                onChange={(e) => setForm({ ...form, linked_asset_id: e.target.value })}
+                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
+              >
+                <option value="">Tidak ada — saldo tidak diubah</option>
+                {bankAssets.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
+            </div>
+          )}
 
           <button onClick={() => fileRef.current?.click()} disabled={scanning} className="w-full rounded-2xl border-2 border-dashed border-border py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60">
             {scanning ? (

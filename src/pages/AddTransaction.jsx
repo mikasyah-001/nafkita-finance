@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates, useTransactions } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTemplates, useTransactions, useAssets } from "@/hooks/useFinance";
 import { colorMap, formatRupiah, formatMoney, formatDate, currencies, currencySymbol } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
@@ -9,6 +9,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
+import { adjustLinkedAsset, txEffect } from "@/lib/linkedAsset";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
 import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
@@ -25,6 +26,7 @@ export default function AddTransaction() {
   const { data: categories = [] } = useCategories();
   const { data: templates = [] } = useTemplates();
   const { data: transactions = [] } = useTransactions();
+  const { data: assets = [] } = useAssets();
   const [user, setUser] = useState(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [type, setType] = useState("expense");
@@ -44,6 +46,7 @@ export default function AddTransaction() {
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
   const [currency, setCurrency] = useState("IDR");
+  const [linkedAssetId, setLinkedAssetId] = useState("");
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -56,6 +59,7 @@ export default function AddTransaction() {
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
+  const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency);
 
   const applyTemplate = (t) => {
     setType(t.type);
@@ -94,6 +98,7 @@ export default function AddTransaction() {
         const p = allTx[0];
         if (p.photo_url) { setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
         if (p.amount) setAmount(String(p.amount));
+        if (p.currency) setCurrency(p.currency);
         if (p.merchant && type !== "income") setMerchant(p.merchant);
         if (p.category && type === "expense") setCategory(p.category);
         if (p.notes) setNotes(p.notes);
@@ -197,7 +202,8 @@ export default function AddTransaction() {
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
         visibility,
-      });
+        linked_asset_id: linkedAssetId || undefined,
+      }, user?.id);
       toast.success("Tersimpan offline", { description: "Akan otomatis disinkron saat koneksi kembali." });
       navigate("/");
       setSaving(false);
@@ -216,7 +222,9 @@ export default function AddTransaction() {
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
         visibility,
+        linked_asset_id: linkedAssetId || undefined,
       });
+      if (linkedAssetId) await adjustLinkedAsset(linkedAssetId, txEffect({ type, amount: amt }));
       if (saveAsTemplate) {
         try {
           await base44.entities.TransactionTemplate.create({
@@ -340,7 +348,7 @@ export default function AddTransaction() {
             {currencies.map((c) => (
               <button
                 key={c.code}
-                onClick={() => setCurrency(c.code)}
+                onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
                 className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
                   currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
                 }`}
@@ -350,6 +358,23 @@ export default function AddTransaction() {
             ))}
           </div>
         </div>
+
+        {bankAssets.length > 0 && (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
+            <select
+              value={linkedAssetId}
+              onChange={(e) => setLinkedAssetId(e.target.value)}
+              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
+            >
+              <option value="">Tidak ada — saldo tidak diubah</option>
+              {bankAssets.map((a) => (
+                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
+          </div>
+        )}
 
         {templates.length > 0 && (
           <div>

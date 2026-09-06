@@ -23,7 +23,7 @@ export default function InvestmentDetail() {
     if (!asset) return;
     if (currentPrice) return;
     const last = [...lots].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    const seed = asset.purchase_price && asset.quantity ? Math.round(asset.purchase_price / (asset.quantity || 1)) : last?.price_per_unit || "";
+    const seed = asset.value && asset.quantity ? Math.round(asset.value / (asset.quantity || 1)) : last?.price_per_unit || "";
     setCurrentPrice(String(seed || ""));
   }, [asset, lots]);
 
@@ -56,15 +56,22 @@ export default function InvestmentDetail() {
     setSaving(true);
     try {
       const newLot = { quantity: qty, amount: Math.round(price * qty) };
-      await base44.entities.InvestmentLot.create({
-        asset_id: id,
-        date: lot.date,
-        price_per_unit: price,
-        quantity: qty,
-        amount: Math.round(price * qty),
-        notes: lot.notes || "",
-      });
-      if (asset) await base44.entities.Asset.update(asset.id, computeUpdate([...lots, newLot]));
+      let createdLot = null;
+      try {
+        createdLot = await base44.entities.InvestmentLot.create({
+          asset_id: id,
+          date: lot.date,
+          price_per_unit: price,
+          quantity: qty,
+          amount: Math.round(price * qty),
+          notes: lot.notes || "",
+        });
+        if (asset) await base44.entities.Asset.update(asset.id, computeUpdate([...lots, newLot]));
+      } catch (e) {
+        // Rollback: hapus lot bila update aset gagal agar riwayat & total tetap sinkron.
+        if (createdLot?.id) { try { await base44.entities.InvestmentLot.delete(createdLot.id); } catch {} }
+        throw e;
+      }
       refresh();
       setLot({ date: new Date().toISOString().slice(0, 10), price_per_unit: "", quantity: "", notes: "" });
       setShowForm(false);
@@ -76,9 +83,18 @@ export default function InvestmentDetail() {
   };
 
   const handleDeleteLot = async (lotId) => {
+    const lotRec = lots.find((l) => l.id === lotId);
     try {
       await base44.entities.InvestmentLot.delete(lotId);
-      if (asset) await base44.entities.Asset.update(asset.id, computeUpdate(lots.filter((l) => l.id !== lotId)));
+      if (asset) {
+        try {
+          await base44.entities.Asset.update(asset.id, computeUpdate(lots.filter((l) => l.id !== lotId)));
+        } catch (e) {
+          // Rollback: buat ulang lot bila update aset gagal.
+          if (lotRec) { try { await base44.entities.InvestmentLot.create({ asset_id: id, date: lotRec.date, price_per_unit: lotRec.price_per_unit, quantity: lotRec.quantity, amount: lotRec.amount, notes: lotRec.notes || "" }); } catch {} }
+          throw e;
+        }
+      }
       refresh();
       toast.success("Catatan DCA dihapus");
     } catch {

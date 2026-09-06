@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRefresh, useTransactions } from "@/hooks/useFinance";
+import { useRefresh, useTransactions, useMe } from "@/hooks/useFinance";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getPending, removePending, toBackendTx } from "@/lib/offlineQueue";
 import { findDuplicate } from "@/lib/duplicateDetect";
@@ -11,11 +11,13 @@ export default function OfflineSyncManager() {
   const online = useOnlineStatus();
   const refresh = useRefresh();
   const { data: transactions = [] } = useTransactions();
-  const [pending, setPending] = useState(getPending());
+  const { data: me } = useMe();
+  const userId = me?.id;
+  const [pending, setPending] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
   const sync = async () => {
-    const list = getPending();
+    const list = getPending(userId);
     if (list.length === 0) return;
     setSyncing(true);
     let ok = 0;
@@ -25,17 +27,17 @@ export default function OfflineSyncManager() {
         const payload = toBackendTx(tx);
         // Cek duplikat terhadap transaksi yang sudah ada di server.
         if (findDuplicate(payload, transactions)) {
-          removePending(tx._localId);
+          removePending(tx._localId, userId);
           continue;
         }
         await base44.entities.Transaction.create(payload);
-        removePending(tx._localId);
+        removePending(tx._localId, userId);
         ok++;
       } catch (e) {
         failed.push({ tx, error: e?.message || "Gagal menyinkronkan" });
       }
     }
-    setPending(getPending());
+    setPending(getPending(userId));
     setSyncing(false);
     if (ok > 0) {
       refresh();
@@ -49,10 +51,10 @@ export default function OfflineSyncManager() {
   };
 
   useEffect(() => {
-    setPending(getPending());
-    if (online && getPending().length > 0) sync();
+    setPending(getPending(userId));
+    if (online && userId && getPending(userId).length > 0) sync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online]);
+  }, [online, userId]);
 
   let content = null;
   if (!online) {

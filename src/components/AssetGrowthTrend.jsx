@@ -16,8 +16,7 @@ export default function AssetGrowthTrend() {
 
   const byCur = useMemo(() => {
     const map = {};
-    CURRENCY_CODES.forEach((c) => { map[c] = []; });
-    (snapshots || []).forEach((s) => { const c = s.currency || "IDR"; if (map[c]) map[c].push(s); });
+    (snapshots || []).forEach((s) => { const c = (s.currency || "IDR").toUpperCase(); if (!map[c]) map[c] = []; map[c].push(s); });
     return map;
   }, [snapshots]);
 

@@ -23,6 +23,30 @@ export default async function (req) {
     if (tx.created_by_id !== me.id)
       return Response.json({ error: "forbidden" }, { status: 403 });
 
+    // #1: Transaksi pending belum menerapkan efek ke aset. Batalkan permintaan
+    // persetujuan terkait tanpa menyentuh saldo, lalu hapus transaksi.
+    if (tx.approval_status === "pending") {
+      let approvalId = tx.approval_id || null;
+      if (!approvalId) {
+        try {
+          const list = await base44.asServiceRole.entities.TransactionApproval.filter(
+            { transaction_id, status: "pending" }, "-created_date", 1
+          );
+          approvalId = (list && list[0]?.id) || null;
+        } catch {}
+      }
+      if (approvalId) {
+        try {
+          await base44.asServiceRole.entities.TransactionApproval.update(approvalId, {
+            status: "cancelled",
+            decided_at: new Date().toISOString(),
+          });
+        } catch {}
+      }
+      await base44.entities.Transaction.delete(transaction_id);
+      return Response.json({ ok: true, cancelled_approval: true });
+    }
+
     // Sesuaikan saldo aset LEBIH DULU, lalu hapus transaksi.
     // Urutan ini memungkinkan rollback bila penghapusan gagal.
     if (tx.linked_asset_id) {

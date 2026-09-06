@@ -30,6 +30,16 @@
         "both"
       ],
       "default": "in_app"
+    },
+    "approval_threshold": {
+      "type": "number",
+      "default": 10000,
+      "description": "Ambang nominal persetujuan pasangan (dalam mata uang acuan approval_threshold_currency). Transaksi shared dengan nominal >= ambang (dikonversi ke mata uang acuan) wajib disetujui pasangan sebelum saldo aset disesuaikan."
+    },
+    "approval_threshold_currency": {
+      "type": "string",
+      "default": "SAR",
+      "description": "Mata uang acuan ambang persetujuan. Nominal transaksi dikonversi ke mata uang ini sebelum dibandingkan ke approval_threshold."
     }
   },
   "required": [

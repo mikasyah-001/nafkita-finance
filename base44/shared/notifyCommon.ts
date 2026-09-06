@@ -85,21 +85,33 @@ export async function createNotificationIdempotent(base44, payload) {
   return { created: true, id: created?.id };
 }
 
+// Escape karakter HTML agar input pengguna (merchant/catatan) tidak disisipkan
+// mentah ke template HTML email — mencegah HTML injection.
+const escapeHtml = (s) =>
+  String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
 // Kirim email notifikasi bila channel mencakup email.
 export async function maybeSendEmail(base44, pref, email, actorName, title, body) {
   if (!pref) return;
   const channel = pref.channel || "in_app";
   if (channel !== "email" && channel !== "both") return;
   if (!email) return;
+  const safeTitle = escapeHtml(title);
+  const safeBody = escapeHtml(body);
+  const safeActor = escapeHtml(actorName);
   try {
     await base44.asServiceRole.integrations.Core.SendEmail({
       to: email,
       subject: title,
       body: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px;">
         <p style="color:#6366f1;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">NAFKITA &middot; Notifikasi</p>
-        <h2 style="margin:8px 0 12px;">${title}</h2>
-        <p style="color:#334155;font-size:15px;line-height:1.6;">${body}</p>
-        <p style="color:#94a3b8;font-size:12px;margin-top:20px;">— ${actorName} via NAFKITA</p>
+        <h2 style="margin:8px 0 12px;">${safeTitle}</h2>
+        <p style="color:#334155;font-size:15px;line-height:1.6;">${safeBody}</p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:20px;">— ${safeActor} via NAFKITA</p>
       </div>`,
     });
   } catch {}

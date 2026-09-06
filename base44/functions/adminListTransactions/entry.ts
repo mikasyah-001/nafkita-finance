@@ -1,8 +1,9 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { logAdminAction } from "../../shared/auditLog.ts";
 
 // Endpoint admin: daftar transaksi lintas keluarga dengan pagination cursor.
 // Hanya menampilkan transaksi non-private (kebijakan privasi).
-// Memverifikasi role admin; 403 bila bukan admin.
+// Memverifikasi role admin; 403 bila bukan admin. Mencatat akses ke AuditLog.
 // Payload: { before_date?, user_filter?, limit? }
 export default async function (req) {
   try {
@@ -22,6 +23,15 @@ export default async function (req) {
     const txs = await base44.asServiceRole.entities.Transaction.filter(
       filter, "-date", pageSize
     );
+
+    await logAdminAction(base44, {
+      actor_id: me.id,
+      actor_name: me.full_name || me.email,
+      actor_email: me.email,
+      action: "view_admin_transactions",
+      target_type: "transaction",
+      details: `Admin memuat ${(txs || []).length} transaksi lintas keluarga`,
+    });
 
     return Response.json({
       transactions: txs || [],

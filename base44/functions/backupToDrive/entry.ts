@@ -71,7 +71,7 @@ export default async function (req) {
       }
       const data = userDataFor(allRecords, me.id);
       const now = new Date();
-      const fileName = `nafkita-backup-${me.id.slice(-8)}-${now.toISOString().slice(0, 10)}.json`;
+      const fileName = `nafkita-backup-${me.id}-${now.toISOString().slice(0, 10)}.json`;
       const uploadRes = await uploadToDrive(accessToken, fileName, "Cadangan data NAFKITA (pribadi)", JSON.stringify(buildBackup(me, data), null, 2));
       if (!uploadRes.ok) {
         return Response.json({ error: "drive_upload_failed", details: await uploadRes.text() }, { status: 502 });
@@ -99,7 +99,7 @@ export default async function (req) {
       const data = userDataFor(allRecords, u.id);
       const totalRecords = Object.values(data).reduce((s, arr) => s + arr.length, 0);
       if (totalRecords === 0) continue; // lewati pengguna tanpa data
-      const fileName = `nafkita-backup-${u.id.slice(-8)}-${dateStr}.json`;
+      const fileName = `nafkita-backup-${u.id}-${dateStr}.json`;
       const uploadRes = await uploadToDrive(accessToken, fileName, `Cadangan data NAFKITA (${u.full_name || u.email})`, JSON.stringify(buildBackup(u, data), null, 2));
       results.push({ user_id: u.id, file_name: fileName, ok: uploadRes.ok, status: uploadRes.status });
     }

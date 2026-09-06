@@ -21,8 +21,10 @@ export default async function (req) {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googledrive");
 
     if (action === "list") {
+      // Cari baik format baru (full user ID) maupun format lama (8-char suffix).
+      const full = me.id;
       const suffix = me.id.slice(-8);
-      const q = `name contains 'nafkita-backup-${suffix}' and trashed = false`;
+      const q = `(name contains 'nafkita-backup-${full}' or name contains 'nafkita-backup-${suffix}') and trashed = false`;
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=createdTime desc&fields=files(id,name,createdTime,size)&pageSize=50`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (!res.ok) return Response.json({ error: "drive_list_failed", details: await res.text() }, { status: 502 });

@@ -50,3 +50,38 @@ export async function isAuthorizedCall(req, base44): Promise<boolean> {
   }
   return diff === 0;
 }
+
+/**
+ * Verifikasi token workflow saja (tanpa konteks user). Dipakai oleh fungsi yang
+ * harus melayani mode interaktif (user non-admin) sekaligus mode terjadwal.
+ * Mengembalikan true bila token cocok dengan secret WORKFLOW_TOKEN.
+ */
+export async function verifyWorkflowToken(req): Promise<boolean> {
+  const expected = secrets.get("WORKFLOW_TOKEN");
+  if (!expected) return false;
+
+  let provided = "";
+  try {
+    const h = req?.headers;
+    if (h && typeof h.get === "function") provided = h.get("x-workflow-token") || "";
+  } catch {
+    // ignore header read errors
+  }
+  if (!provided) {
+    try {
+      if (req?.body) {
+        const body = await req.json();
+        provided = (body && body.token) || "";
+      }
+    } catch {
+      // body not JSON or already consumed
+    }
+  }
+  if (!provided || provided.length !== expected.length) return false;
+
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
+}

@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.46";
-import { secrets } from "base44:runtime";
+import { verifyWorkflowToken } from "../../shared/workflowAuth.ts";
 import { BACKUP_ENTITIES, BACKUP_VERSION } from "../../shared/backupFormat.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
@@ -11,29 +11,6 @@ import { fetchAll } from "../../shared/fetchAll.ts";
 // Field created_by_id di-strip agar saat pemulihan kepemilikan dipetakan ulang.
 const STRIP = ["id", "created_date", "updated_date", "created_by_id"];
 const strip = (r) => { const c = { ...r }; STRIP.forEach((k) => delete c[k]); return c; };
-
-// Verifikasi token workflow (shared secret) untuk mode terjadwal tanpa sesi user.
-// Token dapat datang via header x-workflow-token atau body { token }.
-async function verifyWorkflowToken(req): Promise<boolean> {
-  const expected = secrets.get("WORKFLOW_TOKEN");
-  if (!expected) return false;
-  let provided = "";
-  try { provided = req?.headers?.get?.("x-workflow-token") || ""; } catch {}
-  if (!provided) {
-    try {
-      if (req?.body) {
-        const b = await req.json();
-        provided = (b && b.token) || "";
-      }
-    } catch { /* body bukan JSON atau sudah dikonsumsi */ }
-  }
-  if (!provided || provided.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) {
-    diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
-}
 
 async function uploadToDrive(accessToken, fileName, description, json) {
   const boundary = "nafkita_" + Math.random().toString(36).slice(2);

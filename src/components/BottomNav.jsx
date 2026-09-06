@@ -1,6 +1,6 @@
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Home, ReceiptText, Plus, Landmark, BarChart3, Grid, X, ArrowRightLeft, HandCoins, RefreshCw, Scale, Upload, Tags, Target, CheckCheck } from "lucide-react";
+import { Home, ReceiptText, Plus, Landmark, BarChart3, Grid, X, ArrowRightLeft, HandCoins, RefreshCw, Scale, Upload, Tags, Target, CheckCheck, Activity } from "lucide-react";
 
 const items = [
   { to: "/", icon: Home, label: "Beranda", end: true },
@@ -18,6 +18,7 @@ const moreItems = [
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },
+  { to: "/kesehatan-data", icon: Activity, label: "Kesehatan Data" },
 ];
 
 export default function BottomNav() {

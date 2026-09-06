@@ -29,7 +29,7 @@ function loadImageDataUrl(url) {
   });
 }
 
-export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR", stats, categoryRows, transactions }) {
+export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR", stats, categoryRows, transactions, withProof = true }) {
   const cur = currency;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -88,7 +88,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR
       lines.forEach((ln) => { ensure(12); doc.text(ln, margin, y); y += 12; });
     }
     y += 4;
-    if (t.photo_url) {
+    if (withProof && t.photo_url) {
       const img = await loadImageDataUrl(t.photo_url);
       if (img) {
         const maxW = pageW - 2 * margin;

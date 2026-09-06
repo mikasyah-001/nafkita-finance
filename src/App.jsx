@@ -40,6 +40,7 @@ import Reconciliation from '@/pages/Reconciliation';
 import SavingsGoals from '@/pages/SavingsGoals';
 import Approvals from '@/pages/Approvals';
 import AssetMutations from '@/pages/AssetMutations';
+import DataHealth from '@/pages/DataHealth';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
           <Route path="/target-tabungan" element={<SavingsGoals />} />
           <Route path="/persetujuan" element={<Approvals />} />
           <Route path="/mutasi-aset" element={<AssetMutations />} />
+          <Route path="/kesehatan-data" element={<DataHealth />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

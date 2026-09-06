@@ -3,7 +3,7 @@ import {
   Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
   PiggyBank, Upload, Tags, User, Settings, MessageSquare,
   Shield, Sparkles, ArrowRightLeft, HandCoins, RefreshCw, Scale,
-  Target, CheckCheck, History, Bell,
+  Target, CheckCheck, History, Bell, Activity,
 } from "lucide-react";
 
 const mainItems = [
@@ -24,6 +24,7 @@ const toolItems = [
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },
+  { to: "/kesehatan-data", icon: Activity, label: "Kesehatan Data" },
 ];
 
 const accountItems = [

@@ -1,0 +1,52 @@
+{
+  "name": "ExchangeRate",
+  "type": "object",
+  "properties": {
+    "base_currency": {
+      "type": "string",
+      "description": "Kode mata uang dasar (mis. USD)"
+    },
+    "quote_currency": {
+      "type": "string",
+      "description": "Kode mata uang tujuan (mis. IDR)"
+    },
+    "rate": {
+      "type": "number",
+      "description": "Nilai tukar: 1 base_currency = rate quote_currency"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal kurs berlaku"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "api",
+        "manual"
+      ],
+      "default": "api",
+      "description": "Sumber kurs: api = diambil otomatis, manual = diinput pengguna"
+    }
+  },
+  "required": [
+    "base_currency",
+    "quote_currency",
+    "rate",
+    "date"
+  ],
+  "rls": {
+    "read": null,
+    "create": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

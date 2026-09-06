@@ -19,6 +19,7 @@ export default function AssetDashboard() {
   const { scope, setScope } = useScope();
   const { data: me } = useMe();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
   const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private") && (a.currency || "IDR") === currency);
   const [goldPrice, setGoldPrice] = useState("");
   const [goldHistory, setGoldHistory] = useState([]);
@@ -44,7 +45,7 @@ export default function AssetDashboard() {
     if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
     return s + (a.value || 0);
   }, 0);
-  const totalPurchase = scopedAssets.reduce((s, a) => s + ((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
   const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
@@ -62,7 +63,7 @@ export default function AssetDashboard() {
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
-      const purchase = list.reduce((s, a) => s + ((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+      const purchase = list.reduce((s, a) => s + (type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
       const curSet = [...new Set(list.map((a) => a.currency || "IDR"))];
       const currency = curSet.length === 1 ? curSet[0] : "IDR";
@@ -221,7 +222,7 @@ export default function AssetDashboard() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = a.type === "emas" && goldPriceNum > 0 && a.quantity ? a.quantity * goldPriceNum : (a.value || 0);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && a.type === "emas" ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             return (

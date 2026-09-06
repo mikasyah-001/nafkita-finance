@@ -233,7 +233,7 @@ export default function Assets() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && a.type === "emas" ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             const isGain = gain >= 0;

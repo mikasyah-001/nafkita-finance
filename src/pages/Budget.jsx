@@ -18,6 +18,7 @@ export default function Budget() {
   const [limits, setLimits] = useState({});
   const [scope, setScope] = useState("shared");
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();

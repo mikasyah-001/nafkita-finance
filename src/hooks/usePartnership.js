@@ -39,7 +39,8 @@ export function usePartnership() {
     .map((p) => (p.inviter_id === me?.id ? p.invitee_id : p.inviter_id))
     .filter(Boolean);
   const partners = users.filter((u) => partnerIds.includes(u.id));
-  const hasPartner = partners.length > 0;
+  // Status koneksi mengikuti record Partnership, bukan keberhasilan join profil User.
+  const hasPartner = myActive.length > 0;
 
   // Peran suami/istri dari hubungan aktif (inviter memilih perannya sendiri,
   // invitee mendapat peran pelengkap). Bebas berubah per hubungan baru.
@@ -60,12 +61,12 @@ export function usePartnership() {
 
   // Permintaan masuk: seseorang mengundang saya, belum saya tanggapi
   const incomingRequests = partnerships.filter(
-    (p) => p.invitee_email === me?.email && p.status === "pending" && p.inviter_id !== me?.id
+    (p) => (p.invitee_email || "").toLowerCase() === (me?.email || "").toLowerCase() && p.status === "pending" && p.inviter_id !== me?.id
   );
 
   const invite = async (email, role) => {
     if (!email) return toast.error("Masukkan email pasangan");
-    if (email === me?.email) return toast.error("Tidak dapat mengundang diri sendiri");
+    if (email.toLowerCase() === (me?.email || "").toLowerCase()) return toast.error("Tidak dapat mengundang diri sendiri");
     if (hasPartner) return toast.error("Anda sudah terhubung dengan pasangan");
     if (sentInvites.length > 0 || incomingRequests.length > 0)
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");

@@ -35,7 +35,8 @@ export default async function (req) {
       { id: active.id, status: "active" },
       { $set: { inviter_role, invitee_role } }
     );
-    if (!result || !result.modified) {
+    const updated = result?.updated ?? result?.modified;
+    if (!updated) {
       return Response.json({ error: "update_failed" }, { status: 409 });
     }
 

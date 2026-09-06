@@ -3,6 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Bell, CheckCheck, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { formatMoney } from "@/lib/finance";
+
+// Susun teks nominal notifikasi memakai mata uang transaksi (disimpan pada
+// record). Label diambil dari body (bagian setelah " • "). Bila nominal
+// disembunyikan (•••) atau bukan transaksi, tampilkan body apa adanya.
+const notifBody = (n) => {
+  const raw = String(n.body || "");
+  if (n.entity_kind === "transaction" && n.currency && n.amount != null && !raw.includes("•••")) {
+    const sign = n.tx_type === "income" ? "+" : "-";
+    const parts = raw.split(" • ");
+    const label = parts.length > 1 ? parts[parts.length - 1] : "";
+    return `${sign}${formatMoney(n.amount, n.currency)}${label ? ` • ${label}` : ""}`;
+  }
+  return raw;
+};
 
 const fmtTime = (iso) => {
   try {
@@ -177,7 +192,7 @@ export default function NotificationBell() {
                     <div className="text-base shrink-0 leading-6">{kindIcon(n.entity_kind)}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold truncate">{n.actor_name || n.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{n.title === n.actor_name ? "" : n.title} {n.body ? `• ${n.body}` : ""}</p>
+                      <p className="text-xs text-muted-foreground truncate">{n.title === n.actor_name ? "" : n.title} {notifBody(n) ? `• ${notifBody(n)}` : ""}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{fmtTime(n.created_date)}</p>
                     </div>
                     {!n.read && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-primary" />}

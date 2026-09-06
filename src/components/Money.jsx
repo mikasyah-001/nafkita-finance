@@ -1,7 +1,7 @@
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { formatRupiah, formatMoney, formatMoneyShort } from "@/lib/finance";
 
-export default function Money({ value, format = "full", currency, className = "" }) {
+export default function Money({ value, format = "full", currency = "IDR", className = "" }) {
   const { hidden } = usePrivacy();
   const text = (() => {
     if (hidden) return "••••••";

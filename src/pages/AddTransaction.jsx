@@ -29,7 +29,11 @@ export default function AddTransaction() {
   const { data: assets = [] } = useAssets();
   const [user, setUser] = useState(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [type, setType] = useState("expense");
+  const [type, setType] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("type");
+    return ["expense", "income", "sedekah"].includes(t) ? t : "expense";
+  });
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(() => {

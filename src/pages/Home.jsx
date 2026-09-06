@@ -101,7 +101,7 @@ export default function Home() {
     { to: "/laporan", icon: Sparkles, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
     { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
     { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
-    { to: "/add", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
+    { to: "/add?type=sedekah", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
   ];
 
   return (

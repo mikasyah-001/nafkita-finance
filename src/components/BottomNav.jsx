@@ -30,15 +30,18 @@ export default function BottomNav() {
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border z-50">
-        <div className="flex items-end justify-around h-16 px-2 relative">
+        <div className="flex items-end justify-around h-16 px-1">
           {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} />
           ))}
           <Link
             to="/add"
-            className="absolute -top-5 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
           >
-            <Plus className="w-7 h-7" />
+            <span className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-transform -mt-3">
+              <Plus className="w-6 h-6" />
+            </span>
+            <span className="text-[10px] text-muted-foreground -mt-0.5">Tambah</span>
           </Link>
           {items.slice(2).map((it) => (
             <NavItem key={it.to} {...it} />

@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMe, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useMe, useRefresh } from "@/hooks/useFinance";
 import { currencies as builtIn } from "@/lib/finance";
 import { toast } from "sonner";
-import { Plus, Check, X, Loader2, Trash2, Star } from "lucide-react";
+import { Plus, Check, Loader2, Trash2, Star, Power } from "lucide-react";
 
 export default function CurrencyManager() {
   const { data: me } = useMe();
   const refresh = useRefresh();
-  const userCurrencies = useUserCurrencies();
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ code: "", label: "", symbol: "" });
@@ -19,7 +18,7 @@ export default function CurrencyManager() {
 
   const fullList = [...builtIn, ...custom];
   const activeSet = new Set(active);
-  const inactiveBuiltIn = builtIn.filter((c) => !activeSet.has(c.code));
+  const inactiveCurrencies = fullList.filter((c) => !activeSet.has(c.code));
 
   const persist = async (patch) => {
     setSaving(true);
@@ -54,7 +53,8 @@ export default function CurrencyManager() {
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
     const symbol = form.symbol.trim();
-    if (!code || !label || !symbol) return toast.error("Lengkapi kode, nama, dan simbol");
+    if (!/^[A-Z]{3}$/.test(code)) return toast.error("Kode mata uang harus 3 huruf, misalnya KWD");
+    if (!label || !symbol) return toast.error("Lengkapi nama dan simbol");
     if (fullList.some((c) => c.code === code)) return toast.error("Kode mata uang sudah ada");
     const newCustom = [...custom, { code, label, symbol }];
     const newActive = active.includes(code) ? active : [...active, code];
@@ -114,31 +114,29 @@ export default function CurrencyManager() {
                   </button>
                 )}
                 {isCustom && (
-                  <button onClick={() => removeCustom(code)} disabled={saving} className="text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 shrink-0">
+                  <button onClick={() => removeCustom(code)} disabled={saving} aria-label={`Hapus ${code}`} className="text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                {!isCustom && (
-                  <button
-                    onClick={() => toggle(code)}
-                    disabled={saving || isDefault}
-                    className="relative w-10 h-6 rounded-full bg-primary transition-colors disabled:opacity-50 shrink-0"
-                    aria-label="Aktif/Nonaktif"
-                  >
-                    <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow" />
-                  </button>
-                )}
+                <button
+                  onClick={() => toggle(code)}
+                  disabled={saving || isDefault}
+                  className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 shrink-0"
+                  aria-label={`Nonaktifkan ${code}`}
+                >
+                  <Power className="w-4 h-4" />
+                </button>
               </div>
             );
           })}
         </div>
       </div>
 
-      {inactiveBuiltIn.length > 0 && (
+      {inactiveCurrencies.length > 0 && (
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Tambah dari Daftar</p>
           <div className="flex flex-wrap gap-2">
-            {inactiveBuiltIn.map((c) => (
+            {inactiveCurrencies.map((c) => (
               <button
                 key={c.code}
                 onClick={() => toggle(c.code)}
@@ -156,7 +154,7 @@ export default function CurrencyManager() {
         <div className="rounded-xl border border-border p-3 space-y-2.5">
           <p className="text-xs font-medium">Mata Uang Kustom</p>
           <div className="grid grid-cols-3 gap-2">
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().slice(0, 4) })} placeholder="Kode" className="input py-2" />
+            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
             <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
             <input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
           </div>

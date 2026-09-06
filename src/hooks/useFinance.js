@@ -1,5 +1,7 @@
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { setCustomCurrencies, findCurrency } from "@/lib/finance";
 
 export function useCategories() {
   return useQuery({
@@ -78,6 +80,21 @@ export function useInvestmentLots(assetId) {
 
 export function useMe() {
   return useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
+}
+
+// Daftar mata uang aktif pengguna (bawaan + kustom). Sekaligus mendaftarkan
+// mata uang kustom ke registry agar formatMoney/currencySymbol memakai simbolnya.
+export function useUserCurrencies() {
+  const { data: me } = useMe();
+  const custom = me?.custom_currencies || [];
+  useEffect(() => { setCustomCurrencies(custom); }, [custom]);
+  return useMemo(() => {
+    const fallback = [me?.default_currency || "IDR"];
+    const codes = me?.active_currencies?.length ? me.active_currencies : fallback;
+    return codes
+      .map((code) => findCurrency(code) || { code, label: code, symbol: code })
+      .filter(Boolean);
+  }, [me?.active_currencies, me?.default_currency]);
 }
 
 export function useRefresh() {

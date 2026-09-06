@@ -22,12 +22,8 @@
     },
     "currency": {
       "type": "string",
-      "enum": [
-        "IDR",
-        "USD",
-        "SAR"
-      ],
-      "default": "IDR"
+      "default": "IDR",
+      "description": "Kode mata uang (IDR/SAR/USD bawaan, atau mata uang kustom pengguna)"
     },
     "quantity": {
       "type": "number"

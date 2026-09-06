@@ -16,13 +16,45 @@
     },
     "default_currency": {
       "type": "string",
-      "enum": [
-        "IDR",
-        "SAR",
-        "USD"
-      ],
       "default": "IDR",
       "description": "Mata uang utama pengguna untuk tampilan default"
+    },
+    "active_currencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "IDR"
+      ],
+      "description": "Daftar kode mata uang yang diaktifkan pengguna (bawaan maupun kustom)"
+    },
+    "custom_currencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Kode mata uang unik (mis. EUR, MYR)"
+          },
+          "label": {
+            "type": "string",
+            "description": "Nama mata uang untuk ditampilkan"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Simbol/awalan nominal (mis. \u20ac, RM)"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "symbol"
+        ]
+      },
+      "default": [],
+      "description": "Mata uang kustom yang dibuat pengguna di luar katalog bawaan"
     },
     "onboarding_completed": {
       "type": "boolean",

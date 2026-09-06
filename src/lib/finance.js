@@ -18,17 +18,43 @@ export function formatRupiahShort(n) {
   return formatRupiah(v);
 }
 
+// Katalog mata uang bawaan (dapat diperluas pengguna lewat Pengaturan).
 export const currencies = [
   { code: "IDR", label: "Rupiah", symbol: "Rp" },
   { code: "SAR", label: "Riyal Saudi", symbol: "SAR" },
   { code: "USD", label: "Dolar AS", symbol: "$" },
+  { code: "EUR", label: "Euro", symbol: "€" },
+  { code: "GBP", label: "Pound Sterling", symbol: "£" },
+  { code: "AED", label: "Dirham UAE", symbol: "AED" },
+  { code: "MYR", label: "Ringgit Malaysia", symbol: "RM" },
+  { code: "SGD", label: "Dolar Singapura", symbol: "S$" },
+  { code: "JPY", label: "Yen Jepang", symbol: "¥" },
+  { code: "TRY", label: "Lira Turki", symbol: "₺" },
+  { code: "EGP", label: "Pound Mesir", symbol: "E£" },
+  { code: "PKR", label: "Rupiah Pakistan", symbol: "₨" },
 ];
+
+export const CURRENCY_CODES = currencies.map((c) => c.code);
+
+// Mata uang kustom per pengguna — didaftarkan saat data user dimuat
+// agar formatMoney/currencySymbol dapat memakai simbol yang sesuai.
+let _customCurrencies = [];
+export function setCustomCurrencies(list) { _customCurrencies = Array.isArray(list) ? list : []; }
+export function getCustomCurrencies() { return _customCurrencies; }
+export function findCurrency(code) {
+  const c = (code || "IDR").toUpperCase();
+  return [...currencies, ..._customCurrencies].find((x) => x.code === c);
+}
+export function allCurrencies() { return [...currencies, ..._customCurrencies]; }
 
 export function formatMoney(n, currency = "IDR") {
   const c = (currency || "IDR").toUpperCase();
-  if (c === "USD") return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
-  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
-  return formatRupiah(n);
+  const v = Number(n) || 0;
+  if (c === "IDR") return formatRupiah(v);
+  if (c === "USD") return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  const sym = currencySymbol(c);
+  return `${sym} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
 }
 
 export function formatMoneyShort(n, currency = "IDR") {
@@ -37,30 +63,32 @@ export function formatMoneyShort(n, currency = "IDR") {
   return formatMoney(n, c);
 }
 
-export const CURRENCY_CODES = ["IDR", "SAR", "USD"];
-
 export function currencySymbol(code) {
   const c = (code || "IDR").toUpperCase();
+  if (c === "IDR") return "Rp";
   if (c === "USD") return "$";
   if (c === "SAR") return "SAR";
-  return "Rp";
+  const f = findCurrency(c);
+  return f ? f.symbol : c;
 }
 
 // Ringkasan transaksi dipisah per mata uang (tanpa konversi).
-// Saldo = pemasukan − pengeluaran − sedekah.
-export function summarizeByCurrency(txs) {
+// Saldo = pemasukan − pengeluaran − sedekah. Mata uang terdeteksi otomatis
+// dari transaksi, ditambah daftar mata uang aktif pengguna (bila diberikan).
+export function summarizeByCurrency(txs, currencyList = []) {
   const out = {};
-  CURRENCY_CODES.forEach((c) => { out[c] = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 }; });
+  const ensure = (c) => { if (!out[c]) out[c] = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 }; };
+  (currencyList || []).forEach((c) => ensure((c || "IDR").toUpperCase()));
   (txs || []).forEach((t) => {
     const c = (t.currency || "IDR").toUpperCase();
-    if (!out[c]) return;
+    ensure(c);
     const amt = Number(t.amount) || 0;
     if (t.type === "income") out[c].income += amt;
     else if (t.type === "expense") out[c].expense += amt;
     else if (t.type === "sedekah") out[c].sedekah += amt;
     out[c].count += 1;
   });
-  CURRENCY_CODES.forEach((c) => { out[c].balance = out[c].income - out[c].expense - out[c].sedekah; });
+  Object.values(out).forEach((v) => { v.balance = v.income - v.expense - v.sedekah; });
   return out;
 }
 

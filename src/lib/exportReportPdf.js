@@ -56,7 +56,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR
     doc.text(`Pengeluaran per Kategori (${cur})`, margin, y); y += 16;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9);
     doc.text("Kategori", margin, y); doc.text("Bulan Ini", margin + 200, y); doc.text("Bulan Lalu", margin + 290, y); doc.text("Selisih", margin + 380, y); y += 4;
-    doc.setLineDash([]); doc.line(margin, y, pageW - margin, y); y += 12;
+    doc.setLineDashPattern([], 0); doc.line(margin, y, pageW - margin, y); y += 12;
     doc.setFont("helvetica", "normal");
     categoryRows.forEach((r) => {
       ensure(16);
@@ -106,7 +106,7 @@ export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR
       }
     }
     y += 8;
-    doc.setLineDash([2, 2]); doc.line(margin, y, pageW - margin, y); doc.setLineDash([]); y += 10;
+    doc.setLineDashPattern([2, 2], 0); doc.line(margin, y, pageW - margin, y); doc.setLineDashPattern([], 0); y += 10;
   }
 
   doc.save(`Laporan_NAFKITA_${monthName.replace(/\s+/g, "_")}_${scopeLabel}_${cur}.pdf`);

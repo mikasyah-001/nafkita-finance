@@ -66,7 +66,8 @@ export default async function (req) {
         return Response.json({ ok: true, transaction: updated });
       } catch (e) {
         for (const pv of prevValues) {
-          try { await base44.entities.Asset.update(pv.assetId, { value: pv.prev }); } catch {}
+          try { await base44.entities.Asset.update(pv.assetId, { value: pv.prev }); }
+          catch (rbErr) { console.error("[saveTransactionWithAsset] rollback failed for asset", pv.assetId, rbErr); }
         }
         return Response.json({ error: e?.message || "update_failed" }, { status: 500 });
       }
@@ -98,7 +99,8 @@ export default async function (req) {
     } catch (e) {
       // Rollback aset bila pembuatan transaksi gagal.
       if (assetAdjusted && linkedAssetId) {
-        try { await base44.entities.Asset.update(linkedAssetId, { value: assetPrevValue }); } catch {}
+        try { await base44.entities.Asset.update(linkedAssetId, { value: assetPrevValue }); }
+        catch (rbErr) { console.error("[saveTransactionWithAsset] rollback failed for asset", linkedAssetId, rbErr); }
       }
       return Response.json({ error: e?.message || "create_failed" }, { status: 500 });
     }

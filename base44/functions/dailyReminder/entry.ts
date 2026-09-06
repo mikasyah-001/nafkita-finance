@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { getAppUrl } from "../../shared/appUrl.ts";
 import { startOfTodayInTz, userTz } from "../../shared/timezone.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -73,7 +74,7 @@ export default async function (req) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const users = await base44.asServiceRole.entities.User.list();
+    const users = await fetchAll(base44.asServiceRole.entities.User);
 
     let sent = 0;
     let totalReminded = 0;

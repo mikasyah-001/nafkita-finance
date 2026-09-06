@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 const NISAB_GRAM = 85;
 const CURRENCIES = ["IDR", "SAR", "USD"];
@@ -51,9 +52,9 @@ export default async function (req) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const users = await base44.asServiceRole.entities.User.list();
-    const allAssets = await base44.asServiceRole.entities.Asset.list();
-    const allPayments = await base44.asServiceRole.entities.ZakatPayment.list();
+    const users = await fetchAll(base44.asServiceRole.entities.User);
+    const allAssets = await fetchAll(base44.asServiceRole.entities.Asset);
+    const allPayments = await fetchAll(base44.asServiceRole.entities.ZakatPayment);
     const year = new Date().getFullYear();
 
     // Ambil harga emas per mata uang untuk nisab per mata uang.

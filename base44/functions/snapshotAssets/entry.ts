@@ -22,8 +22,8 @@ export default async function (req) {
 
     const users = caller && !isWorkflow
       ? [caller]
-      : await base44.asServiceRole.entities.User.list("-created_date", 5000);
-    const allAssets = await base44.asServiceRole.entities.Asset.filter({}, "-created_date", 5000);
+      : await fetchAll(base44.asServiceRole.entities.User);
+    const allAssets = await fetchAll(base44.asServiceRole.entities.Asset);
     const partnerships = await fetchAll(base44.asServiceRole.entities.Partnership);
 
     const partnerOf = (userId) => {

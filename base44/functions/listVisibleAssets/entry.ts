@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Mengembalikan aset yang terlihat oleh user yang login:
 //   - aset milik sendiri (semua), dan
@@ -13,10 +14,10 @@ export default async function(req) {
 
     const partnerId = await resolvePartnerId(base44, me.id);
 
-    const own = await base44.asServiceRole.entities.Asset.filter({ created_by_id: me.id }, '-created_date', 5000);
+    const own = await fetchAll(base44.asServiceRole.entities.Asset, { created_by_id: me.id });
     let partnerAssets = [];
     if (partnerId) {
-      const raw = await base44.asServiceRole.entities.Asset.filter({ created_by_id: partnerId, visibility: 'shared' }, '-created_date', 5000);
+      const raw = await fetchAll(base44.asServiceRole.entities.Asset, { created_by_id: partnerId, visibility: 'shared' });
       partnerAssets = (raw || []).filter((a) => assetVisibleTo(a, me.id, partnerId));
     }
 

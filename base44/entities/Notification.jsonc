@@ -18,7 +18,11 @@
         "deleted",
         "shared",
         "unshared",
-        "bulk"
+        "bulk",
+        "accepted",
+        "declined",
+        "cancelled",
+        "terminated"
       ],
       "default": "created"
     },
@@ -27,7 +31,8 @@
       "enum": [
         "transaction",
         "asset",
-        "bulk"
+        "bulk",
+        "partnership"
       ],
       "default": "transaction"
     },
@@ -43,7 +48,7 @@
     },
     "ref_id": {
       "type": "string",
-      "description": "ID entitas terkait (transaksi/aset)"
+      "description": "ID entitas terkait (transaksi/aset/partnership)"
     },
     "amount": {
       "type": "number"

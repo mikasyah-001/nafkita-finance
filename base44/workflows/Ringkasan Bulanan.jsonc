@@ -8,7 +8,7 @@
       "schedule_mode": "recurring",
       "cron_expression": "0 8 1 * *",
       "one_time_date": null,
-      "timezone": "Asia/Jakarta",
+      "timezone": "Asia/Riyadh",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,
@@ -17,7 +17,7 @@
       "ends_after_count": null
     }
   },
-  "description": "Mengirim ringkasan laporan keuangan bulanan ke email user dan pasangan setiap tanggal 1 pukul 08:00 untuk meninjau anggaran bersama",
+  "description": "Mengirim ringkasan laporan keuangan bulanan ke email user dan pasangan setiap tanggal 1 pukul 08:00 (Asia/Riyadh) untuk meninjau anggaran bersama. Periode bulan dihitung per timezone masing-masing pengguna di dalam fungsi.",
   "definition": {
     "document": {
       "dsl": "1.0.0",

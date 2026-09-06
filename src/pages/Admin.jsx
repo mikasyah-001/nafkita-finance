@@ -35,13 +35,13 @@ export default function Admin() {
         const m = await base44.auth.me();
         setMe(m);
         if (m?.role !== "admin") return;
-        const [u, p, c] = await Promise.all([
-          base44.entities.User.list(),
-          base44.entities.Partnership.list("-created_date", 500),
+        const [adminData, c] = await Promise.all([
+          base44.functions.invoke("adminListUsers", {}),
           base44.entities.Category.list(),
         ]);
-        setUsers(u || []);
-        setPartnerships(p || []);
+        const data = adminData?.data || adminData || {};
+        setUsers(data.users || []);
+        setPartnerships(data.partnerships || []);
         setCategories(c || []);
         loadTransactions(true);
       } catch (e) {

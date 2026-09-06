@@ -25,7 +25,7 @@
       }
     ]
   },
-  "description": "Mencatat snapshot nilai aset (emas, investasi, bank, lainnya) setiap awal bulan untuk grafik pertumbuhan",
+  "description": "Mencatat snapshot nilai aset (emas, investasi, bank, lainnya) setiap awal bulan pukul 00:00 Asia/Riyadh untuk grafik pertumbuhan. Periode dihitung per timezone pengguna di dalam fungsi.",
   "trigger": {
     "condition": null,
     "config": {
@@ -34,7 +34,7 @@
       "schedule_mode": "recurring",
       "cron_expression": "0 0 1 * *",
       "one_time_date": null,
-      "timezone": "Asia/Jakarta",
+      "timezone": "Asia/Riyadh",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { hasActivePartnership, hasPendingPartnership } from "../../shared/partnerResolve.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Kode referensi diturunkan deterministik dari user id (sama dengan src/lib/refCode.js).
 const deriveRefCode = (userId) => {
@@ -35,7 +36,7 @@ export default async function (req) {
       return Response.json({ error: "invalid_role" }, { status: 400 });
     const invitee_role = complement(inviter_role);
 
-    const users = await base44.asServiceRole.entities.User.list("-created_date", 500);
+    const users = await fetchAll(base44.asServiceRole.entities.User);
     const target = (users || []).find((u) => u.id && deriveRefCode(u.id) === code);
     if (!target) return Response.json({ error: "Kode referensi tidak ditemukan" }, { status: 404 });
     if (!target.email) return Response.json({ error: "Akun pasangan tidak valid" }, { status: 400 });

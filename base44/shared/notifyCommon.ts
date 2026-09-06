@@ -116,4 +116,22 @@ export async function resolvePartner(base44, actorId) {
   return { partnerId, partnerEmail };
 }
 
+// Kirim notifikasi lifecycle pasangan (diterima/ditolak/dibatalkan/diputus).
+// targetId = penerima notifikasi, actorName = nama pelaku, action = jenis peristiwa.
+// Membuat record Notification idempoten berdasarkan event_key.
+export async function notifyPartnershipLifecycle(base44, targetId, actorName, action, title, bodyText, partnershipId) {
+  if (!targetId) return { skipped: "no_target" };
+  const eventKey = `partnership:${partnershipId || ""}:${action}`;
+  return createNotificationIdempotent(base44, {
+    target_user_id: targetId,
+    actor_name: actorName || "Pasangan",
+    action,
+    entity_kind: "partnership",
+    event_key: eventKey,
+    title,
+    body: bodyText || "",
+    ref_id: partnershipId || null,
+  });
+}
+
 export { formatMoney, maskAmount };

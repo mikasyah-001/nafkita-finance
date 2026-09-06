@@ -4,6 +4,7 @@ import { getAppUrl } from "../../shared/appUrl.ts";
 import { resolvePartnerId } from "../../shared/partnerResolve.ts";
 import { startOfTodayInTz, userTz } from "../../shared/timezone.ts";
 import { formatMoney } from "../../shared/notifyCommon.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Ringkasan notifikasi harian: untuk setiap user dengan daily_digest=true,
 // kirim email berisi daftar transaksi & aset bersama yang dicatat/diubah pasangan hari ini.
@@ -23,7 +24,7 @@ export default async function (req) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const users = await base44.asServiceRole.entities.User.list();
+    const users = await fetchAll(base44.asServiceRole.entities.User);
     let sent = 0;
 
     for (const u of users) {

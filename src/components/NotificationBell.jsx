@@ -36,6 +36,7 @@ const fmtTime = (iso) => {
 const kindIcon = (k) => {
   if (k === "asset") return "🏦";
   if (k === "bulk") return "📋";
+  if (k === "partnership") return "💍";
   return "💸";
 };
 
@@ -95,13 +96,20 @@ export default function NotificationBell() {
         if (!n.read) setUnreadCount((c) => c + 1);
         return;
       }
-      // update
+      // update — hanya sesuaikan badge bila status read benar-benar berubah
       setItems((prev) => {
         const exists = prev.some((x) => x.id === n.id);
         if (!exists) return prev;
+        const oldItem = prev.find((x) => x.id === n.id);
+        const wasUnread = oldItem && !oldItem.read;
+        const isRead = !!n.read;
+        if (wasUnread && isRead) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        } else if (!wasUnread && !isRead) {
+          setUnreadCount((c) => c + 1);
+        }
         return prev.map((x) => (x.id === n.id ? { ...x, ...n } : x));
       });
-      if (n.read) setUnreadCount((c) => Math.max(0, c - 1));
     });
     return () => { if (unsub) unsub(); };
   }, [loadInitial]);
@@ -118,14 +126,17 @@ export default function NotificationBell() {
   const markAllRead = async () => {
     if (unreadCount === 0) return;
     setMarking(true);
+    const unreadItems = items.filter((n) => !n.read);
     const prevCount = unreadCount;
     setUnreadCount(0);
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
       await base44.entities.Notification.updateMany({ read: false }, { $set: { read: true } });
     } catch {
+      // Hanya kembalikan item yang sebelumnya belum dibaca (bukan semua).
       setUnreadCount(prevCount);
-      setItems((prev) => prev.map((n) => ({ ...n, read: false })));
+      const unreadIds = new Set(unreadItems.map((n) => n.id));
+      setItems((prev) => prev.map((n) => (unreadIds.has(n.id) ? { ...n, read: false } : n)));
       toast.error("Gagal menandai dibaca");
     }
     setMarking(false);
@@ -144,7 +155,11 @@ export default function NotificationBell() {
       }
     }
     setOpen(false);
-    if (n.ref_id && n.entity_kind !== "asset") navigate(`/transaksi/${n.ref_id}`);
+    if (n.ref_id) {
+      if (n.entity_kind === "asset") navigate("/aset");
+      else if (n.entity_kind === "partnership") navigate("/profil");
+      else navigate(`/transaksi/${n.ref_id}`);
+    }
   };
 
   return (

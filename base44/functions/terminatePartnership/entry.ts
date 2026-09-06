@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { getActorName, notifyPartnershipLifecycle } from "../../shared/notifyCommon.ts";
 
 // Mengakhiri Partnership (soft-delete): batalkan undangan, tolak permintaan,
 // atau putuskan koneksi aktif. Record dipertahankan dengan status terminal
@@ -18,7 +19,9 @@ export default async function (req) {
     if (!partnership_id)
       return Response.json({ error: "missing_id" }, { status: 400 });
 
-    const p = await base44.asServiceRole.entities.Partnership.get(partnership_id);
+    let p;
+    try { p = await base44.asServiceRole.entities.Partnership.get(partnership_id); }
+    catch { return Response.json({ error: "not_found" }, { status: 404 }); }
     if (!p) return Response.json({ error: "not_found" }, { status: 404 });
 
     const isAdmin = me.role === "admin";
@@ -56,6 +59,41 @@ export default async function (req) {
       ended_by: me.id,
       end_reason: reason,
     });
+
+    // === Notifikasi lifecycle pasangan ===
+    // Beri tahu pihak lain (bukan pelaku) tentang perubahan status hubungan.
+    try {
+      const actorName = me.full_name || me.email || "Pasangan";
+      const otherId =
+        p.inviter_id === me.id ? (p.invitee_id || null) : p.inviter_id;
+      // Untuk undangan pending yang belum diaccept, gunakan email jika invitee_id belum ada.
+      const targetId = otherId || null;
+
+      let notifAction = terminalStatus;
+      let notifTitle = "";
+      let notifBody = "";
+
+      if (terminalStatus === "declined") {
+        notifTitle = `${actorName} menolak undangan Anda`;
+        notifBody = reason ? `Alasan: ${reason}` : "Undangan ditolak.";
+      } else if (terminalStatus === "cancelled") {
+        // Jika inviter membatalkan, beri tahu invitee. Jika admin, beri tahu pihak terkait.
+        notifTitle = `${actorName} membatalkan undangan`;
+        notifBody = reason ? `Alasan: ${reason}` : "Undangan dibatalkan.";
+      } else if (terminalStatus === "ended") {
+        notifTitle = `${actorName} memutuskan koneksi pasangan`;
+        notifBody = reason ? `Alasan: ${reason}` : "Hubungan pasangan diputus.";
+      }
+
+      if (targetId && notifTitle) {
+        await notifyPartnershipLifecycle(
+          base44, targetId, actorName, notifAction,
+          notifTitle, notifBody, partnership_id
+        );
+      }
+    } catch (e) {
+      console.error("[terminatePartnership] notify failed:", e);
+    }
 
     return Response.json({ ok: true, status: terminalStatus });
   } catch (error) {

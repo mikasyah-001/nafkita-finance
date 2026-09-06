@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { BACKUP_ENTITIES, txFingerprint, assetFingerprint, categoryFingerprint, budgetFingerprint } from "../../shared/backupFormat.ts";
+import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Pemulihan per-pengguna dari Google Drive: hanya file milik pemanggil
 // (nama berisi suffix user id). created_by_id di-strip & dipetakan ulang ke
@@ -52,7 +53,7 @@ export default async function (req) {
       // Muat data existing milik user untuk dedup.
       const existing = {};
       for (const e of BACKUP_ENTITIES) {
-        const all = await base44.asServiceRole.entities[e.entity].list("-created_date", 5000);
+        const all = await fetchAll(base44.asServiceRole.entities[e.entity]);
         existing[e.key] = (all || []).filter((r) =>
           e.key === "snapshots" ? r.owner_id === me.id : r.created_by_id === me.id
         );

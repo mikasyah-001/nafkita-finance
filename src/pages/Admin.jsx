@@ -5,13 +5,14 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, Users, Link2, Receipt,
   Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
-  BarChart3, Landmark,
+  BarChart3, Landmark, Info,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
 import { formatDate, colorMap, formatMoneyShort } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import AdminStats from "@/components/AdminStats";
+import EmptyState from "@/components/EmptyState";
 
 const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
 
@@ -207,27 +208,31 @@ export default function Admin() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-10 max-w-2xl mx-auto">
+    <div className="px-4 pt-6 pb-10 max-w-3xl mx-auto">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 hover:bg-muted/70 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" /> Panel Admin
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-semibold flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            Panel Admin
           </h1>
-          <p className="text-xs text-muted-foreground">Kelola pengguna, koneksi & transaksi</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Kelola pengguna, koneksi & transaksi</p>
         </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-6 w-full mb-4">
-          <TabsTrigger value="statistik"><BarChart3 className="w-4 h-4 mr-1" />Statistik</TabsTrigger>
-          <TabsTrigger value="pengguna"><Users className="w-4 h-4 mr-1" />User</TabsTrigger>
-          <TabsTrigger value="koneksi"><Link2 className="w-4 h-4 mr-1" />Koneksi</TabsTrigger>
-          <TabsTrigger value="transaksi"><Receipt className="w-4 h-4 mr-1" />Transaksi</TabsTrigger>
-          <TabsTrigger value="aset"><Landmark className="w-4 h-4 mr-1" />Aset</TabsTrigger>
-          <TabsTrigger value="audit"><ScrollText className="w-4 h-4 mr-1" />Audit</TabsTrigger>
+        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full mb-4 h-auto gap-1">
+          <TabsTrigger value="statistik" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><BarChart3 className="w-4 h-4" />Statistik</TabsTrigger>
+          <TabsTrigger value="pengguna" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Users className="w-4 h-4" />User</TabsTrigger>
+          <TabsTrigger value="koneksi" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Link2 className="w-4 h-4" />Koneksi</TabsTrigger>
+          <TabsTrigger value="transaksi" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Receipt className="w-4 h-4" />Transaksi</TabsTrigger>
+          <TabsTrigger value="aset" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Landmark className="w-4 h-4" />Aset</TabsTrigger>
+          <TabsTrigger value="audit" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><ScrollText className="w-4 h-4" />Audit</TabsTrigger>
         </TabsList>
 
         {/* STATISTIK — agregasi real-time seluruh aplikasi */}
@@ -237,7 +242,9 @@ export default function Admin() {
 
         {/* USERS */}
         <TabsContent value="pengguna" className="space-y-2">
-          <p className="text-xs text-muted-foreground mb-1">{users.length} pengguna terdaftar</p>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-xs text-muted-foreground">{users.length} pengguna terdaftar</p>
+          </div>
           {users.map((u) => {
             const pid = partnerOf[u.id];
             const partner = pid && userMap[pid];
@@ -247,7 +254,7 @@ export default function Admin() {
                   <UserCircle className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1">
+                  <p className="text-sm font-medium truncate flex items-center gap-1.5">
                     {u.full_name || u.email}
                     {u.role === "admin" && (
                       <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-semibold">ADMIN</span>
@@ -256,7 +263,7 @@ export default function Admin() {
                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     {partner ? (
-                      <><Link2 className="w-3 h-3" /> Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</>
+                      <><Link2 className="w-3 h-3 text-emerald-500" /> <span className="text-emerald-600">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
                     ) : (
                       <span className="text-amber-600">Belum terhubung</span>
                     )}
@@ -268,48 +275,56 @@ export default function Admin() {
         </TabsContent>
 
         {/* CONNECTIONS — read-only; koneksi hanya via undangan */}
-        <TabsContent value="koneksi" className="space-y-4">
-          <div className="rounded-2xl border border-border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">
-              Koneksi pasangan hanya dapat dibuat melalui undangan email/kode referensi oleh pengguna sendiri. Admin tidak membuat koneksi manual. Daftar di bawah bersifat read-only; admin dapat memutuskan koneksi bila diperlukan.
+        <TabsContent value="koneksi" className="space-y-3">
+          <div className="rounded-2xl border border-border bg-muted/40 p-3 flex gap-2.5">
+            <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Koneksi pasangan hanya dibuat via undangan email/kode referensi oleh pengguna sendiri. Daftar bersifat read-only; admin dapat memutuskan koneksi bila perlu.
             </p>
           </div>
 
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Koneksi & riwayat</p>
-            {partnerships.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Belum ada koneksi.</p>}
-            {partnerships.map((p) => {
-              const a = userMap[p.inviter_id];
-              const b = p.invitee_id ? userMap[p.invitee_id] : null;
-              const terminal = p.status === "ended" || p.status === "cancelled" || p.status === "declined";
-              return (
-                <div key={p.id} className="rounded-2xl border border-border bg-card p-3 mb-2 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {a?.full_name || a?.email || "—"}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""} <span className="text-muted-foreground">⇄</span> {b?.full_name || b?.email || p.invitee_email}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
-                    </p>
-                    <p className="text-[11px] mt-0.5">
-                      {p.status === "active" && <span className="text-emerald-600 font-medium">Aktif</span>}
-                      {p.status === "pending" && <span className="text-amber-600 font-medium">Menunggu</span>}
-                      {p.status === "ended" && <span className="text-muted-foreground font-medium">Berakhir</span>}
-                      {p.status === "cancelled" && <span className="text-muted-foreground font-medium">Dibatalkan</span>}
-                      {p.status === "declined" && <span className="text-muted-foreground font-medium">Ditolak</span>}
-                      {p.end_reason && <span className="text-muted-foreground"> • {p.end_reason}</span>}
-                    </p>
-                  </div>
-                  {!terminal && (
-                    <button
-                      onClick={() => handleDisconnect(p)}
-                      className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0"
-                      title="Putuskan"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+          <p className="text-xs text-muted-foreground px-1">Koneksi & riwayat</p>
+          {partnerships.length === 0 && (
+            <EmptyState icon={Link2} title="Belum ada koneksi" subtitle="Belum ada hubungan pasangan tercatat." />
+          )}
+          {partnerships.map((p) => {
+            const a = userMap[p.inviter_id];
+            const b = p.invitee_id ? userMap[p.invitee_id] : null;
+            const terminal = p.status === "ended" || p.status === "cancelled" || p.status === "declined";
+            const statusStyle = {
+              active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+              pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+              ended: "bg-muted text-muted-foreground",
+              cancelled: "bg-muted text-muted-foreground",
+              declined: "bg-muted text-muted-foreground",
+            };
+            const statusLabel = { active: "Aktif", pending: "Menunggu", ended: "Berakhir", cancelled: "Dibatalkan", declined: "Ditolak" };
+            return (
+              <div key={p.id} className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Link2 className="w-5 h-5" />
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {a?.full_name || a?.email || "—"}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""} <span className="text-muted-foreground mx-0.5">⇄</span> {b?.full_name || b?.email || p.invitee_email}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusStyle[p.status]}`}>{statusLabel[p.status]}</span>
+                    {p.end_reason && <span className="text-[11px] text-muted-foreground truncate">{p.end_reason}</span>}
+                  </div>
+                </div>
+                {!terminal && (
+                  <button
+                    onClick={() => handleDisconnect(p)}
+                    className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 hover:bg-destructive/20 transition-colors"
+                    title="Putuskan"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </TabsContent>
 
         {/* TRANSACTIONS — non-private lintas keluarga, paginated */}
@@ -330,11 +345,13 @@ export default function Admin() {
             </select>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            Menampilkan {filteredTx.length} transaksi non-private{txHasMore ? " (ada lagi)" : ""}. Pencarian berlaku atas data yang sudah dimuat.
+          <p className="text-[11px] text-muted-foreground px-1">
+            {filteredTx.length} transaksi{txHasMore ? " (ada lagi)" : ""} • pencarian atas data termuat
           </p>
 
-          {filteredTx.length === 0 && !txLoadingMore && <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada transaksi.</p>}
+          {filteredTx.length === 0 && !txLoadingMore && (
+            <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle="Belum ada transaksi yang sesuai filter." />
+          )}
 
           {filteredTx.map((tx) => {
             const isIncome = tx.type === "income";
@@ -397,8 +414,8 @@ export default function Admin() {
             </select>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            {assetLoading ? "Memuat…" : `${assets.length} aset non-private`}
+          <p className="text-[11px] text-muted-foreground px-1">
+            {assetLoading ? "Memuat…" : `${assets.length} aset`}
           </p>
 
           {assetLoading && (
@@ -406,7 +423,7 @@ export default function Admin() {
           )}
 
           {!assetLoading && assets.length === 0 && (
-            <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada aset.</p>
+            <EmptyState icon={Landmark} title="Tidak ada aset" subtitle="Belum ada aset yang sesuai filter." />
           )}
 
           {!assetLoading && assets.filter((a) => {
@@ -449,22 +466,28 @@ export default function Admin() {
 
         {/* AUDIT LOG — riwayat tindakan admin */}
         <TabsContent value="audit" className="space-y-2">
-          <p className="text-xs text-muted-foreground mb-1">
+          <p className="text-xs text-muted-foreground px-1 mb-1">
             {auditLoading ? "Memuat…" : `${auditLogs.length} entri terakhir`}
           </p>
           {auditLoading && (
             <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           )}
           {!auditLoading && auditLogs.length === 0 && (
-            <p className="text-sm text-muted-foreground py-8 text-center">Belum ada catatan audit.</p>
+            <EmptyState icon={ScrollText} title="Belum ada catatan audit" subtitle="Riwayat tindakan admin akan muncul di sini." />
           )}
           {!auditLoading && auditLogs.map((log) => (
             <div key={log.id} className="rounded-2xl border border-border bg-card p-3">
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <ScrollText className="w-4 h-4" />
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">
-                    {log.actor_name || log.actor_email || "Admin"}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium truncate">{log.actor_name || log.actor_email || "Admin"}</p>
+                    <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                      {formatDate(log.created_date, "dd MMM, HH:mm")}
+                    </p>
+                  </div>
                   <p className="text-xs text-primary font-medium mt-0.5">{log.action}</p>
                   {log.target_label && (
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">Target: {log.target_label}</p>
@@ -473,9 +496,6 @@ export default function Admin() {
                     <p className="text-[11px] text-muted-foreground mt-0.5">{log.details}</p>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                  {formatDate(log.created_date, "dd MMM, HH:mm")}
-                </p>
               </div>
             </div>
           ))}

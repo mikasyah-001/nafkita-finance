@@ -433,8 +433,8 @@ export default function AddTransaction() {
             ) : (
               <>
                 <ScanLine className="w-7 h-7" />
-                <p className="text-sm font-medium">Scan Bon / Upload Foto</p>
-                <p className="text-xs">Bisa pilih beberapa foto sekaligus (maks. 5)</p>
+                <p className="text-sm font-medium">Scan Struk dengan AI</p>
+                <p className="text-xs">Upload hingga 5 foto; tinjau hasilnya sebelum disimpan</p>
               </>
             )}
           </button>

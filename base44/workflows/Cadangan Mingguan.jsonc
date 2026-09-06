@@ -9,7 +9,7 @@
       "schedule_mode": "recurring",
       "cron_expression": "0 2 * * 1",
       "one_time_date": null,
-      "timezone": "Asia/Jakarta",
+      "timezone": "Asia/Riyadh",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,

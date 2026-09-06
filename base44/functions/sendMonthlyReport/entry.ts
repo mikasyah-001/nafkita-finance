@@ -1,7 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
-import { resolvePartnerId, txVisibleTo } from "../../shared/partnerResolve.ts";
 import { getAppUrl } from "../../shared/appUrl.ts";
+import { userTz, prevMonthBoundsInTz, DEFAULT_TZ } from "../../shared/timezone.ts";
+import { fetchAll, fetchAllByDate } from "../../shared/fetchAll.ts";
 
 const MONTHS = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const CURRENCIES = ["IDR", "SAR", "USD"];
@@ -64,7 +65,7 @@ function buildEmail(name, periodLabel, perCurrency, appUrl) {
           <p style="margin:8px 0 0;color:#e0e7ff;font-size:13px;">Ringkasan keuangan bulan ${esc(periodLabel)}</p>
         </td></tr>
         <tr><td style="padding:22px 22px 6px;">
-          <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">Total dipisah per mata uang (IDR/SAR/USD) tanpa konversi. Saldo = pemasukan − pengeluaran − sedekah.</p>
+          <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.6;">Total dipisah per mata uang (IDR/SAR/USD) tanpa konversi. Saldo = pemasukan − pengeluaran − sedekah. Transaksi pribadi sengaja dikecualikan demi privasi.</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">${blocks}</table>
         </td></tr>
         <tr><td style="padding:8px 26px 26px;">
@@ -75,7 +76,7 @@ function buildEmail(name, periodLabel, perCurrency, appUrl) {
           </table>
         </td></tr>
         <tr><td style="padding:18px 26px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;">
-          <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.55;text-align:center;">Email ini dikirim otomatis setiap tanggal 1 oleh NAFKITA.</p>
+          <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.55;text-align:center;">Email ini dikirim otomatis oleh NAFKITA.</p>
         </td></tr>
       </table>
       <p style="margin:16px 0 0;color:#94a3b8;font-size:11px;text-align:center;">&copy; NAFKITA &mdash; Manajemen Keuangan Keluarga</p>
@@ -114,7 +115,8 @@ export default async function(req) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const users = await base44.asServiceRole.entities.User.list('-created_date', 5000);
+    // Paginasi penuh untuk pengguna (menghindari batas 5000).
+    const users = await fetchAll(base44.asServiceRole.entities.User);
     const partnerships = await base44.asServiceRole.entities.Partnership.filter({ status: "active" });
 
     const userMap = {};
@@ -130,49 +132,74 @@ export default async function(req) {
       }
     });
 
+    // Ambil transaksi dalam jendela lebar (40 hari terakhir) agar mencakup batas
+    // bulan untuk semua zona waktu pengguna, lalu saring per penerima berdasarkan
+    // batas bulan dalam timezone masing-masing. Paginasi penuh via kursor tanggal.
     const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthStart = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1);
-    const monthEnd = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 1);
-    const periodLabel = `${MONTHS[prevMonth.getMonth()]} ${prevMonth.getFullYear()}`;
-
-    const allTx = await base44.asServiceRole.entities.Transaction.filter({
-      date: { $gte: monthStart.toISOString(), $lt: monthEnd.toISOString() }
-    }, '-date', 5000);
+    const wideStart = new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000);
+    const allTx = await fetchAllByDate(
+      base44.asServiceRole.entities.Transaction,
+      { date: { $gte: wideStart.toISOString() } }
+    );
 
     let sent = 0;
-    const sendTo = async (emails, summary, name) => {
+    const failed = [];
+    const sendTo = async (emails, summary, name, periodLabel) => {
       for (const email of emails) {
         if (!email) continue;
         try {
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: email,
             subject: `📊 Ringkasan Keuangan ${periodLabel} - NAFKITA`,
-            body: buildEmail(name, periodLabel, summary, getAppUrl(req))
+            body: buildEmail(name, periodLabel, summary, getAppUrl(req)),
           });
           sent++;
-        } catch (e) { /* skip */ }
+        } catch (e) {
+          failed.push({ email, reason: String(e?.message || e).slice(0, 200) });
+        }
       }
     };
 
+    // Pasangan: pakai timezone anggota pertama yang tersedia (pasangan biasanya
+    // berbagi zona waktu). Transaksi private dikecualikan.
     for (const [aId, bId] of couples) {
       const a = userMap[aId];
       const b = userMap[bId];
       if (!a && !b) continue;
-      const txs = (allTx || []).filter((t) => t.visibility !== "private" && (t.created_by_id === aId || t.created_by_id === bId));
-      const summary = computeSummary(txs);
+      const tz = userTz(a) || userTz(b) || DEFAULT_TZ;
+      const { start, end, year, month } = prevMonthBoundsInTz(tz);
+      const periodLabel = `${MONTHS[month - 1]} ${year}`;
+      const owned = (allTx || []).filter((t) =>
+        t.visibility !== "private" &&
+        (t.created_by_id === aId || t.created_by_id === bId) &&
+        new Date(t.date) >= start && new Date(t.date) < end
+      );
+      const summary = computeSummary(owned);
       const name = a?.full_name || b?.full_name || "Keluarga";
-      await sendTo([a?.email, b?.email].filter(Boolean), summary, name);
+      await sendTo([a?.email, b?.email].filter(Boolean), summary, name, periodLabel);
     }
 
+    // Pengguna tanpa pasangan: timezone masing-masing.
     for (const u of users) {
       if (!u || !u.id || paired.has(u.id) || !u.email) continue;
-      const txs = (allTx || []).filter((t) => t.created_by_id === u.id);
-      const summary = computeSummary(txs);
-      await sendTo([u.email], summary, u.full_name);
+      const tz = userTz(u) || DEFAULT_TZ;
+      const { start, end, year, month } = prevMonthBoundsInTz(tz);
+      const periodLabel = `${MONTHS[month - 1]} ${year}`;
+      const owned = (allTx || []).filter((t) =>
+        t.created_by_id === u.id &&
+        new Date(t.date) >= start && new Date(t.date) < end
+      );
+      const summary = computeSummary(owned);
+      await sendTo([u.email], summary, u.full_name, periodLabel);
     }
 
-    return Response.json({ sent, period: periodLabel, couples: couples.length, singles: users.length - paired.size });
+    return Response.json({
+      sent,
+      failed: failed.length,
+      failures: failed.slice(0, 20),
+      couples: couples.length,
+      singles: users.length - paired.size,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

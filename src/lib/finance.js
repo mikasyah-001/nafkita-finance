@@ -72,6 +72,40 @@ export function currencySymbol(code) {
   return f ? f.symbol : c;
 }
 
+// Bangun peta kurs terhadap IDR: { KODE: nilai_per_IDR }.
+// Asumsi: rate disimpan sebagai 1 unit base_currency = rate IDR (konvensi BI).
+// Mendukung juga arah terbalik (base IDR, quote asing) sebagai fallback.
+export function buildRateMap(rates) {
+  const map = { IDR: 1 };
+  (rates || []).forEach((r) => {
+    const base = (r.base_currency || "").toUpperCase();
+    const quote = (r.quote_currency || "").toUpperCase();
+    const rate = Number(r.rate) || 0;
+    if (!base || rate <= 0) return;
+    if (quote === "IDR" && base !== "IDR") {
+      map[base] = rate; // 1 base = rate IDR
+    } else if (base === "IDR" && quote !== "IDR") {
+      map[quote] = 1 / rate; // 1 IDR = rate quote → 1 quote = 1/rate IDR
+    }
+  });
+  return map;
+}
+
+// Konversi amount dari fromCurrency ke toCurrency via jembatan IDR.
+// rateMap: output buildRateMap (nilai 1 unit mata uang dalam IDR).
+// Bila kurs tidak tersedia, kembalikan amount asli (fallback aman).
+export function convertTo(amount, fromCurrency, toCurrency, rateMap = {}) {
+  const from = (fromCurrency || "IDR").toUpperCase();
+  const to = (toCurrency || "IDR").toUpperCase();
+  const amt = Number(amount) || 0;
+  if (from === to) return amt;
+  const fromRate = rateMap[from] ?? (from === "IDR" ? 1 : null);
+  const toRate = rateMap[to] ?? (to === "IDR" ? 1 : null);
+  if (!fromRate || !toRate) return amt; // kurs tidak tersedia, kembalikan asli
+  const inIdr = amt * fromRate;
+  return inIdr / toRate;
+}
+
 // Ringkasan transaksi dipisah per mata uang (tanpa konversi).
 // Saldo = pemasukan − pengeluaran − sedekah. Mata uang terdeteksi otomatis
 // dari transaksi, ditambah daftar mata uang aktif pengguna (bila diberikan).

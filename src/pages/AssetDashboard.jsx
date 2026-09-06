@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useAssetSnapshots, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
+import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers, Globe } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -19,9 +19,13 @@ export default function AssetDashboard() {
   const { scope, setScope } = useScope();
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
-  const [currency, setCurrency] = useState(me?.default_currency || "IDR");
-  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
-  const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private") && (a.currency || "IDR") === currency);
+  const { map: rateMap, date: rateDate, source: rateSource } = useRateMap();
+  const defaultCurrency = (me?.default_currency || "IDR").toUpperCase();
+  // "all" = konsolidasi seluruh mata uang dikonversi ke defaultCurrency.
+  const [currency, setCurrency] = useState("all");
+  const displayCurrency = currency === "all" ? defaultCurrency : currency;
+  const isConsolidated = currency === "all";
+
   const [goldPrice, setGoldPrice] = useState("");
   const [goldHistory, setGoldHistory] = useState([]);
   const [fetching, setFetching] = useState(false);
@@ -31,31 +35,47 @@ export default function AssetDashboard() {
 
   const goldPriceNum = Number(goldPrice) || 0;
 
+  // Aset dalam cakupan (scope). Saat mode konsolidasi, muat semua mata uang;
+  // saat mata uang spesifik, hanya aset dengan mata uang tersebut.
+  const scopedAssets = allAssets.filter((a) => {
+    if (scope === "private" ? a.visibility !== "private" : a.visibility === "private") return false;
+    if (isConsolidated) return true;
+    return (a.currency || "IDR").toUpperCase() === displayCurrency;
+  });
+
+  // Nilai dasar aset (goldPrice override hanya berlaku untuk emas IDR).
+  const baseValue = (a) => {
+    if (a.type === "emas" && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") {
+      return a.quantity * goldPriceNum;
+    }
+    return a.value || 0;
+  };
+  // Nilai tampilan: konsolidasi (konversi ke displayCurrency) atau asli (mata uang spesifik).
+  const displayValue = (a) => {
+    if (isConsolidated) return convertTo(baseValue(a), (a.currency || "IDR").toUpperCase(), displayCurrency, rateMap);
+    return baseValue(a);
+  };
+
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-  const emasStored = emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasStored;
-
-  const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
-  const investasiValue = investasiAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const investasiPurchase = investasiAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
-
-  const nonEmasValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
-
-  const totalCurrent = scopedAssets.reduce((s, a) => {
-    if (a.type === "emas" && goldPriceNum > 0) return s + (a.quantity || 0) * goldPriceNum;
-    return s + (a.value || 0);
-  }, 0);
-  const totalPurchase = scopedAssets.reduce((s, a) => s + ((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
-  const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
-
+  const emasValue = emasAssets.reduce((s, a) => s + displayValue(a), 0);
   const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
   const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
-  const allocColors = { "Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
+  const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
+  const investasiValue = investasiAssets.reduce((s, a) => s + displayValue(a), 0);
+  const investasiPurchase = investasiAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
+
+  const nonEmasValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + displayValue(a), 0);
+
+  const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + ((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
+
+  const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
   const allocation = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
-      const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + (a.type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
+      const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + displayValue(a), 0);
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
@@ -63,12 +83,10 @@ export default function AssetDashboard() {
   const typeTotals = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
-      const value = list.reduce((s, a) => s + (type === "emas" && goldPriceNum > 0 ? (a.quantity || 0) * goldPriceNum : (a.value || 0)), 0);
+      const value = list.reduce((s, a) => s + displayValue(a), 0);
       const purchase = list.reduce((s, a) => s + ((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
-      const curSet = [...new Set(list.map((a) => a.currency || "IDR"))];
-      const currency = curSet.length === 1 ? curSet[0] : "IDR";
-      return { type, value, purchase, growth, count: list.length, currency };
+      return { type, value, purchase, growth, count: list.length };
     })
     .filter((t) => t.count > 0);
 
@@ -125,16 +143,35 @@ export default function AssetDashboard() {
     value: Math.round(emasGrams * h.price),
   }));
 
-  const snapshotChartData = [...snapshots]
-    .filter((s) => (s.currency || "IDR") === currency)
-    .sort((a, b) => a.period.localeCompare(b.period))
-    .map((s) => ({
-      period: s.period.slice(5) + "/" + s.period.slice(2, 4),
-      Emas: s.emas_value || 0,
-      Investasi: s.investasi_value || 0,
-      Bank: s.bank_value || 0,
-      Total: s.total_value || 0,
-    }));
+  // Data grafik snapshot: konsolidasi (semua mata uang dikonversi ke displayCurrency) atau per mata uang.
+  const snapshotChartData = (() => {
+    const list = isConsolidated ? snapshots : snapshots.filter((s) => (s.currency || "IDR").toUpperCase() === displayCurrency);
+    if (isConsolidated) {
+      const byPeriod = {};
+      list.forEach((s) => {
+        const p = s.period;
+        if (!byPeriod[p]) byPeriod[p] = { period: p.slice(5) + "/" + p.slice(2, 4), Emas: 0, Investasi: 0, Bank: 0, Total: 0 };
+        const c = (s.currency || "IDR").toUpperCase();
+        byPeriod[p].Emas += convertTo(s.emas_value || 0, c, displayCurrency, rateMap);
+        byPeriod[p].Investasi += convertTo(s.investasi_value || 0, c, displayCurrency, rateMap);
+        byPeriod[p].Bank += convertTo(s.bank_value || 0, c, displayCurrency, rateMap);
+        byPeriod[p].Total += convertTo(s.total_value || 0, c, displayCurrency, rateMap);
+      });
+      return Object.values(byPeriod).sort((a, b) => a.period.localeCompare(b.period));
+    }
+    return [...list]
+      .sort((a, b) => a.period.localeCompare(b.period))
+      .map((s) => ({
+        period: s.period.slice(5) + "/" + s.period.slice(2, 4),
+        Emas: s.emas_value || 0,
+        Investasi: s.investasi_value || 0,
+        Bank: s.bank_value || 0,
+        Total: s.total_value || 0,
+      }));
+  })();
+
+  // Opsi mata uang untuk filter: "Semua" + tiap mata uang aktif.
+  const currencyOptions = ["all", ...userCurrencies.map((c) => c.code)];
 
   return (
     <div className="px-5 pt-8 pb-8">
@@ -154,15 +191,37 @@ export default function AssetDashboard() {
         </button>
       </div>
 
-      <div className="mb-5"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
+      <div className="mb-5">
+        <div className="flex flex-wrap gap-1.5">
+          {currencyOptions.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCurrency(c)}
+              aria-pressed={currency === c}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-all ${currency === c ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted text-muted-foreground border-border hover:text-foreground"}`}
+            >
+              {c === "all" ? <><Globe className="w-3 h-3" /> Semua</> : c}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-3 shadow-lg">
-        <p className="text-xs opacity-80">Total Nilai Aset</p>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatMoneyShort(totalCurrent, currency)}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs opacity-80">{isConsolidated ? "Total Nilai Aset (Konsolidasi)" : "Total Nilai Aset"}</p>
+          {isConsolidated && rateDate && (
+            <span className="text-[10px] opacity-75 flex items-center gap-1 bg-white/15 rounded-full px-2 py-0.5">
+              <Globe className="w-2.5 h-2.5" />
+              dikonversi ke {displayCurrency} · kurs {rateSource === "bi" ? "BI" : "pasar"} {formatDate(rateDate, "dd MMM")}
+            </span>
+          )}
+        </div>
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatMoneyShort(totalCurrent, displayCurrency)}</p>
         <div className="flex gap-4 mt-2 text-xs">
           <div>
             <p className="opacity-80">Nilai Beli</p>
-            <p className="font-semibold tabular-nums">{formatMoneyShort(totalPurchase, currency)}</p>
+            <p className="font-semibold tabular-nums">{formatMoneyShort(totalPurchase, displayCurrency)}</p>
           </div>
           <div>
             <p className="opacity-80">Pertumbuhan</p>
@@ -210,7 +269,7 @@ export default function AssetDashboard() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">{meta.label}</p>
-                  <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, t.currency)}</p>
+                  <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, displayCurrency)}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
                 </div>
               );
@@ -222,7 +281,7 @@ export default function AssetDashboard() {
           {scopedAssets.filter((a) => a.type === activeTab).map((a) => {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
-            const curVal = a.type === "emas" && goldPriceNum > 0 && a.quantity ? a.quantity * goldPriceNum : (a.value || 0);
+            const curVal = displayValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
             const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
@@ -235,11 +294,11 @@ export default function AssetDashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {meta.label}{a.broker ? ` • ${a.broker}` : ""}{a.quantity ? ` • ${formatNumber(a.quantity)} ${a.type === "emas" ? "gr" : a.type === "tanah" ? "m²" : (a.unit || "")}` : ""}
+                    {meta.label}{a.broker ? ` • ${a.broker}` : ""}{a.quantity ? ` • ${formatNumber(a.quantity)} ${a.type === "emas" ? "gr" : a.type === "tanah" ? "m²" : (a.unit || "")}` : ""}{isConsolidated && (a.currency || "IDR") !== displayCurrency ? ` • ${a.currency}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold tabular-nums">{formatMoneyShort(curVal, a.currency)}</p>
+                  <p className="text-sm font-semibold tabular-nums">{formatMoneyShort(curVal, displayCurrency)}</p>
                   {hasPurchase && (
                     <p className={`text-[10px] flex items-center gap-0.5 justify-end ${gain >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {gain >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -257,7 +316,7 @@ export default function AssetDashboard() {
         emasGrams={emasGrams}
         emasValue={emasValue}
         nonEmasValue={nonEmasValue}
-        goldPrice={goldPriceNum}
+        goldPrice={displayCurrency === "IDR" ? goldPriceNum : 0}
       />
 
       <div className="mb-5">
@@ -320,7 +379,7 @@ export default function AssetDashboard() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Pertumbuhan Total Aset</h2>
-            <p className="text-xs text-muted-foreground">Snapshot nilai aset per bulan</p>
+            <p className="text-xs text-muted-foreground">{isConsolidated ? `Konsolidasi · ${displayCurrency}` : `Snapshot per bulan · ${displayCurrency}`}</p>
           </div>
           {seeding && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
         </div>
@@ -331,8 +390,8 @@ export default function AssetDashboard() {
               <LineChart data={snapshotChartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatMoneyShort(v, displayCurrency).replace(/[A-Za-z$.]/g, "")} />
+                <Tooltip formatter={(v) => formatMoneyShort(v, displayCurrency)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Emas" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
@@ -358,7 +417,7 @@ export default function AssetDashboard() {
                 <Pie data={allocation} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={42} paddingAngle={2}>
                   {allocation.map((entry, i) => <Cell key={i} fill={allocColors[entry.name] || "#94a3b8"} />)}
                 </Pie>
-                <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
+                <Tooltip formatter={(v) => formatMoneyShort(v, displayCurrency)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>

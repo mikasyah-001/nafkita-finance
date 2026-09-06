@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTransactions, useAssets, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
 import { base44 } from "@/api/base44Client";
-import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
+import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies, convertTo } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -17,7 +17,7 @@ import { downloadReportPdf } from "@/lib/exportReportPdf";
 import { downloadReportXlsx } from "@/lib/exportReportXlsx";
 import { downloadMonthlyReport } from "@/lib/exportReport";
 import ExportMenu from "@/components/ExportMenu";
-import { useExchangeRates } from "@/hooks/useFinance";
+import { useRateMap } from "@/hooks/useFinance";
 import { toast } from "sonner";
 
 const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
@@ -37,7 +37,8 @@ export default function Reports() {
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   const [consolidated, setConsolidated] = useState(false);
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
-  const { data: exchangeRates = [] } = useExchangeRates(consolidated ? currency : null);
+  const { map: rateMap } = useRateMap();
+  const hasForeignRate = Object.keys(rateMap).filter((k) => k !== "IDR").length > 0;
 
   useEffect(() => {
     setGoldLoading(true);
@@ -145,14 +146,7 @@ export default function Reports() {
   const categoryRows = byCategory.map((c) => ({ name: c.name, value: c.value, prev: byCategoryPrev[c.name] || 0 }));
 
   // Konsolidasi multi-mata uang: konversi semua transaksi ke cur menggunakan kurs historis.
-  const convertAmount = useCallback((amount, fromCur) => {
-    if (fromCur === cur) return amount;
-    const rate = exchangeRates.find((r) => r.base_currency === cur && r.quote_currency === fromCur);
-    if (rate) return amount / rate.rate;
-    const inverse = exchangeRates.find((r) => r.base_currency === fromCur && r.quote_currency === cur);
-    if (inverse) return amount * inverse.rate;
-    return 0;
-  }, [exchangeRates, cur]);
+  const convertAmount = useCallback((amount, fromCur) => convertTo(amount, fromCur, cur, rateMap), [rateMap, cur]);
 
   const consolidatedSummary = useMemo(() => {
     if (!consolidated) return null;
@@ -206,8 +200,7 @@ export default function Reports() {
   const handleFetchRates = async () => {
     setFetchingRates(true);
     try {
-      const targetCurs = activeCurs.filter((c) => c !== currency);
-      await base44.functions.invoke("fetchExchangeRates", { base_currency: currency, target_currencies: targetCurs });
+      await base44.functions.invoke("fetchExchangeRates", { target_currencies: activeCurs });
       toast.success("Kurs berhasil dimuat");
       refresh();
     } catch {
@@ -219,10 +212,10 @@ export default function Reports() {
 
   // Otomatis ambil kurs saat konsolidasi aktif tapi belum ada kurs tersimpan.
   useEffect(() => {
-    if (consolidated && exchangeRates.length === 0 && activeCurs.length > 1 && !fetchingRates) {
+    if (consolidated && !hasForeignRate && activeCurs.length > 1 && !fetchingRates) {
       handleFetchRates();
     }
-  }, [consolidated, exchangeRates.length, activeCurs.length, currency]);
+  }, [consolidated, hasForeignRate, activeCurs.length, currency]);
 
   const exportStats = consolidated && consolidatedSummary
     ? [
@@ -352,7 +345,7 @@ export default function Reports() {
         </button>
       )}
 
-      {consolidated && exchangeRates.length === 0 && (
+      {consolidated && !hasForeignRate && (
         <button
           onClick={handleFetchRates}
           disabled={fetchingRates}

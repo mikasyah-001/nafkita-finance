@@ -22,11 +22,12 @@
     "source": {
       "type": "string",
       "enum": [
+        "bi",
         "api",
         "manual"
       ],
-      "default": "api",
-      "description": "Sumber kurs: api = diambil otomatis, manual = diinput pengguna"
+      "default": "bi",
+      "description": "Sumber kurs: bi = kurs tengah Bank Indonesia, api = kurs pasar otomatis (fallback), manual = diinput pengguna"
     }
   },
   "required": [

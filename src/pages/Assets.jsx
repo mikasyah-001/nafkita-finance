@@ -149,6 +149,8 @@ export default function Assets() {
         </Link>
       )}
 
+      <AssetGrowthTrend />
+
       {scopedAssets.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-3 mb-3 space-y-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
@@ -311,8 +313,6 @@ export default function Assets() {
           <ChevronDown className="w-4 h-4" /> Lihat lainnya ({sortedAssets.length - visibleCount} lagi)
         </button>
       )}
-
-      <AssetGrowthTrend />
 
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 

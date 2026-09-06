@@ -177,6 +177,33 @@ export function useExchangeRates(baseCurrency) {
   });
 }
 
+// Peta kurs terhadap IDR (1 unit = X IDR) untuk konversi otomatis lintas mata uang.
+// Sumber utama: kurs tengah Bank Indonesia. Dimuat saat aplikasi siap.
+// Mengembalikan { map, date, source } — date/source dari kurs terbaru tersedia.
+export function useRateMap() {
+  const { data: rates = [] } = useQuery({
+    queryKey: ["exchangeRates", "idrMap"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listExchangeRates", { quote_currency: "IDR" });
+      return res.data.rates || [];
+    },
+  });
+  return useMemo(() => {
+    const map = { IDR: 1 };
+    let latest = null;
+    (rates || []).forEach((r) => {
+      const base = (r.base_currency || "").toUpperCase();
+      const quote = (r.quote_currency || "").toUpperCase();
+      const rate = Number(r.rate) || 0;
+      if (!base || rate <= 0) return;
+      if (quote === "IDR" && base !== "IDR") map[base] = rate;
+      else if (base === "IDR" && quote !== "IDR") map[quote] = 1 / rate;
+      if (!latest || (r.date || "") > (latest.date || "")) latest = r;
+    });
+    return { map, date: latest?.date || null, source: latest?.source || null };
+  }, [rates]);
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {

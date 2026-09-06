@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useAssets } from "@/hooks/useFinance";
-import { formatRupiah, formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
+import { formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
 import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";

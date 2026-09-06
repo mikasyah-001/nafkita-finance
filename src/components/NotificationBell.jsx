@@ -5,16 +5,15 @@ import { Bell, CheckCheck, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { formatMoney } from "@/lib/finance";
 
-// Susun teks nominal notifikasi memakai mata uang transaksi (disimpan pada
-// record). Label diambil dari body (bagian setelah " • "). Bila nominal
-// disembunyikan (•••) atau bukan transaksi, tampilkan body apa adanya.
+// Format ulang nominal dari field terstruktur agar selalu memakai mata uang
+// transaksi asli, bukan mata uang default akun penerima.
 const notifBody = (n) => {
   const raw = String(n.body || "");
   if (n.entity_kind === "transaction" && n.currency && n.amount != null && !raw.includes("•••")) {
     const sign = n.tx_type === "income" ? "+" : "-";
-    const parts = raw.split(" • ");
-    const label = parts.length > 1 ? parts[parts.length - 1] : "";
-    return `${sign}${formatMoney(n.amount, n.currency)}${label ? ` • ${label}` : ""}`;
+    const separator = raw.indexOf(" • ");
+    const label = separator >= 0 ? raw.slice(separator + 3).trim() : "";
+    return `${sign}${formatMoney(Number(n.amount) || 0, String(n.currency).toUpperCase())}${label ? ` • ${label}` : ""}`;
   }
   return raw;
 };
@@ -178,7 +177,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-12 w-[24rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-sm font-semibold">Notifikasi</p>
             {unreadCount > 0 && (
@@ -187,7 +186,7 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-[min(32rem,70vh)] overflow-y-auto">
             {loading ? (
               <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
             ) : items.length === 0 ? (
@@ -206,9 +205,14 @@ export default function NotificationBell() {
                   >
                     <div className="text-base shrink-0 leading-6">{kindIcon(n.entity_kind)}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{n.actor_name || n.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{n.title === n.actor_name ? "" : n.title} {notifBody(n) ? `• ${notifBody(n)}` : ""}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{fmtTime(n.created_date)}</p>
+                      <div className="flex items-start gap-2">
+                        <p className="text-sm font-semibold leading-snug whitespace-normal break-words flex-1">{n.title || n.actor_name || "Notifikasi baru"}</p>
+                        {n.currency && n.amount != null && !String(n.body || "").includes("•••") && (
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold">{String(n.currency).toUpperCase()}</span>
+                        )}
+                      </div>
+                      {notifBody(n) && <p className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words mt-1">{notifBody(n)}</p>}
+                      <p className="text-[10px] text-muted-foreground mt-1.5">{fmtTime(n.created_date)}</p>
                     </div>
                     {!n.read && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-primary" />}
                   </button>

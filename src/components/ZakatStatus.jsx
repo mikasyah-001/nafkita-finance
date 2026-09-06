@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Coins, Wallet, CheckCircle2, Bell, Loader2, Sparkles, AlertTriangle, Info } from "lucide-react";
 
-export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
+// Zakat selalu dihitung dalam IDR (nisab emas berbasis harga emas Rupiah).
+const ZK = "IDR";
+
+export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0, displayCurrency = "IDR" }) {
   const { data: zakatPayments = [] } = useZakatPayments();
   const refresh = useRefresh();
   const [user, setUser] = useState(null);
@@ -37,7 +40,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
       label: "Zakat Simpanan",
       icon: Wallet,
       amount: zakatSimpanan,
-      detail: <>Simpanan <Money value={nonEmasValue} /> ≥ nisab</>,
+      detail: <>Simpanan <Money value={nonEmasValue} currency={ZK} /> ≥ nisab</>,
     });
   }
 
@@ -66,6 +69,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
   if (!hasAnyAsset) return null;
 
   const emasProgress = Math.min(100, (emasGrams / NISAB_GRAM) * 100);
+  const showIdrNote = displayCurrency !== "IDR";
 
   return (
     <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 mb-5">
@@ -77,6 +81,11 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
           <p className="text-sm font-semibold">Status Zakat {year}</p>
           <p className="text-[11px] text-muted-foreground">Nisab emas = {NISAB_GRAM} gram</p>
         </div>
+        {showIdrNote && (
+          <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/40 rounded-full px-2 py-0.5 flex items-center gap-1">
+            <Info className="w-3 h-3" /> Dihitung dalam IDR
+          </span>
+        )}
       </div>
 
       {/* Status Emas */}
@@ -117,7 +126,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
               {emasReachedNisab
                 ? `Melebihi nisab • zakat 2,5% = `
                 : `Kurang ${formatNumber(NISAB_GRAM - emasGrams)} gr menuju nisab`}
-              {emasReachedNisab && <span className="font-semibold text-amber-600"><Money value={zakatEmas} /></span>}
+              {emasReachedNisab && <span className="font-semibold text-amber-600"><Money value={zakatEmas} currency={ZK} /></span>}
             </p>
           </>
         ) : (
@@ -148,8 +157,8 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
             )}
           </div>
           <div className="flex items-end justify-between mb-1.5">
-            <span className="text-xs text-muted-foreground">Simpanan <Money value={nonEmasValue} /></span>
-            <span className="text-xs text-muted-foreground">Nisab <Money value={simpananNisabValue} /></span>
+            <span className="text-xs text-muted-foreground">Simpanan <Money value={nonEmasValue} currency={ZK} /></span>
+            <span className="text-xs text-muted-foreground">Nisab <Money value={simpananNisabValue} currency={ZK} /></span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
@@ -159,9 +168,9 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
           </div>
           <p className="text-[10px] text-muted-foreground mt-1.5">
             {simpananReachedNisab ? (
-              <>Melebihi nisab • zakat 2,5% = <span className="font-semibold text-indigo-600"><Money value={zakatSimpanan} /></span></>
+              <>Melebihi nisab • zakat 2,5% = <span className="font-semibold text-indigo-600"><Money value={zakatSimpanan} currency={ZK} /></span></>
             ) : (
-              <>Kurang <Money value={simpananNisabValue - nonEmasValue} /> menuju nisab</>
+              <>Kurang <Money value={simpananNisabValue - nonEmasValue} currency={ZK} /> menuju nisab</>
             )}
           </p>
         </div>
@@ -184,7 +193,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground">2,5%</p>
-                    <p className="text-sm font-semibold text-emerald-600"><Money value={ob.amount} /></p>
+                    <p className="text-sm font-semibold text-emerald-600"><Money value={ob.amount} currency={ZK} /></p>
                   </div>
                 </div>
                 <button
@@ -204,7 +213,8 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
       {/* Notifikasi nisab emas tercapai */}
       {emasReachedNisab && obligations.length > 0 && (
         <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-2.5">
-          <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5">
+          </Sparkles>
           <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
             Simpanan emas Anda telah mencapai nisab ({NISAB_GRAM} gram). Saatnya menunaikan zakat emas sebesar 2,5% dari total nilai emas.
           </p>

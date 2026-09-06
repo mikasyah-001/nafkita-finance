@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { formatRupiah, colorMap } from "@/lib/finance";
+import { formatMoney, colorMap } from "@/lib/finance";
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 
-export default function MonthComparison({ transactions, categories, year, month }) {
+export default function MonthComparison({ transactions, categories, year, month, currency = "IDR" }) {
   const prevName = useMemo(() => {
     return new Date(year, month - 1, 1).toLocaleDateString("id-ID", { month: "long" });
   }, [year, month]);
@@ -57,7 +57,7 @@ export default function MonthComparison({ transactions, categories, year, month 
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cm.solid}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{r.name}</p>
-                <p className="text-[10px] text-muted-foreground">{formatRupiah(r.pv)} → {formatRupiah(r.tv)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatMoney(r.pv, currency)} → {formatMoney(r.tv, currency)}</p>
               </div>
               <div className="text-right">
                 {isNew ? (
@@ -72,7 +72,7 @@ export default function MonthComparison({ transactions, categories, year, month 
                   <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
                 )}
                 <p className={`text-[10px] ${up ? "text-red-500" : down ? "text-emerald-600" : "text-muted-foreground"}`}>
-                  {up ? "+" : down ? "-" : ""}{formatRupiah(Math.abs(r.diff))}
+                  {up ? "+" : down ? "-" : ""}{formatMoney(Math.abs(r.diff), currency)}
                 </p>
               </div>
             </div>

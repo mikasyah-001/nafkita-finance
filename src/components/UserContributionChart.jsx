@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
-import { formatRupiah } from "@/lib/finance";
+import { formatMoney } from "@/lib/finance";
 import { Users, TrendingUp, TrendingDown } from "lucide-react";
 
-export default function UserContributionChart({ transactions }) {
+export default function UserContributionChart({ transactions, currency = "IDR" }) {
   const [view, setView] = useState("expense");
 
   const userData = useMemo(() => {
@@ -55,7 +55,7 @@ export default function UserContributionChart({ transactions }) {
             <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={48} />
             <Tooltip
-              formatter={(v) => formatRupiah(v)}
+              formatter={(v) => formatMoney(v, currency)}
               contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 12 }}
               cursor={{ fill: "rgba(0,0,0,0.04)" }}
             />
@@ -71,7 +71,7 @@ export default function UserContributionChart({ transactions }) {
       {total > 0 && (
         <p className="text-xs text-muted-foreground mt-3 text-center">
           {view === "expense" ? "Pengeluaran terbanyak" : "Pemasukan terbesar"} dicatat oleh{" "}
-          <span className="font-medium text-foreground">{top.name}</span> ({Math.round((top.value / total) * 100)}% dari total {formatRupiah(total)}).
+          <span className="font-medium text-foreground">{top.name}</span> ({Math.round((top.value / total) * 100)}% dari total {formatMoney(total, currency)}).
         </p>
       )}
     </div>

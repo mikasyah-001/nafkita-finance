@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, currencySymbol } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
 
@@ -153,7 +153,7 @@ export default function InvestmentDetail() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4 mb-4">
-        <label className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit (Rp)</label>
+        <label className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
         <div className="flex gap-2">
           <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
           <button onClick={async () => { if (asset && cp > 0) { try { await base44.entities.Asset.update(asset.id, { value: Math.round(currentValue) }); refresh(); toast.success("Nilai aset diperbarui"); } catch { toast.error("Gagal memperbarui"); } } }} className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium shrink-0">Simpan</button>
@@ -216,7 +216,7 @@ export default function InvestmentDetail() {
                 <input type="date" value={lot.date} onChange={(e) => setLot({ ...lot, date: e.target.value })} className="input" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Harga Beli / unit (Rp)</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Harga Beli / unit ({currencySymbol(asset.currency)})</label>
                 <input type="number" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} placeholder="Mis. 1500" className="input" />
               </div>
               <div>

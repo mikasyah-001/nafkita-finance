@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useTransactions, useCategories, useBudgets } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useBudgets, useUserCurrencies } from "@/hooks/useFinance";
 import { colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
 import { Target, ArrowRight, AlertTriangle } from "lucide-react";
@@ -9,6 +9,7 @@ export default function BudgetBars({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: budgets = [] } = useBudgets();
+  const userCurrencies = useUserCurrencies();
 
   const now = new Date();
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -34,7 +35,8 @@ export default function BudgetBars({ scope = "shared" }) {
       .filter((c) => c.type === "expense")
       .flatMap((c) => {
         const result = [];
-        ["IDR", "SAR", "USD"].forEach((cur) => {
+        const allCurs = [...new Set([...userCurrencies.map((c) => c.code), ...budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).map((b) => b.currency || "IDR")])];
+        allCurs.forEach((cur) => {
           const key = `${c.name}||${cur}`;
           const b = budgetMap[key];
           if (!b) return;

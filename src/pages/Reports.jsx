@@ -401,13 +401,13 @@ export default function Reports() {
         </div>
       )}
 
-      {scope === "shared" && <UserContributionChart transactions={displayMonthTx} />}
+      {scope === "shared" && <UserContributionChart transactions={displayMonthTx} currency={cur} />}
 
-      <MonthComparison transactions={displayScopedTx} categories={categories} year={year} month={month} />
+      <MonthComparison transactions={displayScopedTx} categories={categories} year={year} month={month} currency={cur} />
 
-      <ExpenseTrendAnalysis transactions={displayScopedTx} categories={categories} year={year} month={month} />
+      <ExpenseTrendAnalysis transactions={displayScopedTx} categories={categories} year={year} month={month} currency={cur} />
 
-      <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} />
+      <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} currency={cur} rateMap={rateMap} />
 
       <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 active:scale-[0.99] transition-transform">
         <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">

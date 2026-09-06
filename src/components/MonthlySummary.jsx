@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useUserCurrencies } from "@/hooks/useFinance";
 import { formatDate, colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
 import { PieChart, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 
-const CURS = ["IDR", "SAR", "USD"];
-
 export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
+  const userCurrencies = useUserCurrencies();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
@@ -23,16 +22,17 @@ export default function MonthlySummary({ scope = "shared" }) {
     const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
     const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
     const map = {}, prevMap = {}, totals = {}, prevTotals = {};
-    CURS.forEach((c) => { map[c] = {}; prevMap[c] = {}; totals[c] = 0; prevTotals[c] = 0; });
+    const ensure = (c) => { if (!map[c]) { map[c] = {}; prevMap[c] = {}; totals[c] = 0; prevTotals[c] = 0; } };
+    userCurrencies.forEach((c) => ensure(c.code));
     scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).forEach((t) => {
-      const c = (t.currency || "IDR"); if (!map[c]) return;
+      const c = (t.currency || "IDR"); ensure(c);
       map[c][t.category] = (map[c][t.category] || 0) + t.amount; totals[c] += t.amount;
     });
     scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm)).forEach((t) => {
-      const c = (t.currency || "IDR"); if (!prevMap[c]) return;
+      const c = (t.currency || "IDR"); ensure(c);
       prevMap[c][t.category] = (prevMap[c][t.category] || 0) + t.amount; prevTotals[c] += t.amount;
     });
-    const activeCurs = CURS.filter((c) => totals[c] > 0);
+    const activeCurs = Object.keys(totals).filter((c) => totals[c] > 0);
     const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
     const rows = Object.entries(map[cur] || {})
       .map(([name, value]) => ({ name, value, prev: (prevMap[cur] || {})[name] || 0 }))

@@ -59,17 +59,21 @@ export default function AssetDashboard() {
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasAssets.reduce((s, a) => s + displayValue(a), 0);
-  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + (a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + convertTo(a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
   const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
   const investasiValue = investasiAssets.reduce((s, a) => s + displayValue(a), 0);
-  const investasiPurchase = investasiAssets.reduce((s, a) => s + (a.purchase_price || 0), 0);
+  const investasiPurchase = investasiAssets.reduce((s, a) => s + convertTo(a.purchase_price || 0, (a.currency || "IDR"), displayCurrency, rateMap), 0);
 
   const nonEmasValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + displayValue(a), 0);
 
+  // Zakat selalu dihitung dalam IDR (nisab emas berbasis harga emas Rupiah).
+  const emasValueIdr = emasAssets.reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
+  const nonEmasValueIdr = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
+
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
-  const totalPurchase = scopedAssets.reduce((s, a) => s + ((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + convertTo((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
   const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
@@ -84,7 +88,7 @@ export default function AssetDashboard() {
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + displayValue(a), 0);
-      const purchase = list.reduce((s, a) => s + ((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0)), 0);
+      const purchase = list.reduce((s, a) => s + convertTo((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
       return { type, value, purchase, growth, count: list.length };
     })
@@ -314,9 +318,10 @@ export default function AssetDashboard() {
 
       <ZakatStatus
         emasGrams={emasGrams}
-        emasValue={emasValue}
-        nonEmasValue={nonEmasValue}
-        goldPrice={displayCurrency === "IDR" ? goldPriceNum : 0}
+        emasValue={emasValueIdr}
+        nonEmasValue={nonEmasValueIdr}
+        goldPrice={goldPriceNum}
+        displayCurrency={displayCurrency}
       />
 
       <div className="mb-5">

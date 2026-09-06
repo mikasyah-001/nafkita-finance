@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoneyShort, formatDate, summarizeByCurrency, computeSavingsRate, activeCurrencies } from "@/lib/finance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { formatMoneyShort, formatDate, summarizeByCurrency, computeSavingsRate, activeCurrencies, convertTo } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check, Globe } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
@@ -31,6 +31,7 @@ export default function Home() {
   const { data: categories = [] } = useCategories();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
 
   const defaultCur = user?.default_currency || "IDR";
   const [currency, setCurrency] = useState(defaultCur);
@@ -54,6 +55,10 @@ export default function Home() {
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
   const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
+
+  // Total konsolidasi: semua mata uang dikonversi ke mata uang utama.
+  const consolidatedBalance = useMemo(() => Object.entries(summary).reduce((acc, [c, v]) => acc + convertTo(v.balance, c, defaultCur, rateMap), 0), [summary, defaultCur, rateMap]);
+  const hasMultiCurrency = Object.keys(summary).filter((c) => summary[c]?.count > 0).length > 1;
 
   const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
 
@@ -158,6 +163,18 @@ export default function Home() {
           <Lock className="w-4 h-4" /> Pribadi
         </button>
       </div>
+
+      {hasMultiCurrency && (
+        <div className="rounded-2xl border border-border bg-card p-4 mb-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Globe className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">Total Kekayaan (konversi ke {defaultCur})</p>
+            <p className="text-xl font-bold tabular-nums break-words"><Money value={consolidatedBalance} currency={defaultCur} /></p>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-4">
         <div className="flex items-center justify-between mb-1">

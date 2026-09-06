@@ -66,7 +66,7 @@ export default function Debts() {
           {Object.entries(totals.utang).map(([c, v]) => (
             <p key={c} className="font-semibold text-sm mt-0.5 tabular-nums">{formatMoney(v, c)}</p>
           ))}
-          {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">{formatMoney(0)}</p>}
+          {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-2">
@@ -76,7 +76,7 @@ export default function Debts() {
           {Object.entries(totals.piutang).map(([c, v]) => (
             <p key={c} className="font-semibold text-sm mt-0.5 tabular-nums">{formatMoney(v, c)}</p>
           ))}
-          {Object.keys(totals.piutang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">{formatMoney(0)}</p>}
+          {Object.keys(totals.piutang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
         </div>
       </div>
 

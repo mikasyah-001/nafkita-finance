@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
-import { formatDate, colorMap } from "@/lib/finance";
+import { formatDate, colorMap, formatMoneyShort } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import AdminStats from "@/components/AdminStats";
 
@@ -429,9 +429,15 @@ export default function Admin() {
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-medium shrink-0">private</span>
                     )}
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {owner?.full_name || owner?.email || "—"} • {a.type || "lainnya"}
-                  </p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium capitalize shrink-0">{a.type || "lainnya"}</span>
+                    {a.quantity > 0 && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {a.quantity}{a.unit ? ` ${a.unit}` : ""} {a.purchase_price ? `× ${formatMoneyShort(a.purchase_price, a.currency)}` : ""}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-muted-foreground truncate">• {owner?.full_name || owner?.email || "—"}</span>
+                  </div>
                 </div>
                 <div className="text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums">
                   <Money value={a.value} currency={a.currency} />

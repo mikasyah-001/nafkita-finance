@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
 import { formatRupiah, colorMap, currencies } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
+import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { ArrowLeft, Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
@@ -36,32 +37,40 @@ export default function ImportReport() {
     return new Date().toISOString().slice(0, 10);
   };
 
-  const mapCategory = (name) => {
-    if (!name) return "";
-    const match = categories.find((c) => c.name.toLowerCase() === String(name).toLowerCase());
-    return match ? match.name : "";
+  const mapCategory = (name, type) => {
+    const proposed = String(name || "").trim();
+    if (!proposed) return { name: "", isNew: false };
+    const match = categories.find((c) => c.type === type && c.name.toLowerCase() === proposed.toLowerCase());
+    return match ? { name: match.name, isNew: false } : { name: proposed, isNew: true };
   };
 
   const normalizeTransactions = (transactions) =>
     (transactions || [])
       .filter((t) => t && Number(t.amount) > 0)
-      .map((t, i) => ({
-        id: i,
-        selected: true,
-        date: normalizeDate(t.date),
-        time: t.time || "",
-        merchant: t.merchant || "",
-        category: mapCategory(t.category),
-        amount: Number(t.amount) || 0,
-        type: t.type === "income" ? "income" : "expense",
-        currency: ["SAR", "USD"].includes((t.currency || "").toUpperCase()) ? t.currency.toUpperCase() : (t.currency ? t.currency.toUpperCase() : importCurrency),
-        visibility: importVisibility,
-      }));
+      .map((t, i) => {
+        const type = t.type === "income" ? "income" : "expense";
+        const category = mapCategory(t.category, type);
+        return {
+          id: i,
+          selected: true,
+          date: normalizeDate(t.date),
+          time: t.time || "",
+          merchant: t.merchant || "",
+          category: category.name,
+          category_new: category.isNew,
+          category_icon: category.isNew ? sanitizeIcon(t.category_icon) : "",
+          category_color: category.isNew ? sanitizeColor(t.category_color) : "",
+          amount: Number(t.amount) || 0,
+          type,
+          currency: ["IDR", "SAR", "USD"].includes((t.currency || "").toUpperCase()) ? t.currency.toUpperCase() : importCurrency,
+          visibility: importVisibility,
+        };
+      });
 
   const parseText = async (rawText) => {
     const catNames = categories.map((c) => c.name).join(", ");
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), jam (format HH:mm, jika tersedia di laporan; jika tidak ada kosongkan), merchant/tempat/no transaksi, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok gunakan "Lainnya"), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${rawText}`,
+      prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), jam (format HH:mm, jika tersedia di laporan; jika tidak ada kosongkan), merchant/tempat/no transaksi, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok usulkan kategori baru yang singkat dan tepat), category_icon (Wallet, ShoppingCart, Car, ReceiptText, HeartPulse, GraduationCap, Gamepad2, Gift, PiggyBank, Landmark, Coins, Briefcase, Utensils, Bus, Lightbulb, Package, Sparkles, Home, Heart), category_color (orange, blue, pink, red, teal, indigo, violet, green, amber, cyan, rose, slate), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${rawText}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -74,6 +83,8 @@ export default function ImportReport() {
                 time: { type: "string" },
                 merchant: { type: "string" },
                 category: { type: "string" },
+                category_icon: { type: "string" },
+                category_color: { type: "string" },
                 amount: { type: "number" },
                 type: { type: "string" },
                 currency: { type: "string" },
@@ -182,6 +193,12 @@ export default function ImportReport() {
 
     setImporting(true);
     try {
+      const proposalsFor = (type) => selected
+        .filter((r) => r.type === type && r.category_new && r.category)
+        .map((r) => ({ name: r.category, icon: r.category_icon, color: r.category_color }));
+      await ensureCategories(proposalsFor("expense"), categories, "expense");
+      await ensureCategories(proposalsFor("income"), categories, "income");
+
       const batchId = "import-" + Date.now();
       const payload = selected.map((r) => ({
         type: r.type,
@@ -328,6 +345,9 @@ export default function ImportReport() {
                     </select>
                     <select value={r.category} onChange={(e) => updateRow(r.id, "category", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background col-span-2">
                       <option value="">Pilih kategori</option>
+                      {r.category_new && r.category && !categories.some((c) => c.type === r.type && c.name.toLowerCase() === r.category.toLowerCase()) && (
+                        <option value={r.category}>{r.category} (usulan AI — baru)</option>
+                      )}
                       {categories.filter((c) => c.type === r.type).map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>

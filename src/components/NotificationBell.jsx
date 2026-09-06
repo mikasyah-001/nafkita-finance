@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/finance";
 // transaksi asli, bukan mata uang default akun penerima.
 const notifBody = (n) => {
   const raw = String(n.body || "");
-  if (n.entity_kind === "transaction" && n.currency && n.amount != null && !raw.includes("•••")) {
+  if (n.tx_type && n.currency && n.amount != null && !raw.includes("•••")) {
     const sign = n.tx_type === "income" ? "+" : "-";
     const separator = raw.indexOf(" • ");
     const label = separator >= 0 ? raw.slice(separator + 3).trim() : "";

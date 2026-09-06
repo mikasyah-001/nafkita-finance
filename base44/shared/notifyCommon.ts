@@ -5,9 +5,10 @@ import { resolvePartnerId } from "./partnerResolve.ts";
 const formatMoney = (n, cur) => {
   const c = (cur || "IDR").toUpperCase();
   const v = Number(n || 0);
+  if (c === "IDR") return "Rp" + v.toLocaleString("id-ID");
   if (c === "USD") return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (c === "SAR") return "SAR " + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return "Rp" + v.toLocaleString("id-ID");
+  return c + " " + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // Mask nominal bila preferensi hide_amount aktif.

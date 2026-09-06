@@ -122,8 +122,9 @@ export default function Assets() {
           <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
-          <button onClick={openAdd} className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-            <Plus className="w-5 h-5" />
+          <button onClick={openAdd} className="h-10 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1.5 active:scale-95 transition-transform">
+            <Landmark className="w-4 h-4" />
+            <span className="text-xs font-medium">Tambah Aset</span>
           </button>
         </div>
       </div>

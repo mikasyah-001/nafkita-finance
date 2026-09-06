@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRefresh, useMe } from "@/hooks/useFinance";
-import { assetTypeLabels, formatRupiah, currencies } from "@/lib/finance";
+import { useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { assetTypeLabels, formatRupiah, currencySymbol } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
@@ -32,10 +32,11 @@ export default function AssetForm({ asset, onClose }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   const { data: me } = useMe();
+  const userCurrencies = useUserCurrencies();
   useEffect(() => {
     if (!isEdit && me?.default_currency) setForm((f) => (f.currency ? f : { ...f, currency: me.default_currency }));
   }, [me, isEdit]);
-  const sym = (currencies.find((c) => c.code === form.currency) || currencies[0]).symbol;
+  const sym = currencySymbol(form.currency);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -144,9 +145,9 @@ export default function AssetForm({ asset, onClose }) {
           ) : (
             <>
               <Field label="Mata Uang">
-                <div className="flex gap-2">
-                  {currencies.map((c) => (
-                    <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                <div className="flex flex-wrap gap-2">
+                  {userCurrencies.map((c) => (
+                    <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
                       {c.code}
                     </button>
                   ))}

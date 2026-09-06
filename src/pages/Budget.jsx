@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useBudgets, useRefresh, useMe } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap, currencySymbol, CURRENCY_CODES } from "@/lib/finance";
+import { useTransactions, useCategories, useBudgets, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
@@ -18,6 +18,7 @@ export default function Budget() {
   const [limits, setLimits] = useState({});
   const [scope, setScope] = useState("shared");
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  const userCurrencies = useUserCurrencies();
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const year = cursor.getFullYear();
@@ -111,7 +112,7 @@ export default function Budget() {
         </button>
       </div>
 
-      <div className="mb-4"><CurrencyTabs currencies={CURRENCY_CODES} value={currency} onChange={setCurrency} /></div>
+      <div className="mb-4"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 
       <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-5 shadow-lg">
         <div className="flex items-center gap-2 mb-1">

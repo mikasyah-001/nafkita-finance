@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates, useTransactions, useAssets } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatMoney, formatDate, currencies, currencySymbol } from "@/lib/finance";
+import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
+import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -47,6 +47,7 @@ export default function AddTransaction() {
   const [visibility, setVisibility] = useState("shared");
   const [currency, setCurrency] = useState("IDR");
   const [linkedAssetId, setLinkedAssetId] = useState("");
+  const userCurrencies = useUserCurrencies();
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -348,12 +349,12 @@ export default function AddTransaction() {
 
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
-          <div className="flex gap-2">
-            {currencies.map((c) => (
+          <div className="flex flex-wrap gap-2">
+            {userCurrencies.map((c) => (
               <button
                 key={c.code}
                 onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
-                className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${
                   currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
                 }`}
               >

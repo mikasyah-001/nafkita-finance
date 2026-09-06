@@ -23,7 +23,7 @@ const fmtTime = (iso) => {
   try {
     const d = new Date(iso);
     const now = new Date();
-    const diff = (now - d) / 1000;
+    const diff = (now.getTime() - d.getTime()) / 1000;
     if (diff < 60) return "Baru saja";
     if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;

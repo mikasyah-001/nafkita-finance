@@ -11,7 +11,8 @@ import { scanReceipt } from "@/lib/scanReceipt";
 import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
-import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff } from "lucide-react";
+import { usePartnership } from "@/hooks/usePartnership";
+import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff, Clock } from "lucide-react";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -24,6 +25,7 @@ export default function TransactionDetail() {
   const { data: assets = [] } = useAssets();
   const userCurrencies = useUserCurrencies();
   const { user } = useAuth();
+  const { partners } = usePartnership();
   const fileRef = useRef(null);
 
   const [adminTx, setAdminTx] = useState(null);
@@ -32,12 +34,15 @@ export default function TransactionDetail() {
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
   const isAdmin = !!user && user.role === "admin";
   const canManage = isOwner || isAdmin;
+  const isPending = !!tx && tx.approval_status === "pending";
+  const partnerName = partners[0]?.full_name || "pasangan";
 
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   // Admin fallback: bila transaksi tidak ada di daftar terlihat (milik user lain
   // yang bukan pasangan), admin dapat membuka detail lewat endpoint admin khusus.
@@ -178,6 +183,7 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = async () => {
+    if (isPending) return;
     try {
       await deleteTransactionWithAsset(id);
       refresh();
@@ -186,6 +192,20 @@ export default function TransactionDetail() {
     } catch {
       toast.error("Gagal menghapus");
     }
+  };
+
+  const handleCancelApproval = async () => {
+    if (cancelling || !tx?.approval_id) return;
+    setCancelling(true);
+    try {
+      await base44.functions.invoke("cancelApproval", { approval_id: tx.approval_id });
+      refresh();
+      toast.success("Permintaan persetujuan dibatalkan");
+      navigate(-1);
+    } catch {
+      toast.error("Gagal membatalkan permintaan");
+    }
+    setCancelling(false);
   };
 
   const handleToggleVisibility = async () => {
@@ -377,7 +397,12 @@ export default function TransactionDetail() {
             </button>
           ) : null}
           {canManage ? (
-            <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+            <button
+              onClick={() => setEdit(true)}
+              disabled={isPending}
+              title={isPending ? "Menunggu persetujuan pasangan" : "Edit"}
+              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ${isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground"}`}
+            >
               <Pencil className="w-4 h-4" />
             </button>
           ) : !isOwner ? (
@@ -395,6 +420,28 @@ export default function TransactionDetail() {
         <p className="text-3xl font-bold tracking-tight">{isIncome ? "+" : "-"}{formatMoney(tx.amount, tx.currency)}</p>
         <p className="text-sm opacity-90 mt-1 truncate">{tx.merchant || tx.notes || (tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category)}</p>
       </div>
+
+      {isPending && (
+        <div className="rounded-2xl border border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 p-4 mb-4">
+          <div className="flex items-start gap-2.5">
+            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Menunggu persetujuan {partnerName}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Transaksi ini belum mengubah saldo. Tunggu persetujuan, atau batalkan permintaan.</p>
+              {isOwner && tx.approval_id && (
+                <button
+                  onClick={handleCancelApproval}
+                  disabled={cancelling}
+                  className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-200 text-xs font-medium disabled:opacity-60"
+                >
+                  {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                  Batalkan Permintaan
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {tx.photo_url && (
         <div className="rounded-2xl border border-border bg-card p-3 mb-4">

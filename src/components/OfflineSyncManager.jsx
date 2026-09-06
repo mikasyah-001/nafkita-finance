@@ -30,7 +30,9 @@ export default function OfflineSyncManager() {
           removePending(tx._localId, userId);
           continue;
         }
-        await base44.entities.Transaction.create(payload);
+        const res = await base44.functions.invoke("saveTransactionWithAsset", { transaction: payload });
+        const d = res?.data || res;
+        if (d?.error) throw new Error(d.error);
         removePending(tx._localId, userId);
         ok++;
       } catch (e) {

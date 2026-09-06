@@ -16,18 +16,24 @@ export function usePartnership() {
     queryKey: ["partnerships"],
     queryFn: () => base44.entities.Partnership.list("-created_date", 500),
   });
-  const usersQ = useQuery({
-    queryKey: ["users"],
-    queryFn: () => base44.entities.User.list("-created_date", 500),
+  // Profil pasangan aktif diambil lewat backend function (getPartnerProfile)
+  // agar data seluruh user tidak bocor ke siapa pun yang login. Lihat #7.
+  const partnerQ = useQuery({
+    queryKey: ["partnerProfile"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("getPartnerProfile");
+      return res?.data?.partner || null;
+    },
   });
 
   const me = meQ.data || null;
   const partnerships = partnershipsQ.data || [];
-  const users = usersQ.data || [];
+  const partnerProfile = partnerQ.data || null;
+  const users = partnerProfile ? [partnerProfile] : [];
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["partnerships"] });
-    qc.invalidateQueries({ queryKey: ["users"] });
+    qc.invalidateQueries({ queryKey: ["partnerProfile"] });
     // Segarkan daftar transaksi/aset/anggaran agar data bersama pasangan langsung termutakhir.
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["assets"] });
@@ -192,6 +198,6 @@ export function usePartnership() {
     updateRole,
     disconnect,
     refresh,
-    loading: meQ.isLoading || partnershipsQ.isLoading || usersQ.isLoading,
+    loading: meQ.isLoading || partnershipsQ.isLoading || partnerQ.isLoading,
   };
 }

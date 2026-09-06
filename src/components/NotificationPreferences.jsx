@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { BellOff, Mail, Inbox, Layers, EyeOff, Clock, Filter } from "lucide-react";
+import { BellOff, Mail, Inbox, Layers, EyeOff, Clock, Filter, ShieldCheck } from "lucide-react";
 
 // Panel preferensi notifikasi antar-pasangan.
 // Disimpan di entity NotificationPreference (satu record per user).
@@ -10,6 +10,8 @@ export default function NotificationPreferences() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [amountDraft, setAmountDraft] = useState("0");
+  const [thresholdDraft, setThresholdDraft] = useState("10000");
+  const [threshCurDraft, setThreshCurDraft] = useState("SAR");
 
   useEffect(() => {
     base44.entities.NotificationPreference.list("-created_date", 1)
@@ -17,6 +19,8 @@ export default function NotificationPreferences() {
         const loaded = (list && list[0]) || null;
         setPref(loaded);
         setAmountDraft(String(loaded?.min_amount || 0));
+        setThresholdDraft(String(loaded?.approval_threshold ?? 10000));
+        setThreshCurDraft(loaded?.approval_threshold_currency || "SAR");
       })
       .catch(() => toast.error("Gagal memuat preferensi"))
       .finally(() => setLoading(false));
@@ -37,6 +41,8 @@ export default function NotificationPreferences() {
           daily_digest: !!next.daily_digest,
           hide_amount: !!next.hide_amount,
           channel: next.channel || "in_app",
+          approval_threshold: Math.max(0, Number(next.approval_threshold) || 0),
+          approval_threshold_currency: next.approval_threshold_currency || "SAR",
         });
         setPref(created);
       }
@@ -51,6 +57,17 @@ export default function NotificationPreferences() {
     const value = Math.max(0, Number(amountDraft) || 0);
     setAmountDraft(String(value));
     if (value !== (pref?.min_amount || 0)) update("min_amount", value);
+  };
+
+  const saveThreshold = () => {
+    const value = Math.max(0, Number(thresholdDraft) || 0);
+    setThresholdDraft(String(value));
+    if (value !== (pref?.approval_threshold ?? 10000)) update("approval_threshold", value);
+  };
+
+  const saveThresholdCurrency = (cur) => {
+    setThreshCurDraft(cur);
+    if (cur !== (pref?.approval_threshold_currency || "SAR")) update("approval_threshold_currency", cur);
   };
 
   if (loading) {
@@ -109,6 +126,37 @@ export default function NotificationPreferences() {
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
         />
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+          <p className="text-xs font-medium">Ambang persetujuan pasangan</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground mb-2">Transaksi bersama dengan nominal ≥ ambang ini (dikonversi ke mata uang acuan) wajib disetujui pasangan sebelum saldo berubah.</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={thresholdDraft}
+            min="0"
+            disabled={saving}
+            onChange={(e) => setThresholdDraft(e.target.value)}
+            onBlur={saveThreshold}
+            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
+          />
+          <select
+            value={threshCurDraft}
+            disabled={saving}
+            onChange={(e) => saveThresholdCurrency(e.target.value)}
+            className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
+          >
+            {["SAR", "IDR", "USD", "EUR"].map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>

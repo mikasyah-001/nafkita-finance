@@ -1,24 +1,26 @@
-const KEY = "keluargafin_pending_tx";
+// Antrean transaksi offline dicakup per akun (user id) agar transaksi tertunda
+// akun A tidak ikut tersinkron saat akun B login di perangkat yang sama.
+const keyFor = (userId) => `nafkita_pending_tx_${userId || "anon"}`;
 
-export function getPending() {
+export function getPending(userId) {
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
+    return JSON.parse(localStorage.getItem(keyFor(userId)) || "[]");
   } catch {
     return [];
   }
 }
 
-export function addPending(tx) {
-  const list = getPending();
+export function addPending(tx, userId) {
+  const list = getPending(userId);
   const item = { ...tx, _localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
   list.push(item);
-  localStorage.setItem(KEY, JSON.stringify(list));
+  localStorage.setItem(keyFor(userId), JSON.stringify(list));
   return list;
 }
 
-export function removePending(localId) {
-  const list = getPending().filter((t) => t._localId !== localId);
-  localStorage.setItem(KEY, JSON.stringify(list));
+export function removePending(localId, userId) {
+  const list = getPending(userId).filter((t) => t._localId !== localId);
+  localStorage.setItem(keyFor(userId), JSON.stringify(list));
   return list;
 }
 

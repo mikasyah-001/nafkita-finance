@@ -1,5 +1,6 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { BACKUP_ENTITIES, BACKUP_VERSION } from "../../shared/backupFormat.ts";
 
 export default async function(req) {
   try {
@@ -9,33 +10,19 @@ export default async function(req) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Kumpulkan seluruh data entitas (service role = akses penuh)
-    const [transactions, assets, categories, budgets, zakatPayments, snapshots, templates, investmentLots] = await Promise.all([
-      base44.asServiceRole.entities.Transaction.list('-created_date', 5000),
-      base44.asServiceRole.entities.Asset.list('-created_date', 5000),
-      base44.asServiceRole.entities.Category.list('-created_date', 5000),
-      base44.asServiceRole.entities.Budget.list('-created_date', 5000),
-      base44.asServiceRole.entities.ZakatPayment.list('-created_date', 5000),
-      base44.asServiceRole.entities.AssetSnapshot.list('-created_date', 5000),
-      base44.asServiceRole.entities.TransactionTemplate.list('-created_date', 5000),
-      base44.asServiceRole.entities.InvestmentLot.list('-created_date', 5000),
-    ]);
+    // Kumpulkan seluruh data entitas (service role = akses penuh).
+    const data = {};
+    for (const e of BACKUP_ENTITIES) {
+      data[e.key] = await base44.asServiceRole.entities[e.entity].list('-created_date', 5000);
+    }
 
     const now = new Date();
     const backup = {
       app: 'NAFKITA',
+      version: BACKUP_VERSION,
       exported_at: now.toISOString(),
-      counts: {
-        transactions: transactions.length,
-        assets: assets.length,
-        categories: categories.length,
-        budgets: budgets.length,
-        zakatPayments: zakatPayments.length,
-        snapshots: snapshots.length,
-        templates: templates.length,
-        investmentLots: investmentLots.length,
-      },
-      data: { transactions, assets, categories, budgets, zakatPayments, snapshots, templates, investmentLots },
+      counts: Object.fromEntries(BACKUP_ENTITIES.map((e) => [e.key, data[e.key].length])),
+      data,
     };
 
     const json = JSON.stringify(backup, null, 2);

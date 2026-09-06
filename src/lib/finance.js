@@ -79,6 +79,23 @@ export function activeCurrencies(summary) {
   return CURRENCY_CODES.filter((c) => summary && summary[c] && summary[c].count > 0);
 }
 
+// Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).
+// Emas dan simpanan diperlakukan terpisah: emas nisab 85 gr, simpanan nisab = 85 gr emas.
+export const NISAB_GRAM = 85;
+
+export function computeZakat({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
+  const nisab = goldPrice > 0 ? goldPrice * NISAB_GRAM : 0;
+  const emasReached = emasGrams >= NISAB_GRAM;
+  const simpananReached = goldPrice > 0 && nonEmasValue >= nisab;
+  return {
+    nisab,
+    emasReached,
+    simpananReached,
+    zakatEmas: emasReached ? emasValue * 0.025 : 0,
+    zakatSimpanan: simpananReached ? nonEmasValue * 0.025 : 0,
+  };
+}
+
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);
 }

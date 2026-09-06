@@ -177,6 +177,26 @@ export default function Reports() {
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [consolidated, periodTxAll, convertAmount]);
 
+  // Transaksi terkonversi ke cur untuk komponen grafik saat konsolidasi aktif.
+  // Saat tidak konsolidasi, kembalikan data terfilter per mata uang (perilaku lama).
+  const displayMonthTx = useMemo(() => {
+    if (!consolidated) return monthTx;
+    return periodTxAll.map((t) => ({
+      ...t,
+      amount: convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase()),
+      currency: cur,
+    }));
+  }, [consolidated, monthTx, periodTxAll, convertAmount, cur]);
+
+  const displayScopedTx = useMemo(() => {
+    if (!consolidated) return scopedTransactions.filter((t) => (t.currency || "IDR") === cur);
+    return scopedTransactions.map((t) => ({
+      ...t,
+      amount: convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase()),
+      currency: cur,
+    }));
+  }, [consolidated, scopedTransactions, convertAmount, cur]);
+
   const [exporting, setExporting] = useState(false);
   const [fetchingRates, setFetchingRates] = useState(false);
   const refresh = useRefresh();
@@ -216,7 +236,7 @@ export default function Reports() {
         { label: "Saldo", value: formatMoney(s.balance, cur) },
       ];
   const exportCategoryRows = consolidated ? consolidatedByCategory.map((c) => ({ ...c, prev: 0 })) : categoryRows;
-  const exportTransactions = consolidated ? periodTxAll : monthTx;
+  const exportTransactions = consolidated ? displayMonthTx : monthTx;
 
   const handleExportPdf = async (withProof = true) => {
     setExporting(true);
@@ -394,11 +414,11 @@ export default function Reports() {
         </div>
       )}
 
-      {scope === "shared" && <UserContributionChart transactions={monthTx} />}
+      {scope === "shared" && <UserContributionChart transactions={displayMonthTx} />}
 
-      <MonthComparison transactions={scopedTransactions.filter((t) => (t.currency || "IDR") === cur)} categories={categories} year={year} month={month} />
+      <MonthComparison transactions={displayScopedTx} categories={categories} year={year} month={month} />
 
-      <ExpenseTrendAnalysis transactions={scopedTransactions.filter((t) => (t.currency || "IDR") === cur)} categories={categories} year={year} month={month} />
+      <ExpenseTrendAnalysis transactions={displayScopedTx} categories={categories} year={year} month={month} />
 
       <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} />
 

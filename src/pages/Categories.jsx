@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTransactions, useMe } from "@/hooks/useFinance";
 import { colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CategoryFormModal from "@/components/CategoryFormModal";
@@ -18,6 +18,7 @@ export default function Categories() {
   const refresh = useRefresh();
   const { data: categories = [] } = useCategories();
   const { data: transactions = [] } = useTransactions();
+  const { data: me } = useMe();
   const [tab, setTab] = useState("expense");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -25,10 +26,12 @@ export default function Categories() {
   const usage = useMemo(() => {
     const map = {};
     for (const t of transactions) {
-      if (t.category) map[t.category] = (map[t.category] || 0) + 1;
+      // Transaksi shared pasangan boleh terlihat di riwayat, tetapi tidak boleh
+      // memengaruhi statistik maupun pengelolaan kategori akun ini.
+      if (t.created_by_id === me?.id && t.category) map[t.category] = (map[t.category] || 0) + 1;
     }
     return map;
-  }, [transactions]);
+  }, [transactions, me?.id]);
 
   const list = categories.filter((c) => c.type === tab);
 

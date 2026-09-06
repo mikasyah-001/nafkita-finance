@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useAssets, useCategories, useMe } from "@/hooks/useFinance";
 import { formatRupiah, formatMoney, formatNumber, colorMap, formatDate, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
-import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";

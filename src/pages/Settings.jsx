@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import PartnerManager from "@/components/PartnerManager";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { useMe } from "@/hooks/useFinance";
 import CurrencyManager from "@/components/CurrencyManager";
 import TemplateManager from "@/components/TemplateManager";
 import LocalBackupRestore from "@/components/LocalBackupRestore";
 import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
-import { toast } from "sonner";
 
 export default function Settings() {
   const navigate = useNavigate();

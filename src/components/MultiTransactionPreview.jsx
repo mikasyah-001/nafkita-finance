@@ -1,8 +1,10 @@
 import { Loader2, Check, X } from "lucide-react";
 import { formatMoney } from "@/lib/finance";
+import { useUserCurrencies } from "@/hooks/useFinance";
 
 export default function MultiTransactionPreview({ items, categories, onChange, onCancel, onSave, saving }) {
   const expenseCats = categories.filter((c) => c.type === "expense");
+  const userCurrencies = useUserCurrencies();
 
   return (
     <div className="flex-1 px-5 py-5 space-y-4 overflow-y-auto">
@@ -66,9 +68,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   onChange={(e) => onChange(i, { currency: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1 text-xs bg-background outline-none focus:ring-2 ring-primary/30"
                 >
-                  <option value="IDR">IDR</option>
-                  <option value="SAR">SAR</option>
-                  <option value="USD">USD</option>
+                  {userCurrencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
                 </select>
               </div>
             </div>

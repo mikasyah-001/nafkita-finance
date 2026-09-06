@@ -39,7 +39,7 @@ const features = [
   { icon: Coins, bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", title: "Kalkulator Zakat", desc: "Zakat emas & simpanan otomatis berbasis nisab 85 gr + harga emas real-time." },
   { icon: Target, bg: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", title: "Anggaran", desc: "Target pengeluaran per kategori dengan progress bar & peringatan batas." },
   { icon: BarChart3, bg: "bg-sky-50 dark:bg-sky-950/30", text: "text-sky-600 dark:text-sky-400", title: "Laporan & Ringkasan", desc: "Grafik bulanan, perbandingan bulan lalu, tren, dan ekspor PDF lengkap dengan bukti." },
-  { icon: Globe, bg: "bg-sky-50 dark:bg-sky-950/30", text: "text-sky-600 dark:text-sky-400", title: "Multi-Mata Uang", desc: "Catat aset & transaksi dalam IDR, USD, atau SAR sesuai jenis aset." },
+  { icon: Globe, bg: "bg-sky-50 dark:bg-sky-950/30", text: "text-sky-600 dark:text-sky-400", title: "Multi-Mata Uang", desc: "Aktifkan/nonaktifkan mata uang sesuai kebutuhan, atau tambah mata uang kustom. Catat tanpa mencampur nominal antar-mata uang." },
   { icon: EyeOff, bg: "bg-slate-100 dark:bg-slate-800/40", text: "text-slate-600 dark:text-slate-300", title: "Mode Privasi", desc: "Sembunyikan semua nominal dengan satu ketukan — aman dari mata orang lain." },
   { icon: RefreshCw, bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", title: "Sinkron Offline", desc: "Tetap bisa mencatat tanpa internet. Data tersinkron otomatis saat online kembali." },
   { icon: Cloud, bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", title: "Cadangan Google Drive", desc: "Backup data transaksi & aset ke Google Drive setiap minggu secara otomatis." },
@@ -60,7 +60,7 @@ const advantages = [
   "Pencatatan offline dengan sinkronisasi saat kembali online",
   "Cadangan lokal dan Google Drive untuk membantu pemulihan data",
   "Pelacakan sedekah dan kalkulator zakat berbasis nisab emas",
-  "Dukungan IDR, USD, dan SAR tanpa mencampur nominal antar-mata uang",
+  "Mata uang dapat diaktifkan & dikustom sesuai kebutuhan, tanpa mencampur nominal antar-mata uang",
   "Dapat dipasang di layar utama sebagai PWA",
   "Ruang kas bersama dan pribadi dengan kontrol visibilitas",
 ];
@@ -188,7 +188,7 @@ export default function Welcome() {
         >
           {[
             { n: "18+", l: "Fitur aktif" },
-            { n: "3", l: "Mata uang" },
+            { n: "12+", l: "Mata uang" },
             { n: "2", l: "Ruang kas" },
           ].map((s) => (
             <motion.div key={s.l} variants={fadeUp}>
@@ -204,7 +204,7 @@ export default function Welcome() {
         <SectionLabel>Perkenalan</SectionLabel>
         <h2 className="text-xl font-bold mt-2 mb-3 tracking-tight">Apa itu NAFKITA?</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          NAFKITA menyatukan pencatatan pemasukan, pengeluaran, sedekah, aset, investasi, anggaran, dan laporan keluarga. Hubungkan akun dengan pasangan, pilih ruang bersama atau pribadi, gunakan IDR, SAR, maupun USD, lalu pantau kondisi keuangan dari satu tempat.
+          NAFKITA menyatukan pencatatan pemasukan, pengeluaran, sedekah, aset, investasi, anggaran, dan laporan keluarga. Hubungkan akun dengan pasangan, pilih ruang bersama atau pribadi, atur mata uang sesuai kebutuhan Anda, lalu pantau kondisi keuangan dari satu tempat.
         </p>
 
         <motion.div

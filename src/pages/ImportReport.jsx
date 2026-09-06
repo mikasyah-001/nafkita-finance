@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
-import { formatRupiah, colorMap, currencies } from "@/lib/finance";
+import { useCategories, useRefresh, useTransactions, useUserCurrencies } from "@/hooks/useFinance";
+import { formatRupiah, colorMap } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -25,6 +25,7 @@ export default function ImportReport() {
   const [error, setError] = useState("");
   const [importCurrency, setImportCurrency] = useState("IDR");
   const [importVisibility, setImportVisibility] = useState("shared");
+  const userCurrencies = useUserCurrencies();
 
   useEffect(() => {
     base44.auth.me().then((u) => { setUser(u); if (u?.default_currency) setImportCurrency(u.default_currency); }).catch(() => {});
@@ -62,7 +63,7 @@ export default function ImportReport() {
           category_color: category.isNew ? sanitizeColor(t.category_color) : "",
           amount: Number(t.amount) || 0,
           type,
-          currency: ["IDR", "SAR", "USD"].includes((t.currency || "").toUpperCase()) ? t.currency.toUpperCase() : importCurrency,
+          currency: userCurrencies.map((c) => c.code).includes((t.currency || "").toUpperCase()) ? t.currency.toUpperCase() : importCurrency,
           visibility: importVisibility,
         };
       });
@@ -337,7 +338,7 @@ export default function ImportReport() {
                     <input type="number" value={r.amount} onChange={(e) => updateRow(r.id, "amount", Number(e.target.value))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
                     <input value={r.merchant} onChange={(e) => updateRow(r.id, "merchant", e.target.value)} placeholder="Merchant / No Transaksi" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
                     <select value={r.currency} onChange={(e) => updateRow(r.id, "currency", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
-                      {currencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                      {userCurrencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
                     </select>
                     <select value={r.visibility} onChange={(e) => updateRow(r.id, "visibility", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
                       <option value="shared">Bersama</option>

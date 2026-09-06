@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useAssetSnapshots, useMe } from "@/hooks/useFinance";
+import { useAssets, useAssetSnapshots, useMe, useUserCurrencies } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function AssetDashboard() {
   const { data: snapshots = [], refetch } = useAssetSnapshots();
   const { scope, setScope } = useScope();
   const { data: me } = useMe();
+  const userCurrencies = useUserCurrencies();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
   const scopedAssets = allAssets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private") && (a.currency || "IDR") === currency);
@@ -152,7 +153,7 @@ export default function AssetDashboard() {
         </button>
       </div>
 
-      <div className="mb-5"><CurrencyTabs currencies={["IDR", "SAR", "USD"]} value={currency} onChange={setCurrency} /></div>
+      <div className="mb-5"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 
       <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-3 shadow-lg">
         <p className="text-xs opacity-80">Total Nilai Aset</p>

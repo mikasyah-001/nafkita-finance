@@ -34,7 +34,7 @@ export default async function (req) {
     if (isUpdate) {
       const oldTx = await base44.entities.Transaction.get(transaction_id);
       if (!oldTx) return Response.json({ error: "tx_not_found" }, { status: 404 });
-      if (oldTx.created_by_id !== me.id)
+      if (oldTx.created_by_id !== me.id && me.role !== "admin")
         return Response.json({ error: "forbidden" }, { status: 403 });
 
       const oldLinked = oldTx.linked_asset_id || null;

@@ -11,7 +11,7 @@ import { scanReceipt } from "@/lib/scanReceipt";
 import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
-import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, EyeOff } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff } from "lucide-react";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -30,12 +30,14 @@ export default function TransactionDetail() {
   const [adminLoading, setAdminLoading] = useState(false);
   const tx = transactions.find((t) => t.id === id) || adminTx;
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
-  const canManage = isOwner;
+  const isAdmin = !!user && user.role === "admin";
+  const canManage = isOwner || isAdmin;
 
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   // Admin fallback: bila transaksi tidak ada di daftar terlihat (milik user lain
   // yang bukan pasangan), admin dapat membuka detail lewat endpoint admin khusus.
@@ -187,13 +189,17 @@ export default function TransactionDetail() {
   };
 
   const handleToggleVisibility = async () => {
+    if (toggling) return;
     const next = tx.visibility === "private" ? "shared" : "private";
+    setToggling(true);
     try {
       await base44.entities.Transaction.update(id, { visibility: next });
       refresh();
       toast.success(next === "private" ? "Diubah menjadi Pribadi" : "Diubah menjadi Bersama Keluarga");
     } catch {
       toast.error("Gagal mengubah jangkauan");
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -353,15 +359,33 @@ export default function TransactionDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-semibold">Detail Transaksi</h1>
-        {canManage ? (
-          <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-            <Pencil className="w-4 h-4" />
-          </button>
-        ) : (
-          <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center" title="Transaksi milik pasangan — hanya bisa dilihat">
-            <EyeOff className="w-4 h-4 text-muted-foreground" />
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isOwner ? (
+            <button
+              onClick={handleToggleVisibility}
+              disabled={toggling}
+              title={tx.visibility === "private" ? "Jadikan Bersama Keluarga" : "Jadikan Pribadi"}
+              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center disabled:opacity-60 active:scale-95 transition-transform"
+            >
+              {toggling ? (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              ) : tx.visibility === "private" ? (
+                <EyeOff className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Eye className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+          ) : null}
+          {canManage ? (
+            <button onClick={() => setEdit(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+              <Pencil className="w-4 h-4" />
+            </button>
+          ) : !isOwner ? (
+            <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center" title="Transaksi milik pasangan — hanya bisa dilihat">
+              <EyeOff className="w-4 h-4 text-muted-foreground" />
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-4">

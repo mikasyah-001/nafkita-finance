@@ -29,6 +29,7 @@
     "status"
   ],
   "rls": {
+    "create": null,
     "read": {
       "$or": [
         {
@@ -69,6 +70,9 @@
         },
         {
           "data.invitee_email": "{{user.email}}"
+        },
+        {
+          "data.invitee_id": "{{user.id}}"
         },
         {
           "user_condition": {

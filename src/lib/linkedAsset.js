@@ -7,25 +7,15 @@ export const txEffect = (tx) => {
   return -amt;
 };
 
-// Menyesuaikan saldo aset yang ditautkan lewat backend function (service role,
-// divalidasi lewat relasi Partnership). No-op bila tidak ada aset/delta.
-export const adjustLinkedAsset = async (assetId, delta) => {
-  if (!assetId || !delta) return;
-  try {
-    await base44.functions.invoke("adjustLinkedAsset", { asset_id: assetId, delta });
-  } catch {}
+// Menyimpan transaksi + menyesuaikan saldo aset terkait secara atomik (backend).
+// Bila transaction_id diberikan → update; jika tidak → create.
+export const saveTransactionWithAsset = async (transaction, transaction_id) => {
+  const res = await base44.functions.invoke("saveTransactionWithAsset", { transaction, transaction_id });
+  return res.data;
 };
 
-// Penyesuaian saat transaksi diperbarui: membalik efek lama & menerapkan efek baru,
-// menangani perubahan aset terkait maupun nominal.
-export const adjustOnUpdate = async (oldTx, newTx) => {
-  const oldLinked = oldTx?.linked_asset_id;
-  const newLinked = newTx?.linked_asset_id;
-  if (oldLinked && oldLinked === newLinked) {
-    const delta = txEffect(newTx) - txEffect(oldTx);
-    if (delta) await adjustLinkedAsset(oldLinked, delta);
-  } else {
-    if (oldLinked) await adjustLinkedAsset(oldLinked, -txEffect(oldTx));
-    if (newLinked) await adjustLinkedAsset(newLinked, txEffect(newTx));
-  }
+// Menghapus transaksi + mengembalikan saldo aset secara atomik (backend).
+export const deleteTransactionWithAsset = async (transaction_id) => {
+  const res = await base44.functions.invoke("deleteTransactionWithAsset", { transaction_id });
+  return res.data;
 };

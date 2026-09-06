@@ -58,17 +58,15 @@ export function usePartnership() {
     if (sentInvites.length > 0 || incomingRequests.length > 0)
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
-      // Undang ke aplikasi; abaikan error bila pasangan sudah terdaftar.
-      try { await base44.users.inviteUser(email, "user"); } catch {}
-      await base44.entities.Partnership.create({
-        inviter_id: me.id,
-        invitee_email: email,
-        status: "pending",
-      });
+      const res = await base44.functions.invoke("createPartnershipInvite", { email });
+      if (res?.data?.error) throw new Error(res.data.error);
       refresh();
       toast.success("Undangan terkirim", { description: `Ke ${email}. Pasangan akan menerima email undangan.` });
     } catch (e) {
-      toast.error("Gagal mengundang", { description: e?.message || "Coba lagi." });
+      const msg = e?.message || "Coba lagi.";
+      if (msg.includes("already_connected")) return toast.error("Anda sudah terhubung dengan pasangan");
+      if (msg.includes("pending_exists")) return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
+      toast.error("Gagal mengundang", { description: msg });
     }
   };
 
@@ -102,7 +100,7 @@ export function usePartnership() {
 
   const cancelInvite = async (id) => {
     try {
-      await base44.entities.Partnership.delete(id);
+      await base44.functions.invoke("terminatePartnership", { partnership_id: id });
       refresh();
       toast.success("Undangan dibatalkan");
     } catch {
@@ -112,20 +110,21 @@ export function usePartnership() {
 
   const acceptRequest = async (p) => {
     try {
-      await base44.entities.Partnership.update(p.id, {
-        invitee_id: me.id,
-        status: "active",
-      });
+      const res = await base44.functions.invoke("acceptPartnershipInvite", { partnership_id: p.id });
+      if (res?.data?.error) throw new Error(res.data.error);
       refresh();
       toast.success("Pasangan terhubung", { description: "Kini Anda dapat mencatat bersama." });
-    } catch {
-      toast.error("Gagal menerima undangan");
+    } catch (e) {
+      const msg = e?.message || "Gagal menerima undangan";
+      if (msg.includes("already_connected")) return toast.error("Anda sudah terhubung dengan pasangan");
+      if (msg.includes("inviter_connected")) return toast.error("Pengundang sudah terhubung dengan orang lain");
+      toast.error(msg);
     }
   };
 
   const declineRequest = async (id) => {
     try {
-      await base44.entities.Partnership.delete(id);
+      await base44.functions.invoke("terminatePartnership", { partnership_id: id });
       refresh();
       toast.success("Permintaan ditolak");
     } catch {
@@ -137,7 +136,7 @@ export function usePartnership() {
     const active = partnerships.find((p) => p.status === "active" && (p.inviter_id === me?.id || p.invitee_id === me?.id));
     if (!active) return toast.error("Tidak ada pasangan terhubung");
     try {
-      await base44.entities.Partnership.delete(active.id);
+      await base44.functions.invoke("terminatePartnership", { partnership_id: active.id });
       refresh();
       toast.success("Koneksi pasangan diputus");
     } catch {

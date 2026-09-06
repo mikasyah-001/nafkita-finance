@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions, useAssets } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
 import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -22,6 +22,7 @@ export default function TransactionDetail() {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: assets = [] } = useAssets();
+  const userCurrencies = useUserCurrencies();
   const { user } = useAuth();
   const fileRef = useRef(null);
 
@@ -237,7 +238,7 @@ export default function TransactionDetail() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
             <div className="flex gap-2">
-              {["IDR", "SAR", "USD"].map((c) => (
+              {[...new Set([...userCurrencies.map((c) => c.code), tx?.currency].filter(Boolean))].map((c) => (
                 <button
                   key={c}
                   onClick={() => setForm({ ...form, currency: c, linked_asset_id: "" })}

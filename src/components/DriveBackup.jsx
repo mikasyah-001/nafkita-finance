@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh } from "@/hooks/useFinance";
 import { toast } from "sonner";
-import { Cloud, Loader2, Download, RotateCcw, AlertTriangle, Check, ChevronDown } from "lucide-react";
+import { Cloud, Loader2, AlertTriangle, Check } from "lucide-react";
 
 export default function DriveBackup() {
   const refresh = useRefresh();

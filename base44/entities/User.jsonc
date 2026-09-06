@@ -72,6 +72,11 @@
       "maximum": 23,
       "description": "Jam lokal (0-23) untuk mengirim email pengingat harian"
     },
+    "last_active_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Waktu aktivitas terakhir pengguna (heartbeat), dasar perhitungan user aktif real-time"
+    },
     "projection_assumptions": {
       "type": "object",
       "description": "Asumi proyeksi keuangan pengguna",

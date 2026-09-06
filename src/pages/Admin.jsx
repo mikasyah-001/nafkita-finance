@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, Users, Link2, Receipt,
   Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
+  BarChart3,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
 import { formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
+import AdminStats from "@/components/AdminStats";
 
 const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
 
@@ -193,12 +195,18 @@ export default function Admin() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-4 w-full mb-4">
+        <TabsList className="grid grid-cols-5 w-full mb-4">
+          <TabsTrigger value="statistik"><BarChart3 className="w-4 h-4 mr-1" />Statistik</TabsTrigger>
           <TabsTrigger value="pengguna"><Users className="w-4 h-4 mr-1" />User</TabsTrigger>
           <TabsTrigger value="koneksi"><Link2 className="w-4 h-4 mr-1" />Koneksi</TabsTrigger>
           <TabsTrigger value="transaksi"><Receipt className="w-4 h-4 mr-1" />Transaksi</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="w-4 h-4 mr-1" />Audit</TabsTrigger>
         </TabsList>
+
+        {/* STATISTIK — agregasi real-time seluruh aplikasi */}
+        <TabsContent value="statistik">
+          <AdminStats />
+        </TabsContent>
 
         {/* USERS */}
         <TabsContent value="pengguna" className="space-y-2">

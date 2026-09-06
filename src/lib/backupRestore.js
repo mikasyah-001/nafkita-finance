@@ -11,6 +11,7 @@ export const BACKUP_ENTITIES = [
   { key: "snapshots", entity: "AssetSnapshot" },
   { key: "templates", entity: "TransactionTemplate" },
   { key: "investmentLots", entity: "InvestmentLot" },
+  { key: "preferences", entity: "NotificationPreference" },
 ];
 
 export const BACKUP_VERSION = 2;
@@ -86,15 +87,18 @@ export async function importBackup(backup, mode, userId) {
   // 3) Transaksi (dedup fingerprint).
   const existingTxFps = new Set(existing.transactions.map(txFingerprint));
   const txToCreate = (d.transactions || []).filter((t) => !existingTxFps.has(txFingerprint(t)));
-  if (txToCreate.length) await base44.entities.Transaction.bulkCreate(txToCreate.map(strip));
+  if (txToCreate.length) {
+    const restoreBatch = "restore-" + Date.now();
+    await base44.entities.Transaction.bulkCreate(txToCreate.map((t) => ({ ...strip(t), notif_batch_id: restoreBatch })));
+  }
 
   // 4) Anggaran.
   const existingBudgetFps = new Set(existing.budgets.map(budgetFp));
   const budgetsToCreate = (d.budgets || []).filter((b) => !existingBudgetFps.has(budgetFp(b)));
   if (budgetsToCreate.length) await base44.entities.Budget.bulkCreate(budgetsToCreate.map(strip));
 
-  // 5) Entitas lain (zakat, snapshot, template).
-  for (const key of ["zakatPayments", "snapshots", "templates"]) {
+  // 5) Entitas lain (zakat, snapshot, template, preferensi).
+  for (const key of ["zakatPayments", "snapshots", "templates", "preferences"]) {
     const e = BACKUP_ENTITIES.find((x) => x.key === key);
     const recs = (d[key] || []).map(strip);
     if (recs.length) await base44.entities[e.entity].bulkCreate(recs);
@@ -115,6 +119,7 @@ export async function importBackup(backup, mode, userId) {
     zakatPayments: (d.zakatPayments || []).length,
     snapshots: (d.snapshots || []).length,
     templates: (d.templates || []).length,
+    preferences: (d.preferences || []).length,
     investmentLots: lotsToCreate.length,
   };
 }

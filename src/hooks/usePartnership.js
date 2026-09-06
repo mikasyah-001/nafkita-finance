@@ -25,6 +25,10 @@ export function usePartnership() {
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["partnerships"] });
     qc.invalidateQueries({ queryKey: ["users"] });
+    // Segarkan daftar transaksi/aset/anggaran agar data bersama pasangan langsung termutakhir.
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["assets"] });
+    qc.invalidateQueries({ queryKey: ["budgets"] });
   };
 
   // Pasangan aktif: record status active yang melibatkan saya (sebagai inviter atau invitee)

@@ -118,9 +118,10 @@ export default function Reports() {
   const otherValue = otherAssetsIDR.reduce((s, a) => s + (a.value || 0), 0);
   const totalAset = emasValue + otherValue;
   const emasWajibZakat = emasGrams >= 85;
-  const uangWajibZakat = emasPriceNum > 0 && totalAset >= nisab;
+  // Simpanan (aset non-emas) dipisahkan dari emas — nisab simpanan = 85 gr emas, tidak mencampur emas.
+  const uangWajibZakat = emasPriceNum > 0 && otherValue >= nisab;
   const zakatEmas = emasWajibZakat ? emasValue * 0.025 : 0;
-  const zakatUang = uangWajibZakat ? totalAset * 0.025 : 0;
+  const zakatUang = uangWajibZakat ? otherValue * 0.025 : 0;
 
   return (
     <div className="px-5 pt-8 space-y-5">
@@ -244,7 +245,7 @@ export default function Reports() {
                 <span className="text-xs font-medium">Zakat Simpanan/Uang</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {uangWajibZakat ? `Wajib zakat (≥nisab). Zakat 2,5% = ${formatRupiah(zakatUang)}` : `Belum wajib (total < nisab)`}
+                {uangWajibZakat ? `Wajib zakat (≥nisab). Zakat 2,5% = ${formatRupiah(zakatUang)}` : `Belum wajib (simpanan < nisab)`}
               </p>
             </div>
           </div>

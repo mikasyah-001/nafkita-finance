@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useBudgets, useRefresh, useMe } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap, currencySymbol, CURRENCY_CODES } from "@/lib/finance";
@@ -23,6 +23,9 @@ export default function Budget() {
   const month = cursor.getMonth();
   const period = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
+
+  // Reset nilai ketik saat konteks (bulan/jangkauan/mata uang) berubah agar tidak terbawa.
+  useEffect(() => { setLimits({}); }, [period, scope, currency]);
 
   const expenseCategories = categories.filter((c) => c.type === "expense");
 

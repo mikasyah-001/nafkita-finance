@@ -39,7 +39,13 @@ export default function CategoryFormModal({ open, onClose, onSaved, initial, cat
     setSaving(true);
     try {
       if (isEdit) {
+        const oldName = initial.name;
         await base44.entities.Category.update(initial.id, { name: trimmed, color, icon });
+        // Cascade nama ke transaksi & anggaran milik sendiri (RLS owner-only).
+        if (oldName && oldName !== trimmed) {
+          try { await base44.entities.Transaction.updateMany({ category: oldName }, { $set: { category: trimmed } }); } catch {}
+          try { await base44.entities.Budget.updateMany({ category: oldName }, { $set: { category: trimmed } }); } catch {}
+        }
       } else {
         await base44.entities.Category.create({ name: trimmed, type, color, icon, is_default: false });
       }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { fetchGoldPricesMulti, pickAntamSource, isAntamSource } from "@/lib/goldPrice";
-import { formatRupiah, formatNumber } from "@/lib/finance";
+import { formatRupiah } from "@/lib/finance";
 import { toast } from "sonner";
 import { Coins, Loader2, ExternalLink, Check, Search } from "lucide-react";
 

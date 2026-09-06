@@ -18,9 +18,25 @@
       "type": "string",
       "enum": [
         "pending",
-        "active"
+        "active",
+        "declined",
+        "cancelled",
+        "ended"
       ],
       "default": "pending"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Waktu hubungan berakhir/dibatalkan/ditolak"
+    },
+    "ended_by": {
+      "type": "string",
+      "description": "ID user/aktor yang mengakhiri (atau 'system' untuk auto-cancel)"
+    },
+    "end_reason": {
+      "type": "string",
+      "description": "Alasan pengakhiran singkat (opsional)"
     }
   },
   "required": [
@@ -49,37 +65,14 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "data.invitee_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "delete": {
-      "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "data.invitee_email": "{{user.email}}"
-        },
-        {
-          "data.invitee_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }

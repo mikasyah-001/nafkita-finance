@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { formatMoneyShort, formatDate, summarizeByCurrency, computeSavingsRate, activeCurrencies } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
@@ -30,9 +30,10 @@ export default function Home() {
   const user = me;
   const { scope, setScope } = useScope();
   const { hidden, toggle } = usePrivacy();
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const refresh = useRefresh();
+  const userCurrencies = useUserCurrencies();
 
   const defaultCur = user?.default_currency || "IDR";
   const [currency, setCurrency] = useState(defaultCur);
@@ -48,8 +49,11 @@ export default function Home() {
   const privateMonth = monthTx.filter((t) => t.visibility === "private");
   const scopeMonth = scope === "private" ? privateMonth : sharedMonth;
 
-  const summary = summarizeByCurrency(scopeMonth);
-  const activeCurs = activeCurrencies(summary);
+  const configuredCodes = userCurrencies.map((c) => c.code);
+  const summary = summarizeByCurrency(scopeMonth, configuredCodes);
+  // Selalu tampilkan mata uang aktif akun; tambahkan mata uang historis yang
+  // masih punya transaksi agar data lama tetap dapat dibaca.
+  const activeCurs = [...new Set([...configuredCodes, ...activeCurrencies(summary)])];
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
   const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
@@ -57,11 +61,12 @@ export default function Home() {
   const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
 
   const hasTodayTx = transactions.some((t) => {
+    const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
     const d = new Date(t.date);
-    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return inScope && d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const noTransactionsAtAll = transactions.length === 0;
+  const noTransactionsAtAll = !transactionsLoading && transactions.length === 0;
 
   const loadSampleData = async () => {
     try {
@@ -117,7 +122,7 @@ export default function Home() {
         </div>
       </header>
 
-      {!hasTodayTx && !noTransactionsAtAll && (
+      {!transactionsLoading && !hasTodayTx && !noTransactionsAtAll && (
         <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-3.5 mb-4 active:scale-[0.98] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
             <Bell className="w-4 h-4 text-amber-600" />
@@ -138,7 +143,7 @@ export default function Home() {
           </div>
           <p className="text-xs text-muted-foreground mb-4">Mulai kelola keuangan keluarga dalam 3 langkah singkat.</p>
           <div className="space-y-2.5">
-            <OnboardingStep to="/pengaturan" icon={Wallet} title="Pilih mata uang utama" desc="Atur IDR/SAR/USD default di Pengaturan." />
+            <OnboardingStep to="/pengaturan" icon={Wallet} title="Pilih mata uang utama" desc="Aktifkan mata uang yang Anda gunakan di Pengaturan." />
             <OnboardingStep to="/add" icon={Check} title="Catat transaksi pertama" desc="Pengeluaran, pemasukan, atau sedekah." />
             <OnboardingStep to="/sambungkan-pasangan" icon={Heart} title="Hubungkan pasangan" desc="Catat bersama suami/istri." />
           </div>

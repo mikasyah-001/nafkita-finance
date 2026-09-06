@@ -103,20 +103,21 @@ export default function CurrencyManager() {
             const isCustom = custom.some((x) => x.code === code);
             const isDefault = code === defaultCur;
             return (
-              <div key={code} className="flex items-center gap-3 rounded-xl border border-border p-3">
+              <div key={code} className={`flex items-center gap-3 rounded-xl border p-3 ${isDefault ? "border-amber-300 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20" : "border-border"}`}>
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center font-semibold text-sm text-primary shrink-0">
                   {c.symbol}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium flex items-center gap-1.5">
                     {c.code}
-                    {isDefault && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
+                    {isDefault && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" aria-hidden="true" />}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{c.label}</p>
+                  {isDefault && <span className="inline-flex mt-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">Mata uang utama</span>}
                 </div>
                 {!isDefault && (
-                  <button onClick={() => setDefault(code)} disabled={saving} className="text-[10px] text-primary px-2 py-1 rounded-lg hover:bg-primary/10 disabled:opacity-50 shrink-0">
-                    Utama
+                  <button type="button" onClick={() => setDefault(code)} disabled={saving} aria-label={`Jadikan ${code} mata uang utama`} className="text-[10px] text-primary px-2 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/10 disabled:opacity-50 shrink-0">
+                    Jadikan utama
                   </button>
                 )}
                 {isCustom && (
@@ -127,8 +128,8 @@ export default function CurrencyManager() {
                 <button
                   type="button"
                   onClick={() => toggle(code)}
-                  disabled={saving || isDefault}
-                  aria-label={`Nonaktifkan ${code}`}
+                  disabled={saving}
+                  aria-label={isDefault ? `${code} adalah mata uang utama dan harus tetap aktif` : `Nonaktifkan ${code}`}
                   aria-pressed="true"
                   className="h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-medium flex items-center gap-1 disabled:opacity-40 shrink-0"
                 >

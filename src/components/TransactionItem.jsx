@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Lock, Clock, X } from "lucide-react";
 import { formatDate, colorMap } from "@/lib/finance";
 import Money from "./Money";
 import CategoryIcon from "./CategoryIcon";
@@ -21,6 +21,16 @@ export default function TransactionItem({ tx, categories }) {
         <p className="text-sm font-medium truncate flex items-center gap-1">
           {tx.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
           {tx.merchant || tx.notes || (isSedekah ? "Sedekah & Infaq" : category?.name || "Transaksi")}
+          {tx.approval_status === "pending" && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[9px] font-medium shrink-0">
+              <Clock className="w-2.5 h-2.5" /> Menunggu
+            </span>
+          )}
+          {tx.approval_status === "rejected" && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-[9px] font-medium shrink-0">
+              <X className="w-2.5 h-2.5" /> Ditolak
+            </span>
+          )}
         </p>
         <p className="text-xs text-muted-foreground truncate">
           {tx.input_by_name || "Keluarga"} • {formatDate(tx.date, "dd MMM, HH:mm")}
@@ -33,7 +43,7 @@ export default function TransactionItem({ tx, categories }) {
           </div>
         )}
       </div>
-      <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"}`}>
+      <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : "text-foreground"} ${tx.approval_status === "rejected" ? "opacity-40 line-through" : ""} ${tx.approval_status === "pending" ? "opacity-60" : ""}`}>
         {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
       </div>
     </Link>

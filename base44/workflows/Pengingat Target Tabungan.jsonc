@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * 1",
+      "one_time_date": null,
+      "timezone": "Asia/Riyadh",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "pengingat_target_tabungan",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "check_goals": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "savingsGoalReminder"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Cek Progress Target",
+            "description": "Kirim pengingat untuk target tabungan yang tertinggal dari jadwal"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Pengingat Target Tabungan",
+  "description": "Mingguan (Senin 09:00) \u2014 cek progress target tabungan vs target_date, kirim pengingat bila tertinggal"
+}

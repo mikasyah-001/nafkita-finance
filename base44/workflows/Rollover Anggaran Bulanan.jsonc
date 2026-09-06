@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 0 1 * *",
+      "one_time_date": null,
+      "timezone": "Asia/Riyadh",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "rollover_anggaran",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "process_rollover": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processBudgetRollover"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Proses Rollover Anggaran",
+            "description": "Hitung sisa/overspend periode sebelumnya dan simpan sebagai rollover"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Rollover Anggaran Bulanan",
+  "description": "Memproses rollover anggaran setiap tanggal 1 bulan \u2014 menghitung sisa/overspend dan memperbarui limit efektif"
+}

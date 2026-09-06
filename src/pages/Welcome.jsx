@@ -6,7 +6,7 @@ import {
   PiggyBank, Landmark, TrendingUp, Zap,
   Home as HomeIcon, Moon, Plus,
   Link2, Smartphone, Globe, LineChart, FileText,
-  MailCheck, RefreshCw, BellRing,
+  MailCheck, RefreshCw, BellRing, CheckCheck, History, Repeat,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -45,6 +45,11 @@ const features = [
   { icon: Cloud, bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", title: "Cadangan Google Drive", desc: "Backup data transaksi & aset ke Google Drive setiap minggu secara otomatis." },
   { icon: MailCheck, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-600 dark:text-orange-400", title: "Pengingat & Ringkasan Email", desc: "Email pengingat harian & ringkasan laporan bulanan otomatis ke kotak masuk Anda." },
   { icon: Smartphone, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Pasang di HP (PWA)", desc: "Instal NAFKITA di layar utama seperti aplikasi native — cepat & ringan." },
+  { icon: Target, bg: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", title: "Target Tabungan", desc: "Tetapkan target dana darurat, pendidikan, rumah, & perjalanan. Pantau progress dengan top-up dari rekening." },
+  { icon: CheckCheck, bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", title: "Persetujuan Transaksi Besar", desc: "Transaksi di atas ambang otomatis meminta persetujuan pasangan sebelum saldo berubah." },
+  { icon: History, bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", title: "Riwayat Mutasi Aset", desc: "Setiap perubahan saldo aset tercatat permanen — audit trail yang transparan dan tidak bisa diubah." },
+  { icon: Repeat, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Anggaran Rollover", desc: "Sisa atau overspend anggaran dibawa ke periode berikutnya. Pilih kebijakan: bawa negatif atau reset." },
+  { icon: BellRing, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-600 dark:text-orange-400", title: "Aturan Notifikasi Kategori", desc: "Kontrol notifikasi per kategori dengan ambang nominal — silent, min/max, atau channel khusus." },
   { icon: FileText, bg: "bg-slate-100 dark:bg-slate-800/40", text: "text-slate-600 dark:text-slate-300", title: "Umpan Balik", desc: "Kirim saran atau lapor bug langsung dari aplikasi untuk bantu kami berkembang." },
 ];
 

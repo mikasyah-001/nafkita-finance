@@ -6,7 +6,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Users, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Users, Lock, Repeat } from "lucide-react";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
@@ -36,7 +36,7 @@ export default function Budget() {
       transactions.filter((t) => {
         const d = new Date(t.date);
         const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
-        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope && (t.currency || "IDR") === currency;
+        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope && (t.currency || "IDR") === currency && (!t.approval_status || t.approval_status === "approved") && !t.transfer_pair_id;
       }),
     [transactions, month, year, scope, currency]
   );
@@ -58,7 +58,7 @@ export default function Budget() {
 
   const totalLimit = expenseCategories.reduce((s, c) => {
     const b = budgetMap[c.name];
-    return s + (b?.limit_amount || 0);
+    return s + (b?.limit_amount || 0) + (b?.rollover_amount || 0);
   }, 0);
   const totalSpent = Object.values(spentByCategory).reduce((s, v) => s + v, 0);
 
@@ -81,12 +81,34 @@ export default function Budget() {
       if (existing) {
         await base44.entities.Budget.update(existing.id, { limit_amount: num });
       } else {
-        await base44.entities.Budget.create({ category: catName, limit_amount: num, currency, period, visibility: scope });
+        await base44.entities.Budget.create({ 
+          category: catName, limit_amount: num, currency, period, 
+          visibility: scope, 
+          assignee_id: scope === "private" ? me?.id : null,
+          assignee_name: scope === "private" ? (me?.full_name || me?.email) : null,
+          period_type: "monthly",
+        });
       }
       refresh();
       toast.success("Anggaran disimpan");
     } catch {
       toast.error("Gagal menyimpan anggaran");
+    }
+  };
+
+  const toggleRollover = async (catName) => {
+    const b = budgetMap[catName];
+    if (!b) return;
+    const newEnabled = !b.rollover_enabled;
+    try {
+      await base44.entities.Budget.update(b.id, { 
+        rollover_enabled: newEnabled,
+        rollover_policy: newEnabled ? (b.rollover_policy || "carry_negative") : b.rollover_policy,
+      });
+      refresh();
+      toast.success(newEnabled ? "Rollover diaktifkan" : "Rollover dinonaktifkan");
+    } catch {
+      toast.error("Gagal mengubah rollover");
     }
   };
 
@@ -137,10 +159,13 @@ export default function Budget() {
           {expenseCategories.map((c) => {
             const cm = colorMap[c.color] || colorMap.slate;
             const spent = spentByCategory[c.name] || 0;
+            const budget = budgetMap[c.name];
+            const rolloverAmount = budget?.rollover_amount || 0;
             const limit = Number(getLimit(c.name)) || 0;
-            const pct = limit > 0 ? (spent / limit) * 100 : 0;
-            const over = limit > 0 && spent > limit;
-            const remaining = limit - spent;
+            const effectiveLimit = limit + rolloverAmount;
+            const pct = effectiveLimit > 0 ? (spent / effectiveLimit) * 100 : 0;
+            const over = effectiveLimit > 0 && spent > effectiveLimit;
+            const remaining = effectiveLimit - spent;
 
             return (
               <div key={c.id} className="rounded-2xl border border-border bg-card p-4">
@@ -150,18 +175,36 @@ export default function Budget() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
+                      {rolloverAmount !== 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"}`}>
+                          Rollover {rolloverAmount > 0 ? "+" : ""}{formatMoney(rolloverAmount, currency)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center rounded-xl border border-border px-2 focus-within:ring-2 ring-primary/30">
-                    <span className="text-xs text-muted-foreground">{currencySymbol(currency)}</span>
-                    <input
-                      type="number"
-                      value={getLimit(c.name)}
-                      onChange={(e) => setLimits({ ...limits, [c.name]: e.target.value })}
-                      onBlur={() => saveLimit(c.name)}
-                      placeholder="0"
-                      className="w-24 px-1 py-2 text-sm outline-none bg-transparent"
-                    />
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center rounded-xl border border-border px-2 focus-within:ring-2 ring-primary/30">
+                      <span className="text-xs text-muted-foreground">{currencySymbol(currency)}</span>
+                      <input
+                        type="number"
+                        value={getLimit(c.name)}
+                        onChange={(e) => setLimits({ ...limits, [c.name]: e.target.value })}
+                        onBlur={() => saveLimit(c.name)}
+                        placeholder="0"
+                        className="w-20 px-1 py-2 text-sm outline-none bg-transparent"
+                      />
+                    </div>
+                    {budgetMap[c.name] && (
+                      <button
+                        onClick={() => toggleRollover(c.name)}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${budgetMap[c.name].rollover_enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                        title={budgetMap[c.name].rollover_enabled ? "Rollover aktif (klik untuk nonaktifkan)" : "Aktifkan rollover"}
+                      >
+                        <Repeat className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -179,7 +222,7 @@ export default function Budget() {
                         <span className="text-red-500 flex items-center gap-1 font-medium">
                           <AlertTriangle className="w-3 h-3" /> Lebih {formatMoney(Math.abs(remaining), currency)}
                         </span>
-                      ) : remaining < limit * 0.2 ? (
+                      ) : remaining < effectiveLimit * 0.2 ? (
                         <span className="text-amber-600 flex items-center gap-1 font-medium">
                           <AlertTriangle className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>

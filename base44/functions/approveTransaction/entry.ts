@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
-import { getActorName, notifyApprovalResult } from "../../shared/transactionApproval.ts";
+import { notifyApprovalResult } from "../../shared/transactionApproval.ts";
 
 // Menyetujui transaksi pending.
 // - Hanya approver (pasangan) yang boleh menyetujui.

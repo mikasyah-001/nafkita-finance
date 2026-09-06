@@ -9,6 +9,7 @@ import TemplateManager from "@/components/TemplateManager";
 import LocalBackupRestore from "@/components/LocalBackupRestore";
 import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
+import NotificationRuleManager from "@/components/NotificationRuleManager";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -51,6 +52,11 @@ export default function Settings() {
       <Section title="Preferensi Notifikasi">
         <p className="text-xs text-muted-foreground mb-3">Atur bagaimana notifikasi dari pasangan diterima — bisukan, ambang nominal, ringkasan harian, dan saluran.</p>
         <NotificationPreferences />
+      </Section>
+
+      <Section title="Aturan Notifikasi Kategori">
+        <p className="text-xs text-muted-foreground mb-3">Buat aturan per kategori untuk mengontrol kapan notifikasi dikirim berdasarkan nominal dan kategori.</p>
+        <NotificationRuleManager />
       </Section>
 
       <Section title="Kategori Transaksi">

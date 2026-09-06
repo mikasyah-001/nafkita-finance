@@ -3,7 +3,7 @@ import {
   Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
   PiggyBank, Upload, Tags, User, Settings, MessageSquare,
   Shield, Sparkles, ArrowRightLeft, HandCoins, RefreshCw, Scale,
-  Target, CheckCheck, History, Bell, Activity,
+  Target, CheckCheck, History, Bell, Activity, Coins,
 } from "lucide-react";
 
 const mainItems = [
@@ -21,6 +21,7 @@ const toolItems = [
   { to: "/tagihan-berulang", icon: RefreshCw, label: "Tagihan Berulang" },
   { to: "/rekonsiliasi", icon: Scale, label: "Rekonsiliasi" },
   { to: "/target-tabungan", icon: Target, label: "Target Tabungan" },
+  { to: "/zakat", icon: Coins, label: "Zakat" },
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },

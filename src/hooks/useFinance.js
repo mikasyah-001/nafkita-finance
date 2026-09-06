@@ -4,7 +4,13 @@ import { base44 } from "@/api/base44Client";
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
-    queryFn: () => base44.entities.Category.list(),
+    // Selalu batasi ke kategori milik akun aktif. Admin tetap dapat melihat
+    // seluruh kategori hanya dari Admin Panel, bukan dari halaman pengguna.
+    queryFn: async () => {
+      const me = await base44.auth.me();
+      if (!me?.id) return [];
+      return base44.entities.Category.filter({ created_by_id: me.id }, "type", 5000);
+    },
   });
 }
 

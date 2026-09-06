@@ -125,6 +125,47 @@ export function useReconciliations(assetId) {
   });
 }
 
+export function useSavingsGoals() {
+  return useQuery({
+    queryKey: ["savingsGoals"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listSavingsGoals", {});
+      return res.data.goals || [];
+    },
+  });
+}
+
+export function usePendingApprovals() {
+  return useQuery({
+    queryKey: ["pendingApprovals"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listPendingApprovals", {});
+      return res.data || { pending_approvals: [], my_requests: [] };
+    },
+  });
+}
+
+export function useAssetMutations(assetId) {
+  return useQuery({
+    queryKey: ["assetMutations", assetId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listAssetMutations", { asset_id: assetId });
+      return res.data.mutations || [];
+    },
+    enabled: !!assetId,
+  });
+}
+
+export function useNotificationRules() {
+  return useQuery({
+    queryKey: ["notificationRules"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listNotificationRules", {});
+      return res.data.rules || [];
+    },
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -140,5 +181,9 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["debts"] });
     qc.invalidateQueries({ queryKey: ["recurringBills"] });
     qc.invalidateQueries({ queryKey: ["reconciliations"] });
+    qc.invalidateQueries({ queryKey: ["savingsGoals"] });
+    qc.invalidateQueries({ queryKey: ["pendingApprovals"] });
+    qc.invalidateQueries({ queryKey: ["assetMutations"] });
+    qc.invalidateQueries({ queryKey: ["notificationRules"] });
   };
 }

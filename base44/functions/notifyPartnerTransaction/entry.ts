@@ -3,6 +3,7 @@ import {
   getActorName, getPreference, shouldSkipInstant, createNotificationIdempotent,
   maybeSendEmail, resolvePartner, formatMoney, maskAmount,
 } from "../../shared/notifyCommon.ts";
+import { evaluateNotificationRules } from "../../shared/notificationRules.ts";
 
 // Membuat notifikasi untuk pasangan saat transaksi bersama dibuat, diperbarui,
 // atau dihapus. Menangani transisi visibility (shared<->private), idempoten
@@ -86,6 +87,14 @@ export default async function (req) {
     const pref = await getPreference(base44, partnerId);
     const amount = Number(tx.amount) || 0;
     if (shouldSkipInstant(pref, amount)) return Response.json({ skipped: "preference" });
+
+    // Evaluasi aturan notifikasi kategori/ambang.
+    const ruleResult = await evaluateNotificationRules(base44, {
+      category: tx.category,
+      amount,
+      target_user_id: partnerId,
+    });
+    if (!ruleResult.shouldNotify) return Response.json({ skipped: "notification_rule" });
 
     // Nama pelaku.
     const actorName = await getActorName(base44, actorId);

@@ -37,6 +37,9 @@ import Transfer from '@/pages/Transfer';
 import Debts from '@/pages/Debts';
 import RecurringBills from '@/pages/RecurringBills';
 import Reconciliation from '@/pages/Reconciliation';
+import SavingsGoals from '@/pages/SavingsGoals';
+import Approvals from '@/pages/Approvals';
+import AssetMutations from '@/pages/AssetMutations';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -93,6 +96,9 @@ const AuthenticatedApp = () => {
           <Route path="/utang" element={<Debts />} />
           <Route path="/tagihan-berulang" element={<RecurringBills />} />
           <Route path="/rekonsiliasi" element={<Reconciliation />} />
+          <Route path="/target-tabungan" element={<SavingsGoals />} />
+          <Route path="/persetujuan" element={<Approvals />} />
+          <Route path="/mutasi-aset" element={<AssetMutations />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

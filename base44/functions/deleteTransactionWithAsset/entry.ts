@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
 
 // Menghapus transaksi + mengembalikan saldo aset terkait secara atomik.
 // Urutan: hapus transaksi dulu (bila gagal, saldo tidak disentuh),
@@ -33,6 +34,14 @@ export default async function (req) {
       const delta = -txEffect(tx);
       const newValue = roundForCurrency((asset.value || 0) + delta, asset.currency);
       await base44.entities.Asset.update(tx.linked_asset_id, { value: newValue });
+
+      await recordAssetMutation(base44, {
+        asset_id: tx.linked_asset_id, previous_value: prevValue, new_value: newValue,
+        change_type: "transaction", source_ref: transaction_id,
+        source_description: `Hapus transaksi: ${tx.merchant || tx.category || ""}`,
+        actor_id: me.id, actor_name: me.full_name || me.email,
+        currency: asset.currency || "IDR",
+      });
 
       // Hapus transaksi; bila gagal, kembalikan saldo aset.
       try {

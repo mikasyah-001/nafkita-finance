@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
 
 // Membuat sepasang transaksi transfer antar-rekening secara atomik.
 // - Transaksi "out" (expense) dari rekening asal, menyesuaikan saldo aset asal (-amount).
@@ -50,11 +51,26 @@ export default async function (req) {
     const fromNew = roundForCurrency((fromAsset.value || 0) - amt, fromAsset.currency);
     await base44.entities.Asset.update(from_asset_id, { value: fromNew });
 
+    await recordAssetMutation(base44, {
+      asset_id: from_asset_id, previous_value: fromPrev, new_value: fromNew,
+      change_type: "transfer", source_ref: pairId,
+      source_description: `Transfer ke ${toAsset.name || "rekening tujuan"}`,
+      actor_id: me.id, actor_name: me.full_name || me.email,
+      currency: fromAsset.currency || "IDR",
+    });
+
     // Sesuaikan saldo aset tujuan (+amount).
     const toPrev = toAsset.value;
     const toNew = roundForCurrency((toAsset.value || 0) + amt, toAsset.currency);
     try {
       await base44.entities.Asset.update(to_asset_id, { value: toNew });
+      await recordAssetMutation(base44, {
+        asset_id: to_asset_id, previous_value: toPrev, new_value: toNew,
+        change_type: "transfer", source_ref: pairId,
+        source_description: `Transfer dari ${fromAsset.name || "rekening asal"}`,
+        actor_id: me.id, actor_name: me.full_name || me.email,
+        currency: toAsset.currency || "IDR",
+      });
     } catch (e) {
       // Rollback aset asal bila aset tujuan gagal.
       try { await base44.entities.Asset.update(from_asset_id, { value: fromPrev }); } catch {}

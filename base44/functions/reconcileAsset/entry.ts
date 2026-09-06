@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { fetchAllByDate } from "../../shared/fetchAll.ts";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
 
 // Rekonsiliasi saldo aset bank.
 // - Menghitung saldo terhitung dari mutasi transaksi terkait aset sampai as_of_date.
@@ -57,6 +58,14 @@ export default async function (req) {
       const delta = adjType === "income" ? adjAmt : -adjAmt;
       const newVal = roundForCurrency((asset.value || 0) + delta, asset.currency);
       await base44.entities.Asset.update(asset_id, { value: newVal });
+
+      await recordAssetMutation(base44, {
+        asset_id, previous_value: adjPrev, new_value: newVal,
+        change_type: "reconciliation_adjustment",
+        source_description: `Penyesuaian rekonsiliasi ${asOf}`,
+        actor_id: me.id, actor_name: me.full_name || me.email,
+        currency: asset.currency || "IDR",
+      });
 
       try {
         const tx = await base44.entities.Transaction.create({

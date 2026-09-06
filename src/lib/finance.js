@@ -82,6 +82,8 @@ export function summarizeByCurrency(txs, currencyList = []) {
   (txs || []).forEach((t) => {
     // Transfer antar-rekening tidak dihitung sebagai pemasukan/pengeluaran.
     if (t.transfer_pair_id) return;
+    // Transaksi pending/rejected tidak dihitung dalam ringkasan.
+    if (t.approval_status && t.approval_status !== "approved") return;
     const c = (t.currency || "IDR").toUpperCase();
     ensure(c);
     const amt = Number(t.amount) || 0;

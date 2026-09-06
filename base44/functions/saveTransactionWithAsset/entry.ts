@@ -1,5 +1,8 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
+import { needsApproval, createApprovalRequest, notifyApprovalRequest } from "../../shared/transactionApproval.ts";
+import { resolvePartnerId } from "../../shared/partnerResolve.ts";
 
 // Menyimpan transaksi + menyesuaikan saldo aset terkait secara atomik.
 // Bila transaction_id diberikan → update; jika tidak → create.
@@ -54,6 +57,13 @@ export default async function (req) {
           return Response.json({ error: "forbidden" }, { status: 403 });
         const newValue = roundForCurrency((asset.value || 0) + adj.delta, asset.currency);
         await base44.entities.Asset.update(adj.assetId, { value: newValue });
+        await recordAssetMutation(base44, {
+          asset_id: adj.assetId, previous_value: asset.value, new_value: newValue,
+          change_type: "transaction", source_ref: transaction_id,
+          source_description: `Update transaksi: ${transaction.merchant || transaction.category || ""}`,
+          actor_id: me.id, actor_name: me.full_name || me.email,
+          currency: asset.currency || "IDR",
+        });
         prevValues.push({ assetId: adj.assetId, prev: asset.value });
       }
 
@@ -74,8 +84,29 @@ export default async function (req) {
     }
 
     // --- CREATE ---
+    // Cek apakah transaksi memerlukan persetujuan pasangan.
+    const requireApproval = await needsApproval(base44, me, transaction);
+    if (requireApproval) {
+      const partnerId = await resolvePartnerId(base44, me.id);
+      let pendingTx;
+      try {
+        pendingTx = await base44.entities.Transaction.create({
+          ...transaction,
+          linked_asset_id: linkedAssetId || undefined,
+          input_by_name: transaction.input_by_name || me.full_name || me.email,
+          approval_status: "pending",
+        });
+      } catch (e) {
+        return Response.json({ error: e?.message || "create_failed" }, { status: 500 });
+      }
+      const approval = await createApprovalRequest(base44, me, pendingTx, partnerId);
+      await notifyApprovalRequest(base44, me, pendingTx, approval, partnerId);
+      return Response.json({ ok: true, transaction: pendingTx, approval, needs_approval: true });
+    }
+
     let assetAdjusted = false;
     let assetPrevValue = null;
+    let assetCurrency = "IDR";
 
     if (linkedAssetId) {
       const asset = await base44.entities.Asset.get(linkedAssetId);
@@ -83,8 +114,9 @@ export default async function (req) {
       if (asset.created_by_id !== me.id)
         return Response.json({ error: "forbidden" }, { status: 403 });
       assetPrevValue = asset.value;
+      assetCurrency = asset.currency || "IDR";
       const delta = txEffect(transaction);
-      const newValue = roundForCurrency((asset.value || 0) + delta, asset.currency);
+      const newValue = roundForCurrency((asset.value || 0) + delta, assetCurrency);
       await base44.entities.Asset.update(linkedAssetId, { value: newValue });
       assetAdjusted = true;
     }
@@ -97,12 +129,23 @@ export default async function (req) {
         input_by_name: transaction.input_by_name || me.full_name || me.email,
       });
     } catch (e) {
-      // Rollback aset bila pembuatan transaksi gagal.
       if (assetAdjusted && linkedAssetId) {
         try { await base44.entities.Asset.update(linkedAssetId, { value: assetPrevValue }); }
         catch (rbErr) { console.error("[saveTransactionWithAsset] rollback failed for asset", linkedAssetId, rbErr); }
       }
       return Response.json({ error: e?.message || "create_failed" }, { status: 500 });
+    }
+
+    // Catat mutasi aset immutable.
+    if (assetAdjusted && linkedAssetId) {
+      await recordAssetMutation(base44, {
+        asset_id: linkedAssetId, previous_value: assetPrevValue,
+        new_value: roundForCurrency((assetPrevValue || 0) + txEffect(transaction), assetCurrency),
+        change_type: "transaction", source_ref: created.id,
+        source_description: `Transaksi: ${transaction.merchant || transaction.category || ""}`,
+        actor_id: me.id, actor_name: me.full_name || me.email,
+        currency: assetCurrency,
+      });
     }
 
     return Response.json({ ok: true, transaction: created });

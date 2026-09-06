@@ -53,7 +53,7 @@ export default function LocalBackupRestore() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(reader.result);
+        const parsed = JSON.parse(String(reader.result || ""));
         if (!parsed || !parsed.data || !parsed.counts) throw new Error();
         setPending(parsed);
         setMode("merge");

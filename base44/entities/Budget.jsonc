@@ -16,6 +16,16 @@
     "period": {
       "type": "string"
     },
+    "period_type": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly",
+        "yearly"
+      ],
+      "default": "monthly",
+      "description": "Tipe periode anggaran untuk perhitungan rollover"
+    },
     "visibility": {
       "type": "string",
       "enum": [
@@ -23,6 +33,33 @@
         "private"
       ],
       "default": "shared"
+    },
+    "assignee_id": {
+      "type": "string",
+      "description": "ID user pemilik anggaran (null = bersama/keluarga). Anggaran dengan assignee spesifik hanya menghitung transaksi created_by user tersebut"
+    },
+    "assignee_name": {
+      "type": "string",
+      "description": "Nama assignee (snapshot untuk tampilan)"
+    },
+    "rollover_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Aktifkan rollover sisa/overspend ke periode berikutnya"
+    },
+    "rollover_policy": {
+      "type": "string",
+      "enum": [
+        "carry_negative",
+        "reset_on_overspend"
+      ],
+      "default": "carry_negative",
+      "description": "carry_negative = overspend dikurangi dari limit berikutnya; reset_on_overspend = periode berikutnya mulai fresh"
+    },
+    "rollover_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Akumulasi rollover dari periode sebelumnya (positif = sisa, negatif = overspend)"
     }
   },
   "required": [

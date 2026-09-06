@@ -1,0 +1,62 @@
+{
+  "name": "NotificationRule",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Kategori transaksi yang aturan ini berlaku (atau '*' untuk semua kategori)"
+    },
+    "min_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Hanya kirim notifikasi bila nominal >= ambang ini"
+    },
+    "max_amount": {
+      "type": "number",
+      "description": "Hanya kirim notifikasi bila nominal <= batas atas (null = tanpa batas)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Aktif/nonaktifkan aturan ini. Bila false, notifikasi untuk kategori ini dilewati"
+    },
+    "silent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Bila true, notifikasi untuk kategori ini selalu dilewati (override)"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "in_app",
+        "email",
+        "both"
+      ],
+      "default": "in_app"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "high"
+      ],
+      "default": "normal"
+    }
+  },
+  "required": [
+    "category",
+    "enabled"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": null
+  }
+}

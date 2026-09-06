@@ -1,0 +1,91 @@
+{
+  "name": "AssetMutation",
+  "type": "object",
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "description": "ID aset yang dimutasi"
+    },
+    "asset_name_snapshot": {
+      "type": "string",
+      "description": "Nama aset saat mutasi terjadi (snapshot)"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID pemilik aset (created_by_id aset, dihimpun oleh backend)"
+    },
+    "previous_value": {
+      "type": "number",
+      "description": "Nilai aset sebelum perubahan"
+    },
+    "new_value": {
+      "type": "number",
+      "description": "Nilai aset setelah perubahan"
+    },
+    "delta": {
+      "type": "number",
+      "description": "Selisih: new_value - previous_value"
+    },
+    "currency": {
+      "type": "string",
+      "default": "IDR"
+    },
+    "change_type": {
+      "type": "string",
+      "enum": [
+        "manual_edit",
+        "transaction",
+        "reconciliation",
+        "transfer",
+        "adjustment",
+        "reconciliation_adjustment"
+      ],
+      "description": "Jenis perubahan: manual_edit, transaction, reconciliation, transfer, adjustment, reconciliation_adjustment"
+    },
+    "source_ref": {
+      "type": "string",
+      "description": "ID entitas sumber (transaksi/rekonsiliasi/transfer) yang memicu mutasi"
+    },
+    "source_description": {
+      "type": "string",
+      "description": "Deskripsi singkat sumber perubahan"
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "ID user yang memicu perubahan"
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nama user yang memicu perubahan"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "asset_id",
+    "previous_value",
+    "new_value",
+    "delta",
+    "change_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": null,
+    "delete": null
+  }
+}

@@ -81,6 +81,20 @@
       "type": "boolean",
       "default": false,
       "description": "True bila transaksi ini adalah penyesuaian rekonsiliasi saldo rekening"
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "pending",
+        "rejected"
+      ],
+      "default": "approved",
+      "description": "Status persetujuan: approved = transaksi normal, pending = menunggu persetujuan pasangan (aset belum disesuaikan), rejected = ditolak pasangan"
+    },
+    "approval_id": {
+      "type": "string",
+      "description": "ID TransactionApproval terkait (bila status pending/rejected)"
     }
   },
   "required": [

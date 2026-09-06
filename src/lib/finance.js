@@ -148,6 +148,29 @@ export function summarizeByCurrency(txs, currencyList = []) {
   return out;
 }
 
+// Ringkasan konsolidasi: konversi tiap transaksi ke displayCurrency via rateMap
+// sebelum diagregasi. Menggantikan summarizeByCurrency untuk tampilan yang
+// seharusnya menampilkan nilai dalam satu mata uang tampilan.
+// Saldo = pemasukan − pengeluaran − sedekah.
+export function summarizeConsolidated(txs, displayCurrency = "IDR", rateMap = {}, currencyList = []) {
+  const to = (displayCurrency || "IDR").toUpperCase();
+  const out = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0, currencies: new Set() };
+  (currencyList || []).forEach((c) => out.currencies.add((c || "IDR").toUpperCase()));
+  (txs || []).forEach((t) => {
+    if (t.transfer_pair_id) return;
+    if (t.approval_status && t.approval_status !== "approved") return;
+    const from = (t.currency || "IDR").toUpperCase();
+    out.currencies.add(from);
+    const amt = convertTo(Number(t.amount) || 0, from, to, rateMap);
+    if (t.type === "income") out.income += amt;
+    else if (t.type === "expense") out.expense += amt;
+    else if (t.type === "sedekah") out.sedekah += amt;
+    out.count += 1;
+  });
+  out.balance = out.income - out.expense - out.sedekah;
+  return out;
+}
+
 // Filter transfer antar-rekening (transaksi dengan transfer_pair_id) dari daftar.
 export function filterTransfers(txs) {
   return (txs || []).filter((t) => !t.transfer_pair_id);

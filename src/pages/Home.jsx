@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatMoneyShort, formatDate, summarizeByCurrency, computeSavingsRate, activeCurrencies, convertTo } from "@/lib/finance";
+import { formatMoneyShort, formatDate, summarizeConsolidated, computeSavingsRate, hasRate } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check, Globe } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
@@ -48,17 +48,25 @@ export default function Home() {
   const scopeMonth = scope === "private" ? privateMonth : sharedMonth;
 
   const configuredCodes = userCurrencies.map((c) => c.code);
-  const summary = summarizeByCurrency(scopeMonth, configuredCodes);
-  // Selalu tampilkan mata uang aktif akun; tambahkan mata uang historis yang
-  // masih punya transaksi agar data lama tetap dapat dibaca.
-  const activeCurs = [...new Set([...configuredCodes, ...activeCurrencies(summary)])];
+  // Mata uang unik dari transaksi bulan berjalan + default user (agar toggle
+  // hanya menampilkan mata uang yang relevan, namun default selalu tersedia).
+  const monthCurrencies = [...new Set(scopeMonth.map((t) => (t.currency || "IDR").toUpperCase()))];
+  const activeCurs = [...new Set([...monthCurrencies, defaultCur])];
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
-  const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
+  // Ringkasan konsolidasi: konversi seluruh transaksi scope ke mata uang tampilan.
+  const s = useMemo(
+    () => summarizeConsolidated(scopeMonth, cur, rateMap, configuredCodes),
+    [scopeMonth, cur, rateMap, configuredCodes]
+  );
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
+  const rateMissing = !hasRate(cur, rateMap);
 
   // Total konsolidasi: semua mata uang dikonversi ke mata uang utama.
-  const consolidatedBalance = useMemo(() => Object.entries(summary).reduce((acc, [c, v]) => acc + convertTo(v.balance, c, defaultCur, rateMap), 0), [summary, defaultCur, rateMap]);
-  const hasMultiCurrency = Object.keys(summary).filter((c) => summary[c]?.count > 0).length > 1;
+  const consolidatedBalance = useMemo(
+    () => summarizeConsolidated(scopeMonth, defaultCur, rateMap, configuredCodes).balance,
+    [scopeMonth, defaultCur, rateMap, configuredCodes]
+  );
+  const hasMultiCurrency = monthCurrencies.length > 1;
 
   const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
 
@@ -184,7 +192,14 @@ export default function Home() {
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
         {activeCurs.length > 1 && (
           <div className="mt-3">
-            <p className="text-[10px] font-medium text-white/65 mb-1.5">Mata uang yang ditampilkan</p>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-medium text-white/65">Mata uang yang ditampilkan</p>
+              {rateMissing && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-full px-2 py-0.5">
+                  <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
+                </span>
+              )}
+            </div>
             <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} variant="inverse" />
           </div>
         )}

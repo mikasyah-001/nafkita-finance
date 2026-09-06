@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTransactions, useCategories, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatDate, colorMap } from "@/lib/finance";
+import { useTransactions, useCategories, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { formatDate, colorMap, convertTo, hasRate } from "@/lib/finance";
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
-import { PieChart, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
+import { PieChart, TrendingUp, TrendingDown, ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
@@ -21,28 +22,32 @@ export default function MonthlySummary({ scope = "shared" }) {
     const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
     const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
     const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const map = {}, prevMap = {}, totals = {}, prevTotals = {};
-    const ensure = (c) => { if (!map[c]) { map[c] = {}; prevMap[c] = {}; totals[c] = 0; prevTotals[c] = 0; } };
-    userCurrencies.forEach((c) => ensure(c.code));
+    // Mata uang unik dari transaksi bulan berjalan + default user.
+    const monthCurs = [...new Set(scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).map((t) => (t.currency || "IDR").toUpperCase()))];
+    const activeCurs = [...new Set([...monthCurs, (me?.default_currency || "IDR").toUpperCase()])];
+    const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
+    // Agregasi per kategori dengan konversi ke mata uang tampilan.
+    const map = {}, prevMap = {};
     scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).forEach((t) => {
-      const c = (t.currency || "IDR"); ensure(c);
-      map[c][t.category] = (map[c][t.category] || 0) + t.amount; totals[c] += t.amount;
+      const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
+      map[t.category] = (map[t.category] || 0) + v;
     });
     scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm)).forEach((t) => {
-      const c = (t.currency || "IDR"); ensure(c);
-      prevMap[c][t.category] = (prevMap[c][t.category] || 0) + t.amount; prevTotals[c] += t.amount;
+      const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
+      prevMap[t.category] = (prevMap[t.category] || 0) + v;
     });
-    const activeCurs = Object.keys(totals).filter((c) => totals[c] > 0);
-    const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
-    const rows = Object.entries(map[cur] || {})
-      .map(([name, value]) => ({ name, value, prev: (prevMap[cur] || {})[name] || 0 }))
+    const total = Object.values(map).reduce((a, b) => a + b, 0);
+    const prevTotal = Object.values(prevMap).reduce((a, b) => a + b, 0);
+    const rows = Object.entries(map)
+      .map(([name, value]) => ({ name, value, prev: prevMap[name] || 0 }))
       .sort((a, b) => b.value - a.value);
-    return { rows, total: totals[cur] || 0, prevTotal: prevTotals[cur] || 0, activeCurs, cur };
+    return { rows, total, prevTotal, activeCurs, cur };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, scope, currency]);
+  }, [transactions, scope, currency, rateMap, me?.default_currency]);
 
   if (total === 0 && activeCurs.length === 0) return null;
 
+  const rateMissing = !hasRate(cur, rateMap);
   const monthLabel = formatDate(now, "MMMM yyyy");
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
@@ -59,7 +64,14 @@ export default function MonthlySummary({ scope = "shared" }) {
       </div>
 
       {activeCurs.length > 0 && (
-        <div className="mb-3"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} />
+          {rateMissing && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-full px-2 py-0.5 shrink-0">
+              <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
+            </span>
+          )}
+        </div>
       )}
 
       <div className="flex items-end justify-between mb-3">

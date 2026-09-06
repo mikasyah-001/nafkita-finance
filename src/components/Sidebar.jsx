@@ -3,7 +3,7 @@ import {
   Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
   PiggyBank, Upload, Tags, User, Settings, MessageSquare,
   Shield, Sparkles, ArrowRightLeft, HandCoins, RefreshCw, Scale,
-  Target, CheckCheck, History, Bell, Activity, Coins,
+  Target, CheckCheck, History, Bell, Activity, Coins, BookOpen,
 } from "lucide-react";
 
 const mainItems = [
@@ -31,6 +31,7 @@ const toolItems = [
 const accountItems = [
   { to: "/profil", icon: User, label: "Profil" },
   { to: "/pengaturan", icon: Settings, label: "Pengaturan" },
+  { to: "/panduan", icon: BookOpen, label: "Panduan Tools" },
   { to: "/umpan-balik", icon: MessageSquare, label: "Umpan Balik" },
   { to: "/admin", icon: Shield, label: "Admin" },
 ];

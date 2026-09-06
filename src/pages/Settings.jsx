@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import PartnerManager from "@/components/PartnerManager";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles, ShieldCheck, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import CurrencyManager from "@/components/CurrencyManager";
 import TemplateManager from "@/components/TemplateManager";
@@ -28,6 +28,17 @@ export default function Settings() {
         </button>
         <h1 className="text-xl font-semibold">Pengaturan</h1>
       </div>
+
+      <Link to="/panduan" className="rounded-2xl border border-border bg-card p-4 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <div className="flex-1">
+          <p className="font-medium text-sm">Panduan Tools</p>
+          <p className="text-xs text-muted-foreground">Pelajari semua fitur & cara pemakaian</p>
+        </div>
+        <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+      </Link>
 
       <Link to="/profil" className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3 active:scale-[0.99] transition-transform">
         <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center">

@@ -42,6 +42,7 @@ import Approvals from '@/pages/Approvals';
 import AssetMutations from '@/pages/AssetMutations';
 import DataHealth from '@/pages/DataHealth';
 import Zakat from '@/pages/Zakat';
+import Panduan from '@/pages/Panduan';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -103,6 +104,7 @@ const AuthenticatedApp = () => {
           <Route path="/mutasi-aset" element={<AssetMutations />} />
           <Route path="/kesehatan-data" element={<DataHealth />} />
           <Route path="/zakat" element={<Zakat />} />
+          <Route path="/panduan" element={<Panduan />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight, ScanLine, Wallet, Coins, Users, Target, BarChart3,
   EyeOff, Cloud, Heart, ShieldCheck, Sparkles, Check,
-  PiggyBank, Landmark, TrendingUp, Star, Zap, Quote,
+  PiggyBank, Landmark, TrendingUp, Zap,
   Home as HomeIcon, Moon, Plus,
   MessageSquare, Link2, Smartphone, Globe, LineChart, FileText,
   MailCheck, RefreshCw, BellRing,
@@ -55,14 +55,14 @@ const personas = [
 ];
 
 const advantages = [
-  "Dirancang khusus untuk keluarga Muslim di Indonesia",
-  "Antarmuka sederhana, mudah dipakai pemula",
-  "Berjalan offline, sinkron otomatis saat online kembali",
-  "Data aman dengan cadangan Google Drive mingguan",
-  "Berkah dengan pelacakan sedekah & kalkulator zakat",
-  "Dukungan multi-mata uang (IDR, USD, SAR) untuk aset & investasi",
-  "Bisa dipasang di layar utama HP seperti aplikasi native (PWA)",
-  "Gratis digunakan, tanpa biaya langganan",
+  "Dirancang untuk pengelolaan keuangan keluarga Muslim",
+  "Antarmuka sederhana yang mudah dipahami",
+  "Pencatatan offline dengan sinkronisasi saat kembali online",
+  "Cadangan lokal dan Google Drive untuk membantu pemulihan data",
+  "Pelacakan sedekah dan kalkulator zakat berbasis nisab emas",
+  "Dukungan IDR, USD, dan SAR tanpa mencampur nominal antar-mata uang",
+  "Dapat dipasang di layar utama sebagai PWA",
+  "Ruang kas bersama dan pribadi dengan kontrol visibilitas",
 ];
 
 const startSteps = [
@@ -179,7 +179,7 @@ export default function Welcome() {
       </div>
 
       {/* ───────── TRUST STRIP ───────── */}
-      <div className="px-6 -mt-7 relative z-10">
+      <div className="px-6 -mt-7 relative z-10 max-w-3xl mx-auto w-full">
         <motion.div
           variants={stagger}
           initial="hidden"
@@ -187,9 +187,9 @@ export default function Welcome() {
           className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur shadow-lg shadow-emerald-950/5 p-3.5 text-center"
         >
           {[
-            { n: "18+", l: "Fitur" },
-            { n: "100%", l: "Privat" },
-            { n: "Gratis", l: "Selamanya" },
+            { n: "18+", l: "Fitur aktif" },
+            { n: "3", l: "Mata uang" },
+            { n: "2", l: "Ruang kas" },
           ].map((s) => (
             <motion.div key={s.l} variants={fadeUp}>
               <p className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{s.n}</p>
@@ -204,7 +204,7 @@ export default function Welcome() {
         <SectionLabel>Perkenalan</SectionLabel>
         <h2 className="text-xl font-bold mt-2 mb-3 tracking-tight">Apa itu NAFKITA?</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          NAFKITA adalah aplikasi manajemen keuangan keluarga yang cerdas. Hubungkan akun Anda dengan pasangan lewat kode referensi, lalu catat pengeluaran, pemasukan, dan aset — bersama atau pribadi — dengan multi-mata uang. Pindai struk dengan AI, ngobrol dengan Asisten Struk, kelola investasi DCA & emas, hitung zakat, pantau anggaran, dan terima ringkasan bulanan via email. Semua dalam satu genggaman, dirancang khusus untuk keluarga Muslim di Indonesia.
+          NAFKITA menyatukan pencatatan pemasukan, pengeluaran, sedekah, aset, investasi, anggaran, dan laporan keluarga. Hubungkan akun dengan pasangan, pilih ruang bersama atau pribadi, gunakan IDR, SAR, maupun USD, lalu pantau kondisi keuangan dari satu tempat.
         </p>
 
         <motion.div
@@ -279,7 +279,7 @@ export default function Welcome() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-2 gap-3"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
         >
           {features.map((f) => {
             const Icon = f.icon;
@@ -391,33 +391,6 @@ export default function Welcome() {
         </motion.div>
       </Section>
 
-      {/* ───────── TESTIMONI ───────── */}
-      <Section className="pt-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5 }}
-          className="rounded-2xl border border-border bg-card p-5 shadow-sm"
-        >
-          <Quote className="w-7 h-7 text-emerald-500/25 mb-2" />
-          <p className="text-sm text-foreground/90 leading-relaxed italic">
-            "Akhirnya bisa transparan sama pasangan soal keuangan, tapi tetap punya ruang pribadi. Scan bon-nya juga bikin catat pengeluaran jadi gampang banget."
-          </p>
-          <div className="flex items-center gap-2.5 mt-4">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500" />
-            <div>
-              <p className="text-xs font-semibold">Keluarga NAFKITA</p>
-              <div className="flex gap-0.5 mt-0.5">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </Section>
-
       {/* ───────── FINAL CTA ───────── */}
       <Section className="pt-8">
         <motion.div
@@ -435,7 +408,7 @@ export default function Welcome() {
             </div>
             <h2 className="text-lg font-bold tracking-tight">Siap mengelola keuangan dengan berkah?</h2>
             <p className="text-xs opacity-90 mt-2 leading-relaxed max-w-[16rem] mx-auto">
-              Daftar gratis sekarang dan rasakan kemudahan mengelola nafkah keluarga bersama NAFKITA.
+              Buat akun dan mulai mencatat keuangan keluarga secara rapi bersama NAFKITA.
             </p>
           </div>
         </motion.div>
@@ -461,7 +434,7 @@ export default function Welcome() {
 }
 
 function Section({ children, className = "" }) {
-  return <section className={`px-6 ${className}`}>{children}</section>;
+  return <section className={`px-6 w-full max-w-5xl mx-auto ${className}`}>{children}</section>;
 }
 
 function SectionLabel({ children }) {

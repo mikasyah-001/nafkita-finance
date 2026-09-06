@@ -132,6 +132,7 @@ export default function AssetDashboard() {
       period: s.period.slice(5) + "/" + s.period.slice(2, 4),
       Emas: s.emas_value || 0,
       Investasi: s.investasi_value || 0,
+      Bank: s.bank_value || 0,
       Total: s.total_value || 0,
     }));
 
@@ -223,7 +224,7 @@ export default function AssetDashboard() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = a.type === "emas" && goldPriceNum > 0 && a.quantity ? a.quantity * goldPriceNum : (a.value || 0);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && a.type === "emas" ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             return (
@@ -336,6 +337,7 @@ export default function AssetDashboard() {
                 <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Emas" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Investasi" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="Bank" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

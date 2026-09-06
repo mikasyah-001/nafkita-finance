@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
@@ -12,7 +12,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -21,6 +21,13 @@ const sortOptions = [
   { key: "date_desc", label: "Beli ↓" },
   { key: "date_asc", label: "Beli ↑" },
 ];
+
+const rankBadgeClass = (rank) => {
+  if (rank === 1) return "bg-amber-400 text-amber-950";
+  if (rank === 2) return "bg-slate-300 text-slate-800";
+  if (rank === 3) return "bg-orange-400 text-orange-950";
+  return "bg-muted text-muted-foreground";
+};
 
 export default function Assets() {
   const { data: assets = [] } = useAssets();
@@ -32,6 +39,7 @@ export default function Assets() {
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(10);
   const { hidden, toggle } = usePrivacy();
 
   const goldPriceNum = Number(goldPrice) || 0;
@@ -41,6 +49,18 @@ export default function Assets() {
     if (a.type === "emas" && a.quantity && goldPriceNum > 0) return a.quantity * goldPriceNum;
     return a.value || 0;
   };
+
+  // Peringkat berdasarkan nilai tertinggi di seluruh aset (scope aktif).
+  const rankMap = useMemo(() => {
+    const ranked = [...scopedAssets].sort((a, b) => currentValue(b) - currentValue(a));
+    const m = {};
+    ranked.forEach((a, i) => { m[a.id] = i + 1; });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedAssets, goldPriceNum]);
+
+  // Reset paginasi saat filter/sort/scope berubah.
+  useEffect(() => { setVisibleCount(10); }, [sortBy, typeFilter, scope]);
 
   const typeOptions = ["all", "bank", "emas", "investasi", "properti", "tanah", "lainnya"];
   const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
@@ -116,8 +136,6 @@ export default function Assets() {
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
 
-      <AssetGrowthTrend />
-
       {scopedAssets.length > 0 && (
         <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 mb-4 active:scale-[0.99] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
@@ -158,10 +176,11 @@ export default function Assets() {
         <div className="py-12 text-center text-sm text-muted-foreground">Tidak ada aset untuk filter ini.</div>
       ) : (
         <div className="space-y-3">
-          {sortedAssets.map((a) => {
+          {sortedAssets.slice(0, visibleCount).map((a) => {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
+            const rank = rankMap[a.id];
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
             const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
@@ -173,8 +192,13 @@ export default function Assets() {
             return (
               <div key={a.id} className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${cm.bg}`}>
-                    <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
+                  <div className="relative shrink-0">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
+                      <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
+                    </div>
+                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
+                      {rank}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate flex items-center gap-1">
@@ -278,6 +302,17 @@ export default function Assets() {
           })}
         </div>
       )}
+
+      {sortedAssets.length > visibleCount && (
+        <button
+          onClick={() => setVisibleCount((c) => c + 10)}
+          className="w-full mt-3 py-3 rounded-2xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+        >
+          <ChevronDown className="w-4 h-4" /> Lihat lainnya ({sortedAssets.length - visibleCount} lagi)
+        </button>
+      )}
+
+      <AssetGrowthTrend />
 
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 

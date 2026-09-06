@@ -17,14 +17,19 @@ export default function AgentConversation({ agentName, title }) {
     let mounted = true;
     (async () => {
       try {
-        const list = await base44.agents.listConversations({ agent_name: agentName });
+        const list = await base44.agents.listConversations({
+          q: { agent_name: agentName },
+          sort: "-updated_date",
+          limit: 1,
+        });
         let conv = list && list[0];
         if (!conv) {
           conv = await base44.agents.createConversation({ agent_name: agentName, metadata: { name: title, description: title } });
         }
+        const fullConversation = await base44.agents.getConversation(conv.id);
         if (!mounted) return;
-        setConversation(conv);
-        setMessages(conv.messages || []);
+        setConversation(fullConversation);
+        setMessages(fullConversation.messages || []);
       } catch {
         /* ignore */
       }
@@ -57,13 +62,14 @@ export default function AgentConversation({ agentName, title }) {
         const { file_url } = await base44.integrations.Core.UploadFile({ file: pendingFile });
         fileUrls = [file_url];
       }
-      const conv = await base44.agents.addMessage(conversation, {
+      await base44.agents.addMessage(conversation, {
         role: "user",
         content: input.trim() || "Tolong proses struk ini.",
         ...(fileUrls ? { file_urls: fileUrls } : {}),
       });
-      setConversation(conv);
-      setMessages(conv.messages || []);
+      const updated = await base44.agents.getConversation(conversation.id);
+      setConversation(updated);
+      setMessages(updated.messages || []);
       setInput("");
       setPendingFile(null);
     } catch {

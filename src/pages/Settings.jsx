@@ -67,10 +67,10 @@ export default function Settings() {
         </Link>
       </Section>
 
-      <Section title="Asisten Struk AI">
-        <p className="text-xs text-muted-foreground mb-3">Kirim foto bon, AI akan mengkategorikan transaksi & memperbarui aset terkait secara otomatis.</p>
-        <Link to="/asisten-struk" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
-          <Sparkles className="w-4 h-4" /> Buka Asisten Struk
+      <Section title="Scan Struk AI">
+        <p className="text-xs text-muted-foreground mb-3">Scan struk kini menyatu dengan Tambah Transaksi: AI mengisi nominal, merchant, kategori, dan mata uang untuk Anda tinjau sebelum disimpan.</p>
+        <Link to="/add" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Sparkles className="w-4 h-4" /> Tambah Transaksi & Scan Struk
         </Link>
       </Section>
 

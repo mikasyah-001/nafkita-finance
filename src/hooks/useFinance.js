@@ -97,6 +97,34 @@ export function useUserCurrencies() {
   }, [me?.active_currencies, me?.default_currency]);
 }
 
+export function useDebts() {
+  return useQuery({
+    queryKey: ["debts"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listVisibleDebts", {});
+      return res.data.debts || [];
+    },
+  });
+}
+
+export function useRecurringBills() {
+  return useQuery({
+    queryKey: ["recurringBills"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listVisibleRecurringBills", {});
+      return res.data.bills || [];
+    },
+  });
+}
+
+export function useReconciliations(assetId) {
+  return useQuery({
+    queryKey: ["reconciliations", assetId],
+    queryFn: () => base44.entities.Reconciliation.filter({ asset_id: assetId }, "-as_of_date", 500),
+    enabled: !!assetId,
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -109,5 +137,8 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["zakatPayments"] });
     qc.invalidateQueries({ queryKey: ["investmentLots"] });
     qc.invalidateQueries({ queryKey: ["me"] });
+    qc.invalidateQueries({ queryKey: ["debts"] });
+    qc.invalidateQueries({ queryKey: ["recurringBills"] });
+    qc.invalidateQueries({ queryKey: ["reconciliations"] });
   };
 }

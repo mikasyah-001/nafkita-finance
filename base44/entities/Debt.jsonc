@@ -1,0 +1,107 @@
+{
+  "name": "Debt",
+  "type": "object",
+  "properties": {
+    "counterparty_name": {
+      "type": "string",
+      "description": "Nama pihak lawan (pihak yang berhutang atau yang kita hutangi)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "utang",
+        "piutang"
+      ],
+      "description": "utang = kita berhutang ke pihak lawan; piutang = pihak lawan berhutang ke kita"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Nominal utang/piutang"
+    },
+    "currency": {
+      "type": "string",
+      "default": "IDR",
+      "description": "Kode mata uang (IDR/SAR/USD bawaan, atau mata uang kustom pengguna)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal utang/piutang dicatat"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal jatuh tempo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unpaid",
+        "partial",
+        "paid"
+      ],
+      "default": "unpaid"
+    },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total nominal yang sudah dibayar/dilunasi"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal pelunasan penuh"
+    },
+    "linked_asset_id": {
+      "type": "string",
+      "description": "ID aset bank terkait untuk transaksi pelunasan otomatis"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "private"
+      ],
+      "default": "shared"
+    }
+  },
+  "required": [
+    "counterparty_name",
+    "type",
+    "amount",
+    "date"
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "data.visibility": {
+                "$ne": "private"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

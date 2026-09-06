@@ -1,0 +1,111 @@
+{
+  "name": "RecurringBill",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Kategori tagihan (mis. Listrik, Internet, Sewa)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "expense",
+        "sedekah"
+      ],
+      "default": "expense"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "IDR",
+      "description": "Kode mata uang (IDR/SAR/USD bawaan, atau mata uang kustom pengguna)"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "yearly"
+      ],
+      "default": "monthly"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal mula tagihan berulang"
+    },
+    "next_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal berikutnya tagihan akan diproses"
+    },
+    "linked_asset_id": {
+      "type": "string",
+      "description": "ID aset bank yang saldonya disesuaikan otomatis saat transaksi dibuat"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "private"
+      ],
+      "default": "shared"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused"
+      ],
+      "default": "active"
+    },
+    "last_run_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal terakhir tagihan ini memproses transaksi otomatis"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "type",
+    "amount",
+    "frequency",
+    "next_date"
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "data.visibility": {
+                "$ne": "private"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

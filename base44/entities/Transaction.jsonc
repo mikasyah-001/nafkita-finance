@@ -60,6 +60,27 @@
     "notif_batch_id": {
       "type": "string",
       "description": "Flag internal: bila diisi, notifikasi individual dilewati (impor/scan/sample data)"
+    },
+    "transfer_pair_id": {
+      "type": "string",
+      "description": "ID pasangan transfer \u2014 menghubungkan dua record transfer (asal \u2194 tujuan). Bila diisi, transaksi diexclude dari ringkasan pemasukan/pengeluaran"
+    },
+    "transfer_direction": {
+      "type": "string",
+      "enum": [
+        "in",
+        "out"
+      ],
+      "description": "Arah transfer: out = dari rekening asal, in = ke rekening tujuan"
+    },
+    "recurring_id": {
+      "type": "string",
+      "description": "ID tagihan berulang yang menghasilkan transaksi ini secara otomatis"
+    },
+    "is_adjustment": {
+      "type": "boolean",
+      "default": false,
+      "description": "True bila transaksi ini adalah penyesuaian rekonsiliasi saldo rekening"
     }
   },
   "required": [

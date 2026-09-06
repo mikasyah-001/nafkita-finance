@@ -80,6 +80,8 @@ export function summarizeByCurrency(txs, currencyList = []) {
   const ensure = (c) => { if (!out[c]) out[c] = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 }; };
   (currencyList || []).forEach((c) => ensure((c || "IDR").toUpperCase()));
   (txs || []).forEach((t) => {
+    // Transfer antar-rekening tidak dihitung sebagai pemasukan/pengeluaran.
+    if (t.transfer_pair_id) return;
     const c = (t.currency || "IDR").toUpperCase();
     ensure(c);
     const amt = Number(t.amount) || 0;
@@ -90,6 +92,38 @@ export function summarizeByCurrency(txs, currencyList = []) {
   });
   Object.values(out).forEach((v) => { v.balance = v.income - v.expense - v.sedekah; });
   return out;
+}
+
+// Filter transfer antar-rekening (transaksi dengan transfer_pair_id) dari daftar.
+export function filterTransfers(txs) {
+  return (txs || []).filter((t) => !t.transfer_pair_id);
+}
+
+// Filter transaksi berdasarkan rentang tanggal (inclusive).
+// startDate/endDate dapat berupa Date, ISO string, atau null (tanpa batas).
+export function filterPeriod(txs, startDate, endDate) {
+  if (!startDate && !endDate) return txs || [];
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+  return (txs || []).filter((t) => {
+    const d = new Date(t.date);
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  });
+}
+
+// Hitung tanggal berikutnya untuk tagihan berulang berdasarkan frekuensi.
+export function computeRecurringNextDate(currentDate, frequency) {
+  const d = new Date(currentDate);
+  switch (frequency) {
+    case "daily": d.setDate(d.getDate() + 1); break;
+    case "weekly": d.setDate(d.getDate() + 7); break;
+    case "yearly": d.setFullYear(d.getFullYear() + 1); break;
+    case "monthly":
+    default: d.setMonth(d.getMonth() + 1); break;
+  }
+  return d.toISOString().slice(0, 10);
 }
 
 // Savings rate memperhitungkan sedekah, dijepit 0–100% dengan label saat di luar rentang.

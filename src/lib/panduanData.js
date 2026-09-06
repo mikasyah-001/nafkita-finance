@@ -217,7 +217,7 @@ export const panduanCategories = [
         name: "Zakat",
         short: "Kalkulator & pelacakan zakat emas & simpanan",
         description: "Menghitung kewajiban zakat (emas & simpanan) berdasarkan nisab dan haul, serta mencatat pembayaran zakat.",
-        howItWorks: "Sistem menghitung total aset emas dan simpanan, lalu membandingkan dengan nisab (85 gram emas). Bila telah mencapai nisab dan haul, zakat dihitung sebesar 2,5% dari total. Nilai zakat selalu dihitung dalam IDR untuk konsistensi.",
+        howItWorks: "Sistem menghitung aset emas dan simpanan per mata uang (IDR, SAR, USD), masing-masing dibandingkan dengan nisab (85 gram emas dalam mata uang tersebut). Bila telah mencapai nisab dan haul, zakat dihitung sebesar 2,5% per mata uang. Metodologi yang sama dipakai oleh email pengingat tahunan sehingga hasilnya selalu konsisten.",
         steps: [
           "Buka menu Zakat",
           "Sistem menampilkan total emas dan simpanan otomatis",

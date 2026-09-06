@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
 
 // Mencatat pelunasan utang/piutang.
 // - Memperbarui paid_amount, status (unpaid/partial/paid), paid_date.
@@ -43,7 +44,15 @@ export default async function (req) {
       const delta = txType === "income" ? payAmt : -payAmt;
       assetPrev = asset.value;
       const newVal = roundForCurrency((asset.value || 0) + delta, asset.currency);
+      const debtPayRef = "debt-pay-" + Date.now();
       await base44.entities.Asset.update(linked_asset_id, { value: newVal });
+      await recordAssetMutation(base44, {
+        asset_id: linked_asset_id, previous_value: assetPrev, new_value: newVal,
+        change_type: "transaction", source_ref: debtPayRef,
+        source_description: `Pelunasan ${debt.type} — ${debt.counterparty_name || ""}`,
+        actor_id: me.id, actor_name: me.full_name || me.email,
+        currency: asset.currency || "IDR",
+      });
 
       try {
         const tx = await base44.entities.Transaction.create({
@@ -58,7 +67,7 @@ export default async function (req) {
           tags: [],
           visibility: debt.visibility || "shared",
           linked_asset_id: linked_asset_id,
-          notif_batch_id: "debt-pay-" + Date.now(),
+          notif_batch_id: debtPayRef,
         });
         adjustmentTxId = tx.id;
       } catch (e) {

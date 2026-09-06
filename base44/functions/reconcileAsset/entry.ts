@@ -62,6 +62,7 @@ export default async function (req) {
       await recordAssetMutation(base44, {
         asset_id, previous_value: adjPrev, new_value: newVal,
         change_type: "reconciliation_adjustment",
+        source_ref: "recon-" + asset_id + "-" + asOf,
         source_description: `Penyesuaian rekonsiliasi ${asOf}`,
         actor_id: me.id, actor_name: me.full_name || me.email,
         currency: asset.currency || "IDR",

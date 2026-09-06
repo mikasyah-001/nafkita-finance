@@ -176,6 +176,16 @@ export function filterTransfers(txs) {
   return (txs || []).filter((t) => !t.transfer_pair_id);
 }
 
+// Filter transaksi yang layak masuk laporan/ringkasan:
+// - eksklusikan transfer antar-rekening (bukan pengeluaran riil)
+// - eksklusikan transaksi pending/rejected (belum disetujui pasangan)
+export function filterReportableTx(t) {
+  if (!t) return false;
+  if (t.transfer_pair_id) return false;
+  if (t.approval_status && t.approval_status !== "approved") return false;
+  return true;
+}
+
 // Filter transaksi berdasarkan rentang tanggal (inclusive).
 // startDate/endDate dapat berupa Date, ISO string, atau null (tanpa batas).
 export function filterPeriod(txs, startDate, endDate) {

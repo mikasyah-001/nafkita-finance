@@ -38,13 +38,18 @@ export default async function (req) {
         category: body.category,
         merchant: body.merchant,
         notes: body.notes,
+        notif_batch_id: body.notif_batch_id,
         created_date: body.created_date,
         updated_date: body.updated_date,
       };
-    }
+      }
 
-    const actorId = tx.created_by_id || body.actor_id;
-    if (!actorId) return Response.json({ skipped: "no_actor" });
+      const actorId = tx.created_by_id || body.actor_id;
+      if (!actorId) return Response.json({ skipped: "no_actor" });
+
+      // Operasi batch (transfer, tagihan berulang, pelunasan utang, restore Drive)
+      // menandai notif_batch_id agar tidak memicu notifikasi individual ke pasangan.
+      if (tx.notif_batch_id) return Response.json({ skipped: "batched" });
 
     const oldVisibility = body.old_visibility || null;
     const newVisibility = tx.visibility;

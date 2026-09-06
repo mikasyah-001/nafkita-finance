@@ -40,6 +40,20 @@ export default async function (req) {
     // Hanya aset shared yang memicu notifikasi.
     if (asset.visibility !== "shared") return Response.json({ skipped: "not_shared" });
 
+    // Skip notifikasi bila perubahan value berasal dari transaksi/transfer/rekonsiliasi
+    // (ditandai source_ref di AssetMutation terbaru). Edit manual (source_ref kosong)
+    // tetap memicu notifikasi ke pasangan. Mencegah notifikasi ganda transaksi+aset.
+    if (eventType === "update") {
+      try {
+        const muts = await base44.asServiceRole.entities.AssetMutation.filter(
+          { asset_id: assetId }, "-created_date", 1
+        );
+        if (muts && muts[0] && muts[0].source_ref) {
+          return Response.json({ skipped: "transaction_driven" });
+        }
+      } catch {}
+    }
+
     // Resolve pasangan.
     const { partnerId, partnerEmail } = await resolvePartner(base44, actorId);
     if (!partnerId) return Response.json({ skipped: "no_partner" });

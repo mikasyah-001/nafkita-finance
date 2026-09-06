@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTransactions, useAssets, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
 import { base44 } from "@/api/base44Client";
-import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies, convertTo, hasRate } from "@/lib/finance";
+import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies, convertTo, hasRate, filterReportableTx } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -115,7 +115,7 @@ export default function Reports() {
 
   const byCategory = useMemo(() => {
     const map = {};
-    monthTx.filter((t) => t.type === "expense").forEach((t) => {
+    monthTx.filter((t) => t.type === "expense" && filterReportableTx(t)).forEach((t) => {
       map[t.category] = (map[t.category] || 0) + t.amount;
     });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -136,7 +136,7 @@ export default function Reports() {
     const pm = month === 0 ? 11 : month - 1;
     const py = month === 0 ? year - 1 : year;
     const map = {};
-    scopedTransactions.filter((t) => t.type === "expense" && (t.currency || "IDR") === cur).forEach((t) => {
+    scopedTransactions.filter((t) => t.type === "expense" && filterReportableTx(t) && (t.currency || "IDR") === cur).forEach((t) => {
       const d = new Date(t.date);
       if (d.getMonth() === pm && d.getFullYear() === py) map[t.category] = (map[t.category] || 0) + t.amount;
     });
@@ -166,7 +166,7 @@ export default function Reports() {
   const consolidatedByCategory = useMemo(() => {
     if (!consolidated) return [];
     const map = {};
-    periodTxAll.filter((t) => t.type === "expense").forEach((t) => {
+    periodTxAll.filter((t) => t.type === "expense" && filterReportableTx(t)).forEach((t) => {
       const amt = convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase());
       map[t.category] = (map[t.category] || 0) + amt;
     });

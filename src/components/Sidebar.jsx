@@ -1,40 +1,7 @@
 import { NavLink, Link } from "react-router-dom";
-import {
-  Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
-  PiggyBank, Upload, Tags, User, Settings, MessageSquare,
-  Shield, Sparkles, ArrowRightLeft, HandCoins, RefreshCw, Scale,
-  Target, CheckCheck, History, Bell, Activity, Coins, BookOpen,
-} from "lucide-react";
-
-const mainItems = [
-  { to: "/", icon: Home, label: "Beranda", end: true },
-  { to: "/riwayat", icon: ReceiptText, label: "Riwayat" },
-  { to: "/aset", icon: Landmark, label: "Aset" },
-  { to: "/laporan", icon: BarChart3, label: "Laporan" },
-  { to: "/ringkasan", icon: PiggyBank, label: "Ringkasan" },
-  { to: "/anggaran", icon: Wallet, label: "Anggaran" },
-];
-
-const toolItems = [
-  { to: "/transfer", icon: ArrowRightLeft, label: "Transfer" },
-  { to: "/utang", icon: HandCoins, label: "Utang & Piutang" },
-  { to: "/tagihan-berulang", icon: RefreshCw, label: "Tagihan Berulang" },
-  { to: "/rekonsiliasi", icon: Scale, label: "Rekonsiliasi" },
-  { to: "/target-tabungan", icon: Target, label: "Target Tabungan" },
-  { to: "/zakat", icon: Coins, label: "Zakat" },
-  { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan" },
-  { to: "/impor", icon: Upload, label: "Impor Data" },
-  { to: "/kategori", icon: Tags, label: "Kategori" },
-  { to: "/kesehatan-data", icon: Activity, label: "Kesehatan Data" },
-];
-
-const accountItems = [
-  { to: "/profil", icon: User, label: "Profil" },
-  { to: "/pengaturan", icon: Settings, label: "Pengaturan" },
-  { to: "/panduan", icon: BookOpen, label: "Panduan Tools" },
-  { to: "/umpan-balik", icon: MessageSquare, label: "Umpan Balik" },
-  { to: "/admin", icon: Shield, label: "Admin" },
-];
+import { Plus, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
+import { mainItems, toolItems, accountItems } from "@/lib/navConfig";
 
 function NavSection({ items }) {
   return (
@@ -64,6 +31,11 @@ function NavSection({ items }) {
 }
 
 export default function Sidebar() {
+  const { user } = useAuth();
+  const visibleAccountItems = accountItems.filter(
+    (it) => !it.adminOnly || user?.role === "admin"
+  );
+
   return (
     <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-border bg-sidebar h-screen sticky top-0">
       <div className="px-5 py-5 border-b border-sidebar-border">
@@ -83,7 +55,7 @@ export default function Sidebar() {
         </div>
         <div>
           <p className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Akun</p>
-          <NavSection items={accountItems} />
+          <NavSection items={visibleAccountItems} />
         </div>
       </div>
 

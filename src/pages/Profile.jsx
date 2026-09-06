@@ -53,6 +53,7 @@ export default function Profile() {
       toast.error("Gagal mengunggah foto");
     }
     setUploading(false);
+    e.target.value = "";
   };
 
   const handleSave = async () => {

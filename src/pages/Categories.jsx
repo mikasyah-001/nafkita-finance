@@ -38,11 +38,13 @@ export default function Categories() {
   };
 
   const openEdit = (c) => {
+    if (c.is_default) return toast.info("Kategori bawaan tetap dipertahankan", { description: "Tambahkan kategori kustom bila membutuhkan variasi lain." });
     setEditing(c);
     setModalOpen(true);
   };
 
   const handleDelete = async (c) => {
+    if (c.is_default) return toast.info("Kategori bawaan tidak dapat dihapus", { description: "Kategori ini tersedia untuk setiap akun." });
     const count = usage[c.name] || 0;
     const msg = count > 0
       ? `Kategori "${c.name}" dipakai ${count} transaksi. Transaksi lama tetap tersimpan, tapi tidak akan punya kategori aktif. Lanjut hapus?`
@@ -94,12 +96,18 @@ export default function Categories() {
                   {count > 0 && ` • ${count} transaksi`}
                 </p>
               </div>
-              <button onClick={() => openEdit(c)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <Pencil className="w-4 h-4 text-muted-foreground" />
-              </button>
-              <button onClick={() => handleDelete(c)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
+              {c.is_default ? (
+                <span className="text-[10px] font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
+              ) : (
+                <>
+                  <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <Pencil className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                  <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </>
+              )}
             </div>
           );
         })}

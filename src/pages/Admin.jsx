@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, ShieldCheck, Users, Link2, Receipt,
   Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
-  BarChart3,
+  BarChart3, Landmark,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
@@ -30,6 +30,10 @@ export default function Admin() {
   const [txLoadingMore, setTxLoadingMore] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [assetFilter, setAssetFilter] = useState("");
+  const [assetUserFilter, setAssetUserFilter] = useState("all");
+  const [assetLoading, setAssetLoading] = useState(false);
 
   // Periksa role admin dahulu, baru muat data.
   useEffect(() => {
@@ -101,6 +105,28 @@ export default function Admin() {
     if (me?.role === "admin" && tab === "audit" && auditLogs.length === 0) loadAuditLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  const loadAssets = useCallback(async (userFilter) => {
+    setAssetLoading(true);
+    try {
+      const res = await base44.functions.invoke("adminListAssets", {
+        user_filter: userFilter && userFilter !== "all" ? userFilter : undefined,
+        limit: 500,
+      });
+      const data = res?.data || {};
+      setAssets(data.assets || []);
+    } catch (e) {
+      toast.error("Gagal memuat aset", { description: e?.message });
+    } finally {
+      setAssetLoading(false);
+    }
+  }, []);
+
+  // Muat aset saat tab aset aktif.
+  useEffect(() => {
+    if (me?.role === "admin" && tab === "aset") loadAssets(assetUserFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, assetUserFilter]);
 
   const isAdmin = me?.role === "admin";
 
@@ -195,11 +221,12 @@ export default function Admin() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-5 w-full mb-4">
+        <TabsList className="grid grid-cols-6 w-full mb-4">
           <TabsTrigger value="statistik"><BarChart3 className="w-4 h-4 mr-1" />Statistik</TabsTrigger>
           <TabsTrigger value="pengguna"><Users className="w-4 h-4 mr-1" />User</TabsTrigger>
           <TabsTrigger value="koneksi"><Link2 className="w-4 h-4 mr-1" />Koneksi</TabsTrigger>
           <TabsTrigger value="transaksi"><Receipt className="w-4 h-4 mr-1" />Transaksi</TabsTrigger>
+          <TabsTrigger value="aset"><Landmark className="w-4 h-4 mr-1" />Aset</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="w-4 h-4 mr-1" />Audit</TabsTrigger>
         </TabsList>
 
@@ -350,6 +377,63 @@ export default function Admin() {
               {txLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />} Muat lebih banyak
             </button>
           )}
+        </TabsContent>
+
+        {/* ASET — non-private lintas keluarga */}
+        <TabsContent value="aset" className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={assetFilter}
+                onChange={(e) => setAssetFilter(e.target.value)}
+                placeholder="Cari aset…"
+                className="input pl-9"
+              />
+            </div>
+            <select value={assetUserFilter} onChange={(e) => setAssetUserFilter(e.target.value)} className="input max-w-[40%]">
+              <option value="all">Semua User</option>
+              {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
+            </select>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            {assetLoading ? "Memuat…" : `${assets.length} aset non-private`}
+          </p>
+
+          {assetLoading && (
+            <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          )}
+
+          {!assetLoading && assets.length === 0 && (
+            <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada aset.</p>
+          )}
+
+          {!assetLoading && assets.filter((a) => {
+            if (!assetFilter.trim()) return true;
+            const q = assetFilter.toLowerCase();
+            return (a.name || "").toLowerCase().includes(q) ||
+              (a.type || "").toLowerCase().includes(q) ||
+              (a.notes || "").toLowerCase().includes(q);
+          }).map((a) => {
+            const owner = userMap[a.created_by_id];
+            return (
+              <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{a.name || "Tanpa Nama"}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {owner?.full_name || owner?.email || "—"} • {a.type || "lainnya"}
+                  </p>
+                </div>
+                <div className="text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums">
+                  <Money value={a.value} currency={a.currency} />
+                </div>
+              </div>
+            );
+          })}
         </TabsContent>
 
         {/* AUDIT LOG — riwayat tindakan admin */}

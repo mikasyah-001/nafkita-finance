@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAssetSnapshots, useMe } from "@/hooks/useFinance";
-import { formatMoney, CURRENCY_CODES } from "@/lib/finance";
+import { formatMoney } from "@/lib/finance";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";

@@ -84,7 +84,11 @@ export default async function (req) {
       }
     }
 
-    return Response.json({ ok: true, date: today, source: anySaved ? (usedFallback ? "api" : "bi") : "api", count: saved.length, rates: saved });
+    const requested = target_currencies.filter((c) => c !== "IDR" && c !== "USD");
+    const savedCodes = saved.map((s) => s.base_currency);
+    const skipped = requested.filter((c) => !savedCodes.includes(c));
+    console.log(`[fetchExchangeRates] Tersimpan: ${savedCodes.join(", ") || "(none)"}. Dilewati: ${skipped.join(", ") || "(none)"}.`);
+    return Response.json({ ok: true, date: today, source: anySaved ? (usedFallback ? "api" : "bi") : "api", count: saved.length, rates: saved, skipped });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

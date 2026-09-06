@@ -77,6 +77,7 @@ export function currencySymbol(code) {
 // Mendukung juga arah terbalik (base IDR, quote asing) sebagai fallback.
 export function buildRateMap(rates) {
   const map = { IDR: 1 };
+  const usdBridge = [];
   (rates || []).forEach((r) => {
     const base = (r.base_currency || "").toUpperCase();
     const quote = (r.quote_currency || "").toUpperCase();
@@ -86,9 +87,26 @@ export function buildRateMap(rates) {
       map[base] = rate; // 1 base = rate IDR
     } else if (base === "IDR" && quote !== "IDR") {
       map[quote] = 1 / rate; // 1 IDR = rate quote → 1 quote = 1/rate IDR
+    } else if (base === "USD" && quote !== "IDR" && quote !== "USD") {
+      usdBridge.push({ quote, rate });
     }
   });
+  // Turunkan X→IDR dari jembatan USD: rate(X→IDR) = rate(USD→IDR) / rate(USD→X).
+  const usdToIdr = map.USD;
+  if (usdToIdr) {
+    usdBridge.forEach(({ quote, rate }) => {
+      if (map[quote]) return; // jangan timpa kurs langsung
+      map[quote] = usdToIdr / rate;
+    });
+  }
   return map;
+}
+
+// Cek apakah kurs untuk mata uang tertentu tersedia di rateMap.
+export function hasRate(currency, rateMap = {}) {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "IDR") return true;
+  return rateMap[c] != null && rateMap[c] > 0;
 }
 
 // Konversi amount dari fromCurrency ke toCurrency via jembatan IDR.

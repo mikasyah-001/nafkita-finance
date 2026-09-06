@@ -181,17 +181,25 @@ export function useExchangeRates(baseCurrency) {
 // Sumber utama: kurs tengah Bank Indonesia. Dimuat saat aplikasi siap.
 // Mengembalikan { map, date, source } — date/source dari kurs terbaru tersedia.
 export function useRateMap() {
-  const { data: rates = [] } = useQuery({
+  const { data: idrRates = [] } = useQuery({
     queryKey: ["exchangeRates", "idrMap"],
     queryFn: async () => {
       const res = await base44.functions.invoke("listExchangeRates", { quote_currency: "IDR" });
       return res.data.rates || [];
     },
   });
+  const { data: usdRates = [] } = useQuery({
+    queryKey: ["exchangeRates", "usdBridge"],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listExchangeRates", { base_currency: "USD" });
+      return res.data.rates || [];
+    },
+  });
   return useMemo(() => {
     const map = { IDR: 1 };
     let latest = null;
-    (rates || []).forEach((r) => {
+    // Pass 1: kurs langsung X→IDR (prioritas utama).
+    (idrRates || []).forEach((r) => {
       const base = (r.base_currency || "").toUpperCase();
       const quote = (r.quote_currency || "").toUpperCase();
       const rate = Number(r.rate) || 0;
@@ -200,8 +208,20 @@ export function useRateMap() {
       else if (base === "IDR" && quote !== "IDR") map[quote] = 1 / rate;
       if (!latest || (r.date || "") > (latest.date || "")) latest = r;
     });
+    // Pass 2: turunkan X→IDR dari jembatan USD: rate(X→IDR) = rate(USD→IDR) / rate(USD→X).
+    const usdToIdr = map.USD;
+    if (usdToIdr) {
+      (usdRates || []).forEach((r) => {
+        const quote = (r.quote_currency || "").toUpperCase();
+        const rate = Number(r.rate) || 0;
+        if (!quote || quote === "IDR" || quote === "USD" || rate <= 0) return;
+        if (map[quote]) return; // jangan timpa kurs langsung
+        map[quote] = usdToIdr / rate;
+        if (!latest || (r.date || "") > (latest.date || "")) latest = r;
+      });
+    }
     return { map, date: latest?.date || null, source: latest?.source || null };
-  }, [rates]);
+  }, [idrRates, usdRates]);
 }
 
 export function useRefresh() {

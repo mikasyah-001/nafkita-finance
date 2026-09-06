@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers, Globe } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -73,6 +73,8 @@ export default function AssetDashboard() {
   const nonEmasValueIdr = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
 
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
+  const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
+  const missingRates = assetCurrencies.filter((c) => c !== displayCurrency && !hasRate(c, rateMap));
   const totalPurchase = scopedAssets.reduce((s, a) => s + convertTo((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
@@ -237,6 +239,13 @@ export default function AssetDashboard() {
           </div>
         </div>
       </div>
+
+      {missingRates.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum dimuat untuk: {missingRates.join(", ")}. Nilai mungkin tidak akurat.</p>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 pb-1">
         <button onClick={() => setActiveTab("all")} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${activeTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe } from "lucide-react";
+import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle } from "lucide-react";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -56,6 +56,8 @@ export default function Assets() {
     return a.value || 0;
   };
   const convertedValue = (a) => convertTo(currentValue(a), (a.currency || "IDR"), displayCurrency, rateMap);
+  const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
+  const missingRates = assetCurrencies.filter((c) => c !== displayCurrency && !hasRate(c, rateMap));
 
   // Peringkat berdasarkan nilai tertinggi di seluruh aset (scope aktif).
   const rankMap = useMemo(() => {
@@ -150,6 +152,13 @@ export default function Assets() {
         )}
         {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
       </div>
+
+      {missingRates.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum dimuat untuk: {missingRates.join(", ")}. Nilai mungkin tidak akurat.</p>
+        </div>
+      )}
 
       {scopedAssets.length > 0 && (
         <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 mb-4 active:scale-[0.99] transition-transform">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useTransactions, useAssets, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
 import { base44 } from "@/api/base44Client";
-import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies, convertTo } from "@/lib/finance";
+import { formatMoney, colorMap, formatDate, summarizeByCurrency, activeCurrencies, convertTo, hasRate } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
@@ -38,7 +38,6 @@ export default function Reports() {
   const [consolidated, setConsolidated] = useState(false);
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
   const { map: rateMap } = useRateMap();
-  const hasForeignRate = Object.keys(rateMap).filter((k) => k !== "IDR").length > 0;
 
   useEffect(() => {
     setGoldLoading(true);
@@ -100,6 +99,7 @@ export default function Reports() {
 
   const summary = summarizeByCurrency(periodTxAll);
   const activeCurs = activeCurrencies(summary);
+  const missingRates = activeCurs.filter((c) => c !== "IDR" && !hasRate(c, rateMap));
   // Saat ada lebih dari satu mata uang aktif, otomatis aktifkan konsolidasi
   // agar tab mata uang menampilkan nilai terkonversi (bukan filter per mata uang).
   useEffect(() => {
@@ -212,10 +212,10 @@ export default function Reports() {
 
   // Otomatis ambil kurs saat konsolidasi aktif tapi belum ada kurs tersimpan.
   useEffect(() => {
-    if (consolidated && !hasForeignRate && activeCurs.length > 1 && !fetchingRates) {
+    if (consolidated && missingRates.length > 0 && activeCurs.length > 1 && !fetchingRates) {
       handleFetchRates();
     }
-  }, [consolidated, hasForeignRate, activeCurs.length, currency]);
+  }, [consolidated, missingRates.length, activeCurs.length, currency]);
 
   const exportStats = consolidated && consolidatedSummary
     ? [
@@ -345,14 +345,14 @@ export default function Reports() {
         </button>
       )}
 
-      {consolidated && !hasForeignRate && (
+      {consolidated && missingRates.length > 0 && (
         <button
           onClick={handleFetchRates}
           disabled={fetchingRates}
           className="w-full rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2"
         >
           {fetchingRates ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {fetchingRates ? "Mengambil kurs..." : "Muat Kurs Terbaru"}
+          {fetchingRates ? "Mengambil kurs..." : `Muat Kurs (${missingRates.join(", ")})`}
         </button>
       )}
 

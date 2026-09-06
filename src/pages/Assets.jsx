@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels } from "@/lib/finance";
+import { formatRupiah, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, NISAB_GRAM } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -63,7 +63,7 @@ export default function Assets() {
   const emasAssets = scopedAssets.filter((a) => a.type === "emas");
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const nisabGrams = 85;
+  const nisabGrams = NISAB_GRAM;
   const wajibZakatEmas = emasGrams >= nisabGrams;
   const zakatEmasAmount = wajibZakatEmas ? emasValue * 0.025 : 0;
   const earliestEmasDate = emasAssets.reduce((d, a) => {
@@ -78,7 +78,7 @@ export default function Assets() {
 
   const handleDelete = async (id) => {
     try {
-      await base44.entities.Asset.delete(id);
+      await base44.functions.invoke("deleteAssetWithLots", { asset_id: id });
       refresh();
       toast.success("Aset dihapus");
     } catch {
@@ -233,7 +233,7 @@ export default function Assets() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && a.type === "emas" ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             const isGain = gain >= 0;

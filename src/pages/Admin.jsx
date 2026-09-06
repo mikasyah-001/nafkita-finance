@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
-  ArrowLeft, ShieldCheck, Users, Link2, Receipt, Lock,
+  ArrowLeft, ShieldCheck, Users, Link2, Receipt,
   Trash2, UserCircle, Search, Loader2, ChevronDown,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";

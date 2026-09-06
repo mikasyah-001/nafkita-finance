@@ -6,7 +6,7 @@ import {
   PiggyBank, Landmark, TrendingUp, Zap,
   Home as HomeIcon, Moon, Plus,
   Link2, Smartphone, Globe, LineChart, FileText,
-  MailCheck, RefreshCw, BellRing, CheckCheck, History, Repeat,
+  MailCheck, RefreshCw, BellRing, CheckCheck, History, Repeat, Activity, FileSpreadsheet, ScrollText, Copy,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
@@ -50,6 +50,11 @@ const features = [
   { icon: History, bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", title: "Riwayat Mutasi Aset", desc: "Setiap perubahan saldo aset tercatat permanen — audit trail yang transparan dan tidak bisa diubah." },
   { icon: Repeat, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Anggaran Rollover", desc: "Sisa atau overspend anggaran dibawa ke periode berikutnya. Pilih kebijakan: bawa negatif atau reset." },
   { icon: BellRing, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-600 dark:text-orange-400", title: "Aturan Notifikasi Kategori", desc: "Kontrol notifikasi per kategori dengan ambang nominal — silent, min/max, atau channel khusus." },
+  { icon: Globe, bg: "bg-cyan-50 dark:bg-cyan-950/30", text: "text-cyan-600 dark:text-cyan-400", title: "Kurs Historis & Konsolidasi", desc: "Lihat laporan multi-mata uang dalam satu mata uang dasar dengan kurs historis otomatis." },
+  { icon: ScrollText, bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", title: "Audit Log", desc: "Setiap aksi penting — koneksi pasangan, ekspor data, perubahan admin — tercatat permanen." },
+  { icon: FileSpreadsheet, bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", title: "Export Multi-Format", desc: "Unduh laporan sebagai PDF ringkas, PDF dengan bukti, CSV, atau Excel (XLSX)." },
+  { icon: Copy, bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", title: "Deteksi Duplikat", desc: "Pemeriksaan otomatis saat impor & scan bon — transaksi ganda ditandai sebelum disimpan." },
+  { icon: Activity, bg: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", title: "Kesehatan Data", desc: "Pindai transaksi tanpa kategori, saldo negatif, dan aset yang belum diperbarui." },
   { icon: FileText, bg: "bg-slate-100 dark:bg-slate-800/40", text: "text-slate-600 dark:text-slate-300", title: "Umpan Balik", desc: "Kirim saran atau lapor bug langsung dari aplikasi untuk bantu kami berkembang." },
 ];
 

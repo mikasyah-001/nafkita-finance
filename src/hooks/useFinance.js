@@ -166,6 +166,17 @@ export function useNotificationRules() {
   });
 }
 
+export function useExchangeRates(baseCurrency) {
+  return useQuery({
+    queryKey: ["exchangeRates", baseCurrency],
+    queryFn: async () => {
+      const res = await base44.functions.invoke("listExchangeRates", { base_currency: baseCurrency });
+      return res.data.rates || [];
+    },
+    enabled: !!baseCurrency,
+  });
+}
+
 export function useRefresh() {
   const qc = useQueryClient();
   return () => {
@@ -185,5 +196,6 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["pendingApprovals"] });
     qc.invalidateQueries({ queryKey: ["assetMutations"] });
     qc.invalidateQueries({ queryKey: ["notificationRules"] });
+    qc.invalidateQueries({ queryKey: ["exchangeRates"] });
   };
 }

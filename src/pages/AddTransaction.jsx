@@ -288,6 +288,7 @@ export default function AddTransaction() {
           onCancel={() => setMultiTx(null)}
           onSave={handleSaveAll}
           saving={savingMulti}
+          existingTransactions={transactions}
         />
       </div>
     );

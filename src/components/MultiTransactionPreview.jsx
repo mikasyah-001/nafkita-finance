@@ -1,8 +1,10 @@
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, Copy } from "lucide-react";
 import { formatMoney } from "@/lib/finance";
 import { useUserCurrencies } from "@/hooks/useFinance";
+import { findDuplicate } from "@/lib/duplicateDetect";
 
-export default function MultiTransactionPreview({ items, categories, onChange, onCancel, onSave, saving }) {
+export default function MultiTransactionPreview({ items, categories, onChange, onCancel, onSave, saving, existingTransactions = [] }) {
+  const dupCount = items.filter((t) => findDuplicate(t, existingTransactions)).length;
   const expenseCats = categories.filter((c) => c.type === "expense");
   const userCurrencies = useUserCurrencies();
 
@@ -28,6 +30,11 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                     <img src={t.photo_url} alt="bon" className="w-9 h-9 object-cover rounded-lg shrink-0" />
                   )}
                   <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
+                    {findDuplicate(t, existingTransactions) && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[9px] font-medium shrink-0">
+                        <Copy className="w-2.5 h-2.5" /> Duplikat
+                      </span>
+                    )}
                 </div>
                 <p className="text-sm font-bold ml-2">{formatMoney(t.amount, t.currency)}</p>
               </div>
@@ -76,13 +83,18 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
         </div>
       </div>
 
+      {dupCount > 0 && (
+        <p className="text-xs text-amber-600 text-center -mt-2 mb-2">
+          {dupCount} transaksi terdeteksi duplikat dan akan dilewati
+        </p>
+      )}
       <button
-        onClick={onSave}
-        disabled={saving}
+        onClick={() => onSave(items.filter((t) => !findDuplicate(t, existingTransactions)))}
+        disabled={saving || items.length - dupCount === 0}
         className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-        {saving ? "Menyimpan..." : `Simpan Semua (${items.length})`}
+        {saving ? "Menyimpan..." : `Simpan (${items.length - dupCount}/${items.length})`}
       </button>
     </div>
   );

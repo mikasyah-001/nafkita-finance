@@ -1,22 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap } from "@/lib/finance";
+import { formatDate, colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { ArrowLeft, AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
-import { useRefresh } from "@/hooks/useFinance";
+import { ArrowLeft, AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
 
 const STALE_DAYS = 90;
 
 export default function DataHealth() {
   const navigate = useNavigate();
-  const refresh = useRefresh();
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
   const { data: assets = [], isLoading: assetLoading } = useAssets();
   const { data: categories = [] } = useCategories();
-  const [fixing, setFixing] = useState(null);
 
   const issues = useMemo(() => {
     // 1. Transaksi tanpa kategori
@@ -41,10 +38,6 @@ export default function DataHealth() {
   const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length;
   const isHealthy = totalIssues === 0;
   const loading = txLoading || assetLoading;
-
-  const handleFixCategory = async (tx) => {
-    navigate(`/transaksi/${tx.id}`);
-  };
 
   return (
     <div className="px-5 pt-8 pb-10 max-w-2xl mx-auto">
@@ -113,7 +106,7 @@ export default function DataHealth() {
                     <Money value={tx.amount} currency={tx.currency} />
                   </div>
                   <button
-                    onClick={() => handleFixCategory(tx)}
+                    onClick={() => navigate(`/transaksi/${tx.id}`)}
                     className="text-xs text-primary font-medium px-2 py-1 rounded-lg bg-primary/10 shrink-0"
                   >
                     Perbaiki
@@ -152,7 +145,7 @@ export default function DataHealth() {
           {issues.staleAssets.length > 0 && (
             <IssueSection
               icon={Clock}
-              title={`Aet Tidak Diperbarui (${STALE_DAYS}+ hari)`}
+              title={`Aset Tidak Diperbarui (${STALE_DAYS}+ hari)`}
               subtitle={`${issues.staleAssets.length} aset belum diperbarui dalam ${STALE_DAYS} hari`}
               color="amber"
             >

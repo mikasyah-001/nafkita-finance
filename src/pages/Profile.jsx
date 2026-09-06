@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy, Heart } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
+import UserAuditLog from "@/components/UserAuditLog";
 import { deriveRefCode } from "@/lib/refCode";
 
 export default function Profile() {
@@ -159,6 +160,8 @@ export default function Profile() {
         </div>
         <PartnerManager />
       </div>
+
+      <UserAuditLog userId={user?.id} />
     </div>
   );
 }

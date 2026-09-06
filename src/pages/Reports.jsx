@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { useTransactions, useAssets, useCategories, useMe } from "@/hooks/useFinance";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useTransactions, useAssets, useCategories, useMe, useRefresh } from "@/hooks/useFinance";
+import { base44 } from "@/api/base44Client";
 import { formatRupiah, formatMoney, formatNumber, colorMap, formatDate, summarizeByCurrency, activeCurrencies, computeZakat, NISAB_GRAM } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
@@ -8,9 +9,13 @@ import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, AlertCircle, CheckCircle2, Users, Lock, Loader2, Globe, RefreshCw } from "lucide-react";
 import ExpenseTrendAnalysis from "@/components/ExpenseTrendAnalysis";
 import { downloadReportPdf } from "@/lib/exportReportPdf";
+import { downloadReportXlsx } from "@/lib/exportReportXlsx";
+import { downloadMonthlyReport } from "@/lib/exportReport";
+import ExportMenu from "@/components/ExportMenu";
+import { useExchangeRates } from "@/hooks/useFinance";
 import { toast } from "sonner";
 
 const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
@@ -28,7 +33,9 @@ export default function Reports() {
   const { scope, setScope } = useScope();
   const [goldLoading, setGoldLoading] = useState(false);
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  const [consolidated, setConsolidated] = useState(false);
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
+  const { data: exchangeRates = [] } = useExchangeRates(consolidated ? currency : null);
 
   useEffect(() => {
     setGoldLoading(true);
@@ -130,28 +137,127 @@ export default function Reports() {
 
   const categoryRows = byCategory.map((c) => ({ name: c.name, value: c.value, prev: byCategoryPrev[c.name] || 0 }));
 
+  // Konsolidasi multi-mata uang: konversi semua transaksi ke cur menggunakan kurs historis.
+  const convertAmount = useCallback((amount, fromCur) => {
+    if (fromCur === cur) return amount;
+    const rate = exchangeRates.find((r) => r.base_currency === cur && r.quote_currency === fromCur);
+    if (rate) return amount / rate.rate;
+    const inverse = exchangeRates.find((r) => r.base_currency === fromCur && r.quote_currency === cur);
+    if (inverse) return amount * inverse.rate;
+    return 0;
+  }, [exchangeRates, cur]);
+
+  const consolidatedSummary = useMemo(() => {
+    if (!consolidated) return null;
+    let income = 0, expense = 0, sedekah = 0, count = 0;
+    periodTxAll.forEach((t) => {
+      if (t.transfer_pair_id) return;
+      if (t.approval_status && t.approval_status !== "approved") return;
+      const amt = convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase());
+      if (t.type === "income") income += amt;
+      else if (t.type === "expense") expense += amt;
+      else if (t.type === "sedekah") sedekah += amt;
+      count += 1;
+    });
+    return { income, expense, sedekah, balance: income - expense - sedekah, count };
+  }, [consolidated, periodTxAll, convertAmount]);
+
+  const consolidatedByCategory = useMemo(() => {
+    if (!consolidated) return [];
+    const map = {};
+    periodTxAll.filter((t) => t.type === "expense").forEach((t) => {
+      const amt = convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase());
+      map[t.category] = (map[t.category] || 0) + amt;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [consolidated, periodTxAll, convertAmount]);
+
   const [exporting, setExporting] = useState(false);
-  const handleExportPdf = async () => {
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const refresh = useRefresh();
+
+  const handleFetchRates = async () => {
+    setFetchingRates(true);
+    try {
+      const targetCurs = activeCurs.filter((c) => c !== currency);
+      await base44.functions.invoke("fetchExchangeRates", { base_currency: currency, target_currencies: targetCurs });
+      toast.success("Kurs berhasil dimuat");
+      refresh();
+    } catch {
+      toast.error("Gagal mengambil kurs");
+    } finally {
+      setFetchingRates(false);
+    }
+  };
+
+  const exportStats = consolidated && consolidatedSummary
+    ? [
+        { label: "Pemasukan", value: formatMoney(consolidatedSummary.income, cur) },
+        { label: "Pengeluaran", value: formatMoney(consolidatedSummary.expense, cur) },
+        { label: "Sedekah", value: formatMoney(consolidatedSummary.sedekah, cur) },
+        { label: "Saldo", value: formatMoney(consolidatedSummary.balance, cur) },
+      ]
+    : [
+        { label: "Pemasukan", value: formatMoney(s.income, cur) },
+        { label: "Pengeluaran", value: formatMoney(s.expense, cur) },
+        { label: "Sedekah", value: formatMoney(s.sedekah, cur) },
+        { label: "Saldo", value: formatMoney(s.balance, cur) },
+      ];
+  const exportCategoryRows = consolidated ? consolidatedByCategory.map((c) => ({ ...c, prev: 0 })) : categoryRows;
+  const exportTransactions = consolidated ? periodTxAll : monthTx;
+
+  const handleExportPdf = async (withProof = true) => {
     setExporting(true);
     try {
       await downloadReportPdf({
         monthName: periodLabel,
         scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
         currency: cur,
-        stats: [
-          { label: "Pemasukan", value: formatMoney(s.income, cur) },
-          { label: "Pengeluaran", value: formatMoney(s.expense, cur) },
-          { label: "Sedekah", value: formatMoney(s.sedekah, cur) },
-          { label: "Saldo", value: formatMoney(s.balance, cur) },
-        ],
-        categoryRows,
-        transactions: monthTx,
+        stats: exportStats,
+        categoryRows: exportCategoryRows,
+        transactions: exportTransactions,
+        withProof,
       });
-      toast.success("Laporan PDF diunduh");
+      toast.success(`Laporan PDF diunduh${withProof ? " (dengan bukti)" : " (ringkas)"}`);
     } catch {
       toast.error("Gagal membuat PDF");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    try {
+      downloadMonthlyReport({
+        monthName: periodLabel,
+        scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
+        currency: cur,
+        rows: exportCategoryRows,
+        total: consolidated ? consolidatedSummary?.expense || 0 : s.expense,
+        prevTotal: 0,
+        avgPerDay: 0,
+        count: consolidated ? consolidatedSummary?.count || 0 : monthTx.length,
+        transactions: exportTransactions,
+      });
+      toast.success("Laporan CSV diunduh");
+    } catch {
+      toast.error("Gagal membuat CSV");
+    }
+  };
+
+  const handleExportXlsx = () => {
+    try {
+      downloadReportXlsx({
+        monthName: periodLabel,
+        scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
+        currency: cur,
+        stats: exportStats,
+        categoryRows: exportCategoryRows,
+        transactions: exportTransactions,
+      });
+      toast.success("Laporan Excel diunduh");
+    } catch {
+      toast.error("Gagal membuat Excel");
     }
   };
 
@@ -209,33 +315,54 @@ export default function Reports() {
         </button>
       </div>
 
-      {activeCurs.length > 0 && (
+      {activeCurs.length > 0 && !consolidated && (
         <div><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
       )}
 
-      <button
-        onClick={handleExportPdf}
-        disabled={exporting || monthTx.length === 0}
-        className="w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
-      >
-        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Unduh Laporan + Bukti (PDF)
-      </button>
+      {activeCurs.length > 1 && (
+        <button
+          onClick={() => setConsolidated(!consolidated)}
+          className={`w-full rounded-2xl border py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${consolidated ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"}`}
+        >
+          <Globe className="w-4 h-4" /> Konsolidasi ke {cur} {consolidated ? "✓" : ""}
+        </button>
+      )}
+
+      {consolidated && exchangeRates.length === 0 && (
+        <button
+          onClick={handleFetchRates}
+          disabled={fetchingRates}
+          className="w-full rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2"
+        >
+          {fetchingRates ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {fetchingRates ? "Mengambil kurs..." : "Muat Kurs Terbaru"}
+        </button>
+      )}
+
+      <ExportMenu
+        onPdfNoProof={() => handleExportPdf(false)}
+        onPdfWithProof={() => handleExportPdf(true)}
+        onCsv={handleExportCsv}
+        onXlsx={handleExportXlsx}
+        disabled={consolidated ? !consolidatedSummary || consolidatedSummary.count === 0 : monthTx.length === 0}
+        busy={exporting}
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard icon={TrendingUp} color="green" label="Pemasukan" value={formatMoney(s.income, cur)} />
-        <StatCard icon={TrendingDown} color="red" label="Pengeluaran" value={formatMoney(s.expense, cur)} />
-        <StatCard icon={Heart} color="teal" label="Sedekah" value={formatMoney(s.sedekah, cur)} />
-        <StatCard icon={Sparkles} color="violet" label="Saldo" value={formatMoney(s.balance, cur)} />
+        <StatCard icon={TrendingUp} color="green" label="Pemasukan" value={formatMoney((consolidated ? consolidatedSummary?.income : s.income) || 0, cur)} />
+        <StatCard icon={TrendingDown} color="red" label="Pengeluaran" value={formatMoney((consolidated ? consolidatedSummary?.expense : s.expense) || 0, cur)} />
+        <StatCard icon={Heart} color="teal" label="Sedekah" value={formatMoney((consolidated ? consolidatedSummary?.sedekah : s.sedekah) || 0, cur)} />
+        <StatCard icon={Sparkles} color="violet" label="Saldo" value={formatMoney((consolidated ? consolidatedSummary?.balance : s.balance) || 0, cur)} />
       </div>
 
-      {byCategory.length > 0 && (
+      {(consolidated ? consolidatedByCategory : byCategory).length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="font-semibold text-sm mb-3">Pengeluaran per Kategori ({cur})</h2>
+          <h2 className="font-semibold text-sm mb-3">Pengeluaran per Kategori ({cur}){consolidated ? " • Konsolidasi" : ""}</h2>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={byCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2}>
-                  {byCategory.map((_, i) => (
+                <Pie data={consolidated ? consolidatedByCategory : byCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                  {(consolidated ? consolidatedByCategory : byCategory).map((_, i) => (
                     <Cell key={i} fill={chartColors[i % chartColors.length]} />
                   ))}
                 </Pie>
@@ -244,7 +371,7 @@ export default function Reports() {
             </ResponsiveContainer>
           </div>
           <div className="space-y-2 mt-3">
-            {byCategory.map((c, i) => (
+            {(consolidated ? consolidatedByCategory : byCategory).map((c, i) => (
               <div key={c.name} className="flex items-center gap-2 text-sm">
                 <span className="w-3 h-3 rounded-full" style={{ background: chartColors[i % chartColors.length] }} />
                 <span className="flex-1 text-muted-foreground">{c.name}</span>

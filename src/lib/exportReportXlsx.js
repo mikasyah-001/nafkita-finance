@@ -1,5 +1,4 @@
 import * as XLSX from "xlsx";
-import { formatMoney } from "@/lib/finance";
 
 const TYPE_LABEL = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 

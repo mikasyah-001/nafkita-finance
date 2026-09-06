@@ -61,8 +61,8 @@ export default async function (req) {
       end_reason: reason,
     });
 
-    // Catat ke audit log bila aksi dilakukan admin.
-    if (isAdmin) {
+    // Catat ke audit log untuk semua user (admin maupun pasangan).
+    {
       const targetLabel = p.invitee_email || p.invitee_id || partnership_id;
       await logAdminAction(base44, {
         actor_id: me.id,

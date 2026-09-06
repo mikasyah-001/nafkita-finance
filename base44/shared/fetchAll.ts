@@ -5,7 +5,7 @@ export async function fetchAllByDate(entityColl, filter, sort = "-date", pageSiz
   let lastDate = null;
   for (let i = 0; i < 30; i++) {
     const q = { ...(filter || {}) };
-    if (lastDate) q.date = { $lt: lastDate };
+    if (lastDate) q.date = { ...(q.date || {}), $lt: lastDate };
     const batch = await entityColl.filter(q, sort, pageSize);
     if (!batch || batch.length === 0) break;
     out.push(...batch);

@@ -26,6 +26,7 @@ export default function Reports() {
   const { scope, setScope } = useScope();
   const [goldLoading, setGoldLoading] = useState(false);
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   useEffect(() => {
     setGoldLoading(true);

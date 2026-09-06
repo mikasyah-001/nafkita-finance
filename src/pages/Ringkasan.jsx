@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
 import { formatMoney, formatMoneyShort, formatDate, colorMap, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -18,27 +18,35 @@ export default function Ringkasan() {
   const [expanded, setExpanded] = useState(null);
   const { scope, setScope } = useScope();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
+  useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
-  const { rows, total, prevTotal, count, txList, activeCurs } = useMemo(() => {
-    const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private") && (t.currency || "IDR") === currency);
+  const { rows, total, prevTotal, count, txList, activeCurs, cur } = useMemo(() => {
+    // Saring cakupan dulu (tanpa mata uang), lalu tentukan mata uang aktif bulan ini,
+    // baru saring berdasarkan mata uang yang dipilih/aktif. Mencegah ketidaksesuaian
+    // antara label mata uang dan angka yang sudah dihitung (bug state IDR vs data SAR).
+    const scopedAll = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
     const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
+    const monthAll = scopedAll.filter((t) => inMonth(t, year, month));
+    const activeCurs = activeCurrencies(summarizeByCurrency(monthAll));
+    const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
+    const scoped = scopedAll.filter((t) => (t.currency || "IDR") === cur);
     const py = month === 0 ? year - 1 : year;
     const pm = month === 0 ? 11 : month - 1;
-    const cur = scoped.filter((t) => t.type === "expense" && inMonth(t, year, month));
+    const curExp = scoped.filter((t) => t.type === "expense" && inMonth(t, year, month));
     const prev = scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm));
     const map = {};
-    cur.forEach((t) => {
+    curExp.forEach((t) => {
       if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
       map[t.category].value += t.amount;
       map[t.category].count += 1;
     });
     const prevMap = {};
     prev.forEach((t) => { prevMap[t.category] = (prevMap[t.category] || 0) + t.amount; });
-    const total = cur.reduce((s, t) => s + t.amount, 0);
+    const total = curExp.reduce((s, t) => s + t.amount, 0);
     const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
     const rows = Object.entries(map)
       .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
@@ -46,16 +54,8 @@ export default function Ringkasan() {
     const txList = scoped
       .filter((t) => inMonth(t, year, month))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    const monthAll = transactions.filter((t) => {
-      if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
-      const d = new Date(t.date);
-      return d.getMonth() === month && d.getFullYear() === year;
-    });
-    const activeCurs = activeCurrencies(summarizeByCurrency(monthAll));
-    return { rows, total, prevTotal, count: cur.length, txList, activeCurs };
+    return { rows, total, prevTotal, count: curExp.length, txList, activeCurs, cur };
   }, [transactions, scope, year, month, currency]);
-
-  const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
 
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;

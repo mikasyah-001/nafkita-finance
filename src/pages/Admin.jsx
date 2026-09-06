@@ -11,6 +11,8 @@ import Money from "@/components/Money";
 import { formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 
+const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
+
 export default function Admin() {
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
@@ -91,6 +93,16 @@ export default function Admin() {
     (partnerships || []).filter((p) => p.status === "active").forEach((p) => {
       if (p.inviter_id) map[p.inviter_id] = p.invitee_id || p.invitee_email;
       if (p.invitee_id) map[p.invitee_id] = p.inviter_id;
+    });
+    return map;
+  }, [partnerships]);
+
+  // Peran suami/istri tiap user dari hubungan aktif (inviter→inviter_role, invitee→invitee_role).
+  const roleOf = useMemo(() => {
+    const map = {};
+    (partnerships || []).filter((p) => p.status === "active").forEach((p) => {
+      if (p.inviter_id && p.inviter_role) map[p.inviter_id] = p.inviter_role;
+      if (p.invitee_id && p.invitee_role) map[p.invitee_id] = p.invitee_role;
     });
     return map;
   }, [partnerships]);
@@ -188,7 +200,7 @@ export default function Admin() {
                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     {partner ? (
-                      <><Link2 className="w-3 h-3" /> Terhubung: {partner.full_name || partner.email}</>
+                      <><Link2 className="w-3 h-3" /> Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</>
                     ) : (
                       <span className="text-amber-600">Belum terhubung</span>
                     )}
@@ -218,7 +230,7 @@ export default function Admin() {
                 <div key={p.id} className="rounded-2xl border border-border bg-card p-3 mb-2 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {a?.full_name || a?.email || "—"} <span className="text-muted-foreground">⇄</span> {b?.full_name || b?.email || p.invitee_email}
+                      {a?.full_name || a?.email || "—"}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""} <span className="text-muted-foreground">⇄</span> {b?.full_name || b?.email || p.invitee_email}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
                     </p>
                     <p className="text-[11px] mt-0.5">
                       {p.status === "active" && <span className="text-emerald-600 font-medium">Aktif</span>}

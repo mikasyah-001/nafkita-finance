@@ -11,11 +11,11 @@ export function usePartnership() {
   const meQ = useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
   const partnershipsQ = useQuery({
     queryKey: ["partnerships"],
-    queryFn: () => base44.entities.Partnership.list(),
+    queryFn: () => base44.entities.Partnership.list("-created_date", 500),
   });
   const usersQ = useQuery({
     queryKey: ["users"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list("-created_date", 500),
   });
 
   const me = meQ.data || null;

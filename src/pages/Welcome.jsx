@@ -5,7 +5,7 @@ import {
   EyeOff, Cloud, Heart, ShieldCheck, Sparkles, Check,
   PiggyBank, Landmark, TrendingUp, Zap,
   Home as HomeIcon, Moon, Plus,
-  MessageSquare, Link2, Smartphone, Globe, LineChart, FileText,
+  Link2, Smartphone, Globe, LineChart, FileText,
   MailCheck, RefreshCw, BellRing,
 } from "lucide-react";
 
@@ -29,7 +29,7 @@ const flagshipSteps = [
 
 const features = [
   { icon: ScanLine, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Scan Bon AI", desc: "Foto bon otomatis dibaca AI. Bisa 5 foto sekaligus — kategori, nominal & merchant terisi sendiri." },
-  { icon: MessageSquare, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Asisten Struk AI", desc: "Ngobrol dengan asisten AI untuk catat transaksi, tanya pengeluaran, dan ringkas keuangan." },
+  { icon: Check, bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", title: "Tinjau Sebelum Simpan", desc: "Periksa hasil scan, pilih aset dan jangkauan, lalu sistem melewati transaksi yang terdeteksi duplikat." },
   { icon: Wallet, bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", title: "Catat Transaksi", desc: "Pengeluaran, pemasukan, dan sedekah dengan kategori & tag yang rapi." },
   { icon: Users, bg: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400", title: "Kas Bersama & Pribadi", desc: "Catat keuangan keluarga bersama, sekaligus jaga privasi transaksi pribadi." },
   { icon: Link2, bg: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400", title: "Koneksi Pasangan", desc: "Hubungkan suami-istri lewat kode referensi unik. Transaksi bersama tersinkron otomatis." },

@@ -1,7 +1,11 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 
-// Mengakhiri Partnership (batalkan undangan, tolak permintaan, atau putuskan
-// koneksi aktif). Memverifikasi pemanggil adalah pihak yang terlibat.
+// Mengakhiri Partnership (soft-delete): batalkan undangan, tolak permintaan,
+// atau putuskan koneksi aktif. Record dipertahankan dengan status terminal
+// + riwayat (ended_at, ended_by, end_reason) untuk audit & pemulihan.
+// Admin dapat mengakhiri hubungan apa pun (lewati cek 'involved').
+// RLS Partnership update/delete dikunci admin-only, jadi semua mutasi
+// lewat service role di sini.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,14 +21,43 @@ export default async function (req) {
     const p = await base44.asServiceRole.entities.Partnership.get(partnership_id);
     if (!p) return Response.json({ error: "not_found" }, { status: 404 });
 
-    const involved =
-      p.inviter_id === me.id ||
-      p.invitee_id === me.id ||
-      (p.invitee_email || "").toLowerCase() === (me.email || "").toLowerCase();
-    if (!involved) return Response.json({ error: "forbidden" }, { status: 403 });
+    const isAdmin = me.role === "admin";
+    const reason = body.end_reason ? String(body.end_reason).trim().slice(0, 200) : "";
 
-    await base44.asServiceRole.entities.Partnership.delete(partnership_id);
-    return Response.json({ ok: true });
+    // Admin boleh mengakhiri hubungan apa pun; user biasa harus pihak terlibat.
+    if (!isAdmin) {
+      const involved =
+        p.inviter_id === me.id ||
+        p.invitee_id === me.id ||
+        (p.invitee_email || "").toLowerCase() === (me.email || "").toLowerCase();
+      if (!involved) return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    // Tentukan status terminal sesuai konteks.
+    let terminalStatus;
+    if (p.status === "pending") {
+      if (isAdmin || p.inviter_id === me.id) {
+        // Inviter membatalkan undangannya sendiri, atau admin membatalkan.
+        terminalStatus = "cancelled";
+      } else {
+        // Invitee menolak permintaan masuk.
+        terminalStatus = "declined";
+      }
+    } else if (p.status === "active") {
+      terminalStatus = "ended";
+    } else {
+      // Sudah terminal — tidak ada perubahan.
+      return Response.json({ ok: true, status: p.status, unchanged: true });
+    }
+
+    await base44.asServiceRole.entities.Partnership.update(partnership_id, {
+      status: terminalStatus,
+      ended_at: new Date().toISOString(),
+      ended_by: me.id,
+      end_reason: reason,
+    });
+
+    return Response.json({ ok: true, status: terminalStatus });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

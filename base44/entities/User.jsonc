@@ -29,6 +29,17 @@
       "default": false,
       "description": "Apakah onboarding awal sudah selesai"
     },
+    "timezone": {
+      "type": "string",
+      "description": "Zona waktu IANA pengguna (mis. Asia/Riyadh), terdeteksi otomatis dari browser"
+    },
+    "reminder_hour": {
+      "type": "number",
+      "default": 20,
+      "minimum": 0,
+      "maximum": 23,
+      "description": "Jam lokal (0-23) untuk mengirim email pengingat harian"
+    },
     "projection_assumptions": {
       "type": "object",
       "description": "Asumi proyeksi keuangan pengguna",

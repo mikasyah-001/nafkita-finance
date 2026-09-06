@@ -6,9 +6,9 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 20 * * *",
+      "cron_expression": "0 * * * *",
       "one_time_date": null,
-      "timezone": "Asia/Jakarta",
+      "timezone": "UTC",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,
@@ -17,7 +17,7 @@
       "ends_after_count": null
     }
   },
-  "description": "Mengirim email pengingat harian pukul 20:00 kepada anggota keluarga yang belum mencatat transaksi hari ini",
+  "description": "Berjalan setiap jam; fungsi dailyReminder hanya mengirim email ke user yang jam lokalnya sama dengan jam pengingat pilihan mereka",
   "definition": {
     "document": {
       "dsl": "1.0.0",
@@ -38,7 +38,7 @@
           "then": "end",
           "x-base44": {
             "title": "Kirim pengingat harian",
-            "description": "Email ke yang belum mencatat"
+            "description": "Email ke yang belum mencatat, pada jam lokal pilihan user"
           }
         }
       }

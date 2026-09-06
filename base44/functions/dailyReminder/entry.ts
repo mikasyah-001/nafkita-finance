@@ -58,6 +58,13 @@ const buildEmail = (name, dateLabel, appUrl) => {
 </html>`;
 };
 
+// Jam lokal saat ini (0-23) dalam timezone tertentu.
+const localHourInTz = (tz) => {
+  const hourStr = new Date().toLocaleString("en-US", { timeZone: tz, hour: "2-digit", hour12: false });
+  const h = Number(hourStr);
+  return h === 24 ? 0 : h;
+};
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -68,21 +75,26 @@ export default async function (req) {
 
     const users = await base44.asServiceRole.entities.User.list();
 
-    // Tentukan "hari ini" per timezone pengguna (default Asia/Riyadh).
-    // Kelompokkan user berdasarkan timezone agar batas "hari ini" tepat.
-    const byTz = {};
-    for (const u of users) {
-      if (!u.email) continue;
-      const tz = userTz(u);
-      if (!byTz[tz]) byTz[tz] = [];
-      byTz[tz].push(u);
-    }
-
     let sent = 0;
     let totalReminded = 0;
 
-    for (const tz of Object.keys(byTz)) {
-      const tzUsers = byTz[tz];
+    // Kumpulkan timezone unik dari user yang jam lokalnya cocok dengan reminder_hour-nya,
+    // lalu ambil transaksi hari ini per timezone untuk efisiensi.
+    const now = new Date();
+    const dueByTz = {}; // tz -> [users whose local hour == their reminder_hour]
+
+    for (const u of users) {
+      if (!u.email) continue;
+      const tz = userTz(u);
+      const reminderHour = typeof u.reminder_hour === "number" ? u.reminder_hour : 20;
+      const localHour = localHourInTz(tz);
+      if (localHour !== reminderHour) continue;
+      if (!dueByTz[tz]) dueByTz[tz] = [];
+      dueByTz[tz].push(u);
+    }
+
+    for (const tz of Object.keys(dueByTz)) {
+      const tzUsers = dueByTz[tz];
       const start = startOfTodayInTz(tz);
       const transactions = await base44.asServiceRole.entities.Transaction.filter({
         date: { $gte: start.toISOString() }
@@ -92,7 +104,7 @@ export default async function (req) {
       totalReminded += toRemind.length;
 
       // Label tanggal dalam timezone pengguna.
-      const nowInTz = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+      const nowInTz = new Date(now.toLocaleString("en-US", { timeZone: tz }));
       const dateLabel = formatTodayID(nowInTz);
 
       for (const u of toRemind) {

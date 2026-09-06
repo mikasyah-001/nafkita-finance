@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useTemplates, useCategories, useRefresh, useMe } from "@/hooks/useFinance";
-import { colorMap, formatMoney, currencies, currencySymbol } from "@/lib/finance";
+import { useTemplates, useCategories, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { colorMap, formatMoney, currencySymbol } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Users, Lock } from "lucide-react";
@@ -16,6 +16,7 @@ export default function TemplateManager() {
   const { data: templates = [] } = useTemplates();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
+  const userCurrencies = useUserCurrencies();
   const refresh = useRefresh();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,7 +82,7 @@ export default function TemplateManager() {
             ))}
           </div>
           <div className="flex gap-1">
-            {currencies.map((c) => (
+            {userCurrencies.map((c) => (
               <button key={c.code} onClick={() => setTpl({ ...tpl, currency: c.code })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.currency === c.code ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.code}</button>
             ))}
           </div>

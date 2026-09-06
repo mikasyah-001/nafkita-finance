@@ -25,6 +25,22 @@
       ],
       "default": "pending"
     },
+    "inviter_role": {
+      "type": "string",
+      "enum": [
+        "suami",
+        "istri"
+      ],
+      "description": "Peran pengundang (dipilih saat membuat undangan)"
+    },
+    "invitee_role": {
+      "type": "string",
+      "enum": [
+        "suami",
+        "istri"
+      ],
+      "description": "Peran penerima (otomatis pelengkap dari inviter_role)"
+    },
     "ended_at": {
       "type": "string",
       "format": "date-time",

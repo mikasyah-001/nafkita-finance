@@ -11,6 +11,9 @@ const deriveRefCode = (userId) => {
   return "NK" + num.toString(36).toUpperCase().padStart(7, "0").slice(0, 7);
 };
 
+// Inviter memilih perannya sendiri; invitee otomatis mendapat peran pelengkap.
+const complement = (r) => (r === "suami" ? "istri" : "suami");
+
 // Menghubungkan dua akun yang sudah terdaftar lewat kode referensi.
 // Membuat Partnership berstatus "pending"; pasangan menyetujui dari halaman Profil.
 // RLS Partnership create = null, jadi pembuatan lewat service role (backend).
@@ -26,6 +29,11 @@ export default async function (req) {
     if (!code) return Response.json({ error: "Kode referensi wajib diisi" }, { status: 400 });
     if (code === deriveRefCode(me.id))
       return Response.json({ error: "Itu kode Anda sendiri" }, { status: 400 });
+
+    const inviter_role = String(body.inviter_role || "");
+    if (!["suami", "istri"].includes(inviter_role))
+      return Response.json({ error: "invalid_role" }, { status: 400 });
+    const invitee_role = complement(inviter_role);
 
     const users = await base44.asServiceRole.entities.User.list("-created_date", 500);
     const target = (users || []).find((u) => u.id && deriveRefCode(u.id) === code);
@@ -44,6 +52,8 @@ export default async function (req) {
       invitee_email: target.email,
       invitee_id: target.id,
       status: "pending",
+      inviter_role,
+      invitee_role,
     });
 
     return Response.json({

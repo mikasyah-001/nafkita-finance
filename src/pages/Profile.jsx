@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy, Heart } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
-import FamilyMembers from "@/components/FamilyMembers";
+import PartnerManager from "@/components/PartnerManager";
 import { deriveRefCode } from "@/lib/refCode";
 
 export default function Profile() {
@@ -152,7 +152,13 @@ export default function Profile() {
         <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
       </button>
 
-      <FamilyMembers />
+      <div className="mt-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Heart className="w-4 h-4 text-rose-500" />
+          <h2 className="font-semibold text-sm">Keluarga Terkoneksi</h2>
+        </div>
+        <PartnerManager />
+      </div>
     </div>
   );
 }

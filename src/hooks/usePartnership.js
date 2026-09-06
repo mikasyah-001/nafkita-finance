@@ -41,6 +41,18 @@ export function usePartnership() {
   const partners = users.filter((u) => partnerIds.includes(u.id));
   const hasPartner = partners.length > 0;
 
+  // Peran suami/istri dari hubungan aktif (inviter memilih perannya sendiri,
+  // invitee mendapat peran pelengkap). Bebas berubah per hubungan baru.
+  const activePartnership = partnerships.find(
+    (p) => p.status === "active" && (p.inviter_id === me?.id || p.invitee_id === me?.id)
+  );
+  const myRole = activePartnership
+    ? (activePartnership.inviter_id === me?.id ? activePartnership.inviter_role : activePartnership.invitee_role)
+    : null;
+  const partnerRole = activePartnership
+    ? (activePartnership.inviter_id === me?.id ? activePartnership.invitee_role : activePartnership.inviter_role)
+    : null;
+
   // Undangan terkirim oleh saya yang masih menunggu
   const sentInvites = partnerships.filter(
     (p) => p.created_by_id === me?.id && p.status === "pending"
@@ -51,14 +63,14 @@ export function usePartnership() {
     (p) => p.invitee_email === me?.email && p.status === "pending" && p.inviter_id !== me?.id
   );
 
-  const invite = async (email) => {
+  const invite = async (email, role) => {
     if (!email) return toast.error("Masukkan email pasangan");
     if (email === me?.email) return toast.error("Tidak dapat mengundang diri sendiri");
     if (hasPartner) return toast.error("Anda sudah terhubung dengan pasangan");
     if (sentInvites.length > 0 || incomingRequests.length > 0)
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
-      const res = await base44.functions.invoke("createPartnershipInvite", { email });
+      const res = await base44.functions.invoke("createPartnershipInvite", { email, inviter_role: role });
       if (res?.data?.error) throw new Error(res.data.error);
       refresh();
       toast.success("Undangan terkirim", { description: `Ke ${email}. Pasangan akan menerima email undangan.` });
@@ -70,13 +82,13 @@ export function usePartnership() {
     }
   };
 
-  const connectByCode = async (code) => {
+  const connectByCode = async (code, role) => {
     if (!code) return toast.error("Masukkan kode referensi");
     if (hasPartner) return toast.error("Anda sudah terhubung dengan pasangan");
     if (sentInvites.length > 0 || incomingRequests.length > 0)
       return toast.error("Selesaikan undangan/permintaan yang ada dahulu");
     try {
-      const res = await base44.functions.invoke("connectByRefCode", { code });
+      const res = await base44.functions.invoke("connectByRefCode", { code, inviter_role: role });
       const r = res?.data || res;
       refresh();
       toast.success("Permintaan koneksi terkirim", {
@@ -150,6 +162,8 @@ export function usePartnership() {
     partnerships,
     partners,
     hasPartner,
+    myRole,
+    partnerRole,
     sentInvites,
     incomingRequests,
     invite,

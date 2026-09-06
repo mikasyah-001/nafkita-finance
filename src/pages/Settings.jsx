@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import InvitationManager from "@/components/InvitationManager";
+import PartnerManager from "@/components/PartnerManager";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Tag, LogOut, User, Upload, Sparkles, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
@@ -48,7 +48,7 @@ export default function Settings() {
       </Section>
 
       <Section title="Undang Pasangan">
-        <InvitationManager />
+        <PartnerManager />
       </Section>
 
       <Section title="Preferensi Notifikasi">

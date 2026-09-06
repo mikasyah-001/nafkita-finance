@@ -3,9 +3,11 @@ import { hasActivePartnership, hasPendingPartnership } from "../../shared/partne
 
 // Membuat undangan Partnership (status pending) atas nama pemanggil.
 // inviter_id selalu = me.id (divalidasi, tidak bisa dipalsukan).
-// Mencegah pasangan ganda: tolak bila user sudah punya koneksi aktif
-// atau undangan/permintaan pending yang masih terbuka.
+// Inviter memilih perannya sendiri (suami/istri); invitee otomatis mendapat
+// peran pelengkap. Mencegah pasangan ganda & undangan pending ganda.
 // RLS Partnership create = null, jadi hanya backend (service role) yang bisa membuat.
+const complement = (r) => (r === "suami" ? "istri" : "suami");
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -19,6 +21,11 @@ export default async function (req) {
     if (email === (me.email || "").toLowerCase())
       return Response.json({ error: "self_invite" }, { status: 400 });
 
+    const inviter_role = String(body.inviter_role || "");
+    if (!["suami", "istri"].includes(inviter_role))
+      return Response.json({ error: "invalid_role" }, { status: 400 });
+    const invitee_role = complement(inviter_role);
+
     if (await hasActivePartnership(base44, me.id))
       return Response.json({ error: "already_connected" }, { status: 409 });
     if (await hasPendingPartnership(base44, me.id, me.email))
@@ -31,6 +38,8 @@ export default async function (req) {
       inviter_id: me.id,
       invitee_email: email,
       status: "pending",
+      inviter_role,
+      invitee_role,
     });
 
     return Response.json({ ok: true, email });

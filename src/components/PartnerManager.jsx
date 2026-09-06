@@ -1,18 +1,27 @@
 import { useState } from "react";
 import { usePartnership } from "@/hooks/usePartnership";
-import { toast } from "sonner";
+import { Image as SmartImage } from "@/components/ui/image";
 import {
-  UserPlus, Loader2, Clock, RefreshCw, Settings, ArrowLeft, X, Heart, User as UserIcon, Link2,
+  UserPlus, Loader2, Clock, RefreshCw, Settings, ArrowLeft, X, Heart,
+  User as UserIcon, Link2,
 } from "lucide-react";
 
-export default function InvitationManager() {
+// Komponen manajemen pasangan terpadu (menyatukan InvitationManager & FamilyMembers).
+// Menangani: status terhubung + peran, permintaan masuk, pembuatan undangan
+// (email/kode) dengan pemilihan peran suami/istri, dan undangan terkirim.
+const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
+const complement = (r) => (r === "suami" ? "istri" : "suami");
+
+export default function PartnerManager() {
   const {
-    me, users, partners, hasPartner, sentInvites, incomingRequests,
+    users, partners, hasPartner, sentInvites, incomingRequests,
+    myRole, partnerRole,
     invite, connectByCode, resend, cancelInvite, acceptRequest, declineRequest, disconnect, loading,
   } = usePartnership();
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [role, setRole] = useState("suami");
   const [mode, setMode] = useState("email");
   const [sending, setSending] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -24,7 +33,7 @@ export default function InvitationManager() {
   const handleSend = async () => {
     const target = email.trim();
     setSending(true);
-    await invite(target);
+    await invite(target, role);
     setSending(false);
     setEmail("");
   };
@@ -33,7 +42,7 @@ export default function InvitationManager() {
     const c = code.trim();
     if (!c) return;
     setConnecting(true);
-    const ok = await connectByCode(c);
+    const ok = await connectByCode(c, role);
     setConnecting(false);
     if (ok) setCode("");
   };
@@ -49,16 +58,21 @@ export default function InvitationManager() {
   }
 
   if (hasPartner && !showManage) {
+    const partner = partners[0];
     return (
       <div>
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
-            <Heart className="w-5 h-5 text-emerald-600" />
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+            {partner?.photo_url ? (
+              <SmartImage src={partner.photo_url} alt={partner?.full_name} className="w-full h-full" fittingType="fill" />
+            ) : (
+              <Heart className="w-5 h-5 text-emerald-600" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Terkoneksi dengan pasangan</p>
+            <p className="text-sm font-medium truncate">{partner?.full_name || partner?.email || "Pasangan"}</p>
             <p className="text-xs text-muted-foreground truncate">
-              {partners.map((p) => p.full_name || p.email).join(", ")}
+              {partnerRole ? `${ROLE_LABEL[partnerRole]} • Anda: ${myRole ? ROLE_LABEL[myRole] : "—"}` : "Terkoneksi"}
             </p>
           </div>
         </div>
@@ -124,7 +138,9 @@ export default function InvitationManager() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{inviter?.full_name || inviter?.email || "Pasangan"}</p>
-                    <p className="text-[10px] text-muted-foreground">Mengundang Anda menjadi pasangan</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Mengundang Anda sebagai {p.invitee_role ? ROLE_LABEL[p.invitee_role] : "pasangan"}
+                    </p>
                   </div>
                   <button
                     onClick={() => run(`a-${p.id}`, () => acceptRequest(p))}
@@ -150,6 +166,24 @@ export default function InvitationManager() {
 
       {!hasPartner && sentInvites.length === 0 && incomingRequests.length === 0 && (
         <>
+          <div className="mb-3">
+            <p className="text-xs text-muted-foreground mb-2">Saya adalah...</p>
+            <div className="flex gap-2">
+              {["suami", "istri"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRole(r)}
+                  className={`flex-1 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${
+                    role === r ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  <UserIcon className="w-4 h-4" /> {ROLE_LABEL[r]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">Pasangan akan tercatat sebagai {ROLE_LABEL[complement(role)]}.</p>
+          </div>
+
           <div className="flex gap-1 bg-muted p-1 rounded-xl mb-3">
             <button
               onClick={() => setMode("email")}
@@ -168,7 +202,7 @@ export default function InvitationManager() {
           {mode === "email" ? (
             <>
               <p className="text-xs text-muted-foreground mb-3">
-                Undang istri/suami lewat email. Pasangan menerima email undangan, register, lalu menyetujui koneksi.
+                Undang pasangan lewat email. Pasangan menerima email undangan, register, lalu menyetujui koneksi.
               </p>
               <div className="flex gap-2 mb-2">
                 <input
@@ -190,7 +224,7 @@ export default function InvitationManager() {
           ) : (
             <>
               <p className="text-xs text-muted-foreground mb-3">
-                Pasangan sudah register & login? Minta <strong>kode referensi</strong> dari halaman Profil pasangan, lalu masukkan di sini. Pasangan menyetujui koneksi setelahnya.
+                Pasangan sudah register & login? Minta <strong>kode referensi</strong> dari halaman Profil pasangan, lalu masukkan di sini.
               </p>
               <div className="flex gap-2 mb-2">
                 <input
@@ -220,7 +254,7 @@ export default function InvitationManager() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{p.invitee_email}</p>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Menunggu diterima
+                  <Clock className="w-3 h-3" /> Menunggu • sebagai {p.invitee_role ? ROLE_LABEL[p.invitee_role] : "pasangan"}
                 </p>
               </div>
               <button

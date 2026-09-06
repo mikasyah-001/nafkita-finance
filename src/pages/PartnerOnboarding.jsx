@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMe } from "@/hooks/useFinance";
 import { currencies } from "@/lib/finance";
-import InvitationManager from "@/components/InvitationManager";
+import PartnerManager from "@/components/PartnerManager";
 import { usePartnership } from "@/hooks/usePartnership";
 import { toast } from "sonner";
 import { Heart, ArrowRight, Wallet, Loader2 } from "lucide-react";
@@ -63,7 +63,7 @@ export default function PartnerOnboarding() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-4">
-        <InvitationManager />
+        <PartnerManager />
       </div>
 
       <button

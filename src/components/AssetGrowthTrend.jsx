@@ -20,7 +20,7 @@ export default function AssetGrowthTrend() {
     return map;
   }, [snapshots]);
 
-  const activeCurs = CURRENCY_CODES.filter((c) => (byCur[c] || []).length > 0);
+  const activeCurs = Object.keys(byCur).filter((c) => (byCur[c] || []).length > 0);
   const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
 
   const data = [...(byCur[cur] || [])]

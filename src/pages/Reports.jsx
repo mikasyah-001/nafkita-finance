@@ -21,6 +21,9 @@ export default function Reports() {
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
   const [cursor, setCursor] = useState(new Date());
+  const [periodType, setPeriodType] = useState("monthly");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [emasPrice, setEmasPrice] = useState("");
   const { scope, setScope } = useScope();
   const [goldLoading, setGoldLoading] = useState(false);
@@ -37,23 +40,60 @@ export default function Reports() {
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
-  const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
+  const periodRange = useMemo(() => {
+    if (periodType === "custom") {
+      return {
+        start: customStart ? new Date(customStart + "T00:00:00.000Z") : null,
+        end: customEnd ? new Date(customEnd + "T23:59:59.999Z") : null,
+      };
+    }
+    if (periodType === "yearly") {
+      return { start: new Date(year, 0, 1), end: new Date(year, 11, 31, 23, 59, 59, 999) };
+    }
+    if (periodType === "weekly") {
+      const d = new Date(cursor);
+      const day = d.getDay();
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return { start: monday, end: sunday };
+    }
+    return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0, 23, 59, 59, 999) };
+  }, [periodType, customStart, customEnd, year, month, cursor]);
 
-  const monthTxAll = useMemo(
+  const periodLabel = useMemo(() => {
+    if (periodType === "custom") {
+      const s = customStart ? formatDate(customStart, "dd MMM yyyy") : "?";
+      const e = customEnd ? formatDate(customEnd, "dd MMM yyyy") : "?";
+      return `${s} — ${e}`;
+    }
+    if (periodType === "yearly") return String(year);
+    if (periodType === "weekly") {
+      return `${formatDate(periodRange.start, "dd MMM")} — ${formatDate(periodRange.end, "dd MMM yyyy")}`;
+    }
+    return formatDate(new Date(year, month, 1), "MMMM yyyy");
+  }, [periodType, customStart, customEnd, year, month, periodRange]);
+
+  const periodTxAll = useMemo(
     () => transactions.filter((t) => {
       if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
       const d = new Date(t.date);
-      return d.getMonth() === month && d.getFullYear() === year;
+      if (periodRange.start && d < periodRange.start) return false;
+      if (periodRange.end && d > periodRange.end) return false;
+      return true;
     }),
-    [transactions, month, year, scope]
+    [transactions, periodRange, scope]
   );
 
-  const summary = summarizeByCurrency(monthTxAll);
+  const summary = summarizeByCurrency(periodTxAll);
   const activeCurs = activeCurrencies(summary);
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
   const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
 
-  const monthTx = monthTxAll.filter((t) => (t.currency || "IDR") === cur);
+  const monthTx = periodTxAll.filter((t) => (t.currency || "IDR") === cur);
 
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
   const scopedTransactions = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
@@ -66,8 +106,16 @@ export default function Reports() {
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [monthTx]);
 
-  const prevMonth = () => setCursor(new Date(year, month - 1, 1));
-  const nextMonth = () => setCursor(new Date(year, month + 1, 1));
+  const prevPeriod = () => {
+    if (periodType === "weekly") { const d = new Date(cursor); d.setDate(d.getDate() - 7); setCursor(d); }
+    else if (periodType === "yearly") setCursor(new Date(year - 1, month, 1));
+    else setCursor(new Date(year, month - 1, 1));
+  };
+  const nextPeriod = () => {
+    if (periodType === "weekly") { const d = new Date(cursor); d.setDate(d.getDate() + 7); setCursor(d); }
+    else if (periodType === "yearly") setCursor(new Date(year + 1, month, 1));
+    else setCursor(new Date(year, month + 1, 1));
+  };
 
   const byCategoryPrev = useMemo(() => {
     const pm = month === 0 ? 11 : month - 1;
@@ -87,7 +135,7 @@ export default function Reports() {
     setExporting(true);
     try {
       await downloadReportPdf({
-        monthName,
+        monthName: periodLabel,
         scopeLabel: scope === "private" ? "Pribadi" : "Bersama",
         currency: cur,
         stats: [
@@ -124,11 +172,33 @@ export default function Reports() {
     <div className="px-5 pt-8 space-y-5">
       <h1 className="text-xl font-semibold">Laporan Keuangan</h1>
 
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
-        <button onClick={prevMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
-        <p className="font-medium">{monthName}</p>
-        <button onClick={nextMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+      <div className="flex gap-1.5 bg-muted p-1 rounded-2xl">
+        {[["weekly","Mingguan"],["monthly","Bulanan"],["yearly","Tahunan"],["custom","Rentang"]].map(([val, label]) => (
+          <button key={val} onClick={() => setPeriodType(val)} className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${periodType === val ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>{label}</button>
+        ))}
       </div>
+
+      {periodType === "custom" ? (
+        <div className="rounded-2xl border border-border bg-card p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Dari</label>
+              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Sampai</label>
+              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+            </div>
+          </div>
+          {!customStart && !customEnd && <p className="text-[10px] text-muted-foreground text-center">Pilih rentang tanggal untuk melihat laporan</p>}
+        </div>
+      ) : (
+        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
+          <button onClick={prevPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
+          <p className="font-medium">{periodLabel}</p>
+          <button onClick={nextPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>

@@ -33,6 +33,10 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import PartnerOnboarding from '@/pages/PartnerOnboarding';
 import Admin from '@/pages/Admin';
+import Transfer from '@/pages/Transfer';
+import Debts from '@/pages/Debts';
+import RecurringBills from '@/pages/RecurringBills';
+import Reconciliation from '@/pages/Reconciliation';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -85,6 +89,10 @@ const AuthenticatedApp = () => {
           <Route path="/investasi/:id" element={<InvestmentDetail />} />
           <Route path="/umpan-balik" element={<Feedback />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/transfer" element={<Transfer />} />
+          <Route path="/utang" element={<Debts />} />
+          <Route path="/tagihan-berulang" element={<RecurringBills />} />
+          <Route path="/rekonsiliasi" element={<Reconciliation />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

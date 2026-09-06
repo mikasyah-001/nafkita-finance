@@ -2,7 +2,7 @@ import { NavLink, Link } from "react-router-dom";
 import {
   Home, ReceiptText, Plus, Landmark, BarChart3, Wallet,
   PiggyBank, Upload, Tags, User, Settings, MessageSquare,
-  Shield, Sparkles,
+  Shield, Sparkles, ArrowRightLeft, HandCoins, RefreshCw, Scale,
 } from "lucide-react";
 
 const mainItems = [
@@ -15,6 +15,10 @@ const mainItems = [
 ];
 
 const toolItems = [
+  { to: "/transfer", icon: ArrowRightLeft, label: "Transfer" },
+  { to: "/utang", icon: HandCoins, label: "Utang & Piutang" },
+  { to: "/tagihan-berulang", icon: RefreshCw, label: "Tagihan Berulang" },
+  { to: "/rekonsiliasi", icon: Scale, label: "Rekonsiliasi" },
   { to: "/impor", icon: Upload, label: "Impor Data" },
   { to: "/kategori", icon: Tags, label: "Kategori" },
 ];

@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * *",
+      "one_time_date": null,
+      "timezone": "Asia/Riyadh",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "pengingat_jatuh_tempo_utang",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_reminders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "debtDueReminder"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Kirim Pengingat Jatuh Tempo",
+            "description": "Notifikasi untuk utang/piutang jatuh tempo dalam 3 hari"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Pengingat Jatuh Tempo Utang",
+  "description": "Mengirim notifikasi pengingat untuk utang/piutang yang jatuh tempo dalam 3 hari setiap hari pukul 09:00"
+}

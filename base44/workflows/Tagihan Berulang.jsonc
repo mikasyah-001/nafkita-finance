@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "Asia/Riyadh",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "tagihan_berulang",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "process_bills": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processRecurringBills"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Proses Tagihan Berulang",
+            "description": "Buat transaksi otomatis untuk tagihan jatuh tempo"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Tagihan Berulang",
+  "description": "Memproses tagihan berulang aktif setiap hari pukul 08:00 \u2014 membuat transaksi otomatis dan memajukan tanggal berikutnya"
+}

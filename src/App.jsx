@@ -23,7 +23,6 @@ import ImportReport from '@/pages/ImportReport';
 import TransactionDetail from '@/pages/TransactionDetail';
 import Profile from '@/pages/Profile';
 import Categories from '@/pages/Categories';
-import AsistenStruk from '@/pages/AsistenStruk';
 import Ringkasan from '@/pages/Ringkasan';
 import InvestmentDetail from '@/pages/InvestmentDetail';
 import Feedback from '@/pages/Feedback';
@@ -82,7 +81,7 @@ const AuthenticatedApp = () => {
           <Route path="/profil" element={<Profile />} />
           <Route path="/sambungkan-pasangan" element={<PartnerOnboarding />} />
           <Route path="/kategori" element={<Categories />} />
-          <Route path="/asisten-struk" element={<AsistenStruk />} />
+          <Route path="/asisten-struk" element={<Navigate to="/add" replace />} />
           <Route path="/investasi/:id" element={<InvestmentDetail />} />
           <Route path="/umpan-balik" element={<Feedback />} />
           <Route path="/admin" element={<Admin />} />

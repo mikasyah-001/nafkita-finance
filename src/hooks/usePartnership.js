@@ -132,11 +132,11 @@ export function usePartnership() {
     }
   };
 
-  const disconnect = async () => {
+  const disconnect = async (reason) => {
     const active = partnerships.find((p) => p.status === "active" && (p.inviter_id === me?.id || p.invitee_id === me?.id));
     if (!active) return toast.error("Tidak ada pasangan terhubung");
     try {
-      await base44.functions.invoke("terminatePartnership", { partnership_id: active.id });
+      await base44.functions.invoke("terminatePartnership", { partnership_id: active.id, end_reason: reason || "" });
       refresh();
       toast.success("Koneksi pasangan diputus");
     } catch {

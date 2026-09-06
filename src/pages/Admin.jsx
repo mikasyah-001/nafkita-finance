@@ -135,11 +135,12 @@ export default function Admin() {
   };
 
   const handleDisconnect = async (p) => {
-    if (!confirm("Putuskan koneksi pasangan ini?")) return;
+    const reason = window.prompt("Putuskan koneksi pasangan ini?\n\nAlasan (opsional):", "");
+    if (reason === null) return;
     try {
-      await base44.functions.invoke("terminatePartnership", { partnership_id: p.id });
+      await base44.functions.invoke("terminatePartnership", { partnership_id: p.id, end_reason: reason.trim() });
       toast.success("Koneksi diputus");
-      setPartnerships((prev) => prev.filter((x) => x.id !== p.id));
+      setPartnerships((prev) => prev.map((x) => x.id === p.id ? { ...x, status: "ended", end_reason: reason.trim() } : x));
     } catch (e) {
       toast.error("Gagal memutuskan", { description: e?.message });
     }
@@ -207,11 +208,12 @@ export default function Admin() {
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Koneksi aktif & menunggu</p>
+            <p className="text-xs text-muted-foreground mb-1">Koneksi & riwayat</p>
             {partnerships.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Belum ada koneksi.</p>}
             {partnerships.map((p) => {
               const a = userMap[p.inviter_id];
               const b = p.invitee_id ? userMap[p.invitee_id] : null;
+              const terminal = p.status === "ended" || p.status === "cancelled" || p.status === "declined";
               return (
                 <div key={p.id} className="rounded-2xl border border-border bg-card p-3 mb-2 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
@@ -219,20 +221,23 @@ export default function Admin() {
                       {a?.full_name || a?.email || "—"} <span className="text-muted-foreground">⇄</span> {b?.full_name || b?.email || p.invitee_email}
                     </p>
                     <p className="text-[11px] mt-0.5">
-                      {p.status === "active" ? (
-                        <span className="text-emerald-600 font-medium">Aktif</span>
-                      ) : (
-                        <span className="text-amber-600 font-medium">Menunggu</span>
-                      )}
+                      {p.status === "active" && <span className="text-emerald-600 font-medium">Aktif</span>}
+                      {p.status === "pending" && <span className="text-amber-600 font-medium">Menunggu</span>}
+                      {p.status === "ended" && <span className="text-muted-foreground font-medium">Berakhir</span>}
+                      {p.status === "cancelled" && <span className="text-muted-foreground font-medium">Dibatalkan</span>}
+                      {p.status === "declined" && <span className="text-muted-foreground font-medium">Ditolak</span>}
+                      {p.end_reason && <span className="text-muted-foreground"> • {p.end_reason}</span>}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDisconnect(p)}
-                    className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0"
-                    title="Putuskan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {!terminal && (
+                    <button
+                      onClick={() => handleDisconnect(p)}
+                      className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0"
+                      title="Putuskan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               );
             })}

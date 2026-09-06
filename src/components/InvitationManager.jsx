@@ -18,6 +18,8 @@ export default function InvitationManager() {
   const [connecting, setConnecting] = useState(false);
   const [busy, setBusy] = useState(null);
   const [showManage, setShowManage] = useState(false);
+  const [showDisconnect, setShowDisconnect] = useState(false);
+  const [reason, setReason] = useState("");
 
   const handleSend = async () => {
     const target = email.trim();
@@ -65,13 +67,38 @@ export default function InvitationManager() {
             <Settings className="w-3.5 h-3.5" /> Kelola undangan
           </button>
           <button
-            onClick={() => run("disc", disconnect)}
-            disabled={busy === "disc"}
-            className="text-xs text-red-500 flex items-center gap-1 disabled:opacity-60"
+            onClick={() => { setShowDisconnect(true); setReason(""); }}
+            className="text-xs text-red-500 flex items-center gap-1"
           >
-            {busy === "disc" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Putuskan koneksi
+            <X className="w-3.5 h-3.5" /> Putuskan koneksi
           </button>
         </div>
+        {showDisconnect && (
+          <div className="mt-3 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-3">
+            <p className="text-xs text-muted-foreground mb-2">Alasan pemutusan (opsional) — dicatat untuk riwayat.</p>
+            <input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="mis. tidak relevan lagi"
+              className="w-full rounded-lg border border-border px-3 py-2 text-xs outline-none focus:ring-2 ring-primary/30 mb-2"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => run("disc", () => disconnect(reason).then(() => setShowDisconnect(false)))}
+                disabled={busy === "disc"}
+                className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60"
+              >
+                {busy === "disc" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Konfirmasi Putus
+              </button>
+              <button
+                onClick={() => setShowDisconnect(false)}
+                className="px-3 py-2 rounded-lg border border-border text-xs font-medium"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

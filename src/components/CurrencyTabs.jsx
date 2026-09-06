@@ -1,6 +1,6 @@
 // Chip pemilih mata uang untuk tampilan multi-currency (tanpa konversi).
 // Hanya tampil bila ada lebih dari satu mata uang aktif.
-export default function CurrencyTabs({ currencies, value, onChange, className }) {
+export default function CurrencyTabs({ currencies, value, onChange, className = "" }) {
   const list = (currencies || []).filter(Boolean);
   if (list.length <= 1) return null;
   return (

@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMe, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { currencies as builtIn } from "@/lib/finance";
 import { toast } from "sonner";
-import { Plus, Check, X, Loader2, Trash2, Star } from "lucide-react";
+import { Plus, Check, Loader2, Trash2, Star } from "lucide-react";
 
 export default function CurrencyManager() {
   const { data: me } = useMe();

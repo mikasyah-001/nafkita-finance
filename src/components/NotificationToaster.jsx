@@ -10,9 +10,9 @@ const notifBody = (n) => {
   const raw = String(n.body || "");
   if (n.entity_kind === "transaction" && n.currency && n.amount != null && !raw.includes("•••")) {
     const sign = n.tx_type === "income" ? "+" : "-";
-    const parts = raw.split(" • ");
-    const label = parts.length > 1 ? parts[parts.length - 1] : "";
-    return `${sign}${formatMoney(n.amount, n.currency)}${label ? ` • ${label}` : ""}`;
+    const separator = raw.indexOf(" • ");
+    const label = separator >= 0 ? raw.slice(separator + 3).trim() : "";
+    return `${sign}${formatMoney(Number(n.amount) || 0, String(n.currency).toUpperCase())}${label ? ` • ${label}` : ""}`;
   }
   return raw;
 };
@@ -22,11 +22,11 @@ export default function NotificationToaster() {
     const handle = (event) => {
       if (!event || event.type !== "create" || !event.data) return;
       const n = event.data;
-      const title = n.actor_name ? `${n.actor_name}` : "Notifikasi baru";
+      const title = n.title || n.actor_name || "Notifikasi baru";
       const body = notifBody(n);
       toast.info(title, {
-        description: n.title === n.actor_name ? body : `${n.title}${body ? ` — ${body}` : ""}`,
-        duration: 5000,
+        description: body,
+        duration: 7000,
         icon: <Bell className="w-4 h-4 text-primary" />,
       });
     };

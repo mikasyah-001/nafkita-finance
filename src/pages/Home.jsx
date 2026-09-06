@@ -16,7 +16,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, PiggyBank, Eye, EyeOff, Check } from "lucide-react";
+import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check } from "lucide-react";
 
 const linkColors = {
   violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
@@ -191,7 +191,7 @@ export default function Home() {
           <div className="w-px bg-primary-foreground/20" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs opacity-80">
-              <PiggyBank className="w-3.5 h-3.5" /> Menabung
+              <Banknote className="w-3.5 h-3.5" /> Menabung
             </div>
             <p className="font-semibold text-sm mt-0.5 tabular-nums">{savings.label ? savings.label : `${savings.rate}%`}</p>
           </div>

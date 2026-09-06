@@ -2,7 +2,7 @@ import {
   Home, ReceiptText, Plus, Landmark, BarChart3, PiggyBank, Wallet,
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, Coins,
   CheckCheck, Upload, Tags, Activity, History, Layers,
-  User, Settings, MessageSquare, Shield, Sparkles, BookOpen,
+  User, Settings, MessageSquare, Sparkles, BookOpen,
 } from "lucide-react";
 
 export const panduanCategories = [
@@ -388,21 +388,6 @@ export const panduanCategories = [
           "Kirim",
         ],
         tips: "Untuk laporan bug, sertakan langkah-langkah untuk mereproduksi masalah agar lebih mudah diperbaiki.",
-      },
-      {
-        to: "/admin",
-        icon: Shield,
-        name: "Panel Admin",
-        short: "Kelola pengguna, koneksi & data sistem (admin)",
-        description: "Panel khusus admin untuk mengelola pengguna, koneksi pasangan, transaksi, dan statistik sistem.",
-        howItWorks: "Hanya pengguna dengan peran admin yang dapat mengakses. Panel menampilkan statistik, daftar pengguna, transaksi, dan aset lintas pengguna untuk monitoring dan moderasi.",
-        steps: [
-          "Buka menu Admin (hanya tampil untuk admin)",
-          "Lihat statistik sistem di dasbor",
-          "Kelola pengguna dan koneksi pasangan",
-          "Pantau transaksi dan aset lintas pengguna",
-        ],
-        tips: "Aksi admin dicatat di audit log untuk akuntabilitas. Gunakan dengan hati-hati.",
       },
     ],
   },

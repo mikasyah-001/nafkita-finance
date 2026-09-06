@@ -1,0 +1,53 @@
+{
+  "name": "Notifikasi Aset Pasangan",
+  "description": "Membuat notifikasi untuk pasangan saat aset bersama dibuat, diperbarui, atau dihapus",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "Asset",
+      "events": [
+        "create",
+        "update",
+        "delete"
+      ]
+    },
+    "condition": "${ .trigger.data.visibility == \"shared\" or ((.trigger.old_data // {}).visibility == \"shared\") }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notify_partner_asset",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notify": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyPartnerAsset",
+            "args": {
+              "asset_id": "${ .trigger.entity_id }",
+              "event_type": "${ .trigger.event_type }",
+              "name": "${ .trigger.data.name }",
+              "asset_type": "${ .trigger.data.type }",
+              "value": "${ .trigger.data.value }",
+              "currency": "${ .trigger.data.currency }",
+              "visibility": "${ .trigger.data.visibility }",
+              "actor_id": "${ .trigger.data.created_by_id }",
+              "old_value": "${ .trigger.old_data.value }",
+              "old_visibility": "${ .trigger.old_data.visibility }",
+              "created_date": "${ .trigger.data.created_date }",
+              "updated_date": "${ .trigger.data.updated_date }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Buat notifikasi aset",
+            "description": "Aset bersama dibuat/diperbarui/dihapus"
+          }
+        }
+      }
+    ]
+  }
+}

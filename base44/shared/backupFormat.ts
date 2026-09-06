@@ -8,6 +8,7 @@ export const BACKUP_ENTITIES = [
   { key: "snapshots", entity: "AssetSnapshot" },
   { key: "templates", entity: "TransactionTemplate" },
   { key: "investmentLots", entity: "InvestmentLot" },
+  { key: "preferences", entity: "NotificationPreference" },
 ];
 
 export const BACKUP_VERSION = 2;

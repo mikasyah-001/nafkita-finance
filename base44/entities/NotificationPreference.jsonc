@@ -1,0 +1,49 @@
+{
+  "name": "NotificationPreference",
+  "type": "object",
+  "properties": {
+    "mute": {
+      "type": "boolean",
+      "default": false,
+      "description": "Bisukan semua notifikasi dari pasangan"
+    },
+    "min_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Hanya kirim notifikasi bila nominal transaksi >= ambang ini"
+    },
+    "daily_digest": {
+      "type": "boolean",
+      "default": false,
+      "description": "Kumpulkan jadi ringkasan harian alih-alih notifikasi instan"
+    },
+    "hide_amount": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sembunyikan nominal sensitif di isi notifikasi"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "in_app",
+        "email",
+        "both"
+      ],
+      "default": "in_app"
+    }
+  },
+  "required": [
+    "mute"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

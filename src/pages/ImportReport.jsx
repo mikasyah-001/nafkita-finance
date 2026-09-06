@@ -182,6 +182,7 @@ export default function ImportReport() {
 
     setImporting(true);
     try {
+      const batchId = "import-" + Date.now();
       const payload = selected.map((r) => ({
         type: r.type,
         amount: r.amount,
@@ -193,6 +194,7 @@ export default function ImportReport() {
         photo_url: "",
         visibility: r.visibility || importVisibility,
         input_by_name: user?.full_name || user?.email || "Keluarga",
+        notif_batch_id: batchId,
       }));
       const unique = dedupeBatch(payload);
       const { toSave, skipped } = filterAgainstExisting(unique, transactions);
@@ -202,6 +204,9 @@ export default function ImportReport() {
         return;
       }
       await base44.entities.Transaction.bulkCreate(toSave);
+      if ((importVisibility === "shared") || toSave.some((t) => t.visibility === "shared")) {
+        try { await base44.functions.invoke("notifyPartnerBulk", { batch_id: batchId, count: toSave.length }); } catch {}
+      }
       refresh();
       toast.success(`${toSave.length} transaksi berhasil disimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
       navigate("/riwayat");

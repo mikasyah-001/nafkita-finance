@@ -4,15 +4,15 @@ import { toast } from "sonner";
 import { Bell } from "lucide-react";
 
 // Menampilkan toast app-wide saat notifikasi baru dibuat untuk user ini.
-// Sumber notifikasi adalah entitas Notification (dibuat oleh workflow saat
-// pasangan menambah/memperbarui transaksi bersama).
+// Menampilkan nama pelaku (actor_name) dan judul eksplisit.
 export default function NotificationToaster() {
   useEffect(() => {
     const handle = (event) => {
       if (!event || event.type !== "create" || !event.data) return;
       const n = event.data;
-      toast.info(n.title || "Notifikasi baru", {
-        description: n.body || "",
+      const title = n.actor_name ? `${n.actor_name}` : "Notifikasi baru";
+      toast.info(title, {
+        description: n.title === n.actor_name ? n.body : `${n.title}${n.body ? ` — ${n.body}` : ""}`,
         duration: 5000,
         icon: <Bell className="w-4 h-4 text-primary" />,
       });

@@ -70,11 +70,12 @@ export default function Home() {
       const now = new Date();
       const d = (offset) => { const x = new Date(now); x.setDate(x.getDate() - offset); x.setHours(10, 0, 0, 0); return x.toISOString(); };
       const name = user?.full_name || "Saya";
+      const batchId = "sample-" + Date.now();
       await base44.entities.Transaction.bulkCreate([
-        { type: "income", amount: amt(8000000, 8000, 2000), currency: cur, category: "Gaji", date: d(3), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
-        { type: "expense", amount: amt(50000, 50, 15), currency: cur, category: "Makanan", date: d(2), merchant: "Restoran", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
-        { type: "expense", amount: amt(120000, 120, 35), currency: cur, category: "Belanja", date: d(1), merchant: "Pasar", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
-        { type: "sedekah", amount: amt(100000, 100, 25), currency: cur, category: "Sedekah & Infaq", date: d(0), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [] },
+        { type: "income", amount: amt(8000000, 8000, 2000), currency: cur, category: "Gaji", date: d(3), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [], notif_batch_id: batchId },
+        { type: "expense", amount: amt(50000, 50, 15), currency: cur, category: "Makanan", date: d(2), merchant: "Restoran", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [], notif_batch_id: batchId },
+        { type: "expense", amount: amt(120000, 120, 35), currency: cur, category: "Belanja", date: d(1), merchant: "Pasar", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [], notif_batch_id: batchId },
+        { type: "sedekah", amount: amt(100000, 100, 25), currency: cur, category: "Sedekah & Infaq", date: d(0), merchant: "", notes: "Data contoh", visibility: "shared", input_by_name: name, tags: [], notif_batch_id: batchId },
       ]);
       refresh();
       toast.success("Data contoh dimuat", { description: "4 transaksi contoh ditambahkan." });

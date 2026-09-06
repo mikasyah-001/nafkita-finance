@@ -60,6 +60,10 @@
     "linked_asset_id": {
       "type": "string",
       "description": "ID aset bank yang saldonya disesuaikan otomatis saat transaksi ini dibuat/diubah/dihapus"
+    },
+    "notif_batch_id": {
+      "type": "string",
+      "description": "Flag internal: bila diisi, notifikasi individual dilewati (impor/scan/sample data)"
     }
   },
   "required": [

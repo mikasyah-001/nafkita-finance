@@ -14,9 +14,26 @@
       "type": "string",
       "enum": [
         "created",
-        "updated"
+        "updated",
+        "deleted",
+        "shared",
+        "unshared",
+        "bulk"
       ],
       "default": "created"
+    },
+    "entity_kind": {
+      "type": "string",
+      "enum": [
+        "transaction",
+        "asset",
+        "bulk"
+      ],
+      "default": "transaction"
+    },
+    "event_key": {
+      "type": "string",
+      "description": "Kunci idempotensi \u2014 mencegah notifikasi duplikat saat workflow di-retry"
     },
     "title": {
       "type": "string"
@@ -26,7 +43,7 @@
     },
     "ref_id": {
       "type": "string",
-      "description": "ID transaksi terkait"
+      "description": "ID entitas terkait (transaksi/aset)"
     },
     "amount": {
       "type": "number"

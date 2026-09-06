@@ -10,6 +10,7 @@ import { currencies } from "@/lib/finance";
 import TemplateManager from "@/components/TemplateManager";
 import LocalBackupRestore from "@/components/LocalBackupRestore";
 import DriveBackup from "@/components/DriveBackup";
+import NotificationPreferences from "@/components/NotificationPreferences";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -48,6 +49,11 @@ export default function Settings() {
 
       <Section title="Undang Pasangan">
         <InvitationManager />
+      </Section>
+
+      <Section title="Preferensi Notifikasi">
+        <p className="text-xs text-muted-foreground mb-3">Atur bagaimana notifikasi dari pasangan diterima — bisukan, ambang nominal, ringkasan harian, dan saluran.</p>
+        <NotificationPreferences />
       </Section>
 
       <Section title="Kategori Transaksi">

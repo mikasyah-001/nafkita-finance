@@ -142,6 +142,7 @@ export default function AddTransaction() {
       const proposals = multiTx.filter((t) => t.category).map((t) => ({ name: t.category, icon: t.category_icon, color: t.category_color }));
       await ensureCategories(proposals, categories, "expense");
       const now = new Date();
+      const batchId = "scan-" + Date.now();
       const records = multiTx.map((t) => ({
         type: "expense",
         amount: t.amount,
@@ -160,6 +161,7 @@ export default function AddTransaction() {
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags: [],
         visibility,
+        notif_batch_id: batchId,
       }));
       const unique = dedupeBatch(records);
       const { toSave, skipped } = filterAgainstExisting(unique, transactions);
@@ -169,6 +171,9 @@ export default function AddTransaction() {
         return;
       }
       await base44.entities.Transaction.bulkCreate(toSave);
+      if (visibility === "shared") {
+        try { await base44.functions.invoke("notifyPartnerBulk", { batch_id: batchId, count: toSave.length }); } catch {}
+      }
       refresh();
       toast.success(`${toSave.length} transaksi tersimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
       navigate("/");

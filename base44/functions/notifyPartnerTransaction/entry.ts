@@ -90,9 +90,12 @@ export default async function (req) {
     // Nama pelaku.
     const actorName = await getActorName(base44, actorId);
     const hide = !!pref?.hide_amount;
+    const currency = ["IDR", "SAR", "USD"].includes(String(tx.currency || "").toUpperCase())
+      ? String(tx.currency).toUpperCase()
+      : "IDR";
     const sign = tx.type === "income" ? "+" : "-";
     const label = tx.merchant || tx.notes || (tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category) || "Transaksi";
-    const amountStr = maskAmount(amount, tx.currency, hide);
+    const amountStr = maskAmount(amount, currency, hide);
 
     const title = `${actorName} ${titleVerb} ${typeLabel(tx.type)}`;
     let bodyText = `${sign}${amountStr} • ${label}`;
@@ -113,7 +116,7 @@ export default async function (req) {
       body: bodyText,
       ref_id: txId,
       amount,
-      currency: tx.currency || "IDR",
+      currency,
       tx_type: tx.type,
     });
 

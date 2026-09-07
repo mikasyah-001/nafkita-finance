@@ -194,7 +194,7 @@ export default function Welcome() {
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur shadow-lg shadow-emerald-950/5 p-3.5 text-center"
+          className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur shadow-lg shadow-primary/5 p-3.5 text-center"
         >
           {[
             { n: `${features.length}+`, l: "Fitur aktif" },

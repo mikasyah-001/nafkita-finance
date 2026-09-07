@@ -10,13 +10,13 @@ export default function SettingsAccordion({ number, title, defaultOpen = false, 
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+        className="w-full flex items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
       >
         <span className="flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary grid place-items-center text-sm font-bold tabular-nums">
+          <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary grid place-items-center text-xs font-bold tabular-nums">
             {number}
           </span>
-          <span className="text-lg font-semibold tracking-tight">{title}</span>
+          <span className="text-base font-semibold">{title}</span>
         </span>
         <ChevronDown
           className="w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-300 ease-out"
@@ -24,7 +24,7 @@ export default function SettingsAccordion({ number, title, defaultOpen = false, 
         />
       </button>
       {open && (
-        <div className="px-5 pb-5 space-y-4 border-t border-border">{children}</div>
+        <div className="px-4 pb-4 space-y-4 border-t border-border">{children}</div>
       )}
     </div>
   );

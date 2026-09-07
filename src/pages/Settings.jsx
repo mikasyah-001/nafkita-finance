@@ -29,7 +29,7 @@ export default function Settings() {
         <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-xl font-semibold">Pengaturan</h1>
+        <h1 className="text-lg font-semibold">Pengaturan</h1>
       </div>
 
       {/* Pintasan */}

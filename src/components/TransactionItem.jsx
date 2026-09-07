@@ -22,7 +22,7 @@ export default function TransactionItem({ tx, categories }) {
           {tx.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
           {tx.merchant || tx.notes || (isSedekah ? "Sedekah & Infaq" : category?.name || "Transaksi")}
           {tx.approval_status === "pending" && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[9px] font-medium shrink-0">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[9px] font-medium shrink-0">
               <Clock className="w-2.5 h-2.5" /> Menunggu
             </span>
           )}

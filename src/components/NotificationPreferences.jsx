@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { BellOff, Mail, Inbox, Layers, EyeOff, Clock, Filter, ShieldCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Panel preferensi notifikasi antar-pasangan.
 // Disimpan di entity NotificationPreference (satu record per user).
@@ -146,16 +147,16 @@ export default function NotificationPreferences() {
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
             className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
           />
-          <select
-            value={threshCurDraft}
-            disabled={saving}
-            onChange={(e) => saveThresholdCurrency(e.target.value)}
-            className="rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
-          >
-            {["SAR", "IDR", "USD", "EUR"].map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          <Select value={threshCurDraft} onValueChange={saveThresholdCurrency} disabled={saving}>
+            <SelectTrigger className="rounded-xl border-border px-3 h-[42px] text-sm w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["SAR", "IDR", "USD", "EUR"].map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

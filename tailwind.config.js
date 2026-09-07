@@ -52,6 +52,14 @@ module.exports = {
   				DEFAULT: 'hsl(var(--sedekah))',
   				foreground: 'hsl(var(--sedekah-foreground))'
   			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
+  			},
   			scope: {
   				shared: {
   					DEFAULT: 'hsl(var(--scope-shared))',

@@ -37,6 +37,10 @@
     --expense-foreground: 0 0% 100%;
     --sedekah: 173 75% 31%;
     --sedekah-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 42%;
+    --warning-foreground: 0 0% 100%;
     --scope-shared: 239 84% 67%;
     --scope-shared-foreground: 0 0% 100%;
     --scope-private: 271 65% 60%;
@@ -87,6 +91,10 @@
     --expense-foreground: 222 47% 11%;
     --sedekah: 173 65% 50%;
     --sedekah-foreground: 222 47% 11%;
+    --success: 160 70% 50%;
+    --success-foreground: 222 47% 11%;
+    --warning: 41 96% 56%;
+    --warning-foreground: 222 47% 11%;
     --scope-shared: 239 84% 72%;
     --scope-shared-foreground: 222 47% 11%;
     --scope-private: 271 65% 65%;

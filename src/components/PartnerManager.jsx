@@ -75,12 +75,12 @@ export default function PartnerManager() {
     const rolesDeclared = !!(myRole && partnerRole);
     return (
       <div>
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3 mb-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-3 rounded-xl border border-success/20 bg-success/10 p-3 mb-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-success/15 flex items-center justify-center shrink-0">
             {partner?.photo_url ? (
               <SmartImage src={partner.photo_url} alt={partner?.full_name} className="w-full h-full" fittingType="fill" />
             ) : (
-              <Heart className="w-5 h-5 text-emerald-600" />
+              <Heart className="w-5 h-5 text-success" />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -93,9 +93,9 @@ export default function PartnerManager() {
           </div>
         </div>
         {!rolesDeclared && (
-          <div className="mb-3 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-2.5 flex items-center gap-2">
-            <Heart className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+          <div className="mb-3 rounded-xl border border-warning/20 bg-warning/10 p-2.5 flex items-center gap-2">
+            <Heart className="w-3.5 h-3.5 text-warning shrink-0" />
+            <p className="text-[11px] text-warning">
               Deklarasikan peran suami/istri agar status hubungan lengkap.
             </p>
           </div>
@@ -106,13 +106,13 @@ export default function PartnerManager() {
           </button>
           <button
             onClick={() => { setShowDisconnect(true); setReason(""); }}
-            className="text-xs text-red-500 flex items-center gap-1"
+            className="text-xs text-destructive flex items-center gap-1"
           >
             <X className="w-3.5 h-3.5" /> Putuskan koneksi
           </button>
         </div>
         {showDisconnect && (
-          <div className="mt-3 rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-3">
+          <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 p-3">
             <p className="text-xs text-muted-foreground mb-2">Alasan pemutusan (opsional) — dicatat untuk riwayat.</p>
             <input
               value={reason}
@@ -124,7 +124,7 @@ export default function PartnerManager() {
               <button
                 onClick={() => run("disc", () => disconnect(reason).then(() => setShowDisconnect(false)))}
                 disabled={busy === "disc"}
-                className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60"
+                className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60"
               >
                 {busy === "disc" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Konfirmasi Putus
               </button>
@@ -197,9 +197,9 @@ export default function PartnerManager() {
             {incomingRequests.map((p) => {
               const inviter = users.find((u) => u.id === p.inviter_id);
               return (
-                <div key={p.id} className="flex items-center gap-2 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3">
-                  <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
-                    <UserIcon className="w-4 h-4 text-amber-600" />
+                <div key={p.id} className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/10 p-3">
+                  <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-4 h-4 text-warning" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{inviter?.full_name || inviter?.email || "Pasangan"}</p>
@@ -210,7 +210,7 @@ export default function PartnerManager() {
                   <button
                     onClick={() => run(`a-${p.id}`, () => acceptRequest(p))}
                     disabled={busy === `a-${p.id}`}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium disabled:opacity-60"
+                    className="px-3 py-1.5 rounded-lg bg-success text-success-foreground text-xs font-medium disabled:opacity-60"
                   >
                     {busy === `a-${p.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Terima"}
                   </button>

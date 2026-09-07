@@ -13,11 +13,13 @@ import NotificationRuleManager from "@/components/NotificationRuleManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import ColorPreferenceManager from "@/components/ColorPreferenceManager";
 import SettingsAccordion from "@/components/SettingsAccordion";
+import { usePartnership } from "@/hooks/usePartnership";
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { hasPartner } = usePartnership();
 
   const handleLogout = async () => {
     await base44.auth.logout();
@@ -69,7 +71,7 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="02" title="Pasangan & Notifikasi">
+        <SettingsAccordion number="02" title="Pasangan & Notifikasi" defaultOpen={!hasPartner}>
           <PartnerManager />
           <div className="border-t border-border pt-4">
             <p className="text-xs text-muted-foreground mb-3">Atur bagaimana notifikasi dari pasangan diterima — bisukan, ambang nominal, ringkasan harian, dan saluran.</p>
@@ -113,7 +115,7 @@ export default function Settings() {
         </SettingsAccordion>
       </div>
 
-      <button onClick={handleLogout} className="w-full py-3 rounded-2xl border border-border text-red-500 font-medium text-sm flex items-center justify-center gap-2 mt-5">
+      <button onClick={handleLogout} className="w-full py-3 rounded-2xl border border-destructive/20 text-destructive font-medium text-sm flex items-center justify-center gap-2 mt-5">
         <LogOut className="w-4 h-4" /> Keluar
       </button>
     </div>

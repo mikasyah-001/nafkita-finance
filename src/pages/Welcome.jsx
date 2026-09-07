@@ -96,12 +96,12 @@ export default function Welcome() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50/40 via-background to-background dark:from-emerald-950/10 pb-28">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary/5 via-background to-background pb-28">
       {/* ───────── HERO ───────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-700 to-cyan-800 text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-primary to-violet-800 text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
         {/* Decorative orbs */}
         <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-amber-300/15 blur-3xl" />
-        <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-emerald-400/20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-fuchsia-400/15 blur-3xl" />
         <div className="absolute top-28 right-12 w-24 h-24 rounded-full bg-white/5 blur-xl" />
 
         <div className="relative">
@@ -144,8 +144,8 @@ export default function Welcome() {
                 {/* Notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-900 rounded-b-2xl z-10" />
                 {/* Header */}
-                <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-4 pt-6 text-white">
-                  <p className="text-[9px] opacity-80">Saldo bersama • Sep 2026</p>
+                <div className="bg-gradient-to-br from-primary to-violet-700 p-4 pt-6 text-white">
+                  <p className="text-[9px] opacity-80">Saldo bersama • bulan ini</p>
                   <p className="text-2xl font-bold tracking-tight tabular-nums">Rp 4,2 jt</p>
                   <div className="flex gap-2 mt-3 text-[8px]">
                     <div className="flex-1 bg-white/15 backdrop-blur rounded-xl p-2">
@@ -197,12 +197,12 @@ export default function Welcome() {
           className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur shadow-lg shadow-emerald-950/5 p-3.5 text-center"
         >
           {[
-            { n: "18+", l: "Fitur aktif" },
+            { n: `${features.length}+`, l: "Fitur aktif" },
             { n: "12+", l: "Mata uang" },
             { n: "2", l: "Ruang kas" },
           ].map((s) => (
             <motion.div key={s.l} variants={fadeUp}>
-              <p className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{s.n}</p>
+              <p className="text-lg font-bold tabular-nums text-primary">{s.n}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{s.l}</p>
             </motion.div>
           ))}
@@ -230,10 +230,10 @@ export default function Welcome() {
               <motion.div
                 key={p.title}
                 variants={fadeUp}
-                className="rounded-2xl border border-border bg-card p-3.5 text-center shadow-sm hover:shadow-md hover:border-emerald-300/50 dark:hover:border-emerald-800/50 transition-all"
+                className="rounded-2xl border border-border bg-card p-3.5 text-center shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40 flex items-center justify-center mx-auto mb-2.5">
-                  <Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
+                  <Icon className="w-5 h-5 text-primary" />
                 </div>
                 <p className="text-xs font-semibold">{p.title}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{p.desc}</p>
@@ -250,7 +250,7 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 overflow-hidden relative shadow-xl shadow-violet-950/20"
+          className="rounded-3xl bg-gradient-to-br from-primary via-violet-600 to-purple-700 text-white p-6 overflow-hidden relative shadow-xl shadow-violet-950/20"
         >
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-300/15 blur-3xl" />
           <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />

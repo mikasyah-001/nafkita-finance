@@ -24,7 +24,7 @@ export default function SettingsAccordion({ number, title, defaultOpen = false, 
         />
       </button>
       {open && (
-        <div className="px-4 pb-4 space-y-4 border-t border-border">{children}</div>
+        <div className="px-4 py-4 space-y-4 border-t border-border">{children}</div>
       )}
     </div>
   );

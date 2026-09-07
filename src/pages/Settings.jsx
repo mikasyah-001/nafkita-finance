@@ -83,12 +83,13 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="03" title="Data & Cadangan">
+        <SettingsAccordion number="03" title="Mata Uang">
           <p className="text-xs text-muted-foreground">Aktifkan/nonaktifkan mata uang sesuai kebutuhan Anda. Tambahkan mata uang kustom bila tidak tersedia di daftar.</p>
           <CurrencyManager />
-          <div className="border-t border-border pt-4">
-            <LocalBackupRestore />
-          </div>
+        </SettingsAccordion>
+
+        <SettingsAccordion number="04" title="Data & Cadangan">
+          <LocalBackupRestore />
           <div className="border-t border-border pt-4">
             <DriveBackup />
           </div>
@@ -97,7 +98,7 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="04" title="Lanjutan">
+        <SettingsAccordion number="05" title="Lanjutan">
           <Link to="/kategori" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
             <Tag className="w-4 h-4" /> Kelola Kategori
           </Link>

@@ -329,8 +329,8 @@ export default function Welcome() {
                 variants={fadeUp}
                 className="flex items-start gap-3.5 rounded-2xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40 flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">{p.title}</p>
@@ -347,7 +347,7 @@ export default function Welcome() {
         <SectionLabel>Mulai</SectionLabel>
         <h2 className="text-xl font-bold mt-2 mb-5 tracking-tight">Cara memulai dalam 4 langkah</h2>
         <div className="relative pl-2">
-          <div className="absolute left-[1.55rem] top-3 bottom-3 w-px bg-gradient-to-b from-emerald-300 via-border to-transparent dark:from-emerald-800" />
+          <div className="absolute left-[1.55rem] top-3 bottom-3 w-px bg-gradient-to-b from-primary/40 via-border to-transparent" />
           <motion.div
             variants={stagger}
             initial="hidden"
@@ -359,7 +359,7 @@ export default function Welcome() {
               const Icon = s.icon;
               return (
                 <motion.div key={i} variants={fadeUp} className="relative flex items-start gap-3.5">
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-950/20 ring-4 ring-background">
+                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-700 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 pt-2">
@@ -380,10 +380,10 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-200/50 dark:border-emerald-900/40 p-5"
+          className="rounded-3xl bg-gradient-to-br from-primary/5 to-violet-50 dark:to-violet-950/10 border border-primary/20 p-5"
         >
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-950/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-violet-700 flex items-center justify-center shadow-md shadow-primary/20">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-lg font-bold tracking-tight">Kenapa memilih NAFKITA?</h2>
@@ -391,7 +391,7 @@ export default function Welcome() {
           <ul className="space-y-3">
             {advantages.map((a) => (
               <li key={a} className="flex items-start gap-3 text-sm">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                   <Check className="w-3 h-3" />
                 </span>
                 <span className="text-foreground/90 leading-snug">{a}</span>
@@ -408,10 +408,10 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-cyan-800 text-white p-7 text-center overflow-hidden relative shadow-xl shadow-emerald-950/20"
+          className="rounded-3xl bg-gradient-to-br from-indigo-700 via-primary to-violet-800 text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
         >
           <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-amber-300/15 blur-3xl" />
-          <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-emerald-400/15 blur-3xl" />
+          <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mx-auto mb-4 border border-white/20">
               <PiggyBank className="w-8 h-8" />
@@ -428,7 +428,7 @@ export default function Welcome() {
       <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2.5">
         <button
           onClick={() => navigate("/register")}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-emerald-950/20"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-violet-700 text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
         >
           Daftar Sekarang <ArrowRight className="w-5 h-5" />
         </button>
@@ -449,8 +449,8 @@ function Section({ children, className = "" }) {
 
 function SectionLabel({ children }) {
   return (
-    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-      <span className="w-5 h-px bg-emerald-600/40" />
+    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+      <span className="w-5 h-px bg-primary/40" />
       {children}
     </div>
   );

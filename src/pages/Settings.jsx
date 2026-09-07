@@ -11,6 +11,7 @@ import LocalBackupRestore from "@/components/LocalBackupRestore";
 import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import NotificationRuleManager from "@/components/NotificationRuleManager";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -55,6 +56,11 @@ export default function Settings() {
         </div>
         <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
       </Link>
+
+      <Section title="Tampilan">
+        <p className="text-xs text-muted-foreground mb-3">Pilih tema aplikasi. "Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
+        <ThemeToggle />
+      </Section>
 
       <Section title="Mata Uang">
         <p className="text-xs text-muted-foreground mb-3">Aktifkan/nonaktifkan mata uang sesuai kebutuhan Anda. Tambahkan mata uang kustom bila tidak tersedia di daftar.</p>

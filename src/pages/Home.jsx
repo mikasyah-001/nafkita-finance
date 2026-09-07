@@ -184,7 +184,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-4">
+      <div className="card-gradient-primary rounded-3xl p-5 shadow-lg mb-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}

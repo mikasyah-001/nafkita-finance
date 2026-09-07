@@ -413,7 +413,7 @@ export default function TransactionDetail() {
         </div>
       </div>
 
-      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 shadow-lg mb-4">
+      <div className="card-gradient-primary rounded-3xl p-5 shadow-lg mb-4">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs opacity-80">{typeLabels[tx.type]}</span>
         </div>

@@ -120,7 +120,7 @@ export default function Zakat() {
       </div>
 
       {/* Ringkasan total gabungan (konversi IDR) */}
-      <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 mb-4 shadow-lg">
+      <div className="card-gradient-accent rounded-3xl p-5 mb-4 shadow-lg">
         <p className="text-xs opacity-80">Total Harta Gabungan (IDR)</p>
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(totalHartaIDR)}</p>
         <div className="flex gap-3 mt-3">

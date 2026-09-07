@@ -40,6 +40,18 @@ module.exports = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			income: {
+  				DEFAULT: 'hsl(var(--income))',
+  				foreground: 'hsl(var(--income-foreground))'
+  			},
+  			expense: {
+  				DEFAULT: 'hsl(var(--expense))',
+  				foreground: 'hsl(var(--expense-foreground))'
+  			},
+  			sedekah: {
+  				DEFAULT: 'hsl(var(--sedekah))',
+  				foreground: 'hsl(var(--sedekah-foreground))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

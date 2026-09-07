@@ -9,5 +9,5 @@ export default function Money({ value, format = "full", currency = "IDR", classN
     if (currency) return formatMoney(value, currency);
     return formatRupiah(value);
   })();
-  return <span className={className}>{text}</span>;
+  return <span className={`tabular-nums ${className}`}>{text}</span>;
 }

@@ -37,6 +37,10 @@
     --expense-foreground: 0 0% 100%;
     --sedekah: 173 75% 31%;
     --sedekah-foreground: 0 0% 100%;
+    --scope-shared: 239 84% 67%;
+    --scope-shared-foreground: 0 0% 100%;
+    --scope-private: 271 65% 60%;
+    --scope-private-foreground: 0 0% 100%;
     /* Tipografi brand */
     --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -83,6 +87,10 @@
     --expense-foreground: 222 47% 11%;
     --sedekah: 173 65% 50%;
     --sedekah-foreground: 222 47% 11%;
+    --scope-shared: 239 84% 72%;
+    --scope-shared-foreground: 222 47% 11%;
+    --scope-private: 271 65% 65%;
+    --scope-private-foreground: 222 47% 11%;
     --sidebar-background: 222 47% 10%;
     --sidebar-foreground: 240 5% 90%;
     --sidebar-primary: 239 84% 72%;
@@ -120,6 +128,19 @@
 
   .card-gradient-accent {
     @apply bg-gradient-to-br from-emerald-500 to-teal-600 text-white;
+  }
+
+  .bg-scope-tint-shared {
+    background-color: color-mix(in srgb, hsl(var(--scope-shared)) 5%, hsl(var(--background)));
+  }
+  .bg-scope-tint-private {
+    background-color: color-mix(in srgb, hsl(var(--scope-private)) 5%, hsl(var(--background)));
+  }
+  .dark .bg-scope-tint-shared {
+    background-color: color-mix(in srgb, hsl(var(--scope-shared)) 8%, hsl(var(--background)));
+  }
+  .dark .bg-scope-tint-private {
+    background-color: color-mix(in srgb, hsl(var(--scope-private)) 8%, hsl(var(--background)));
   }
 }
 

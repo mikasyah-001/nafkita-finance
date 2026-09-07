@@ -126,17 +126,17 @@ export default function Budget() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
           <Users className="w-4 h-4" /> Bersama
         </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
           <Lock className="w-4 h-4" /> Pribadi
         </button>
       </div>
 
       <div className="mb-4"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 
-      <div className="rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white p-5 mb-5 shadow-lg">
+      <div className="rounded-3xl card-gradient-primary p-5 mb-5 shadow-lg">
         <div className="flex items-center gap-2 mb-1">
           <Target className="w-4 h-4 opacity-80" />
           <span className="text-xs opacity-80">{scope === "private" ? "Anggaran Pribadi" : "Anggaran Bersama Keluarga"} • {currency}</span>

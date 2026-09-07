@@ -324,10 +324,10 @@ export default function Reports() {
       )}
 
       <div className="flex gap-2">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
           <Users className="w-4 h-4" /> Bersama
         </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
           <Lock className="w-4 h-4" /> Pribadi
         </button>
       </div>

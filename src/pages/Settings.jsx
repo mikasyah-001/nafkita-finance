@@ -12,6 +12,7 @@ import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import NotificationRuleManager from "@/components/NotificationRuleManager";
 import ThemeToggle from "@/components/ThemeToggle";
+import ColorPreferenceManager from "@/components/ColorPreferenceManager";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -57,9 +58,12 @@ export default function Settings() {
         <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
       </Link>
 
-      <Section title="Tampilan">
+      <Section title="Tampilan & Warna">
         <p className="text-xs text-muted-foreground mb-3">Pilih tema aplikasi. "Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
         <ThemeToggle />
+        <div className="border-t border-border pt-4 mt-4">
+          <ColorPreferenceManager />
+        </div>
       </Section>
 
       <Section title="Mata Uang">

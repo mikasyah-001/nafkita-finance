@@ -11,6 +11,7 @@ import { Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PrivacyProvider } from '@/lib/PrivacyContext';
 import { ScopeProvider } from '@/lib/ScopeContext';
+import { ColorPrefsProvider } from '@/lib/ColorPrefsContext';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Transactions from '@/pages/Transactions';
@@ -122,10 +123,12 @@ function App() {
         <PrivacyProvider>
           <ScopeProvider>
             <QueryClientProvider client={queryClientInstance}>
-              <Router>
-                <ScrollToTop />
-                <AuthenticatedApp />
-              </Router>
+              <ColorPrefsProvider>
+                <Router>
+                  <ScrollToTop />
+                  <AuthenticatedApp />
+                </Router>
+              </ColorPrefsProvider>
               <Toaster />
             </QueryClientProvider>
           </ScopeProvider>

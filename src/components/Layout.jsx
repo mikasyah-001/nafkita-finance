@@ -8,9 +8,11 @@ import NotificationToaster from "./NotificationToaster";
 import InstallPrompt from "./InstallPrompt";
 import { Toaster } from "sonner";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
+import { useScope } from "@/lib/ScopeContext";
 
 export default function Layout() {
   useSeedCategories();
+  const { scope } = useScope();
 
   // Heartbeat: perbarui last_active_at tiap 60 detik + saat tab kembali fokus.
   const heartbeat = useRef(null);
@@ -31,7 +33,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className={`min-h-screen flex ${scope === "private" ? "bg-scope-tint-private" : "bg-scope-tint-shared"}`}>
       <Sidebar />
       <main className="flex-1 pb-28 md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0">
         <Outlet />

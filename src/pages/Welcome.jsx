@@ -301,22 +301,29 @@ export default function Welcome() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
         >
-          {features.map((f) => {
-            const Icon = f.icon;
-            return (
-              <motion.div
-                key={f.title}
-                variants={fadeUp}
-                className="rounded-2xl border border-border bg-card p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-              >
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 ${f.bg}`}>
-                  <Icon className={`w-5 h-5 ${f.text}`} />
-                </div>
-                <p className="text-sm font-semibold leading-tight">{f.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{f.desc}</p>
-              </motion.div>
-            );
-          })}
+          {FEATURE_GROUPS.map((g) => (
+            <div key={g.key} className="col-span-full">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-2.5 first:mt-0">{g.label}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {features.filter((f) => f.group === g.key).map((f) => {
+                  const Icon = f.icon;
+                  return (
+                    <motion.div
+                      key={f.title}
+                      variants={fadeUp}
+                      className="rounded-2xl border border-border bg-card p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 ${g.bg}`}>
+                        <Icon className={`w-5 h-5 ${g.text}`} />
+                      </div>
+                      <p className="text-sm font-semibold leading-tight">{f.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{f.desc}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </motion.div>
       </Section>
 

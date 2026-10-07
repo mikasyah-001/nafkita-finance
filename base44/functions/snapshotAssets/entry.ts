@@ -56,7 +56,7 @@ export default async function (req) {
           let emas_value = 0, investasi_value = 0, bank_value = 0, other_value = 0;
           inCur.forEach((a) => {
             const v = a.value || 0;
-            if (a.type === "emas") emas_value += v;
+            if (a.type === "emas" || a.type === "emas_digital") emas_value += v;
             else if (a.type === "investasi") investasi_value += v;
             else if (a.type === "bank") bank_value += v;
             else other_value += v;

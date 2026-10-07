@@ -51,14 +51,14 @@ export function computeZakatPerCurrency(assets, goldPrices, rateMap = {}) {
     const curAssets = (assets || []).filter((a) => (a.currency || "IDR").toUpperCase() === cur);
     if (curAssets.length === 0) continue;
 
-    const emasAssets = curAssets.filter((a) => a.type === "emas");
+    const emasAssets = curAssets.filter((a) => (a.type === "emas" || a.type === "emas_digital"));
     const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
     const goldPrice = goldPrices[cur] || 0;
     const emasValue = goldPrice > 0
       ? emasGrams * goldPrice
       : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
     const nonEmasValue = curAssets
-      .filter((a) => a.type !== "emas")
+      .filter((a) => (a.type !== "emas" && a.type !== "emas_digital"))
       .reduce((s, a) => s + (a.value || 0), 0);
 
     const nisab = goldPrice * NISAB_GRAM;

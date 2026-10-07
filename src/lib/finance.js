@@ -231,6 +231,7 @@ export function activeCurrencies(summary) {
 // Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).
 // Emas dan simpanan diperlakukan terpisah: emas nisab 85 gr, simpanan nisab = 85 gr emas.
 export const NISAB_GRAM = 85;
+export const isGoldType = (type) => type === "emas" || type === "emas_digital";
 
 export function computeZakat({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
   const nisab = goldPrice > 0 ? goldPrice * NISAB_GRAM : 0;
@@ -311,6 +312,7 @@ export function formatDuration(fromDate) {
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
   emas: { label: "Emas", icon: "Coins", color: "amber" },
+  emas_digital: { label: "Emas Digital", icon: "Coins", color: "amber" },
   investasi: { label: "Investasi", icon: "Briefcase", color: "green" },
   properti: { label: "Properti", icon: "Home", color: "violet" },
   tanah: { label: "Tanah", icon: "Map", color: "cyan" },

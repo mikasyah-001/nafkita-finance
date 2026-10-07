@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType } from "@/lib/finance";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
 import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers, Globe, AlertTriangle } from "lucide-react";
@@ -45,7 +45,7 @@ export default function AssetDashboard() {
 
   // Nilai dasar aset (goldPrice override hanya berlaku untuk emas IDR).
   const baseValue = (a) => {
-    if (a.type === "emas" && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") {
+    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") {
       return a.quantity * goldPriceNum;
     }
     return a.value || 0;
@@ -56,41 +56,41 @@ export default function AssetDashboard() {
     return baseValue(a);
   };
 
-  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
+  const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasAssets.reduce((s, a) => s + displayValue(a), 0);
-  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + convertTo(a.type === "emas" && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
+  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + convertTo(isGoldType(a.type) && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
   const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
   const investasiValue = investasiAssets.reduce((s, a) => s + displayValue(a), 0);
   const investasiPurchase = investasiAssets.reduce((s, a) => s + convertTo(a.purchase_price || 0, (a.currency || "IDR"), displayCurrency, rateMap), 0);
 
-  const nonEmasValue = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + displayValue(a), 0);
+  const nonEmasValue = scopedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + displayValue(a), 0);
 
   // Zakat selalu dihitung dalam IDR (nisab emas berbasis harga emas Rupiah).
   const emasValueIdr = emasAssets.reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
-  const nonEmasValueIdr = scopedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
+  const nonEmasValueIdr = scopedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
 
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
   const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
   const missingRates = assetCurrencies.filter((c) => c !== displayCurrency && !hasRate(c, rateMap));
-  const totalPurchase = scopedAssets.reduce((s, a) => s + convertTo((a.type === "emas" || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
+  const totalPurchase = scopedAssets.reduce((s, a) => s + convertTo((isGoldType(a.type) || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
-  const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
-  const allocation = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
+  const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
+  const allocation = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + displayValue(a), 0);
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
 
-  const typeTotals = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"]
+  const typeTotals = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + displayValue(a), 0);
-      const purchase = list.reduce((s, a) => s + convertTo((type === "emas" || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
+      const purchase = list.reduce((s, a) => s + convertTo((isGoldType(type) || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
       const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
       return { type, value, purchase, growth, count: list.length };
     })
@@ -283,7 +283,7 @@ export default function AssetDashboard() {
                   </div>
                   <p className="text-xs text-muted-foreground">{meta.label}</p>
                   <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, displayCurrency)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{t.type === "emas" ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{isGoldType(t.type) ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
                 </div>
               );
             })}
@@ -296,7 +296,7 @@ export default function AssetDashboard() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = displayValue(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (isGoldType(a.type) || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             return (
@@ -307,7 +307,7 @@ export default function AssetDashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {meta.label}{a.broker ? ` • ${a.broker}` : ""}{a.quantity ? ` • ${formatNumber(a.quantity)} ${a.type === "emas" ? "gr" : a.type === "tanah" ? "m²" : (a.unit || "")}` : ""}{isConsolidated && (a.currency || "IDR") !== displayCurrency ? ` • ${a.currency}` : ""}
+                    {meta.label}{a.broker ? ` • ${a.broker}` : ""}{a.quantity ? ` • ${formatNumber(a.quantity)} ${isGoldType(a.type) ? "gr" : a.type === "tanah" ? "m²" : (a.unit || "")}` : ""}{isConsolidated && (a.currency || "IDR") !== displayCurrency ? ` • ${a.currency}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0">

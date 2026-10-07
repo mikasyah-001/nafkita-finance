@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useZakatPayments, useRefresh } from "@/hooks/useFinance";
-import { formatNumber, computeZakat, NISAB_GRAM } from "@/lib/finance";
+import { formatNumber, computeZakat, NISAB_GRAM, isGoldType } from "@/lib/finance";
 import Money from "@/components/Money";
 import { toast } from "sonner";
 import { Coins, Wallet, CheckCircle2, Bell, Loader2 } from "lucide-react";
@@ -19,10 +19,10 @@ export default function ZakatNotifier() {
   const year = new Date().getFullYear();
   const goldPriceNum = Number(goldPrice) || 0;
   const sharedAssets = assets.filter((a) => a.visibility !== "private");
-  const emasAssets = sharedAssets.filter((a) => a.type === "emas");
+  const emasAssets = sharedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = goldPriceNum > 0 ? emasGrams * goldPriceNum : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-  const nonEmasValue = sharedAssets.filter((a) => a.type !== "emas").reduce((s, a) => s + (a.value || 0), 0);
+  const nonEmasValue = sharedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + (a.value || 0), 0);
 
   const myPayments = zakatPayments.filter((z) => z.created_by_id === user?.id);
   const isPaid = (type) => myPayments.some((z) => z.year === year && z.zakat_type === type && z.status === "paid");

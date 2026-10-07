@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -52,7 +52,7 @@ export default function Assets() {
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
 
   const currentValue = (a) => {
-    if (a.type === "emas" && a.quantity && goldPriceNum > 0) return a.quantity * goldPriceNum;
+    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0) return a.quantity * goldPriceNum;
     return a.value || 0;
   };
   const convertedValue = (a) => convertTo(currentValue(a), (a.currency || "IDR"), displayCurrency, rateMap);
@@ -71,7 +71,7 @@ export default function Assets() {
   // Reset paginasi saat filter/sort/scope berubah.
   useEffect(() => { setVisibleCount(10); }, [sortBy, typeFilter, scope]);
 
-  const typeOptions = ["all", "bank", "emas", "investasi", "properti", "tanah", "lainnya"];
+  const typeOptions = ["all", "bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
   const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
 
   const sortedAssets = [...filteredAssets].sort((a, b) => {
@@ -85,7 +85,7 @@ export default function Assets() {
   });
 
   const total = scopedAssets.reduce((s, a) => s + convertedValue(a), 0);
-  const emasAssets = scopedAssets.filter((a) => a.type === "emas");
+  const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
 
   const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
@@ -208,11 +208,11 @@ export default function Assets() {
             const curVal = currentValue(a);
             const rank = rankMap[a.id];
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (a.type === "emas" || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
+            const totalPurchase = hasPurchase ? (a.quantity && (isGoldType(a.type) || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             const isGain = gain >= 0;
-            const showChange = hasPurchase && (a.type !== "emas" || goldPriceNum > 0);
+            const showChange = hasPurchase && (!isGoldType(a.type) || goldPriceNum > 0);
             const duration = formatDuration(a.purchase_date);
 
             return (
@@ -233,7 +233,7 @@ export default function Assets() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {meta.label}{a.owner ? ` • ${a.owner}` : ""}
-                      {a.type === "emas" && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
+                      {isGoldType(a.type) && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "tanah" && a.quantity ? ` • ${formatNumber(a.quantity)} m²` : ""}
                       {a.type === "investasi" && a.broker ? ` • ${a.broker}` : ""}
                       {a.type === "bank" && a.broker ? ` • ${a.broker}` : ""}
@@ -299,7 +299,7 @@ export default function Assets() {
                     ) : hasPurchase && (
                       <>
                         <div>
-                          <p className="text-muted-foreground">Harga Beli{a.type === "emas" ? " /gr" : ""}</p>
+                          <p className="text-muted-foreground">Harga Beli{isGoldType(a.type) ? " /gr" : ""}</p>
                           <p className="font-medium"><Money value={a.purchase_price} currency={a.currency} /></p>
                         </div>
                         <div>

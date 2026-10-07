@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { formatMoney, formatNumber, colorMap, assetTypeLabels, convertTo } from "@/lib/finance";
+import { formatMoney, formatNumber, colorMap, assetTypeLabels, convertTo, isGoldType } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 
-const typeColors = { bank: "#3b82f6", emas: "#f59e0b", investasi: "#10b981", properti: "#8b5cf6", tanah: "#06b6d4", lainnya: "#64748b" };
+const typeColors = { bank: "#3b82f6", emas: "#f59e0b", emas_digital: "#f59e0b", investasi: "#10b981", properti: "#8b5cf6", tanah: "#06b6d4", lainnya: "#64748b" };
 
 export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "IDR", rateMap = {} }) {
   const conv = (val, fromCur) => convertTo(val, fromCur, currency, rateMap);
@@ -13,7 +13,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
     const map = {};
     assets.forEach((a) => {
       const t = a.type || "lainnya";
-      const raw = a.type === "emas" && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0);
+      const raw = isGoldType(a.type) && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0);
       map[t] = (map[t] || 0) + conv(raw, (a.currency || "IDR"));
     });
     return Object.entries(map)
@@ -27,9 +27,9 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
       assets.map((a) => {
         const aCur = a.currency || "IDR";
         const purchase = a.purchase_price
-          ? conv((a.type === "emas" || a.type === "tanah") && a.quantity ? a.purchase_price * a.quantity : a.purchase_price, aCur)
+          ? conv((isGoldType(a.type) || a.type === "tanah") && a.quantity ? a.purchase_price * a.quantity : a.purchase_price, aCur)
           : 0;
-        const current = conv(a.type === "emas" && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0), aCur);
+        const current = conv(isGoldType(a.type) && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0), aCur);
         const gain = purchase > 0 ? current - purchase : 0;
         const gainPct = purchase > 0 ? (gain / purchase) * 100 : 0;
         return { ...a, purchase, current, gain, gainPct };

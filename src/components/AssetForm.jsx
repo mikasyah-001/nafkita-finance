@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { assetTypeLabels, formatRupiah, currencySymbol } from "@/lib/finance";
+import { assetTypeLabels, formatRupiah, currencySymbol, isGoldType } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
 
-const types = ["bank", "emas", "investasi", "properti", "tanah", "lainnya"];
+const types = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
+
+const digitalGoldBrokers = {
+  SAR: ["Bank Al Rajhi", "Bank Aljazira", "SNB"],
+  IDR: ["Bank BSI", "BCA", "Pegadaian"],
+  USD: ["BullionStar", "Goldmoney"],
+};
 
 const empty = {
   name: "", type: "bank", value: "", quantity: "", unit: "", broker: "",
@@ -54,14 +60,14 @@ export default function AssetForm({ asset, onClose }) {
 
   const handleSave = async () => {
     if (!form.name) return toast.error("Isi nama aset");
-    if (!form.value && form.type !== "emas") return toast.error("Isi nilai aset");
-    if (form.type === "emas" && !form.quantity) return toast.error("Isi jumlah gram emas");
+    if (!form.value && !isGoldType(form.type)) return toast.error("Isi nilai aset");
+    if (isGoldType(form.type) && !form.quantity) return toast.error("Isi jumlah gram emas");
     if (form.type === "tanah" && !form.quantity) return toast.error("Isi luas tanah");
     if (form.type === "tanah" && !form.purchase_price) return toast.error("Isi harga beli per m²");
     setSaving(true);
     try {
       const value =
-        form.type === "emas" && form.quantity && form.purchase_price
+        isGoldType(form.type) && form.quantity && form.purchase_price
           ? Number(form.quantity) * Number(form.purchase_price)
           : Number(form.value);
       const payload = {
@@ -69,7 +75,7 @@ export default function AssetForm({ asset, onClose }) {
         type: form.type,
         value,
         quantity: form.quantity ? Number(form.quantity) : 0,
-        unit: form.type === "emas" ? "gram" : form.type === "tanah" ? "m²" : form.unit,
+        unit: isGoldType(form.type) ? "gram" : form.type === "tanah" ? "m²" : form.unit,
         purchase_date: form.purchase_date || "",
         purchase_price: form.purchase_price ? Number(form.purchase_price) : 0,
         purchase_proof_url: form.purchase_proof_url || "",
@@ -111,21 +117,44 @@ export default function AssetForm({ asset, onClose }) {
           <Field label="Jenis">
             <div className="flex gap-2 flex-wrap">
               {types.map((t) => (
-                <button key={t} onClick={() => setForm({ ...form, type: t, unit: t === "emas" ? "gram" : t === "tanah" ? "m²" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <button key={t} onClick={() => setForm({ ...form, type: t, unit: isGoldType(t) ? "gram" : t === "tanah" ? "m²" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   {assetTypeLabels[t].label}
                 </button>
               ))}
             </div>
           </Field>
 
-          {form.type === "emas" ? (
+          {isGoldType(form.type) ? (
             <>
+              {form.type === "emas_digital" && (
+                <Field label="Mata Uang">
+                  <div className="flex flex-wrap gap-2">
+                    {userCurrencies.map((c) => (
+                      <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
+                        {c.code}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              )}
               <Field label="Jumlah (gram)">
                 <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" className="input" />
               </Field>
-              <Field label="Harga Beli / gram (Rp)">
-                <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="Mis. 1350000" className="input" />
+              <Field label={`Harga Beli / gram (${form.type === "emas_digital" ? sym : "Rp"})`}>
+                <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="0" className="input" />
               </Field>
+              {form.type === "emas_digital" && (
+                <Field label="Tempat Pembelian / Penyimpanan">
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {(digitalGoldBrokers[form.currency] || []).map((b) => (
+                      <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                  <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bank Al Rajhi, Bank BSI, Pegadaian..." className="input" />
+                </Field>
+              )}
             </>
           ) : form.type === "tanah" ? (
             <>
@@ -163,7 +192,7 @@ export default function AssetForm({ asset, onClose }) {
             <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
           </Field>
 
-          {form.type !== "emas" && form.type !== "tanah" && (
+          {!isGoldType(form.type) && form.type !== "tanah" && (
             <Field label={`Harga Pembelian (${sym}, opsional)`}>
               <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
             </Field>

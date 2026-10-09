@@ -175,12 +175,13 @@ export default function AddTransaction() {
         setSavingMulti(false);
         return;
       }
-      await base44.entities.Transaction.bulkCreate(toSave);
-      if (visibility === "shared") {
-        try { await base44.functions.invoke("notifyPartnerBulk", { batch_id: batchId, count: toSave.length }); } catch {}
+      const { data: res } = await base44.functions.invoke("saveTransactionBatch", { transactions: toSave });
+      if (visibility === "shared" && res.saved > 0) {
+        try { await base44.functions.invoke("notifyPartnerBulk", { batch_id: batchId, count: res.saved }); } catch {}
       }
       refresh();
-      toast.success(`${toSave.length} transaksi tersimpan!`, skipped.length ? { description: `${skipped.length} transaksi duplikat dilewati.` } : undefined);
+      const notes = [res.pending ? `${res.pending} menunggu persetujuan pasangan.` : "", skipped.length ? `${skipped.length} duplikat dilewati.` : ""].filter(Boolean).join(" ");
+      toast.success(`${res.saved + res.pending} transaksi tersimpan!`, notes ? { description: notes } : undefined);
       navigate("/");
     } catch (err) {
       toast.error("Gagal menyimpan transaksi");

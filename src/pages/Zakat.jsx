@@ -6,6 +6,7 @@ import { formatRupiah, formatNumber, NISAB_GRAM } from "@/lib/finance";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import Money from "@/components/Money";
+import ZakatMethodNotice from "@/components/ZakatMethodNotice";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
 import { ArrowLeft, Coins, Wallet, Bell, CheckCircle2, AlertCircle, Loader2, Mail, Users, Lock, Scale, Globe } from "lucide-react";
@@ -108,6 +109,8 @@ export default function Zakat() {
           <p className="text-xs text-muted-foreground mt-0.5">Nisab per mata uang • 85 gr emas</p>
         </div>
       </div>
+
+      <ZakatMethodNotice />
 
       {/* Scope toggle */}
       <div className="flex gap-2 mb-4">

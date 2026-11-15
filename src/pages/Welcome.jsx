@@ -108,7 +108,7 @@ export default function Welcome() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary/5 via-background to-background pb-28">
       {/* ───────── HERO ───────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
         {/* Decorative orbs */}
         <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-warning/15 blur-3xl" />
         <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-scope-private/15 blur-3xl" />
@@ -128,9 +128,10 @@ export default function Welcome() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="text-[3rem] leading-none font-bold tracking-tight"
+            className="flex items-center gap-3"
           >
-            NAFKITA
+            <img src="/brand/mark.png" alt="" className="w-16 h-16 drop-shadow-lg" />
+            <img src="/brand/wordmark-light.png" alt="NAFKITA" className="h-9 w-auto" />
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
@@ -152,9 +153,9 @@ export default function Welcome() {
               <div className="absolute inset-0 bg-warning/20 blur-2xl rounded-[2.5rem]" />
               <div className="relative rounded-[2.5rem] border-[7px] border-white/25 bg-white shadow-2xl overflow-hidden">
                 {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-[hsl(226_30%_12%)] rounded-b-2xl z-10" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-[hsl(168_40%_8%)] rounded-b-2xl z-10" />
                 {/* Header */}
-                <div className="bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] p-4 pt-6 text-white">
+                <div className="bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] p-4 pt-6 text-white">
                   <p className="text-[11px] opacity-80">Saldo bersama • bulan ini</p>
                   <p className="text-2xl font-bold tracking-tight tabular-nums">Rp 4,2 jt</p>
                   <div className="flex gap-2 mt-3 text-[8px]">
@@ -260,7 +261,7 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-primary via-[hsl(226_55%_52%)] to-[hsl(212_55%_46%)] text-white p-6 overflow-hidden relative shadow-xl shadow-primary/20"
+          className="rounded-3xl bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white p-6 overflow-hidden relative shadow-xl shadow-primary/20"
         >
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-warning/15 blur-3xl" />
           <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
@@ -376,7 +377,7 @@ export default function Welcome() {
               const Icon = s.icon;
               return (
                 <motion.div key={i} variants={fadeUp} className="relative flex items-start gap-3.5">
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
+                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 pt-2">
@@ -397,10 +398,10 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-primary/5 to-sky-50 dark:to-sky-950/10 border border-primary/20 p-5"
+          className="rounded-3xl bg-gradient-to-br from-primary/5 to-gold/10 border border-primary/20 p-5"
         >
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] flex items-center justify-center shadow-md shadow-primary/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] flex items-center justify-center shadow-md shadow-primary/20">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-lg font-bold tracking-tight">Kenapa memilih NAFKITA?</h2>
@@ -425,7 +426,7 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
+          className="rounded-3xl bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
         >
           <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-warning/15 blur-3xl" />
           <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
@@ -445,7 +446,7 @@ export default function Welcome() {
       <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2.5">
         <button
           onClick={() => navigate("/register")}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[hsl(218_55%_48%)] text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
+          className="w-full py-3.5 rounded-2xl bg-gold text-gold-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
         >
           Daftar Sekarang <ArrowRight className="w-5 h-5" />
         </button>

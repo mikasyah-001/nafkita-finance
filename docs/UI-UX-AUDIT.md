@@ -197,3 +197,120 @@ Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai bac
 **Temuan dari uji alur:**
 - **Dua sistem notifikasi.** Aplikasi memakai sonner dan shadcn toast sekaligus. Notifikasi shadcn ("Transaksi disetujui") menutupi seluruh header halaman, termasuk tombol kembali, dan berhenti menghitung mundur selama kursor berada di atasnya. Sekarang semua notifikasi memakai sonner, dipasang global sehingga halaman daftar akun juga mendapatkannya.
 - **Tombol edit transaksi** hanya punya `title`. Sekarang ditambah `aria-label` agar terbaca oleh pembaca layar.
+
+## 14. Rebrand NAFKITA: logo baru & arah visual "Hutan & Emas"
+
+- **Logo:** dompet hijau + wordmark. Asetnya ada di `public/brand/` (ikon, wordmark gelap & terang, ikon PWA 180/192/512) dan `public/favicon.png`. Dipakai di favicon, manifest PWA, sidebar, halaman auth, dan Welcome lewat komponen `BrandLogo`. Logo Base44 tidak lagi dipakai.
+- **Palet dari logo:**
+  - latar gading `#F8F6EF`;
+  - primer hijau hutan `#157A5A`;
+  - aksen emas `#F8C33A` (tombol Catat, CTA Daftar);
+  - hero hijau tua dengan pendar emas;
+  - pastel mint/mentega/limau/persik/sage untuk kartu rencana;
+  - mode gelap hijau-hitam.
+- **Beranda (arah B, versi elegan):**
+  - sapaan pasangan dengan avatar berdua;
+  - chip aksi cepat;
+  - hero "Sisa uang bulan ini";
+  - carousel **Rencana kita** (target tabungan);
+  - **pengingat kontekstual** berbasis aturan: pengeluaran > pemasukan, belum ada anggaran, belum mencatat hari ini;
+  - judul seksi berupa pertanyaan: "Ke mana perginya?", "Masih aman?", "Jejak terakhir".
+- **Navigasi bawah:** pil melayang dengan tombol Catat emas; item aktif berupa ubin lembut.
+- Pola diadopsi dari referensi, tetapi identitas visualnya (warna, logo, ilustrasi) tetap milik NAFKITA.
+
+## 15. Fitur baru dari referensi (bertahap)
+
+### 15.1 Laporan bulanan sebagai gambar
+- Di **Laporan › Bulan ini** ada tombol "Bagikan sebagai gambar". Gambar berisi total pengeluaran, pemasukan, sedekah, rasio menabung, 4 kategori teratas, kontribusi per orang, dan catatan pengeluaran luar biasa.
+- Di HP gambar bisa dibagikan langsung ke WhatsApp; di perangkat lain bisa disimpan sebagai PNG. Daftar transaksi rinci sengaja tidak dimuat.
+
+### 15.2 Audit kas tunai & pengeluaran luar biasa
+- **Struktur data:** jenis aset baru `tunai` (enum Asset, aditif).
+- **Halaman `/audit-kas`:**
+  - menampilkan "seharusnya di tangan" untuk dompet yang dipilih;
+  - tiga langkah: tarik tunai (Transfer rekening → dompet), belanja tunai ("Dibayar dari" dompet), hitung uang fisik;
+  - selisih disesuaikan lewat `reconcileAsset` yang sudah ada.
+- **Aturan kunci:** hanya transaksi yang dibayar dari dompet itu yang dihitung. Ini menghindari kesalahan di aplikasi referensi, yang membandingkan semua pengeluaran (termasuk non-tunai) dengan tarik tunai.
+- **Pengeluaran luar biasa:** tag `luar-biasa`, diatur lewat sakelar di form Catat. Tetap masuk total, tetapi dikeluarkan dari rata-rata harian ("rutin"). Ditandai badge di daftar transaksi dan disebut di laporan.
+
+### 15.3 Rencana bulanan
+- **Struktur data:** `Budget.kind`: `expense` | `income_plan` | `savings_plan` (aditif; anggaran lama otomatis `expense`).
+- **Kartu "Rencana bulan ini"** di Anggaran berisi target pemasukan dan target menabung. Capaian memakai logika yang sama dengan Beranda: menabung = pemasukan − pengeluaran − sedekah.
+- Progres rencana menabung juga tampil di kartu saldo Beranda.
+- **Bug diperbaiki:** toggle Bersama/Pribadi di halaman Anggaran tidak berpengaruh, karena halaman itu memakai state lokal sementara toggle mengubah state global.
+- **Bug diperbaiki:** aturan latar input global terlalu spesifik sehingga menimpa `bg-transparent`, dan kolom di kartu pastel tampil sebagai kotak putih/hitam. Sekarang memakai `:where()`.
+
+### Verifikasi
+- Unit test: 24/24.
+- Uji alur `npm run qa:flows`: 11 alur, termasuk audit kas, pengeluaran luar biasa, rencana menabung, dan toggle cakupan Anggaran.
+
+### Catatan untuk Base44
+Perubahan skema (`Asset.type` + `tunai`, `Budget.kind`) ada di `base44/entities/`. Pastikan Base44 menerapkan skema terbaru setelah merge. Bila skema belum ikut tersinkron, membuat dompet tunai atau menyimpan rencana bisa ditolak oleh validasi.
+
+## 16. Perapian menyeluruh tahap akhir
+
+- **Catat transaksi:**
+  - urutan mengikuti alur pikir: jenis → nominal (kartu hero, format ribuan, nominal cepat) → scan → template/kategori → detail (satu kartu) → opsi lanjutan;
+  - footer simpan menempel dengan ringkasan.
+- **Riwayat:**
+  - ringkasan masuk/keluar/selisih untuk tampilan yang difilter, cari & filter bergaya kartu, grup harian;
+  - neto harian kini tanpa transfer/pending, dan sedekah dihitung sebagai uang keluar.
+- **Semua form modal** (aset, target, kategori, utang, pelunasan, tagihan) memakai `FormSheet` yang sama.
+- **Halaman lain ditata seragam:** Transfer, Zakat, Pengaturan, Profil, Persetujuan, Rekonsiliasi, Kesehatan Data, Panduan, Umpan Balik, Target, Kategori, Utang, Tagihan.
+- **Pengaturan dirampingkan:**
+  - pemilih warna (bertentangan dengan brand tetap) dihapus;
+  - menu Kategori/Impor/Catat dihapus karena duplikat;
+  - kartu Panduan dihapus karena duplikat;
+  - Panel Admin hanya untuk admin.
+
+### Audit alur tambah aset
+
+| Masalah | Perbaikan |
+|---|---|
+| Ganti jenis membawa gram/harga/satuan lama | `switchAssetType()` mengosongkan isian yang maknanya berbeda |
+| Emas fisik & tanah bisa tersimpan SAR padahal label "Rp" | Dikunci IDR |
+| Emas tanpa harga beli tersimpan bernilai 0 | Harga beli/gram wajib |
+| Tanah tanpa harga sekarang bernilai 0 | Default = luas × harga/m² |
+| Bank/tunai ditanya harga & bukti beli (mengacaukan pertumbuhan aset) | Tidak ditanyakan & tidak disimpan |
+| Halaman Aset menghitung emas digital SAR dengan harga emas Rupiah | Harga emas Rupiah hanya untuk emas IDR |
+| Angka negatif diterima | Ditolak |
+
+Aturan ini dikumpulkan di `buildAssetPayload()` dan dijaga oleh 7 unit test + 2 uji alur layar.
+
+### Verifikasi
+- Unit test: 31/31.
+- `npm run qa`: 23 halaman × 2 mode, 0 error JS.
+- `npm run qa:flows`: 13/13 alur lolos.
+
+## 17. Audit zakat mal
+
+**Rujukan:** praktik BAZNAS (situs BAZNAS daerah) dan PMA 52/2014 jo. PMA 31/2019. Ketentuannya:
+- nisab 85 gr emas dengan harga saat dihitung, kadar 2,5%, haul 1 tahun hijriah;
+- harta simpanan (tabungan, deposito, emas) digabung;
+- utang jatuh tempo dikurangkan;
+- rumah tinggal dan kendaraan pakai bukan objek zakat mal.
+
+| Temuan | Jenis | Perbaikan |
+|---|---|---|
+| Nisab dihitung terpisah per mata uang | Syariat | Semua harta simpanan dikonversi & digabung dalam IDR |
+| Emas & simpanan dicek nisab terpisah (50 gr + Rp60 jt → tidak wajib) | Syariat | Digabung |
+| Rumah, tanah, "lainnya" ikut dihitung | Syariat | Dikecualikan dan ditampilkan sebagai "Tidak dihitung" |
+| Utang jatuh tempo tidak dikurangkan; piutang diabaikan | Syariat | Utang ≤12 bulan dikurangkan; piutang lancar dihitung (bisa dimatikan) |
+| Emas dinilai harga beli bila harga pasar belum ada | Syariat | Wajib harga emas terkini; status "Butuh harga emas" |
+| Haul tidak ada; lunas dicatat per tahun Masehi | Syariat/alur | Tanggal haul (354 hari), periode & jatuh tempo hijriah |
+| 3 jalur hitung berbeda (backend, Dashboard Aset, notifier) | Alur | `src/lib/zakat.js` + cermin `base44/shared/zakat.ts`; paritas diuji |
+| Lunas per jenis tanpa mata uang (bayar emas IDR = emas SAR lunas) | Bug | Pembayaran per periode haul, bisa dicicil, sisa terlihat |
+| Bayar zakat tidak tercatat di keuangan | Alur | Tercatat sebagai transaksi sedekah kategori Zakat (opsional dari rekening) |
+| Toggle Bersama/Pribadi di halaman Zakat tidak berpengaruh | Bug | Dihapus |
+| Input harga emas tidak dipakai perhitungan | Bug | Dipakai & disimpan di profil |
+| Harga emas dari AI tanpa batas kewajaran | Risiko | Rentang Rp500 rb–10 jt/gr; sumber & tanggal ditampilkan |
+| Email: nominal SAR diformat "Rp"; dikirim tanpa melihat haul | Bug | Aturan sama, format benar, hanya saat haul ≤30 hari |
+
+**Masih bergantung pada keputusan pengguna/amil:**
+- Perhiasan yang dipakai: semua emas dihitung (lebih hati-hati).
+- Saham/reksa dana dihitung dengan nilai pasar.
+- Harta suami & istri dihitung gabungan (milik sendiri + bersama pasangan). Bila ingin per individu, perlu atribut kepemilikan per aset.
+
+## 18. Simbol riyal Saudi resmi
+- Simbol SAMA (Feb 2025), Unicode 17 **U+20C1**. Font bawaan perangkat umumnya belum memuat glyph-nya, jadi font *Saudi Riyal* (OFL-1.1) disertakan di `public/fonts/saudi-riyal` khusus untuk karakter itu (`unicode-range`).
+- Tampilan aplikasi memakai simbol resmi. PDF, CSV, email, dan teks dropdown native memakai kode "SAR" (`formatMoneyPlain`), karena tidak bisa memuat font tambahan.

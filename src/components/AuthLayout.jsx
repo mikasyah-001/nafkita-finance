@@ -1,17 +1,17 @@
 import React from "react";
+import BrandLogo from "@/components/BrandLogo";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ icon: _icon, title, subtitle, footer, children }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+          <BrandLogo variant="mark" markClassName="h-20 w-20 mx-auto" className="block mb-2" />
+          <BrandLogo variant="wordmark" wordClassName="h-6" className="justify-center mb-6" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
         </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+        <div className="bg-card rounded-3xl shadow-[0_20px_50px_-30px_hsl(var(--hero-from)/0.45)] border border-border p-7">
           {children}
         </div>
         {footer && (

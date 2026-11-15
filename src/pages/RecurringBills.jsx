@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { Plus, Loader2, X, RefreshCw, Pause, Play, Check, CalendarClock } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Pause, Play, Check, CalendarClock, Tag, Repeat, CalendarDays, Landmark, NotebookPen } from "lucide-react";
+import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 
@@ -43,63 +44,81 @@ export default function RecurringBills() {
     setToggling(null);
   };
 
+  const activeCount = myBills.filter((b) => b.status === "active").length;
+
   return (
-    <div className="px-5 pt-6 space-y-5">
+    <div className="px-5 pt-6 pb-6 space-y-5">
       <PageHeader
-        title="Tagihan Berulang"
+        title="Tagihan berulang"
+        subtitle="Listrik, internet, sewa, dan langganan rutin"
         back
         actions={<>
-          <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+          <button onClick={() => setShowForm(true)} aria-label="Tambah tagihan berulang" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
             <Plus className="w-5 h-5" />
           </button>
         </>}
       />
 
-      <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
-        <RefreshCw className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">
-          Tagihan berulang membuat transaksi otomatis sesuai frekuensi. Pastikan saldo rekening mencukupi pada tanggal berikutnya.
-        </p>
-      </div>
+      <section className="card-pastel card-pastel-mint rounded-3xl p-4 flex items-start gap-3">
+        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
+          <RefreshCw className="w-5 h-5" />
+        </span>
+        <div className="min-w-0">
+          {!isLoading && myBills.length > 0 && (
+            <p className="font-heading font-bold text-[15px] leading-tight mb-0.5">{activeCount} aktif · {myBills.length - activeCount} dijeda</p>
+          )}
+          <p className="text-xs opacity-80">
+            Tagihan berulang membuat transaksi otomatis sesuai frekuensi. Pastikan saldo rekening mencukupi pada tanggal berikutnya.
+          </p>
+        </div>
+      </section>
 
-      {isLoading ? (
-        <ListSkeleton rows={3} />
-      ) : myBills.length === 0 ? (
-        <EmptyState icon={RefreshCw} title="Belum ada tagihan berulang" subtitle="Atur tagihan otomatis seperti listrik, internet, atau sewa untuk dicatat tanpa perlu input manual." />
-      ) : (
-        <div className="space-y-3">
-          {myBills.map((b) => {
-            const cm = colorMap[b.status === "active" ? "green" : "slate"] || colorMap.slate;
-            const asset = assets.find((a) => a.id === b.linked_asset_id);
-            const isOverdue = b.status === "active" && b.next_date && new Date(b.next_date + "T00:00:00.000Z") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
-            return (
-              <div key={b.id} className="surface p-4">
-                <div className="flex items-start justify-between gap-3">
+      <section>
+        <div className="mb-2.5">
+          <h2 className="font-semibold text-[17px] leading-tight">Daftar tagihan</h2>
+          <p className="text-xs text-muted-foreground">Jeda kapan saja tanpa menghapus</p>
+        </div>
+
+        {isLoading ? (
+          <ListSkeleton rows={3} />
+        ) : myBills.length === 0 ? (
+          <EmptyState icon={RefreshCw} title="Belum ada tagihan berulang" subtitle="Atur tagihan otomatis seperti listrik, internet, atau sewa untuk dicatat tanpa perlu input manual." />
+        ) : (
+          <div className="surface rounded-3xl divide-y divide-border">
+            {myBills.map((b) => {
+              const isActive = b.status === "active";
+              const asset = assets.find((a) => a.id === b.linked_asset_id);
+              const isOverdue = b.status === "active" && b.next_date && new Date(b.next_date + "T00:00:00.000Z") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
+              return (
+                <div key={b.id} className="flex items-start gap-3 px-4 py-3.5">
+                  <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${b.type === "sedekah" ? "bg-sedekah/15 text-sedekah" : "bg-expense/10 text-expense"} ${isActive ? "" : "opacity-60"}`}>
+                    <RefreshCw className="w-4 h-4" />
+                  </span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm truncate">{b.category}</p>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
-                        {b.status === "active" ? "Aktif" : "Jeda"}
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate">{b.category}</p>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${isActive ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                        {isActive ? "Aktif" : "Jeda"}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatMoney(b.amount, b.currency)} • {frequencyLabels[b.frequency] || b.frequency}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{formatMoney(b.amount, b.currency)} • {frequencyLabels[b.frequency] || b.frequency}</p>
                     {asset && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Dari: {asset.name}</p>}
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                      <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
+                      <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        {isOverdue ? "Jatuh tempo — akan diproses" : `Berikutnya: ${formatDate(b.next_date, "dd MMM yyyy")}`}
+                      </span>
+                    </div>
                   </div>
-                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} className="disabled:opacity-50 btn-icon btn-icon-sm">
+                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} aria-label={isActive ? `Jeda tagihan ${b.category}` : `Lanjutkan tagihan ${b.category}`} className="disabled:opacity-50 btn-icon btn-icon-sm shrink-0">
                     {toggling === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : b.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
                 </div>
-                <div className="mt-3 flex items-center gap-2 text-[11px]">
-                  <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
-                  <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
-                    {isOverdue ? "Jatuh tempo — akan diproses" : `Berikutnya: ${formatDate(b.next_date, "dd MMM yyyy")}`}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {showForm && <BillForm user={user} userCurrencies={userCurrencies} assets={assets} onClose={() => setShowForm(false)} onSaved={() => { refresh(); setShowForm(false); }} />}
     </div>
@@ -148,73 +167,74 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end md:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
-          <h2 className="font-semibold">Tagihan Berulang</h2>
-          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
-        </div>
-        <div className="px-5 py-5 space-y-4">
-          <div className="flex gap-2 bg-muted p-1 rounded-2xl">
-            {["expense", "sedekah"].map((t) => (
-              <button key={t} onClick={() => setType(t)} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${type === t ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
-                {t === "expense" ? "Pengeluaran" : "Sedekah"}
-              </button>
-            ))}
-          </div>
-          <div>
-            <label htmlFor="recurring-category" className="text-xs text-muted-foreground mb-1.5 block">Kategori / Nama Tagihan</label>
-            <input id="recurring-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Mis. Listrik, Internet, Sewa..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
-            <div className="flex flex-wrap gap-2">
+    <FormSheet
+      title="Tagihan berulang"
+      subtitle="Dicatat otomatis sesuai frekuensi yang dipilih."
+      onClose={onClose}
+      footer={
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
+        </button>
+      }
+    >
+      <div role="tablist" aria-label="Jenis tagihan" className="flex gap-1 p-1 rounded-2xl bg-muted">
+        {["expense", "sedekah"].map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={type === t} onClick={() => setType(t)}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-colors ${type === t ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            {t === "expense" ? "Pengeluaran" : "Sedekah"}
+          </button>
+        ))}
+      </div>
+
+      <section className="card-gradient-primary rounded-[24px] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="recurring-amount" className="text-xs opacity-80">Nominal</label>
+          {userCurrencies.length > 0 && (
+            <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
               {userCurrencies.map((c) => (
-                <button key={c.code} onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>{c.code}</button>
+                <button key={c.code} type="button" role="radio" aria-checked={currency === c.code} onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
+                  className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
               ))}
-            </div>
-          </div>
-          <div>
-            <label htmlFor="recurring-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
-            <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-              <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Frekuensi</label>
-            <div className="grid grid-cols-4 gap-2">
-              {Object.entries(frequencyLabels).map(([val, label]) => (
-                <button key={val} onClick={() => setFrequency(val)} className={`py-2.5 rounded-2xl border text-xs font-medium transition-all ${frequency === val ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>{label}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label htmlFor="recurring-start-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Mulai</label>
-            <input id="recurring-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
-          {bankAssets.length > 0 && (
-            <div>
-              <label htmlFor="recurring-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Rekening Terkait (opsional)</label>
-              <select id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
-                <option value="">Tidak ada — saldo tidak diubah</option>
-                {bankAssets.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
-                ))}
-              </select>
             </div>
           )}
-          <div>
-            <label htmlFor="recurring-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-            <textarea id="recurring-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+        </div>
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
+          <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
+            className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
+        </div>
+      </section>
+
+      <FieldGroup label="Tagihan">
+        <FieldRow icon={Tag} label="Kategori / nama tagihan" htmlFor="recurring-category">
+          <input id="recurring-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Mis. Listrik, Internet, Sewa..." className={fieldInput} />
+        </FieldRow>
+        <FieldRow icon={Repeat} label="Frekuensi">
+          <div className="mt-1.5">
+            <ChipChoice size="sm" ariaLabel="Frekuensi" value={frequency} onChange={setFrequency}
+              options={Object.entries(frequencyLabels).map(([value, label]) => ({ value, label }))} />
           </div>
-        </div>
-        <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
-          </button>
-        </div>
-      </div>
-    </div>
+        </FieldRow>
+        <FieldRow icon={CalendarDays} label="Tanggal mulai" htmlFor="recurring-start-date">
+          <input id="recurring-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+
+      <FieldGroup label="Lainnya">
+        {bankAssets.length > 0 && (
+          <FieldRow icon={Landmark} label="Rekening terkait (opsional)" htmlFor="recurring-linked-asset">
+            <select id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
+              <option value="">Tidak ada — saldo tidak diubah</option>
+              {bankAssets.map((a) => (
+                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
+              ))}
+            </select>
+          </FieldRow>
+        )}
+        <FieldRow icon={NotebookPen} label="Catatan (opsional)" htmlFor="recurring-notes">
+          <textarea id="recurring-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Opsional" className={`${fieldInput} resize-none`} />
+        </FieldRow>
+      </FieldGroup>
+    </FormSheet>
   );
 }

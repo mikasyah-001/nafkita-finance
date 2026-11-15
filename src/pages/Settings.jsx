@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { ArrowRight, LogOut, User, BookOpen, Tag, Upload, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowRight, LogOut, User, ShieldCheck } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import CurrencyManager from "@/components/CurrencyManager";
@@ -11,7 +11,6 @@ import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import NotificationRuleManager from "@/components/NotificationRuleManager";
 import ThemeToggle from "@/components/ThemeToggle";
-import ColorPreferenceManager from "@/components/ColorPreferenceManager";
 import SettingsAccordion from "@/components/SettingsAccordion";
 import { usePartnership } from "@/hooks/usePartnership";
 import PageHeader from "@/components/PageHeader";
@@ -30,43 +29,35 @@ export default function Settings() {
       <PageHeader title="Pengaturan" back />
 
       {/* Pintasan */}
-      <Link to="/profil" className="surface p-4 mb-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
-        <div className="w-12 h-12 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+      <Link to="/profil" className="card-pastel card-pastel-mint rounded-3xl p-4 mb-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
+        <div className="w-14 h-14 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center shrink-0 ring-4 ring-white/50 dark:ring-white/10">
           {user?.photo_url ? (
             <SmartImage src={user.photo_url} alt="foto profil" className="w-full h-full" fittingType="fill" />
           ) : (
             <User className="w-6 h-6" />
           )}
         </div>
-        <div className="flex-1">
-          <p className="font-medium text-sm">Profil Saya</p>
-          <p className="text-xs text-muted-foreground">Edit foto & nama</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-[15px] leading-tight truncate">{user?.full_name || "Profil Saya"}</p>
+          <p className="text-xs opacity-75 truncate">{user?.full_name ? "Profil Saya · edit foto & nama" : "Edit foto & nama"}</p>
         </div>
-        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        <ArrowRight className="w-4 h-4 opacity-70" />
       </Link>
 
-      <Link to="/panduan" className="surface p-4 mb-5 flex items-center gap-3 active:scale-[0.99] transition-transform">
-        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-          <BookOpen className="w-6 h-6" />
-        </div>
-        <div className="flex-1">
-          <p className="font-medium text-sm">Panduan Tools</p>
-          <p className="text-xs text-muted-foreground">Pelajari semua fitur & cara pemakaian</p>
-        </div>
-        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-      </Link>
+
+      <div className="mb-2.5">
+        <h2 className="font-semibold text-[17px] leading-tight">Atur aplikasi</h2>
+        <p className="text-xs text-muted-foreground">Ketuk grup untuk membuka atau menutup</p>
+      </div>
 
       {/* Grup accordion */}
-      <div className="grid md:grid-cols-2 gap-4 items-start">
-        <SettingsAccordion number="01" title="Tampilan & Warna" defaultOpen>
-          <p className="text-xs text-muted-foreground">Pilih tema aplikasi. "Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
+      <div className="grid md:grid-cols-2 gap-3 items-start">
+        <SettingsAccordion number="01" title="Tampilan" subtitle="Terang, gelap, atau ikuti perangkat" defaultOpen>
+          <p className="text-xs text-muted-foreground">"Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
           <ThemeToggle />
-          <div className="border-t border-border pt-4">
-            <ColorPreferenceManager />
-          </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="02" title="Pasangan & Notifikasi" defaultOpen={!hasPartner}>
+        <SettingsAccordion number="02" title="Pasangan & Notifikasi" subtitle="Hubungkan pasangan, atur pemberitahuan" defaultOpen={!hasPartner}>
           <PartnerManager />
           <div className="border-t border-border pt-4">
             <p className="text-xs text-muted-foreground mb-3">Atur bagaimana notifikasi dari pasangan diterima — bisukan, ambang nominal, ringkasan harian, dan saluran.</p>
@@ -78,12 +69,12 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="03" title="Mata Uang">
+        <SettingsAccordion number="03" title="Mata Uang" subtitle="Mata uang yang aktif">
           <p className="text-xs text-muted-foreground">Aktifkan/nonaktifkan mata uang sesuai kebutuhan Anda. Tambahkan mata uang kustom bila tidak tersedia di daftar.</p>
           <CurrencyManager />
         </SettingsAccordion>
 
-        <SettingsAccordion number="04" title="Data & Cadangan">
+        <SettingsAccordion number="04" title="Data & Cadangan" subtitle="Cadangan lokal, Google Drive, template transaksi">
           <LocalBackupRestore />
           <div className="border-t border-border pt-4">
             <DriveBackup />
@@ -93,25 +84,19 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="05" title="Lanjutan">
-          <Link to="/kategori" className="w-full btn-primary btn-sm">
-            <Tag className="w-4 h-4" /> Kelola Kategori
-          </Link>
-          <Link to="/impor" className="w-full btn-primary btn-sm">
-            <Upload className="w-4 h-4" /> Buka Impor Laporan
-          </Link>
-          <Link to="/add" className="w-full btn-primary btn-sm">
-            <Sparkles className="w-4 h-4" /> Tambah Transaksi & Scan Struk
-          </Link>
-          {isAdmin && (
-            <Link to="/admin" className="w-full py-2.5 rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-4 h-4" /> Panel Admin
+        {/* Menu Kategori/Impor/Catat dihapus dari sini: sudah ada di menu Lainnya & tombol Catat. */}
+        {isAdmin && (
+          <SettingsAccordion number="05" title="Admin" subtitle="Khusus pengelola aplikasi">
+            <Link to="/admin" className="-mx-4 -my-4 flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 active:bg-muted transition-colors">
+              <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><ShieldCheck className="w-4 h-4" /></span>
+              <span className="flex-1 min-w-0">Panel Admin</span>
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </Link>
-          )}
-        </SettingsAccordion>
+          </SettingsAccordion>
+        )}
       </div>
 
-      <button onClick={handleLogout} className="w-full py-3 rounded-2xl border border-destructive/20 text-destructive font-medium text-sm flex items-center justify-center gap-2 mt-5">
+      <button onClick={handleLogout} className="w-full btn-secondary text-destructive border-destructive/25 hover:bg-destructive/5 mt-6 mb-4">
         <LogOut className="w-4 h-4" /> Keluar
       </button>
     </div>

@@ -2,9 +2,9 @@
 // Dipakai oleh getZakatStatus (UI Zakat.jsx) dan zakatReminder (email tahunan)
 // sehingga keduanya tidak pernah bertentangan.
 //
-// Metodologi: nisab dihitung PER MATA UANG (85 gr emas × harga emas dalam
-// mata uang tersebut). Emas dan simpanan diperlakukan terpisah per currency.
-// Ini lebih benar secara syariat daripada menggabungkan semua ke IDR.
+// Metodologi: lihat computeZakatMal di bawah (cermin src/lib/zakat.js).
+// Catatan: versi lama menghitung nisab terpisah per mata uang & memisahkan
+// emas/simpanan — keliru, karena harta simpanan seorang muslim digabung.
 
 export const NISAB_GRAM = 85;
 export const ZAKAT_RATE = 0.025;
@@ -35,62 +35,66 @@ export async function fetchGoldPricesBackend(base44) {
   return out;
 }
 
-// Hitung zakat per mata uang dari daftar aset.
-// assets: array aset (punya type, quantity, value, currency)
-// goldPrices: { IDR, SAR, USD } hasil fetchGoldPricesBackend
-// rateMap: opsional, untuk konversi total gabungan ke IDR (konteks ringkasan)
-//
-// Return: {
-//   perCurrency: [{ currency, emasGrams, emasValue, nonEmasValue, nisab,
-//                    wajibEmas, wajibSimpanan, zakatEmas, zakatSimpanan, totalHarta, totalZakat }],
-//   totalHartaIDR, totalZakatIDR
-// }
-export function computeZakatPerCurrency(assets, goldPrices, rateMap = {}) {
-  const perCurrency = [];
-  for (const cur of ZAKAT_CURRENCIES) {
-    const curAssets = (assets || []).filter((a) => (a.currency || "IDR").toUpperCase() === cur);
-    if (curAssets.length === 0) continue;
+// ─────────────────────────────────────────────────────────────────────────
+// computeZakatMal — CERMIN dari src/lib/zakat.js (frontend). Ubah bersamaan.
+// Menggantikan computeZakatPerCurrency (lama) yang keliru secara syariat:
+//  - nisab dihitung terpisah per mata uang & emas/simpanan dipisah,
+//  - rumah/tanah/kendaraan ikut dihitung, utang tidak dikurangkan.
+// Ketentuan: nisab 85 gr emas (harga saat ini), 2,5%, harta simpanan
+// digabung (kas, tabungan, emas nilai pasar, investasi, piutang lancar)
+// dalam IDR, dikurangi utang jatuh tempo ≤ 12 bulan; properti/tanah/lainnya
+// tidak dihitung; haul 1 tahun hijriah (±354 hari).
+// ─────────────────────────────────────────────────────────────────────────
+export const HAUL_DAYS = 354;
+const ZAKATABLE = { bank: "kas", tunai: "kas", emas: "emas", emas_digital: "emas", investasi: "investasi" };
+const DAY_MS = 86400000;
+export const isPlausibleGoldPriceIdr = (v) => Number(v) >= 500000 && Number(v) <= 10000000;
 
-    const emasAssets = curAssets.filter((a) => (a.type === "emas" || a.type === "emas_digital"));
-    const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-    const goldPrice = goldPrices[cur] || 0;
-    const emasValue = goldPrice > 0
-      ? emasGrams * goldPrice
-      : emasAssets.reduce((s, a) => s + (a.value || 0), 0);
-    const nonEmasValue = curAssets
-      .filter((a) => (a.type !== "emas" && a.type !== "emas_digital"))
-      .reduce((s, a) => s + (a.value || 0), 0);
-
-    const nisab = goldPrice * NISAB_GRAM;
-    const wajibEmas = emasGrams >= NISAB_GRAM;
-    const wajibSimpanan = goldPrice > 0 && nonEmasValue >= nisab;
-    const zakatEmas = wajibEmas ? emasValue * ZAKAT_RATE : 0;
-    const zakatSimpanan = wajibSimpanan ? nonEmasValue * ZAKAT_RATE : 0;
-
-    perCurrency.push({
-      currency: cur,
-      emasGrams,
-      emasValue,
-      nonEmasValue,
-      nisab,
-      goldPrice,
-      wajibEmas,
-      wajibSimpanan,
-      zakatEmas,
-      zakatSimpanan,
-      totalHarta: emasValue + nonEmasValue,
-      totalZakat: zakatEmas + zakatSimpanan,
-    });
-  }
-
-  // Total gabungan dalam IDR (untuk ringkasan konteks).
+export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMap = {}, includeReceivables = true, now = new Date() }) {
+  const groups = { kas: 0, emas: 0, investasi: 0, piutang: 0, utang: 0 };
+  let goldGrams = 0;
   const toIdr = (amt, cur) => {
-    if (cur === "IDR") return amt;
-    const r = rateMap[cur];
-    return r && r > 0 ? amt * r : 0;
+    const c = (cur || "IDR").toUpperCase();
+    if (c === "IDR") return Number(amt) || 0;
+    const r = rateMap[c];
+    return r && r > 0 ? (Number(amt) || 0) * r : null;
   };
-  const totalHartaIDR = perCurrency.reduce((s, p) => s + toIdr(p.totalHarta, p.currency), 0);
-  const totalZakatIDR = perCurrency.reduce((s, p) => s + toIdr(p.totalZakat, p.currency), 0);
+  for (const a of assets) {
+    const g = ZAKATABLE[a.type];
+    if (!g) continue;
+    if (g === "emas") {
+      const grams = Number(a.quantity) || 0;
+      goldGrams += grams;
+      if (goldPrice > 0) groups.emas += grams * goldPrice;
+      continue;
+    }
+    const v = toIdr(a.value, a.currency);
+    if (v != null) groups[g] += v;
+  }
+  const horizon = now.getTime() + 365 * DAY_MS;
+  for (const d of debts) {
+    if ((d.status || "active") !== "active") continue;
+    const remaining = Math.max(0, (Number(d.amount) || 0) - (Number(d.paid_amount) || 0));
+    const v = toIdr(remaining, d.currency);
+    if (!v) continue;
+    if (d.type === "utang") {
+      const due = d.due_date ? new Date(d.due_date).getTime() : null;
+      if (due == null || due <= horizon) groups.utang += v;
+    } else if (d.type === "piutang" && includeReceivables) groups.piutang += v;
+  }
+  const gross = groups.kas + groups.emas + groups.investasi + groups.piutang;
+  const net = Math.max(0, gross - groups.utang);
+  const nisab = goldPrice > 0 ? NISAB_GRAM * goldPrice : 0;
+  const reachesNisab = goldPrice > 0 && net >= nisab;
+  return { groups, goldGrams, gross, net, nisab, reachesNisab, zakat: reachesNisab ? Math.round(net * ZAKAT_RATE) : 0 };
+}
 
-  return { perCurrency, totalHartaIDR, totalZakatIDR };
+export function haulPeriodBackend(haulStart, now = new Date()) {
+  if (!haulStart) return { key: null, due: null, isDue: true };
+  const s0 = new Date(haulStart).getTime();
+  const n = Math.floor(Math.max(0, now.getTime() - s0) / (HAUL_DAYS * DAY_MS));
+  const start = new Date(s0 + n * HAUL_DAYS * DAY_MS);
+  const due = new Date(s0 + (n + 1) * HAUL_DAYS * DAY_MS);
+  const daysLeft = Math.ceil((due.getTime() - now.getTime()) / DAY_MS);
+  return { key: "haul-" + start.toISOString().slice(0, 10), due, daysLeft, isDue: daysLeft <= 30 };
 }

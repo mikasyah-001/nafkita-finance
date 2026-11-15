@@ -21,7 +21,7 @@ export function formatRupiahShort(n) {
 // Katalog mata uang bawaan (dapat diperluas pengguna lewat Pengaturan).
 export const currencies = [
   { code: "IDR", label: "Rupiah", symbol: "Rp" },
-  { code: "SAR", label: "Riyal Saudi", symbol: "SAR" },
+  { code: "SAR", label: "Riyal Saudi", symbol: "\u20C1" },
   { code: "USD", label: "Dolar AS", symbol: "$" },
   { code: "EUR", label: "Euro", symbol: "€" },
   { code: "GBP", label: "Pound Sterling", symbol: "£" },
@@ -47,12 +47,24 @@ export function findCurrency(code) {
 }
 export function allCurrencies() { return [...currencies, ..._customCurrencies]; }
 
+// Simbol riyal Saudi resmi (SAMA, Feb 2025; Unicode 17 U+20C1). Ditampilkan
+// dengan font "Saudi Riyal" (src/index.css). Untuk PDF/CSV/email yang tidak
+// bisa memuat font tambahan, pakai formatMoneyPlain() (kode "SAR").
+export const SAR_SIGN = "\u20C1";
+
+// Format dengan KODE mata uang (tanpa simbol khusus) — untuk ekspor & email.
+export function formatMoneyPlain(n, currency = "IDR") {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
+  return formatMoney(n, c);
+}
+
 export function formatMoney(n, currency = "IDR") {
   const c = (currency || "IDR").toUpperCase();
   const v = Number(n) || 0;
   if (c === "IDR") return formatRupiah(v);
   if (c === "USD") return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  if (c === "SAR") return SAR_SIGN + "\u00A0" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
   const sym = currencySymbol(c);
   return `${sym} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
 }
@@ -67,7 +79,7 @@ export function currencySymbol(code) {
   const c = (code || "IDR").toUpperCase();
   if (c === "IDR") return "Rp";
   if (c === "USD") return "$";
-  if (c === "SAR") return "SAR";
+  if (c === "SAR") return SAR_SIGN;
   const f = findCurrency(c);
   return f ? f.symbol : c;
 }
@@ -258,23 +270,17 @@ export function activeCurrencies(summary) {
   return Object.keys(summary || {}).filter((c) => summary[c]?.count > 0);
 }
 
-// Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).
-// Emas dan simpanan diperlakukan terpisah: emas nisab 85 gr, simpanan nisab = 85 gr emas.
+// Aset yang bisa menjadi sumber/tujuan uang: rekening bank & dompet tunai.
+export const isMoneyAsset = (a) => a?.type === "bank" || a?.type === "tunai";
+
+// Pengeluaran luar biasa (tidak rutin, mis. beli kendaraan): ditandai lewat
+// tag agar tidak merusak rata-rata harian & tren. Tetap dihitung di total.
+export const EXTRAORDINARY_TAG = "luar-biasa";
+export const isExtraordinary = (t) => Array.isArray(t?.tags) && t.tags.includes(EXTRAORDINARY_TAG);
+
+// Konstanta & logika zakat ada di src/lib/zakat.js (sumber tunggal).
 export const NISAB_GRAM = 85;
 export const isGoldType = (type) => type === "emas" || type === "emas_digital";
-
-export function computeZakat({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
-  const nisab = goldPrice > 0 ? goldPrice * NISAB_GRAM : 0;
-  const emasReached = emasGrams >= NISAB_GRAM;
-  const simpananReached = goldPrice > 0 && nonEmasValue >= nisab;
-  return {
-    nisab,
-    emasReached,
-    simpananReached,
-    zakatEmas: emasReached ? emasValue * 0.025 : 0,
-    zakatSimpanan: simpananReached ? nonEmasValue * 0.025 : 0,
-  };
-}
 
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);
@@ -341,6 +347,7 @@ export function formatDuration(fromDate) {
 
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
+  tunai: { label: "Uang Tunai", icon: "Wallet", color: "green" },
   emas: { label: "Emas", icon: "Coins", color: "amber" },
   emas_digital: { label: "Emas Digital", icon: "Coins", color: "amber" },
   investasi: { label: "Investasi", icon: "Briefcase", color: "green" },
@@ -372,6 +379,7 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const currencies = new Set();
   const unconverted = {};
   let count = 0;
+  let extraordinary = 0;
   base.forEach((t) => {
     const from = (t.currency || "IDR").toUpperCase();
     const ok = canConvert(from, cur, rateMap);
@@ -379,6 +387,7 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
     if (isInMonth(t, year, month)) {
       currencies.add(from);
       if (!ok) { unconverted[from] = (unconverted[from] || 0) + (Number(t.amount) || 0); return; }
+      if (isExtraordinary(t)) extraordinary += v;
       if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
       map[t.category].value += v;
       map[t.category].count += 1;
@@ -392,7 +401,8 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const rows = Object.entries(map)
     .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
     .sort((a, b) => b.value - a.value);
-  return { rows, total, prevTotal, count, currencies: [...currencies], unconverted };
+  // routineTotal: total tanpa pengeluaran luar biasa — dipakai rata-rata/hari.
+  return { rows, total, prevTotal, count, currencies: [...currencies], unconverted, extraordinary, routineTotal: total - extraordinary };
 }
 
 // Label sumbu grafik yang ringkas & konsisten: 500 rb, 12 jt, 1,2 M (tanpa simbol).
@@ -405,4 +415,94 @@ export function formatAxis(v) {
   if (a >= 1e6) return `${fmt(n / 1e6)} jt`;
   if (a >= 1e3) return `${fmt(n / 1e3)} rb`;
   return fmt(n);
+}
+
+// ── Rencana bulanan (pemasukan & menabung) ──────────────────────────────
+// Disimpan sebagai Budget dengan kind "income_plan"/"savings_plan".
+// Anggaran kategori lama tidak punya kind → dianggap "expense".
+export const PLAN_KINDS = { income: "income_plan", savings: "savings_plan" };
+export const PLAN_CATEGORY = { income_plan: "Rencana Pemasukan", savings_plan: "Rencana Menabung" };
+export const isExpenseBudget = (b) => (b?.kind || "expense") === "expense";
+
+export function monthlyPlan(budgets, { period, scope = "shared", currency = "IDR" }) {
+  const match = (b, kind) => b.kind === kind && b.period === period && (b.visibility || "shared") === scope && (b.currency || "IDR") === currency;
+  const inc = (budgets || []).find((b) => match(b, PLAN_KINDS.income));
+  const sav = (budgets || []).find((b) => match(b, PLAN_KINDS.savings));
+  return {
+    income: inc ? Number(inc.limit_amount) || 0 : 0,
+    savings: sav ? Number(sav.limit_amount) || 0 : 0,
+    incomeRecord: inc || null,
+    savingsRecord: sav || null,
+  };
+}
+
+// Progres rencana: capaian vs target, dijepit 0–100 untuk bar.
+export function planProgress(actual, target) {
+  if (!target || target <= 0) return { pct: 0, reached: false, remaining: 0 };
+  const pct = Math.max(0, Math.min(100, (actual / target) * 100));
+  return { pct, reached: actual >= target, remaining: Math.max(0, target - actual) };
+}
+
+// ── Aturan input aset per jenis (sumber tunggal untuk form & test) ─────
+// emas/emas_digital: jumlah gram × harga beli/gram. tanah: luas m² × harga/m².
+// bank/tunai: hanya nilai saldo (tanpa harga beli). Lainnya: nilai + harga beli total.
+export const ASSET_UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
+export const assetUsesQuantity = (type) => !!ASSET_UNIT[type];
+export const assetIdrOnly = (type) => type === "emas" || type === "tanah";
+export const assetHasPurchase = (type) => type !== "bank" && type !== "tunai";
+
+// Saat jenis diganti: kosongkan isian yang maknanya berbeda (gram vs m² vs total)
+// agar tidak terbawa diam-diam, dan kunci mata uang untuk jenis berbasis Rupiah.
+export function switchAssetType(form, type) {
+  const sameUnit = (ASSET_UNIT[form.type] || "") === (ASSET_UNIT[type] || "");
+  return {
+    ...form,
+    type,
+    unit: ASSET_UNIT[type] || "",
+    quantity: sameUnit ? form.quantity : "",
+    purchase_price: sameUnit && assetHasPurchase(type) ? form.purchase_price : "",
+    value: isGoldType(type) ? "" : form.value,
+    currency: assetIdrOnly(type) ? "IDR" : form.currency,
+  };
+}
+
+// Validasi + susun payload. Mengembalikan { error } atau { payload }.
+export function buildAssetPayload(form) {
+  const num = (v) => (v === "" || v == null ? null : Number(v));
+  const qty = num(form.quantity), price = num(form.purchase_price), val = num(form.value);
+  const t = form.type;
+  if (!String(form.name || "").trim()) return { error: "Isi nama aset" };
+  for (const [v, label] of [[qty, "Jumlah"], [price, "Harga beli"], [val, "Nilai"]]) {
+    if (v != null && (!Number.isFinite(v) || v < 0)) return { error: `${label} tidak boleh negatif` };
+  }
+  let value;
+  if (isGoldType(t)) {
+    if (!qty) return { error: "Isi jumlah gram emas" };
+    if (!price) return { error: "Isi harga beli per gram" };
+    value = qty * price;
+  } else if (t === "tanah") {
+    if (!qty) return { error: "Isi luas tanah" };
+    if (!price) return { error: "Isi harga beli per m²" };
+    value = val || qty * price; // perkiraan harga sekarang; bila kosong = harga beli
+  } else {
+    if (val == null) return { error: "Isi nilai aset" };
+    value = val;
+  }
+  return {
+    payload: {
+      name: String(form.name).trim(),
+      type: t,
+      value,
+      quantity: assetUsesQuantity(t) ? qty : 0,
+      unit: ASSET_UNIT[t] || "",
+      purchase_date: assetHasPurchase(t) ? form.purchase_date || "" : "",
+      purchase_price: assetHasPurchase(t) ? price || 0 : 0,
+      purchase_proof_url: assetHasPurchase(t) ? form.purchase_proof_url || "" : "",
+      owner: form.owner || "",
+      notes: form.notes || "",
+      broker: form.broker || "",
+      currency: assetIdrOnly(t) ? "IDR" : form.currency || "IDR",
+      visibility: form.visibility || "shared",
+    },
+  };
 }

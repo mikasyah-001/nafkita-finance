@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Target, TrendingUp, Calendar, CheckCircle2, MoreVertical, Edit2, Trash2 } from "lucide-react";
-import { formatMoney, formatDate, colorMap } from "@/lib/finance";
+import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane } from "lucide-react";
+import { formatMoney, formatDate, formatMoneyPlain } from "@/lib/finance";
+import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
+
+// Kartu pastel serupa "Rencana kita" di Beranda; warna target dipetakan ke nada pastel.
+const TYPE_ICON = { darurat: ShieldCheck, pendidikan: GraduationCap, rumah: HomeIcon, perjalanan: Plane, lainnya: Target };
+const TYPE_LABEL = { darurat: "Dana darurat", pendidikan: "Pendidikan", rumah: "Rumah", perjalanan: "Perjalanan", lainnya: "Lainnya" };
+const TONE = {
+  green: "card-pastel-mint", teal: "card-pastel-sage", cyan: "card-pastel-lime", blue: "card-pastel-sage",
+  amber: "card-pastel-butter", orange: "card-pastel-peach", pink: "card-pastel-peach", violet: "card-pastel-mint",
+};
+const panelInput = "w-full h-10 rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none focus:ring-2 ring-primary/30";
 
 export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefresh }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -14,8 +24,9 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
 
   const progress = goal.target_amount > 0 ? Math.min(100, (goal.current_amount / goal.target_amount)  * 100) : 0;
   const remaining = Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0));
-  const colors = colorMap[goal.color] || colorMap.green;
   const isCompleted = goal.status === "completed";
+  const Icon = isCompleted ? CheckCircle2 : (TYPE_ICON[goal.type] || Target);
+  const tone = TONE[goal.color] || TONE.green;
 
   const handleAddProgress = async () => {
     const amt = Number(progressAmount);
@@ -41,113 +52,111 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   };
 
   return (
-    <div className="relative surface p-5 shadow-sm">
-      {/* Menu */}
-      <div className="absolute top-4 right-4">
-        <button onClick={() => setShowMenu(!showMenu)} className="p-1 rounded-lg hover:bg-muted">
-          <MoreVertical className="w-4 h-4 text-muted-foreground" />
-        </button>
-        {showMenu && (
-          <div className="absolute right-0 mt-1 w-32 rounded-xl border border-border bg-popover shadow-lg z-10">
-            <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded-t-xl">
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+    <div className={`card-pastel ${tone} relative rounded-3xl p-4 overflow-hidden`}>
+      <div className="absolute -right-6 -bottom-8 w-28 h-28 rounded-full bg-white/25 dark:bg-white/5 pointer-events-none" aria-hidden="true" />
+
+      {/* Header */}
+      <div className="relative z-10 flex items-start justify-between gap-2">
+        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
+          <Icon className="w-5 h-5" />
+        </span>
+        <div className="flex items-center gap-1.5">
+          {goal.target_date && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-white/60 dark:bg-white/10 rounded-full px-2 py-1">
+              <CalendarDays className="w-3 h-3" /> Target: {formatDate(goal.target_date, "dd MMM yyyy")}
+            </span>
+          )}
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} aria-label={`Menu target ${goal.name}`} aria-expanded={showMenu} aria-haspopup="menu"
+              className="w-8 h-8 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center">
+              <MoreVertical className="w-4 h-4" />
             </button>
-            <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted rounded-b-xl">
-              <Trash2 className="w-3.5 h-3.5" /> Hapus
+            {showMenu && (
+              <div role="menu" className="absolute right-0 mt-1 w-32 rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg z-10 overflow-hidden">
+                <button role="menuitem" onClick={() => { onEdit(); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted">
+                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                </button>
+                <button role="menuitem" onClick={() => { onDelete(); setShowMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-muted">
+                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative">
+        <h3 className="font-heading font-bold text-lg leading-tight mt-3 truncate">{goal.name}</h3>
+        <p className="text-xs opacity-75">{TYPE_LABEL[goal.type] || goal.type}</p>
+
+        {/* Progress */}
+        <div className="flex items-end justify-between gap-3 mt-3">
+          <p className="font-heading font-extrabold text-3xl tabular-nums leading-none">{progress.toFixed(0)}<span className="text-base font-bold">%</span><span className="sr-only"> tercapai</span></p>
+          <div className="text-right min-w-0">
+            <p className="text-sm font-bold tabular-nums truncate">{formatMoney(goal.current_amount || 0, goal.currency)}</p>
+            <p className="text-[11px] opacity-75 tabular-nums truncate">dari {formatMoney(goal.target_amount || 0, goal.currency)}</p>
+          </div>
+        </div>
+        <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+          <div className="h-full rounded-full bg-[hsl(var(--pastel-ink))] transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="text-[11px] opacity-75 mt-1.5 tabular-nums">
+          {isCompleted ? "Target tercapai" : remaining > 0 ? `Sisa ${formatMoney(remaining, goal.currency)}` : `${progress.toFixed(0)}% tercapai`}
+        </p>
+
+        {/* Action button */}
+        {!isCompleted && (
+          <button
+            onClick={() => setShowProgress(!showProgress)}
+            aria-expanded={showProgress}
+            className="w-full mt-3 h-10 flex items-center justify-center gap-2 rounded-full bg-white/60 dark:bg-white/10 text-sm font-semibold active:scale-[0.99] transition-transform"
+          >
+            <TrendingUp className="w-4 h-4" /> Tambah Progress
+          </button>
+        )}
+
+        {/* Progress form */}
+        {showProgress && !isCompleted && (
+          <div className="mt-3 p-3 rounded-2xl bg-background/85 text-foreground space-y-2.5">
+            <ChipChoice
+              size="sm"
+              ariaLabel="Cara menambah progress"
+              value={progressMethod}
+              onChange={setProgressMethod}
+              options={[{ value: "manual", label: "Manual" }, { value: "topup", label: "Top-up dari Aset" }]}
+            />
+            {progressMethod === "topup" && (
+              <select
+                aria-label="Aset sumber"
+                value={sourceAssetId}
+                onChange={(e) => setSourceAssetId(e.target.value)}
+                className={panelInput}
+              >
+                <option value="">Pilih aset sumber...</option>
+                {assets.filter(a => a.type === "bank").map(a => (
+                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
+                ))}
+              </select>
+            )}
+            <input
+              aria-label="Nominal"
+              type="number"
+              inputMode="decimal"
+              value={progressAmount}
+              onChange={(e) => setProgressAmount(e.target.value)}
+              placeholder="Nominal"
+              className={`${panelInput} tabular-nums`}
+            />
+            <button
+              onClick={handleAddProgress}
+              disabled={submitting || !progressAmount || (progressMethod === "topup" && !sourceAssetId)}
+              className="w-full btn-primary btn-sm"
+            >
+              {submitting ? "Memproses..." : "Tambah"}
             </button>
           </div>
         )}
       </div>
-
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-4 pr-8">
-        <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center shrink-0`}>
-          {isCompleted ? <CheckCircle2 className={`w-5 h-5 ${colors.text}`} /> : <Target className={`w-5 h-5 ${colors.text}`} />}
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-semibold truncate">{goal.name}</h3>
-          <p className="text-xs text-muted-foreground capitalize">{goal.type}</p>
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between mb-1.5">
-          <span className="text-lg font-bold">{formatMoney(goal.current_amount || 0, goal.currency)}</span>
-          <span className="text-sm text-muted-foreground">{formatMoney(goal.target_amount || 0, goal.currency)}</span>
-        </div>
-        <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-          <div className={`h-full ${colors.solid} rounded-full transition-all duration-500`} style={{ width: `${progress}%` }} />
-        </div>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-muted-foreground">{progress.toFixed(0)}% tercapai</span>
-          {remaining > 0 && !isCompleted && (
-            <span className="text-xs text-muted-foreground">Sisa {formatMoney(remaining, goal.currency)}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Target date */}
-      {goal.target_date && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
-          <Calendar className="w-3.5 h-3.5" />
-          Target: {formatDate(goal.target_date, "dd MMM yyyy")}
-        </div>
-      )}
-
-      {/* Action button */}
-      {!isCompleted && (
-        <button
-          onClick={() => setShowProgress(!showProgress)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary/5 text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
-        >
-          <TrendingUp className="w-4 h-4" /> Tambah Progress
-        </button>
-      )}
-
-      {/* Progress form */}
-      {showProgress && !isCompleted && (
-        <div className="mt-3 p-3 rounded-xl border border-border bg-muted/50 space-y-3">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setProgressMethod("manual")}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium ${progressMethod === "manual" ? "bg-primary text-primary-foreground" : "bg-background border border-border"}`}
-            >Manual</button>
-            <button
-              onClick={() => setProgressMethod("topup")}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium ${progressMethod === "topup" ? "bg-primary text-primary-foreground" : "bg-background border border-border"}`}
-            >Top-up dari Aset</button>
-          </div>
-          {progressMethod === "topup" && (
-            <select
-              aria-label="Aset sumber"
-              value={sourceAssetId}
-              onChange={(e) => setSourceAssetId(e.target.value)}
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm bg-background"
-            >
-              <option value="">Pilih aset sumber...</option>
-              {assets.filter(a => a.type === "bank").map(a => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value || 0, a.currency)})</option>
-              ))}
-            </select>
-          )}
-          <input
-            aria-label="Nominal"
-            type="number"
-            value={progressAmount}
-            onChange={(e) => setProgressAmount(e.target.value)}
-            placeholder="Nominal"
-            className="w-full rounded-lg border border-border px-3 py-2 text-sm bg-background"
-          />
-          <button
-            onClick={handleAddProgress}
-            disabled={submitting || !progressAmount || (progressMethod === "topup" && !sourceAssetId)}
-            className="w-full btn-primary btn-sm"
-          >
-            {submitting ? "Memproses..." : "Tambah"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

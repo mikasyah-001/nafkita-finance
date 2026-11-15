@@ -34,6 +34,16 @@
       ],
       "default": "shared"
     },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "expense",
+        "income_plan",
+        "savings_plan"
+      ],
+      "default": "expense",
+      "description": "expense = batas pengeluaran per kategori; income_plan/savings_plan = rencana bulanan pemasukan/menabung"
+    },
     "assignee_id": {
       "type": "string",
       "description": "ID user pemilik anggaran (null = bersama/keluarga). Anggaran dengan assignee spesifik hanya menghitung transaksi created_by user tersebut"

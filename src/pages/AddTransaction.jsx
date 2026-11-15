@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol } from "@/lib/finance";
+import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -12,7 +12,7 @@ import { addPending } from "@/lib/offlineQueue";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
-import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock } from "lucide-react";
+import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock, CalendarDays, Store, Wallet, NotebookPen, Sparkles, ChevronDown } from "lucide-react";
 
 const typeTabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -50,7 +50,7 @@ export default function AddTransaction() {
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
   const [currency, setCurrency] = useState("IDR");
-  const [linkedAssetId, setLinkedAssetId] = useState("");
+  const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
@@ -71,7 +71,7 @@ export default function AddTransaction() {
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
-  const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
+  const bankAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
 
   const applyTemplate = (t) => {
     setType(t.type);
@@ -283,15 +283,30 @@ export default function AddTransaction() {
     performSave();
   };
 
+  const typeTone = {
+    expense: { active: "bg-expense text-expense-foreground", soft: "text-expense", label: "Pengeluaran" },
+    income: { active: "bg-income text-income-foreground", soft: "text-income", label: "Pemasukan" },
+    sedekah: { active: "bg-sedekah text-sedekah-foreground", soft: "text-sedekah", label: "Sedekah" },
+  }[type];
+  const amountNum = Number(amount) || 0;
+  const quickAmounts = currency === "IDR" ? [10000, 25000, 50000, 100000] : [10, 25, 50, 100];
+  const linkedAsset = bankAssets.find((a) => a.id === linkedAssetId);
+  const chosenCategory = type === "sedekah" ? "Sedekah & Infaq" : category;
+  const isExtra = tags.includes(EXTRAORDINARY_TAG);
+  const toggleExtra = (on) => setTags(on ? [...tags.filter((t) => t !== EXTRAORDINARY_TAG), EXTRAORDINARY_TAG] : tags.filter((t) => t !== EXTRAORDINARY_TAG));
+  const fieldCls = "w-full bg-transparent text-sm outline-none py-1";
+
   if (multiTx) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <button onClick={() => setMultiTx(null)} className="btn-icon btn-icon-sm">
+        <header className="flex items-center gap-3 px-5 pt-6 pb-3">
+          <button onClick={() => setMultiTx(null)} aria-label="Kembali" className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shrink-0 active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-semibold">Pratinjau Transaksi</h1>
-          <div className="w-9" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold leading-tight">Tinjau hasil scan</h1>
+            <p className="text-sm text-muted-foreground">Periksa sebelum disimpan</p>
+          </div>
         </header>
         <MultiTransactionPreview
           items={multiTx}
@@ -308,149 +323,103 @@ export default function AddTransaction() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <button onClick={() => navigate(-1)} className="btn-icon btn-icon-sm">
+      <header className="flex items-center gap-3 px-5 pt-6 pb-3">
+        <button onClick={() => navigate(-1)} aria-label="Kembali" className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center shrink-0 active:scale-95 transition-transform">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-semibold">Catat Transaksi</h1>
-        <div className="w-9" />
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold leading-tight">Catat transaksi</h1>
+          <p className="text-sm text-muted-foreground">{formatDate(new Date(date), "EEEE, d MMMM")}</p>
+        </div>
       </header>
 
-      <div className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
-        <div className="flex gap-2 bg-muted p-1 rounded-2xl">
+      <div className="flex-1 px-5 pb-6 space-y-5">
+        {/* 1 · Jenis */}
+        <div role="tablist" aria-label="Jenis transaksi" className="flex gap-1 p-1 rounded-2xl bg-muted">
           {typeTabs.map((t) => (
             <button
               key={t.key}
-              onClick={() => {
-                setType(t.key);
-                setCategory("");
-                if (t.key === "income") setMerchant("");
-              }}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                type === t.key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
-              }`}
+              role="tab"
+              aria-selected={type === t.key}
+              onClick={() => { setType(t.key); setCategory(""); if (t.key === "income") setMerchant(""); if (t.key !== "expense") toggleExtra(false); }}
+              className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-colors ${type === t.key ? `${typeTone.active} shadow-sm` : "text-muted-foreground hover:text-foreground"}`}
             >
               {t.label}
             </button>
           ))}
         </div>
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setVisibility("shared")}
-              className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${
-                visibility === "shared" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
-              }`}
-            >
-              <Users className="w-4 h-4" /> Bersama Keluarga
-            </button>
-            <button
-              onClick={() => setVisibility("private")}
-              className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${
-                visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
-              }`}
-            >
-              <Lock className="w-4 h-4" /> Pribadi
-            </button>
+        {/* 2 · Nominal (fokus utama) */}
+        <section aria-label="Nominal" className="card-gradient-primary rounded-[28px] p-5">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="add-tx-amount" className="text-xs opacity-80">Berapa {typeTone.label.toLowerCase()}nya?</label>
+            {userCurrencies.length > 1 && (
+              <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
+                {userCurrencies.map((c) => (
+                  <button
+                    key={c.code}
+                    role="radio"
+                    aria-checked={currency === c.code}
+                    onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
+                    className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}
+                  >
+                    {c.code}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {visibility === "private" && (
-            <p className="text-[11px] text-muted-foreground mt-1.5">Hanya Anda yang dapat melihat transaksi ini.</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
-          <div className="flex flex-wrap gap-2">
-            {userCurrencies.map((c) => (
-              <button
-                key={c.code}
-                onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
-                className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${
-                  currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
-                }`}
-              >
-                {c.code}
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-xl font-semibold opacity-70">{currencySymbol(currency)}</span>
+            <input
+              id="add-tx-amount"
+              // Rupiah: tampil berpemisah ribuan saat diketik (150.000); nilai
+              // yang disimpan tetap angka murni. Mata uang lain boleh desimal.
+              type={currency === "IDR" ? "text" : "number"}
+              inputMode={currency === "IDR" ? "numeric" : "decimal"}
+              value={currency === "IDR" ? (amount ? Number(amount).toLocaleString("id-ID") : "") : amount}
+              onChange={(e) => setAmount(currency === "IDR" ? e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "") : e.target.value)}
+              placeholder="0"
+              autoFocus={!highlightScan}
+              className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
+            />
+          </div>
+          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? formatMoney(amountNum, currency) : ""}</p>
+          <div className="flex gap-1.5 mt-3 overflow-x-auto no-scrollbar">
+            {quickAmounts.map((q) => (
+              <button key={q} onClick={() => setAmount(String(amountNum + q))} className="shrink-0 h-8 px-3 rounded-full bg-white/10 border border-white/15 text-xs font-semibold active:scale-95 transition-transform">
+                +{currency === "IDR" ? `${q / 1000} rb` : q}
               </button>
             ))}
+            {amountNum > 0 && (
+              <button onClick={() => setAmount("")} aria-label="Kosongkan nominal" className="shrink-0 h-8 w-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center"><X className="w-3.5 h-3.5" /></button>
+            )}
           </div>
-        </div>
+        </section>
 
-        {bankAssets.length > 0 && (
-          <div>
-            <label htmlFor="add-tx-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
-            <select
-              id="add-tx-linked-asset"
-              value={linkedAssetId}
-              onChange={(e) => setLinkedAssetId(e.target.value)}
-              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
-            >
-              <option value="">Tidak ada — saldo tidak diubah</option>
-              {bankAssets.map((a) => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
-              ))}
-            </select>
-            <p className="text-[11px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
-          </div>
-        )}
-
-        {templates.length > 0 && (
-          <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Template Rutin</label>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
-              {templates.map((t) => {
-                const cat = categories.find((c) => c.name === t.category);
-                const cm = colorMap[cat?.color] || colorMap.slate;
-                const icon = t.type === "sedekah" ? "Heart" : cat?.icon || "Wallet";
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => applyTemplate(t)}
-                    className="shrink-0 flex items-center gap-2 surface pl-2 pr-3 py-2 active:scale-95 transition-transform"
-                  >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${cm.bg}`}>
-                      <CategoryIcon name={icon} className={`w-4 h-4 ${cm.text}`} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-medium leading-tight">{t.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{formatMoney(t.amount, t.currency)}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
+        {/* 3 · Scan struk (jalan pintas) */}
         <div>
           <button
             ref={scanBtnRef}
             onClick={() => fileRef.current?.click()}
             disabled={scanning}
-            className={`w-full rounded-2xl border-2 border-dashed ${highlightScan ? "border-primary bg-primary/5" : "border-border"} py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60`}
+            className={`w-full card-pastel card-pastel-butter rounded-2xl p-3.5 flex items-center gap-3 text-left active:scale-[0.99] transition-transform disabled:opacity-70 ${highlightScan ? "ring-2 ring-gold ring-offset-2 ring-offset-background" : ""}`}
           >
-            {scanning ? (
-              <>
-                <Loader2 className="w-7 h-7 animate-spin text-primary" />
-                <p className="text-sm font-medium text-primary">AI sedang membaca bon...</p>
-                <p className="text-xs">{photoUrls.length || 1} foto sedang diproses</p>
-              </>
-            ) : photoUrls.length > 0 ? (
-              <>
-                <div className="flex gap-2 flex-wrap justify-center max-w-full">
-                  {photoUrls.map((u, i) => (
-                    <img key={i} src={u} alt={`bon ${i + 1}`} className="w-16 h-16 object-cover rounded-xl" />
-                  ))}
-                </div>
-                <p className="text-xs flex items-center gap-1 text-success"><Check className="w-3.5 h-3.5" /> {photoUrls.length} bon terunggah</p>
-              </>
-            ) : (
-              <>
-                <ScanLine className="w-7 h-7" />
-                <p className="text-sm font-medium">Scan Struk dengan AI</p>
-                <p className="text-xs">Upload hingga 5 foto; tinjau hasilnya sebelum disimpan</p>
-              </>
+            <span className="w-10 h-10 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
+              {scanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <ScanLine className="w-5 h-5" />}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold">
+                {scanning ? "AI sedang membaca bon…" : photoUrls.length > 0 ? `${photoUrls.length} bon terunggah` : "Punya struk? Scan dengan AI"}
+              </span>
+              <span className="block text-xs opacity-75">
+                {scanning ? `${photoUrls.length || 1} foto sedang diproses` : "Hingga 5 foto, tinjau dulu sebelum disimpan"}
+              </span>
+            </span>
+            {photoUrls.length > 0 && !scanning && (
+              <span className="flex -space-x-2">
+                {photoUrls.slice(0, 3).map((u, i) => <img key={i} src={u} alt={`bon ${i + 1}`} className="w-9 h-9 object-cover rounded-lg border-2 border-[hsl(var(--pastel-butter))]" />)}
+              </span>
             )}
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScan} />
@@ -461,25 +430,32 @@ export default function AddTransaction() {
           )}
         </div>
 
-        <div>
-          <label htmlFor="add-tx-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
-          <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-            <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-            <input
-              id="add-tx-amount"
-              type="number"
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent"
-            />
+        {/* 4 · Template & kategori */}
+        {templates.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Pakai template</p>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {templates.map((t) => {
+                const cat = categories.find((c) => c.name === t.category);
+                const cm = colorMap[cat?.color] || colorMap.slate;
+                const icon = t.type === "sedekah" ? "Heart" : cat?.icon || "Wallet";
+                return (
+                  <button key={t.id} onClick={() => applyTemplate(t)} className="shrink-0 flex items-center gap-2 rounded-full border border-border bg-card pl-1.5 pr-3.5 h-11 active:scale-95 transition-transform">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center ${cm.bg}`}><CategoryIcon name={icon} className={`w-4 h-4 ${cm.text}`} /></span>
+                    <span className="text-left">
+                      <span className="block text-xs font-semibold leading-tight">{t.name}</span>
+                      <span className="block text-[11px] text-muted-foreground tabular-nums">{formatMoney(t.amount, t.currency)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {type !== "sedekah" && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Kategori</label>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Kategori</p>
             <div className="grid grid-cols-4 gap-2">
               {availableCategories.map((c) => {
                 const cm = colorMap[c.color] || colorMap.slate;
@@ -488,14 +464,12 @@ export default function AddTransaction() {
                   <button
                     key={c.id}
                     onClick={() => setCategory(c.name)}
-                    className={`flex flex-col items-center gap-1.5 py-2.5 rounded-2xl border transition-all ${
-                      selected ? "border-primary bg-primary/5" : "border-border"
-                    }`}
+                    aria-pressed={selected}
+                    className={`relative flex flex-col items-center gap-1.5 pt-3 pb-2.5 rounded-2xl border transition-all ${selected ? "border-primary bg-primary/[0.07] ring-1 ring-primary" : "border-border bg-card"}`}
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
-                      <CategoryIcon name={c.icon} className={`w-4 h-4 ${cm.text}`} />
-                    </div>
-                    <span className="text-[11px] leading-tight text-center">{c.name}</span>
+                    {selected && <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center"><Check className="w-2.5 h-2.5" strokeWidth={3} /></span>}
+                    <span className={`w-10 h-10 rounded-2xl flex items-center justify-center ${cm.bg}`}><CategoryIcon name={c.icon} className={`w-5 h-5 ${cm.text}`} /></span>
+                    <span className={`text-[11px] leading-tight text-center px-1 ${selected ? "font-semibold" : ""}`}>{c.name}</span>
                   </button>
                 );
               })}
@@ -503,58 +477,101 @@ export default function AddTransaction() {
           </div>
         )}
 
-        <div>
-          <label htmlFor="add-tx-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
-          <input
-            id="add-tx-date"
-            type="datetime-local"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30"
-          />
-        </div>
-
-        {type !== "income" && (
-          <div>
-            <label htmlFor="add-tx-merchant" className="text-xs text-muted-foreground mb-1.5 block">{type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
-            <input
-              id="add-tx-merchant"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              placeholder={type === "sedekah" ? "Mis. Masjid, Yatim..." : "Mis. Indomaret, Toko A..."}
-              className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30"
-            />
+        {/* 5 · Detail */}
+        <section aria-label="Detail transaksi" className="surface rounded-3xl divide-y divide-border">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <label htmlFor="add-tx-date" className="block text-[11px] text-muted-foreground">Tanggal & jam</label>
+              <input id="add-tx-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className={fieldCls} />
+            </div>
           </div>
-        )}
 
-        <div>
-          <label htmlFor="add-tx-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
-          <textarea
-            id="add-tx-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            placeholder="Tambah catatan..."
-            className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none"
-          />
-        </div>
+          {type !== "income" && (
+            <div className="flex items-center gap-3 px-4 py-3">
+              <Store className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <label htmlFor="add-tx-merchant" className="block text-[11px] text-muted-foreground">{type === "sedekah" ? "Penerima / tujuan" : "Tempat / merchant"}</label>
+                <input id="add-tx-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder={type === "sedekah" ? "Mis. Masjid, yatim…" : "Mis. Indomaret, pasar…"} className={fieldCls} />
+              </div>
+            </div>
+          )}
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Tag</label>
-          <TagInput tags={tags} onChange={setTags} />
-        </div>
+          {bankAssets.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3">
+              <Wallet className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <label htmlFor="add-tx-linked-asset" className="block text-[11px] text-muted-foreground">{type === "income" ? "Masuk ke" : "Dibayar dari"} (opsional)</label>
+                <select id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
+                  <option value="">Tidak dipilih, saldo rekening tetap</option>
+                  {bankAssets.map((a) => <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 px-4 py-3">
+            {visibility === "private" ? <Lock className="w-4 h-4 text-muted-foreground shrink-0" /> : <Users className="w-4 h-4 text-muted-foreground shrink-0" />}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-muted-foreground">Jangkauan</p>
+              <p className="text-sm">{visibility === "private" ? "Pribadi, hanya Anda yang melihat" : "Bersama keluarga"}</p>
+            </div>
+            <div role="radiogroup" aria-label="Jangkauan" className="flex gap-1 p-0.5 rounded-full bg-muted shrink-0">
+              {[["shared", "Bersama"], ["private", "Pribadi"]].map(([v, l]) => (
+                <button key={v} role="radio" aria-checked={visibility === v} onClick={() => setVisibility(v)} className={`h-7 px-3 rounded-full text-xs font-semibold transition-colors ${visibility === v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 px-4 py-3">
+            <NotebookPen className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+            <div className="flex-1 min-w-0">
+              <label htmlFor="add-tx-notes" className="block text-[11px] text-muted-foreground">Catatan</label>
+              <textarea id="add-tx-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Opsional" className={`${fieldCls} resize-none`} />
+            </div>
+          </div>
+
+          {type === "expense" && (
+            <label htmlFor="add-tx-extraordinary" className="flex items-center gap-3 px-4 py-3 cursor-pointer">
+              <Sparkles className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium">Pengeluaran luar biasa</span>
+                <span className="block text-[11px] text-muted-foreground leading-snug">Tidak rutin, mis. kendaraan atau renovasi. Tidak ikut rata-rata harian.</span>
+              </span>
+              <input id="add-tx-extraordinary" type="checkbox" checked={isExtra} onChange={(e) => toggleExtra(e.target.checked)} className="peer sr-only" />
+              <span aria-hidden="true" className="w-10 h-6 rounded-full bg-muted border border-border relative transition-colors peer-checked:bg-primary peer-checked:border-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-[18px] after:h-[18px] after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" />
+            </label>
+          )}
+        </section>
+
+        {/* 6 · Opsi lanjutan */}
+        <details className="group surface rounded-3xl">
+          <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none">
+            <span className="text-sm font-semibold">Opsi lanjutan</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">Tag & template <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" /></span>
+          </summary>
+          <div className="px-4 pb-4 space-y-3">
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-1.5">Tag</p>
+              <TagInput tags={tags.filter((t) => t !== EXTRAORDINARY_TAG)} onChange={(next) => setTags(isExtra ? [...next, EXTRAORDINARY_TAG] : next)} />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} className="w-4 h-4 accent-[hsl(var(--primary))]" />
+              <span className="text-sm">Simpan sebagai template rutin</span>
+            </label>
+          </div>
+        </details>
       </div>
 
-      <div className="px-5 py-4 border-t border-border bg-background">
-        <label className="flex items-center gap-2 mb-3 cursor-pointer">
-          <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} className="w-4 h-4 accent-primary" />
-          <span className="text-xs text-muted-foreground">Simpan sebagai template rutin</span>
-        </label>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full btn-primary"
-        >
+      {/* 7 · Simpan (menempel) */}
+      <div className="sticky bottom-0 px-5 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-background/90 backdrop-blur-xl border-t border-border">
+        <p className="text-xs text-muted-foreground mb-2 truncate" aria-live="polite">
+          <span className={`font-semibold ${typeTone.soft}`}>{typeTone.label}</span>
+          {chosenCategory ? ` · ${chosenCategory}` : " · pilih kategori"}
+          {linkedAsset ? ` · dari ${linkedAsset.name}` : ""}
+          {amountNum > 0 ? ` · ${formatMoney(amountNum, currency)}` : ""}
+        </p>
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Menyimpan..." : "Simpan Transaksi"}
         </button>

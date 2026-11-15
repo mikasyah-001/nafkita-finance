@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Lock, Clock, X } from "lucide-react";
-import { formatDate, colorMap } from "@/lib/finance";
+import { formatDate, colorMap, isExtraordinary } from "@/lib/finance";
 import Money from "./Money";
 import CategoryIcon from "./CategoryIcon";
 
@@ -21,6 +21,9 @@ export default function TransactionItem({ tx, categories }) {
         <p className="text-sm font-medium truncate flex items-center gap-1">
           {tx.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
           {tx.merchant || tx.notes || (isSedekah ? "Sedekah & Infaq" : category?.name || "Transaksi")}
+          {isExtraordinary(tx) && (
+            <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-gold/20 text-foreground/80 shrink-0">Luar biasa</span>
+          )}
           {tx.approval_status === "pending" && (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[11px] font-medium shrink-0">
               <Clock className="w-2.5 h-2.5" /> Menunggu

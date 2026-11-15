@@ -2,11 +2,13 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
-import { fetchGoldPricesBackend, computeZakatPerCurrency, ZAKAT_CURRENCIES } from "../../shared/zakat.ts";
+import { fetchGoldPricesBackend, computeZakatMal, haulPeriodBackend, isPlausibleGoldPriceIdr } from "../../shared/zakat.ts";
 
-// Pengingat zakat tahunan (1 Maret) — memakai shared zakat module yang SAMA
-// dengan halaman Zakat.jsx (getZakatStatus), sehingga email dan UI tidak pernah
-// bertentangan. Nisab dihitung per mata uang (85 gr emas).
+// Pengingat zakat mal — memakai computeZakatMal (cermin src/lib/zakat.js),
+// sehingga email & halaman Zakat memakai aturan yang sama: harta simpanan
+// digabung dalam IDR, utang jatuh tempo dikurangkan, rumah/tanah tidak dihitung.
+// Dikirim bila wajib zakat, belum lunas di periode haul, dan haul ≤ 30 hari lagi
+// (atau tanggal haul belum diatur).
 const fmtMoney = (val, cur) => {
   const n = Math.round(val);
   if (cur === "IDR") return "Rp " + n.toLocaleString("id-ID");
@@ -23,58 +25,67 @@ export default async function (req) {
 
     const users = await fetchAll(base44.asServiceRole.entities.User);
     const allAssets = await fetchAll(base44.asServiceRole.entities.Asset);
+    const allDebts = await fetchAll(base44.asServiceRole.entities.Debt);
     const allPayments = await fetchAll(base44.asServiceRole.entities.ZakatPayment);
-    const year = new Date().getFullYear();
+    let rateMap = {};
+    try {
+      const rates = await fetchAll(base44.asServiceRole.entities.ExchangeRate);
+      rateMap = { IDR: 1 };
+      (rates || []).forEach((r) => {
+        const b = (r.base_currency || "").toUpperCase(), q = (r.quote_currency || "").toUpperCase(), v = Number(r.rate) || 0;
+        if (v > 0 && q === "IDR" && b !== "IDR") rateMap[b] = v;
+        else if (v > 0 && b === "IDR" && q !== "IDR") rateMap[q] = 1 / v;
+      });
+    } catch { /* tanpa kurs: aset non-IDR tidak dihitung */ }
 
-    // Harga emas per mata uang — diambil sekali untuk semua user.
+    // Harga emas IDR — diambil sekali; isian manual pengguna diutamakan.
     const goldPrices = await fetchGoldPricesBackend(base44);
+    const autoGold = isPlausibleGoldPriceIdr(goldPrices.IDR) ? goldPrices.IDR : 0;
+    const hijriYear = Number(new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric" }).formatToParts(new Date()).find((p) => p.type === "year")?.value || 0);
 
     let sent = 0;
     let skipped = 0;
 
     for (const u of users) {
       if (!u.email) continue;
-
       const partnerId = await resolvePartnerId(base44, u.id);
       const myAssets = allAssets.filter((a) => assetVisibleTo(a, u.id, partnerId));
+      const myDebts = allDebts.filter((d) => d.created_by_id === u.id);
+      const goldPrice = isPlausibleGoldPriceIdr(u.zakat_gold_price) ? Number(u.zakat_gold_price) : autoGold;
+      if (!goldPrice) { skipped++; continue; }
 
-      // Lewati yang sudah lunas tahun ini.
-      const myPaid = allPayments.filter((z) => z.created_by_id === u.id && z.year === year && z.status === "paid");
-      const emasPaid = myPaid.some((z) => z.zakat_type === "emas");
-      const simpananPaid = myPaid.some((z) => z.zakat_type === "simpanan");
+      const r = computeZakatMal({ assets: myAssets, debts: myDebts, goldPrice, rateMap, includeReceivables: u.zakat_include_receivables !== false });
+      const period = haulPeriodBackend(u.zakat_haul_date);
+      if (!r.reachesNisab || !period.isDue) { skipped++; continue; }
 
-      const { perCurrency } = computeZakatPerCurrency(myAssets, goldPrices);
-
-      const kewajiban = [];
-      for (const p of perCurrency) {
-        if (p.wajibEmas && !emasPaid) {
-          kewajiban.push(`emas ${p.emasGrams} gram [${p.currency}] (zakat 2,5% = ${fmtMoney(p.zakatEmas, p.currency)})`);
-        }
-        if (p.wajibSimpanan && !simpananPaid) {
-          kewajiban.push(`simpanan ${fmtMoney(p.nonEmasValue, p.currency)} (zakat 2,5% = ${fmtMoney(p.zakatSimpanan, p.currency)})`);
-        }
-      }
-
-      if (kewajiban.length === 0) { skipped++; continue; }
+      const paid = allPayments
+        .filter((z) => z.created_by_id === u.id && z.status === "paid" && (period.key ? z.period_key === period.key : z.zakat_type === "mal" && z.year === hijriYear))
+        .reduce((s, z) => s + (Number(z.amount) || 0), 0);
+      const remaining = Math.max(0, r.zakat - paid);
+      if (remaining <= 0) { skipped++; continue; }
 
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: u.email,
-          subject: "Pengingat: Zakat Harta Anda 🕌",
+          subject: "Pengingat zakat mal — NAFKITA",
           body:
             "Assalamu'alaikum " + (u.full_name || u.email) + ",\n\n" +
-            "Harta Anda telah mencapai nisab zakat. Kewajiban zakat yang perlu Anda tunaikan (2,5% setelah genap 1 tahun/haul):\n" +
-            kewajiban.map((k) => "- " + k).join("\n") + "\n\n" +
-            "Nisab dihitung per mata uang (85 gram emas). Jangan lupa bayar zakat agar harta tetap berkah. Anda bisa tandai 'Bayarkan Zakat' di aplikasi NAFKITA setelah membayar.\n\n" +
-            "Semoga Allah memberkahi harta Anda.\n\nNAFKITA"
+            "Perkiraan zakat mal Anda:\n" +
+            "- Harta bersih (kas, tabungan, emas, investasi, piutang lancar − utang jatuh tempo): " + fmtMoney(r.net, "IDR") + "\n" +
+            "- Nisab (85 gr emas): " + fmtMoney(r.nisab, "IDR") + "\n" +
+            "- Zakat 2,5%: " + fmtMoney(r.zakat, "IDR") + (paid > 0 ? " (sudah dibayar " + fmtMoney(paid, "IDR") + ")" : "") + "\n" +
+            "- Sisa yang perlu ditunaikan: " + fmtMoney(remaining, "IDR") + "\n" +
+            (period.due ? "- Jatuh tempo haul: " + period.due.toISOString().slice(0, 10) + "\n" : "") +
+            "\nRumah tinggal, tanah, dan kendaraan pakai tidak dihitung. Angka ini perkiraan, bukan fatwa; konsultasikan dengan amil/BAZNAS setempat.\n" +
+            "Setelah membayar, catat di menu Zakat NAFKITA.\n\nNAFKITA",
         });
         sent++;
       } catch {
-        // skip individual send errors
+        // lewati kegagalan kirim per pengguna
       }
     }
 
-    return Response.json({ sent, skipped, goldPrices, wajib: sent > 0 });
+    return Response.json({ sent, skipped, goldPriceIDR: autoGold, wajib: sent > 0 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

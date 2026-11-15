@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
+import { formatMoney, formatDate, colorMap, currencySymbol, formatMoneyPlain } from "@/lib/finance";
 import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
@@ -289,7 +289,7 @@ export default function TransactionDetail() {
               >
                 <option value="">Tidak ada — saldo tidak diubah</option>
                 {bankAssets.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>

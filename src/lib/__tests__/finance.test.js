@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   convertTo, canConvert, hasRate, buildRateMap,
   summarizeConsolidated, summarizeByCurrency, monthlyExpenseBreakdown,
-  filterReportableTx, computeSavingsRate, computeZakat, NISAB_GRAM,
+  filterReportableTx, computeSavingsRate,
   computeRecurringNextDate, formatUnconverted,
 } from "../finance.js";
 
@@ -115,7 +115,7 @@ test("monthlyExpenseBreakdown: tanpa kurs → dikecualikan, dicatat untuk UI", (
     { year: 2026, month: 10, currency: "IDR", rateMap: { IDR: 1 } });
   assert.equal(r.total, 100_000);
   assert.deepEqual(r.unconverted, { SAR: 500 });
-  assert.match(formatUnconverted(r.unconverted), /SAR/);
+  assert.match(formatUnconverted(r.unconverted), /\u20C1/, "simbol riyal resmi");
 });
 
 // ── Rasio menabung ───────────────────────────────────────────────
@@ -123,22 +123,6 @@ test("computeSavingsRate: normal, negatif, tanpa pemasukan", () => {
   assert.deepEqual(computeSavingsRate(10_000, 6_000, 1_000), { rate: 30, label: null });
   assert.deepEqual(computeSavingsRate(10_000, 12_000, 0), { rate: 0, label: "<0%" });
   assert.deepEqual(computeSavingsRate(0, 100, 0), { rate: 0, label: "n/a" });
-});
-
-// ── Zakat mal ────────────────────────────────────────────────────
-test("computeZakat: nisab 85 gr emas, tarif 2,5%", () => {
-  const goldPrice = 1_500_000;
-  const nisab = goldPrice * NISAB_GRAM;
-  const below = computeZakat({ emasGrams: 50, emasValue: 75_000_000, nonEmasValue: nisab - 1, goldPrice });
-  assert.equal(below.emasReached, false);
-  assert.equal(below.simpananReached, false);
-  assert.equal(below.zakatEmas + below.zakatSimpanan, 0);
-  const above = computeZakat({ emasGrams: 100, emasValue: 150_000_000, nonEmasValue: nisab, goldPrice });
-  assert.equal(above.zakatEmas, 3_750_000);
-  assert.equal(above.zakatSimpanan, nisab * 0.025);
-});
-test("computeZakat: tanpa harga emas, simpanan tidak dianggap mencapai nisab", () => {
-  assert.equal(computeZakat({ nonEmasValue: 1e12, goldPrice: 0 }).simpananReached, false);
 });
 
 // ── Tagihan berulang ─────────────────────────────────────────────
@@ -152,4 +136,105 @@ test("computeRecurringNextDate: bulanan dari akhir bulan tidak melompat 2 bulan"
   assert.equal(computeRecurringNextDate("2026-01-31", "monthly"), "2026-02-28");
   assert.equal(computeRecurringNextDate("2028-01-31", "monthly"), "2028-02-29");
   assert.equal(computeRecurringNextDate("2026-03-31", "monthly"), "2026-04-30");
+});
+
+// ── Pengeluaran luar biasa & aset uang ──────────────────────────
+import { isExtraordinary, EXTRAORDINARY_TAG, isMoneyAsset } from "../finance.js";
+test("Pengeluaran luar biasa: tetap di total, keluar dari total rutin", () => {
+  const r = monthlyExpenseBreakdown([
+    tx({ amount: 100_000 }),
+    tx({ amount: 60_000_000, tags: [EXTRAORDINARY_TAG], category: "Kendaraan" }),
+  ], { year: 2026, month: 10, currency: "IDR", rateMap: RATES });
+  assert.equal(r.total, 60_100_000);
+  assert.equal(r.extraordinary, 60_000_000);
+  assert.equal(r.routineTotal, 100_000);
+  assert.equal(isExtraordinary(tx({ tags: ["liburan"] })), false);
+});
+test("isMoneyAsset: rekening bank & dompet tunai saja", () => {
+  assert.equal(isMoneyAsset({ type: "bank" }), true);
+  assert.equal(isMoneyAsset({ type: "tunai" }), true);
+  assert.equal(isMoneyAsset({ type: "emas" }), false);
+});
+
+// ── Rencana bulanan ──────────────────────────────────────────────
+import { monthlyPlan, planProgress, isExpenseBudget } from "../finance.js";
+test("monthlyPlan: ambil target sesuai periode, cakupan, mata uang", () => {
+  const budgets = [
+    { kind: "income_plan", period: "2026-11", visibility: "shared", currency: "IDR", limit_amount: 15_000_000 },
+    { kind: "savings_plan", period: "2026-11", visibility: "shared", currency: "IDR", limit_amount: 5_000_000 },
+    { kind: "savings_plan", period: "2026-11", visibility: "private", currency: "IDR", limit_amount: 999 },
+    { category: "Makanan", period: "2026-11", limit_amount: 1_500_000 },
+  ];
+  const p = monthlyPlan(budgets, { period: "2026-11", scope: "shared", currency: "IDR" });
+  assert.equal(p.income, 15_000_000);
+  assert.equal(p.savings, 5_000_000);
+  assert.equal(isExpenseBudget(budgets[3]), true, "anggaran lama tanpa kind = pengeluaran");
+  assert.equal(isExpenseBudget(budgets[0]), false);
+});
+test("planProgress: persen dijepit, status tercapai, sisa", () => {
+  assert.deepEqual(planProgress(2_500_000, 5_000_000), { pct: 50, reached: false, remaining: 2_500_000 });
+  assert.equal(planProgress(6_000_000, 5_000_000).pct, 100);
+  assert.equal(planProgress(-1_000, 5_000_000).pct, 0);
+  assert.equal(planProgress(100, 0).reached, false);
+});
+
+// ── Alur input aset per jenis ────────────────────────────────────
+import { buildAssetPayload, switchAssetType } from "../finance.js";
+const F = (o) => ({ name: "Aset", type: "bank", value: "", quantity: "", purchase_price: "", currency: "IDR", visibility: "shared", ...o });
+test("Aset bank/tunai: nilai saja, tanpa harga beli & jumlah", () => {
+  const { payload } = buildAssetPayload(F({ type: "bank", value: "5000000", purchase_price: "999", quantity: "3" }));
+  assert.equal(payload.value, 5_000_000);
+  assert.equal(payload.purchase_price, 0);
+  assert.equal(payload.quantity, 0);
+  assert.equal(buildAssetPayload(F({ type: "tunai", value: "0" })).payload.value, 0, "dompet kosong boleh 0");
+  assert.equal(buildAssetPayload(F({ type: "tunai", value: "" })).error, "Isi nilai aset");
+});
+test("Aset emas: wajib gram & harga/gram, nilai = gram × harga, mata uang IDR", () => {
+  assert.equal(buildAssetPayload(F({ type: "emas", quantity: "10" })).error, "Isi harga beli per gram");
+  const { payload } = buildAssetPayload(F({ type: "emas", quantity: "10", purchase_price: "1500000", currency: "SAR" }));
+  assert.equal(payload.value, 15_000_000);
+  assert.equal(payload.unit, "gram");
+  assert.equal(payload.currency, "IDR");
+});
+test("Aset emas digital: boleh mata uang lain", () => {
+  const { payload } = buildAssetPayload(F({ type: "emas_digital", quantity: "2", purchase_price: "300", currency: "SAR" }));
+  assert.equal(payload.currency, "SAR");
+  assert.equal(payload.value, 600);
+});
+test("Aset tanah: nilai sekarang opsional (default = luas × harga/m²), IDR", () => {
+  const a = buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", currency: "SAR" })).payload;
+  assert.equal(a.value, 200_000_000);
+  assert.equal(a.unit, "m²");
+  assert.equal(a.currency, "IDR");
+  assert.equal(buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", value: "250000000" })).payload.value, 250_000_000);
+});
+test("Aset investasi/properti/lainnya: nilai + harga beli total, tanpa satuan", () => {
+  const { payload } = buildAssetPayload(F({ type: "investasi", value: "43500000", purchase_price: "38000000", quantity: "7" }));
+  assert.equal(payload.purchase_price, 38_000_000);
+  assert.equal(payload.quantity, 0);
+  assert.equal(payload.unit, "");
+});
+test("Aset: nama wajib, angka negatif ditolak", () => {
+  assert.equal(buildAssetPayload(F({ name: "  ", value: "1" })).error, "Isi nama aset");
+  assert.equal(buildAssetPayload(F({ value: "-5" })).error, "Nilai tidak boleh negatif");
+});
+test("Ganti jenis tidak membawa isian yang beda makna", () => {
+  const emas = { ...F({ type: "emas", quantity: "40", purchase_price: "1250000", unit: "gram" }) };
+  const bank = switchAssetType(emas, "bank");
+  assert.equal(bank.quantity, "");
+  assert.equal(bank.purchase_price, "");
+  assert.equal(bank.unit, "");
+  const digital = switchAssetType(emas, "emas_digital");
+  assert.equal(digital.quantity, "40", "sesama gram tetap");
+  assert.equal(switchAssetType(F({ currency: "SAR" }), "tanah").currency, "IDR");
+});
+
+// ── Simbol riyal resmi ───────────────────────────────────────────
+import { formatMoney, formatMoneyPlain, currencySymbol, SAR_SIGN } from "../finance.js";
+test("SAR memakai simbol resmi U+20C1 di tampilan, kode 'SAR' untuk ekspor", () => {
+  assert.equal(SAR_SIGN, "⃁");
+  assert.equal(currencySymbol("SAR"), "⃁");
+  assert.equal(formatMoney(2400, "SAR"), "⃁ 2,400.00");
+  assert.equal(formatMoneyPlain(2400, "SAR"), "SAR 2,400.00");
+  assert.equal(formatMoneyPlain(150000, "IDR"), formatMoney(150000, "IDR"));
 });

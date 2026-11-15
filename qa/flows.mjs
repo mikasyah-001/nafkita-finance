@@ -20,13 +20,13 @@ const nav = async (p) => {
 const rupiah = (s) => Number(String(s).replace(/[^\d-]/g, "")) * (/^-|−/.test(String(s).trim()) ? 1 : 1);
 const homeNumbers = async () => {
   await nav("/");
-  const saldo = rupiah(await page.locator(".card-gradient-primary p.text-2xl").first().innerText());
+  const saldo = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
   const belanja = rupiah(await page.getByText("Total pengeluaran", { exact: true }).locator("xpath=following-sibling::p[1]").innerText());
   return { saldo, belanja };
 };
 const laporanTotal = async () => {
   await nav("/laporan?tab=bulanan");
-  return rupiah(await page.locator(".card-gradient-primary p.text-2xl").first().innerText());
+  return rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
 };
 
 const results = [];
@@ -106,6 +106,127 @@ try {
     assert.ok(!(await page.evaluate((i) => window.__qa.tx.some((t) => t.id === i), txId)), "Terhapus");
     const after = await homeNumbers();
     assert.equal(start.belanja - after.belanja, 100000, "Belanja kembali turun");
+  });
+
+  await step("Audit kas: tarik tunai menambah 'seharusnya di tangan', selisih disesuaikan & tercatat", async () => {
+    const wallet = () => page.evaluate(() => window.__qa.assets.find((a) => a.id === "a6").value);
+    const w0 = await wallet();
+    await nav("/transfer?to=a6");
+    await page.selectOption("#transfer-from", "a1");
+    await page.fill("#transfer-amount", "500000");
+    await page.getByRole("button", { name: /Transfer Sekarang/ }).click();
+    await page.waitForTimeout(800);
+    assert.equal(await wallet(), w0 + 500000, "Dompet bertambah dari tarik tunai");
+    const h0 = await homeNumbers();
+    await nav("/audit-kas");
+    const expected = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(expected, w0 + 500000, "Seharusnya di tangan");
+    await page.fill("#audit-physical", String(expected - 50000));
+    assert.ok(await page.getByText("Kurang Rp 50.000").isVisible(), "Selisih tampil");
+    await page.getByRole("button", { name: /Sesuaikan saldo/ }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Sesuaikan" }).click();
+    await page.waitForTimeout(800);
+    assert.equal(await wallet(), expected - 50000, "Saldo dompet = uang fisik");
+    const h1 = await homeNumbers();
+    assert.equal(h1.belanja - h0.belanja, 50000, "Kekurangan tercatat sebagai pengeluaran");
+  });
+
+  await step("Pengeluaran luar biasa: ditandai, total naik, rata-rata harian rutin tidak berubah", async () => {
+    await nav("/laporan?tab=bulanan");
+    const avgText = async () => page.getByText(/Rata-rata\/hari/).locator("xpath=following-sibling::p[1]").innerText();
+    const avg0 = await avgText();
+    await nav("/add");
+    await page.fill("#add-tx-amount", "60000000");
+    await page.getByRole("button", { name: "Belanja" }).first().click();
+    await page.locator("label[for=\"add-tx-extraordinary\"]").click();
+    assert.ok(await page.isChecked("#add-tx-extraordinary"), "Sakelar aktif");
+    await page.getByRole("button", { name: /Simpan Transaksi/ }).click();
+    await page.waitForURL(BASE + "/", { timeout: 5000 });
+    await nav("/laporan?tab=bulanan");
+    assert.equal(await avgText(), avg0, "Rata-rata harian rutin sama");
+    assert.ok(await page.getByText(/Termasuk pengeluaran luar biasa/).first().isVisible(), "Catatan luar biasa tampil");
+  });
+
+  await step("Anggaran: toggle Pribadi benar-benar mengganti cakupan data", async () => {
+    await nav("/anggaran");
+    assert.ok(await page.getByText(/Anggaran Bersama Keluarga/).isVisible(), "Awal: Bersama");
+    await page.getByRole("radio", { name: /Pribadi/ }).click();
+    await page.waitForTimeout(400);
+    assert.ok(await page.getByText(/Anggaran Pribadi/).isVisible(), "Setelah toggle: Pribadi");
+    await page.getByRole("radio", { name: /Bersama/ }).click();
+  });
+
+  await step("Rencana menabung: diatur di Anggaran, progresnya tampil di Beranda", async () => {
+    await nav("/anggaran");
+    await page.fill("#plan-savings", "5000000");
+    await page.locator("#plan-savings").blur();
+    await page.waitForTimeout(800);
+    const home = await homeNumbers();
+    const text = await page.getByText(/Rencana menabung/).locator("xpath=..").innerText();
+    const expectedPct = Math.min(100, Math.round((home.saldo / 5000000) * 100));
+    assert.ok(text.includes(expectedPct >= 100 ? "Tercapai" : `${expectedPct}%`), `Progres tampil (${text.replace(/\s+/g, " ")})`);
+  });
+
+  await step("Tambah aset emas: nilai = gram × harga, satuan gram, mata uang IDR", async () => {
+    await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.fill("#asset-name", "QA Emas");
+    await page.fill("#asset-gold-quantity", "10");
+    await page.fill("#asset-gold-purchase-price", "1500000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Emas"));
+    assert.ok(a, "Tersimpan");
+    assert.equal(a.value, 15000000); assert.equal(a.unit, "gram"); assert.equal(a.currency, "IDR");
+  });
+
+  await step("Ganti jenis Emas → Bank: isian gram/harga tidak terbawa", async () => {
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.fill("#asset-gold-quantity", "40");
+    await page.fill("#asset-gold-purchase-price", "1250000");
+    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.fill("#asset-name", "QA Bank");
+    await page.fill("#asset-value", "7000000");
+    assert.equal(await page.locator("#asset-purchase-price").count(), 0, "Bank tidak menanyakan harga beli");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Bank"));
+    assert.equal(a.value, 7000000); assert.equal(a.quantity, 0); assert.equal(a.purchase_price, 0); assert.equal(a.unit, "");
+  });
+
+  await step("Zakat: harta simpanan digabung (IDR+SAR+emas), rumah tidak dihitung, utang dikurangkan", async () => {
+    await nav("/zakat");
+    await page.fill("#zakat-gold-price", "1500000");
+    await page.getByRole("button", { name: "Pakai" }).click();
+    await page.waitForTimeout(900);
+    const expected = await page.evaluate(() => {
+      const rate = { IDR: 1, SAR: 4250 };
+      let net = 0;
+      for (const a of window.__qa.assets) {
+        if (a.type === "emas" || a.type === "emas_digital") net += (a.quantity || 0) * 1500000;
+        else if (["bank", "tunai", "investasi"].includes(a.type)) net += a.value * (rate[a.currency || "IDR"] || 0);
+      }
+      net -= 5000000; // utang aktif jatuh tempo < 12 bulan (data contoh)
+      return Math.round(net * 0.025);
+    });
+    const hero = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(hero, expected, "Zakat = 2,5% × harta bersih gabungan");
+    assert.ok(await page.getByText("Wajib zakat").isVisible());
+  });
+
+  await step("Zakat: catat pembayaran sebagian → sisa berkurang & tercatat sebagai transaksi Zakat", async () => {
+    const before = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    await page.getByRole("button", { name: /Catat pembayaran zakat/ }).click();
+    await page.fill("#zakat-pay-amount", "1000000");
+    await page.fill("#zakat-pay-recipient", "BAZNAS");
+    await page.getByRole("button", { name: /Simpan pembayaran/ }).click();
+    await page.waitForTimeout(900);
+    const after = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(before - after, 1000000, "Sisa berkurang");
+    const tx = await page.evaluate(() => window.__qa.tx.find((t) => t.category === "Zakat"));
+    assert.ok(tx && tx.type === "sedekah" && tx.amount === 1000000, "Transaksi zakat tercatat");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

@@ -7,7 +7,7 @@ import { Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChar
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
-import ZakatStatus from "@/components/ZakatStatus";
+import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useScope } from "@/lib/ScopeContext";
 import ScopeToggle from "@/components/ScopeToggle";
 import PageHeader from "@/components/PageHeader";
@@ -67,9 +67,6 @@ export default function AssetDashboard() {
 
   const nonEmasValue = scopedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + displayValue(a), 0);
 
-  // Zakat selalu dihitung dalam IDR (nisab emas berbasis harga emas Rupiah).
-  const emasValueIdr = emasAssets.reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
-  const nonEmasValueIdr = scopedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + convertTo(baseValue(a), (a.currency || "IDR"), "IDR", rateMap), 0);
 
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
   const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
@@ -82,15 +79,15 @@ export default function AssetDashboard() {
   const purchasedCurrent = withPurchase.reduce((s, a) => s + displayValue(a), 0);
   const totalGrowth = totalPurchase > 0 ? ((purchasedCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
-  const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
-  const allocation = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
+  const allocColors = { "Tabungan/Bank": "#3b82f6", "Uang Tunai": "#157A5A", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
+  const allocation = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + displayValue(a), 0);
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
 
-  const typeTotals = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
+  const typeTotals = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + displayValue(a), 0);
@@ -317,13 +314,7 @@ export default function AssetDashboard() {
         </div>
       )}
 
-      <ZakatStatus
-        emasGrams={emasGrams}
-        emasValue={emasValueIdr}
-        nonEmasValue={nonEmasValueIdr}
-        goldPrice={goldPriceNum}
-        displayCurrency={displayCurrency}
-      />
+      <ZakatSummaryCard />
 
       <div className="mb-5">
         <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />

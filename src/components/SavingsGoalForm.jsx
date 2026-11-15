@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { X } from "lucide-react";
-import { formatMoney } from "@/lib/finance";
+import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
+import { currencySymbol, formatMoneyPlain } from "@/lib/finance";
 import { toast } from "sonner";
+import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 
 const goalTypes = [
-  { value: "darurat", label: "Dana Darurat" },
-  { value: "pendidikan", label: "Pendidikan" },
-  { value: "rumah", label: "Rumah" },
-  { value: "perjalanan", label: "Perjalanan" },
-  { value: "lainnya", label: "Lainnya" },
+  { value: "darurat", label: "Dana darurat", icon: ShieldCheck },
+  { value: "pendidikan", label: "Pendidikan", icon: GraduationCap },
+  { value: "rumah", label: "Rumah", icon: HomeIcon },
+  { value: "perjalanan", label: "Perjalanan", icon: Plane },
+  { value: "lainnya", label: "Lainnya", icon: Target },
 ];
 
 const colors = ["green", "blue", "amber", "violet", "pink", "teal", "orange", "cyan"];
+const colorLabels = { green: "Hijau", blue: "Biru", amber: "Kuning", violet: "Ungu", pink: "Merah muda", teal: "Toska", orange: "Oranye", cyan: "Sian" };
 
 export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -52,107 +54,125 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl border border-border p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">{goal?.id ? "Edit Target" : "Target Tabungan Baru"}</h2>
-          <button onClick={onClose} className="btn-icon btn-icon-sm">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <FormSheet
+      title={goal?.id ? "Edit target" : "Target tabungan baru"}
+      subtitle="Tentukan tujuan, nominal, dan kapan ingin tercapai."
+      onClose={onClose}
+      footer={
+        <button type="submit" form="savings-goal-form" disabled={submitting} className="w-full btn-primary">
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+          {submitting ? "Menyimpan..." : "Simpan"}
+        </button>
+      }
+    >
+      <form id="savings-goal-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* Jenis */}
+        <section>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Jenis target</p>
+          <div id="savings-goal-type" role="radiogroup" aria-label="Jenis target" className="grid grid-cols-5 gap-2">
+            {goalTypes.map((t) => {
+              const on = form.type === t.value;
+              const Icon = t.icon;
+              return (
+                <button key={t.value} type="button" role="radio" aria-checked={on} onClick={() => setForm({ ...form, type: t.value })}
+                  className={`flex flex-col items-center gap-1.5 pt-2.5 pb-2 rounded-2xl border transition-all ${on ? "border-primary bg-primary/[0.07] ring-1 ring-primary" : "border-border bg-card"}`}>
+                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className={`text-[11px] leading-tight text-center px-0.5 ${on ? "font-semibold" : ""}`}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="savings-goal-name" className="text-sm font-medium mb-1.5 block">Nama Target</label>
+        <FieldGroup label="Identitas">
+          <FieldRow icon={Tag} label="Nama target" htmlFor="savings-goal-name">
             <input
               id="savings-goal-name"
               type="text"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="mis. Dana Darurat 6 Bulan"
-              className="input"
+              placeholder="mis. Dana darurat 6 bulan"
+              className={fieldInput}
               required
             />
-          </div>
+          </FieldRow>
+        </FieldGroup>
 
-          <div>
-            <label htmlFor="savings-goal-type" className="text-sm font-medium mb-1.5 block">Jenis Target</label>
-            <select id="savings-goal-type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
-              {goalTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="savings-goal-target-amount" className="text-sm font-medium mb-1.5 block">Nominal Target</label>
+        {/* Nominal */}
+        <section className="card-gradient-primary rounded-[24px] p-4">
+          <label htmlFor="savings-goal-target-amount" className="block text-xs opacity-80">Nominal target</label>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-lg font-semibold opacity-70">{currencySymbol(form.currency)}</span>
             <input
               id="savings-goal-target-amount"
               type="number"
+              inputMode="decimal"
               value={form.target_amount}
               onChange={e => setForm({ ...form, target_amount: e.target.value })}
               placeholder="0"
-              className="input"
               required
+              className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
+        </section>
 
-          <div>
-            <label htmlFor="savings-goal-target-date" className="text-sm font-medium mb-1.5 block">Tanggal Target</label>
+        <FieldGroup label="Rencana">
+          <FieldRow icon={CalendarDays} label="Tanggal target" htmlFor="savings-goal-target-date">
             <input
               id="savings-goal-target-date"
               type="date"
               value={form.target_date}
               onChange={e => setForm({ ...form, target_date: e.target.value })}
-              className="input"
+              className={fieldInput}
             />
-          </div>
-
-          <div>
-            <label htmlFor="savings-goal-linked-asset" className="text-sm font-medium mb-1.5 block">Aset Sumber (opsional)</label>
+          </FieldRow>
+          <FieldRow icon={Landmark} label="Aset sumber (opsional)" htmlFor="savings-goal-linked-asset">
             <select
               id="savings-goal-linked-asset"
               value={form.linked_asset_id}
               onChange={e => setForm({ ...form, linked_asset_id: e.target.value })}
-              className="input"
+              className={`${fieldInput} bg-background`}
             >
               <option value="">Tidak ada</option>
               {assets.filter(a => a.type === "bank").map(a => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value || 0, a.currency)})</option>
+                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
             </select>
-          </div>
+          </FieldRow>
+        </FieldGroup>
 
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Warna</label>
-            <div className="flex gap-2 flex-wrap">
+        <FieldGroup label="Tampilan">
+          <FieldRow icon={Palette} label="Warna">
+            <div role="radiogroup" aria-label="Warna" className="flex gap-2 flex-wrap mt-1.5">
               {colors.map(c => (
                 <button
                   key={c}
                   type="button"
+                  role="radio"
+                  aria-checked={form.color === c}
+                  aria-label={colorLabels[c]}
                   onClick={() => setForm({ ...form, color: c })}
-                  className={`w-8 h-8 rounded-full border-2 ${form.color === c ? "border-foreground scale-110" : "border-transparent"}`}
+                  className={`w-8 h-8 rounded-full transition-transform ${form.color === c ? "ring-2 ring-offset-2 ring-offset-card ring-foreground scale-105" : ""}`}
                   style={{ backgroundColor: `hsl(var(--chart-${colors.indexOf(c) + 1}))` }}
                 />
               ))}
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="savings-goal-visibility" className="text-sm font-medium mb-1.5 block">Visibilitas</label>
-            <select id="savings-goal-visibility" value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="input">
-              <option value="shared">Bersama Pasangan</option>
-              <option value="private">Pribadi</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full btn-primary"
-          >
-            {submitting ? "Menyimpan..." : "Simpan"}
-          </button>
-        </form>
-      </div>
-    </div>
+          </FieldRow>
+          <FieldRow icon={form.visibility === "private" ? Lock : Users} label="Visibilitas"
+            trailing={
+              <div id="savings-goal-visibility" role="radiogroup" aria-label="Visibilitas" className="flex gap-1 p-0.5 rounded-full bg-muted shrink-0 self-center">
+                {[["shared", "Bersama"], ["private", "Pribadi"]].map(([v, l]) => (
+                  <button key={v} type="button" role="radio" aria-checked={form.visibility === v} onClick={() => setForm({ ...form, visibility: v })}
+                    className={`h-7 px-3 rounded-full text-xs font-semibold transition-colors ${form.visibility === v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>{l}</button>
+                ))}
+              </div>
+            }>
+            <p className="text-sm">{form.visibility === "private" ? "Pribadi" : "Bersama pasangan"}</p>
+          </FieldRow>
+        </FieldGroup>
+      </form>
+    </FormSheet>
   );
 }

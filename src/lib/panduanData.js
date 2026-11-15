@@ -3,6 +3,7 @@ import {
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, Coins,
   CheckCheck, Upload, Tags, Activity, History, Layers,
   User, Settings, MessageSquare, Sparkles, BookOpen,
+  Banknote,
 } from "lucide-react";
 
 export const panduanCategories = [
@@ -144,6 +145,22 @@ export const panduanCategories = [
           "Simpan — saldo kedua rekening menyesuaikan otomatis",
         ],
         tips: "Pastikan kedua rekening menggunakan mata uang yang sama. Untuk transfer lintas mata uang, catat secara manual sebagai transaksi terpisah.",
+      },
+      {
+        to: "/audit-kas",
+        icon: Banknote,
+        name: "Audit Kas Tunai",
+        short: "Cocokkan uang tunai di dompet dengan catatan",
+        description: "Mencatat dompet tunai (IDR, SAR, dll.) dan membandingkan uang fisik dengan saldo yang seharusnya ada. Cocok untuk belanja harian pakai cash atau riyal tunai saat umrah.",
+        howItWorks: "Saldo dompet hanya berubah oleh tarik tunai (transfer rekening → dompet) dan transaksi yang dibayar dari dompet itu. Belanja pakai kartu tidak ikut. Selisih antara uang fisik dan saldo dapat disesuaikan, dan tercatat sebagai transaksi penyesuaian.",
+        steps: [
+          "Buat dompet tunai di menu Audit Kas",
+          "Catat tarik tunai lewat Transfer ke dompet",
+          "Saat belanja tunai, pilih dompet di kolom \"Dibayar dari\"",
+          "Rutin hitung uang fisik dan masukkan jumlahnya",
+          "Bila ada selisih, cek belanja yang lupa dicatat, lalu sesuaikan saldo",
+        ],
+        tips: "Lakukan audit seminggu sekali. Selisih kecil yang rutin biasanya tanda ada belanja kecil yang sering lupa dicatat.",
       },
       {
         to: "/utang",

@@ -32,9 +32,9 @@ export default function BottomNav() {
     <>
       <nav
         aria-label="Navigasi utama"
-        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card/90 backdrop-blur-xl border-t border-border z-50 pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] pointer-events-none"
       >
-        <div className="flex items-end justify-around h-16 px-1">
+        <div className="pointer-events-auto flex items-end justify-around h-[66px] px-1 rounded-[26px] bg-card/90 backdrop-blur-xl border border-border shadow-[0_14px_40px_-18px_hsl(var(--hero-from)/0.55)]">
           {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} />
           ))}
@@ -43,8 +43,8 @@ export default function BottomNav() {
             aria-label="Tambah transaksi"
             className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
           >
-            <span className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_8px_20px_-6px_hsl(var(--primary)/0.6)] active:scale-95 transition-transform -mt-4">
-              <Plus className="w-6 h-6" strokeWidth={2.25} />
+            <span className="w-[52px] h-[52px] rounded-full bg-gold text-gold-foreground flex items-center justify-center shadow-[0_10px_22px_-8px_hsl(var(--gold)/0.9)] ring-4 ring-background active:scale-95 transition-transform -mt-6">
+              <Plus className="w-6 h-6" strokeWidth={2.5} />
             </span>
             <span className="text-[11px] font-medium text-foreground/80 mt-0.5">Catat</span>
           </Link>
@@ -55,9 +55,8 @@ export default function BottomNav() {
             onClick={() => setShowMore(true)}
             aria-haspopup="dialog"
             aria-expanded={showMore}
-            className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-full ${moreActive ? "text-primary" : "text-muted-foreground"}`}
+            className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-[54px] my-1.5 mx-0.5 rounded-[20px] transition-colors ${moreActive ? "text-primary bg-primary/10" : "text-muted-foreground"}`}
           >
-            {moreActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
             <LayoutGrid className="w-5 h-5" />
             <span className={`text-[11px] ${moreActive ? "font-semibold" : ""}`}>Lainnya</span>
           </button>
@@ -125,12 +124,11 @@ function NavItem({ to, icon: Icon, label, end }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `relative flex flex-col items-center justify-center gap-1 flex-1 h-full ${isActive ? "text-primary" : "text-muted-foreground"}`
+        `relative flex flex-col items-center justify-center gap-1 flex-1 h-[54px] my-1.5 mx-0.5 rounded-[20px] transition-colors ${isActive ? "text-primary bg-primary/10" : "text-muted-foreground"}`
       }
     >
       {({ isActive }) => (
         <>
-          {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
           <Icon className="w-5 h-5" strokeWidth={isActive ? 2.25 : 2} />
           <span className={`text-[11px] ${isActive ? "font-semibold" : ""}`}>{label}</span>
         </>

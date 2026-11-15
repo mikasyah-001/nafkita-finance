@@ -205,7 +205,7 @@ try {
     const card = page.locator("div.surface", { hasText: "Emas Antam" }).first();
     const text = (await card.innerText()).replace(/\s+/g, " ");
     assert.ok(text.includes("Rp 1.500.000"), "Harga pasar/gr tampil");
-    assert.ok(/\+Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
+    assert.ok(/\+\s?Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
     await nav("/zakat");
     assert.ok(await page.getByText("Rp 1.500.000/gram").first().isVisible(), "Harga acuan sama di Zakat");
   });

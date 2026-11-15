@@ -15,6 +15,7 @@ import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { BarChart3, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 
 const linkColors = {
   violet: "bg-scope-private/10 text-scope-private",
@@ -178,7 +179,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="card-gradient-primary rounded-3xl p-5 mb-4">
+      {transactionsLoading ? <CardSkeleton className="h-40 mb-4" /> : <div className="card-gradient-primary rounded-3xl p-5 mb-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
@@ -219,7 +220,7 @@ export default function Home() {
             <p className="font-semibold text-sm mt-0.5 tabular-nums">{savings.label ? savings.label : `${savings.rate}%`}</p>
           </div>
         </div>
-      </div>
+      </div>}
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         {quickLinks.map((q) => {
@@ -249,13 +250,13 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="surface px-4 mb-4">
+      {transactionsLoading ? <ListSkeleton rows={4} className="mb-4" /> : <div className="surface px-4 mb-4">
         {scopeRecent.length === 0 ? (
           <EmptyState icon={scope === "private" ? Lock : Wallet} title={scope === "private" ? "Belum ada transaksi pribadi" : "Belum ada transaksi"} subtitle="Tekan tombol + untuk mencatat pengeluaran atau pemasukan." />
         ) : (
           scopeRecent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
         )}
-      </div>
+      </div>}
     </div>
   );
 }

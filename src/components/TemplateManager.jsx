@@ -5,6 +5,7 @@ import { colorMap, formatMoney, currencySymbol } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Users, Lock } from "lucide-react";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const typeOptions = [
   { k: "expense", l: "Pengeluaran" },
@@ -55,6 +56,7 @@ export default function TemplateManager() {
   };
 
   const handleDelete = async (id) => {
+    if (!(await confirmAction({ title: "Hapus template ini?" }))) return;
     try {
       await base44.entities.TransactionTemplate.delete(id);
       refresh();

@@ -5,6 +5,7 @@ import { Bell, Plus, Trash2, X } from "lucide-react";
 import { formatMoney } from "@/lib/finance";
 import { useToast } from "@/components/ui/use-toast";
 import EmptyState from "@/components/EmptyState";
+import { confirmAction } from "@/components/ConfirmHost";
 
 export default function NotificationRuleManager() {
   const { toast } = useToast();
@@ -45,7 +46,7 @@ export default function NotificationRuleManager() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus aturan ini?")) return;
+    if (!(await confirmAction({ title: "Hapus aturan notifikasi ini?" }))) return;
     await base44.entities.NotificationRule.delete(id);
     refresh();
   };

@@ -24,9 +24,12 @@ export default function AuditKas() {
 
   const wallets = assets.filter((a) => a.type === "tunai" && a.created_by_id === me?.id);
   const [walletId, setWalletId] = useState("");
+  // Bawaan: dompet bermata uang utama pengguna, baru kemudian dompet lain.
   useEffect(() => {
-    if (!walletId && wallets[0]) setWalletId(wallets[0].id);
-  }, [wallets, walletId]);
+    if (walletId || !wallets.length) return;
+    const main = wallets.find((w) => (w.currency || "IDR") === (me?.default_currency || "IDR"));
+    setWalletId((main || wallets[0]).id);
+  }, [wallets, walletId, me?.default_currency]);
   const wallet = wallets.find((w) => w.id === walletId);
   const cur = wallet?.currency || "IDR";
 

@@ -31,7 +31,7 @@ export default function UserContributionChart({ transactions, currency = "IDR" }
     <div className="surface p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm flex items-center gap-2">
-          <Users className="w-4 h-4 text-indigo-500" /> Kontribusi Pasangan
+          <Users className="w-4 h-4 text-primary" /> Kontribusi Pasangan
         </h2>
         <div className="flex gap-1 bg-muted p-1 rounded-xl">
           <button

@@ -60,7 +60,7 @@ export default function ZakatNotifier() {
   const showCard = obligations.length > 0;
 
   return (
-    <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 mb-4">
+    <div className="rounded-2xl border border-success/30 bg-success/10 p-4 mb-4">
       <div className="flex items-center gap-2 mb-2">
         <Bell className="w-4 h-4 text-success" />
         <p className="text-sm font-medium">Pengingat Zakat</p>
@@ -74,7 +74,7 @@ export default function ZakatNotifier() {
               return (
                 <div key={ob.type} className="rounded-xl bg-background border border-border p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
                       <Icon className="w-4 h-4 text-success" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -89,7 +89,7 @@ export default function ZakatNotifier() {
                   <button
                     onClick={() => handlePay(ob)}
                     disabled={paying === ob.type}
-                    className="w-full mt-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform"
+                    className="w-full mt-1 py-2 rounded-lg bg-success text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform"
                   >
                     {paying === ob.type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                     {paying === ob.type ? "Memproses..." : "Bayarkan Zakat"}
@@ -110,6 +110,7 @@ export default function ZakatNotifier() {
         <div className="flex items-center flex-1 rounded-lg bg-background border border-border px-3">
           <span className="text-[11px] text-muted-foreground">Rp</span>
           <input
+            aria-label="Harga emas per gram"
             type="number"
             value={goldPrice}
             onChange={(e) => setGoldPrice(e.target.value)}

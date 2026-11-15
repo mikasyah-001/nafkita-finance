@@ -7,7 +7,7 @@ export default function AsistenStruk() {
   return (
     <div className="flex flex-col" style={{ height: "100dvh" }}>
       <header className="flex items-center gap-3 px-5 py-3.5 border-b border-border bg-background">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+        <button onClick={() => navigate(-1)} className="btn-icon btn-icon-sm">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2">

@@ -51,7 +51,7 @@ export default function MonthlySummary({ scope = "shared" }) {
         <div className="mb-3 flex items-center justify-between gap-2">
           <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} />
           {rateMissing && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-full px-2 py-0.5 shrink-0">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning bg-warning/15 border border-warning/30 rounded-full px-2 py-0.5 shrink-0">
               <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
             </span>
           )}

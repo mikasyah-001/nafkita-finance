@@ -117,6 +117,7 @@ export default function NotificationPreferences() {
         </div>
         <p className="text-[11px] text-muted-foreground mb-2">Hanya kirim notifikasi transaksi bila nominal ≥ ambang ini (0 = semua).</p>
         <input
+          aria-label="Ambang nominal minimum"
           type="number"
           inputMode="numeric"
           value={amountDraft}
@@ -137,6 +138,7 @@ export default function NotificationPreferences() {
         <p className="text-[11px] text-muted-foreground mb-2">Transaksi bersama dengan nominal ≥ ambang ini (dikonversi ke mata uang acuan) wajib disetujui pasangan sebelum saldo berubah.</p>
         <div className="flex gap-2">
           <input
+            aria-label="Ambang persetujuan pasangan"
             type="number"
             inputMode="numeric"
             value={thresholdDraft}

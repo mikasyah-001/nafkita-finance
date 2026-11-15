@@ -121,6 +121,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           </div>
           {progressMethod === "topup" && (
             <select
+              aria-label="Aset sumber"
               value={sourceAssetId}
               onChange={(e) => setSourceAssetId(e.target.value)}
               className="w-full rounded-lg border border-border px-3 py-2 text-sm bg-background"
@@ -132,6 +133,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
             </select>
           )}
           <input
+            aria-label="Nominal"
             type="number"
             value={progressAmount}
             onChange={(e) => setProgressAmount(e.target.value)}
@@ -141,7 +143,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           <button
             onClick={handleAddProgress}
             disabled={submitting || !progressAmount || (progressMethod === "topup" && !sourceAssetId)}
-            className="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            className="w-full btn-primary btn-sm"
           >
             {submitting ? "Memproses..." : "Tambah"}
           </button>

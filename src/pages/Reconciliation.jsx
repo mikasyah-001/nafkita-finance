@@ -87,8 +87,8 @@ export default function Reconciliation() {
       ) : (
         <>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Pilih Rekening</label>
-            <select value={selectedAssetId} onChange={(e) => { setSelectedAssetId(e.target.value); setReconResult(null); }} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+            <label htmlFor="recon-asset" className="text-xs text-muted-foreground mb-1.5 block">Pilih Rekening</label>
+            <select id="recon-asset" value={selectedAssetId} onChange={(e) => { setSelectedAssetId(e.target.value); setReconResult(null); }} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
               <option value="">Pilih rekening bank</option>
               {bankAssets.map((a) => (
                 <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -104,34 +104,34 @@ export default function Reconciliation() {
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Saldo per Statement</label>
+            <label htmlFor="recon-statement-balance" className="text-xs text-muted-foreground mb-1.5 block">Saldo per Statement</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <input type="number" inputMode="numeric" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} placeholder="0" className="flex-1 py-3 text-xl font-bold outline-none bg-transparent" />
+              <input id="recon-statement-balance" type="number" inputMode="numeric" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} placeholder="0" className="flex-1 py-3 text-xl font-bold outline-none bg-transparent" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Per Tanggal</label>
-            <input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="recon-as-of-date" className="text-xs text-muted-foreground mb-1.5 block">Per Tanggal</label>
+            <input id="recon-as-of-date" type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
 
-          <button onClick={handleCompute} disabled={computing || !selectedAssetId} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">
+          <button onClick={handleCompute} disabled={computing || !selectedAssetId} className="w-full btn-primary">
             {computing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Scale className="w-5 h-5" />} Hitung Rekonsiliasi
           </button>
 
           {reconResult && (
-            <div className={`rounded-2xl border p-4 space-y-3 ${isMatch ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50 dark:bg-amber-950/20"}`}>
+            <div className={`rounded-2xl border p-4 space-y-3 ${isMatch ? "border-success/30 bg-success/10" : "border-warning/30 bg-warning/10"}`}>
               <div className="flex items-center gap-2">
-                {isMatch ? <Check className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
+                {isMatch ? <Check className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-warning" />}
                 <h2 className="font-semibold text-sm">{isMatch ? "Saldo Cocok" : "Ada Selisih"}</h2>
               </div>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo statement</span><span className="font-medium tabular-nums">{formatMoney(reconResult.statement_balance, selectedAsset?.currency)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo terhitung</span><span className="font-medium tabular-nums">{formatMoney(reconResult.computed_balance, selectedAsset?.currency)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-amber-600"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-warning"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
               </div>
               {!isMatch && reconResult.status !== "reconciled" && (
-                <button onClick={handleAdjust} disabled={adjusting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
+                <button onClick={handleAdjust} disabled={adjusting} className="w-full btn-primary btn-sm">
                   {adjusting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Buat Penyesuaian & Tandai Selesai
                 </button>
               )}

@@ -3,6 +3,7 @@ import { CheckCheck, Clock } from "lucide-react";
 import ApprovalCard from "@/components/ApprovalCard";
 import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
 
 export default function Approvals() {
   const { data, isLoading } = usePendingApprovals();
@@ -16,12 +17,12 @@ export default function Approvals() {
 
       {/* Pending approvals (user is approver) */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
           <Clock className="w-4 h-4" /> Perlu Persetujuan Anda
-          {pending.length > 0 && <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs">{pending.length}</span>}
+          {pending.length > 0 && <span className="px-2 py-0.5 rounded-full bg-warning text-white text-xs">{pending.length}</span>}
         </h2>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Memuat...</p>
+          <ListSkeleton rows={2} />
         ) : pending.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Tidak ada permintaan pending</p>
         ) : (
@@ -33,7 +34,7 @@ export default function Approvals() {
 
       {/* My requests (user is requester) */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
           <CheckCheck className="w-4 h-4" /> Permintaan Saya
         </h2>
         {myRequests.length === 0 ? (

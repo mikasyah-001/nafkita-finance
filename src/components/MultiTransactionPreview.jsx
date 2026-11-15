@@ -16,7 +16,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
             <p className="font-semibold text-sm">{items.length} transaksi terbaca</p>
             <p className="text-xs text-muted-foreground">Periksa kategori lalu simpan semua</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={onCancel} className="btn-icon btn-icon-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -31,7 +31,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   )}
                   <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
                     {findDuplicate(t, existingTransactions) && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[11px] font-medium shrink-0">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[11px] font-medium shrink-0">
                         <Copy className="w-2.5 h-2.5" /> Duplikat
                       </span>
                     )}
@@ -40,12 +40,14 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
               </div>
               <div className="flex gap-2">
                 <input
+                  aria-label="Merchant"
                   value={t.merchant}
                   onChange={(e) => onChange(i, { merchant: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                   placeholder="Merchant"
                 />
                 <select
+                  aria-label="Kategori"
                   value={t.category}
                   onChange={(e) => onChange(i, { category: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1.5 text-xs bg-background outline-none focus:ring-2 ring-primary/30"
@@ -59,18 +61,21 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span className="text-[11px] text-muted-foreground shrink-0">Tanggal</span>
                 <input
+                  aria-label="Tanggal"
                   type="date"
                   value={t.date || ""}
                   onChange={(e) => onChange(i, { date: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
                 <input
+                  aria-label="Jam"
                   type="time"
                   value={t.time || ""}
                   onChange={(e) => onChange(i, { time: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
                 <select
+                  aria-label="Mata uang"
                   value={t.currency || "IDR"}
                   onChange={(e) => onChange(i, { currency: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1 text-xs bg-background outline-none focus:ring-2 ring-primary/30"
@@ -84,14 +89,14 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
       </div>
 
       {dupCount > 0 && (
-        <p className="text-xs text-amber-600 text-center -mt-2 mb-2">
+        <p className="text-xs text-warning text-center -mt-2 mb-2">
           {dupCount} transaksi terdeteksi duplikat dan akan dilewati
         </p>
       )}
       <button
         onClick={() => onSave(items.filter((t) => !findDuplicate(t, existingTransactions)))}
         disabled={saving || items.length - dupCount === 0}
-        className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+        className="w-full btn-primary"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
         {saving ? "Menyimpan..." : `Simpan (${items.length - dupCount}/${items.length})`}

@@ -68,7 +68,7 @@ export default function AssetGrowthTrend({ displayCurrency: propDisplayCur, rate
     <div className="surface p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Pertumbuhan Aset Bulanan</h2>
+          <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" /> Pertumbuhan Aset Bulanan</h2>
           <p className="text-xs text-muted-foreground">
             {mode === "all" ? `Konsolidasi semua mata uang · ${displayCurrency}` : `Per mata uang · ${mode}`}
           </p>

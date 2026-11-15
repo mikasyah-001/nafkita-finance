@@ -63,7 +63,7 @@ export default function BudgetBars({ scope = "shared" }) {
     <div className="surface p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm flex items-center gap-2">
-          <Target className="w-4 h-4 text-indigo-500" /> Sisa Anggaran
+          <Target className="w-4 h-4 text-primary" /> Sisa Anggaran
         </h2>
         <Link to="/anggaran" className="text-xs text-muted-foreground flex items-center gap-1">
           Kelola <ArrowRight className="w-3 h-3" />
@@ -72,7 +72,7 @@ export default function BudgetBars({ scope = "shared" }) {
       <div className="space-y-3">
         {rows.map((r) => {
           const cm = colorMap[r.color] || colorMap.slate;
-          const barColor = r.over ? "bg-red-500" : r.near ? "bg-amber-500" : cm.solid;
+          const barColor = r.over ? "bg-destructive" : r.near ? "bg-warning" : cm.solid;
           return (
             <div key={`${r.name}-${r.currency}`}>
               <div className="flex items-center justify-between mb-1">
@@ -80,7 +80,7 @@ export default function BudgetBars({ scope = "shared" }) {
                   {r.over && <AlertTriangle className="w-3 h-3 text-destructive" />}
                   {r.name} <span className="text-[11px] text-muted-foreground">{r.currency}</span>
                 </span>
-                <span className={`text-xs font-medium ${r.over ? "text-destructive" : r.near ? "text-amber-600" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-medium ${r.over ? "text-destructive" : r.near ? "text-warning" : "text-muted-foreground"}`}>
                   {r.over ? <>Lebih <Money value={Math.abs(r.remaining)} currency={r.currency} /></> : <>Sisa <Money value={r.remaining} currency={r.currency} /></>}
                 </span>
               </div>

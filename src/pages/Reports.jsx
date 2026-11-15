@@ -308,21 +308,21 @@ function ReportsAnalysis() {
         <div className="surface p-3 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">Dari</label>
-              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="reports-custom-start" className="text-[11px] text-muted-foreground block mb-1">Dari</label>
+              <input id="reports-custom-start" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">Sampai</label>
-              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="reports-custom-end" className="text-[11px] text-muted-foreground block mb-1">Sampai</label>
+              <input id="reports-custom-end" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
           {!customStart && !customEnd && <p className="text-[11px] text-muted-foreground text-center">Pilih rentang tanggal untuk melihat laporan</p>}
         </div>
       ) : (
         <div className="flex items-center justify-between surface p-3">
-          <button onClick={prevPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={prevPeriod} aria-label="Periode sebelumnya" className="btn-icon btn-icon-sm"><ChevronLeft className="w-5 h-5" /></button>
           <p className="font-medium">{periodLabel}</p>
-          <button onClick={nextPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={nextPeriod} aria-label="Periode berikutnya" className="btn-icon btn-icon-sm"><ChevronRight className="w-5 h-5" /></button>
         </div>
       )}
 
@@ -345,7 +345,7 @@ function ReportsAnalysis() {
         <button
           onClick={handleFetchRates}
           disabled={fetchingRates}
-          className="w-full rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2"
+          className="w-full rounded-2xl border border-warning/30 bg-warning/10 py-2.5 text-sm font-medium text-warning flex items-center justify-center gap-2"
         >
           {fetchingRates ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           {fetchingRates ? "Mengambil kurs..." : `Muat Kurs (${missingRates.join(", ")})`}
@@ -408,8 +408,8 @@ function ReportsAnalysis() {
 
       <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} currency={cur} rateMap={rateMap} />
 
-      <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 active:scale-[0.99] transition-transform">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+      <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-4 active:scale-[0.99] transition-transform">
+        <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
           <Coins className="w-5 h-5 text-success" />
         </div>
         <div className="flex-1 min-w-0">

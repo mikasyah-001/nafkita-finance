@@ -57,10 +57,10 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
   };
 
   const statusColors = {
-    pending: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
-    approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
-    rejected: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400",
-    cancelled: "bg-slate-100 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400",
+    pending: "bg-warning/15 text-warning",
+    approved: "bg-success/15 text-success",
+    rejected: "bg-destructive/15 text-destructive",
+    cancelled: "bg-muted text-muted-foreground",
   };
 
   const statusLabel = {
@@ -96,14 +96,14 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
           <button
             onClick={handleApprove}
             disabled={submitting}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-success text-white text-sm font-medium hover:bg-success disabled:opacity-50"
           >
             <Check className="w-4 h-4" /> Setujui
           </button>
           <button
             onClick={() => setShowReject(!showReject)}
             disabled={submitting}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500 text-white text-sm font-medium hover:bg-rose-600 disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-destructive text-white text-sm font-medium hover:bg-destructive disabled:opacity-50"
           >
             <X className="w-4 h-4" /> Tolak
           </button>
@@ -124,6 +124,7 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
       {showReject && isPending && (
         <div className="mt-3 space-y-2">
           <textarea
+            aria-label="Alasan penolakan"
             value={reason}
             onChange={e => setReason(e.target.value)}
             placeholder="Alasan penolakan (opsional)"
@@ -133,7 +134,7 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
           <button
             onClick={handleReject}
             disabled={submitting}
-            className="w-full px-3 py-2 rounded-xl bg-rose-500 text-white text-sm font-medium disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-xl bg-destructive text-white text-sm font-medium disabled:opacity-50"
           >
             {submitting ? "Memproses..." : "Konfirmasi Tolak"}
           </button>
@@ -142,7 +143,7 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
 
       {/* Rejection reason */}
       {approval.status === "rejected" && approval.rejection_reason && (
-        <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+        <p className="mt-2 text-xs text-destructive">
           Alasan: {approval.rejection_reason}
         </p>
       )}

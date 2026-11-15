@@ -140,10 +140,10 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />
-          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+          <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
-          <Link to="/pengaturan" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+          <Link to="/pengaturan" className="btn-icon">
             <Settings className="w-5 h-5 text-muted-foreground" />
           </Link>
         </div>
@@ -163,15 +163,15 @@ export default function Home() {
       )}
 
       {!transactionsLoading && !hasTodayTx && !noTransactionsAtAll && (
-        <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-3.5 mb-4 active:scale-[0.98] transition-transform">
-          <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-            <Bell className="w-4 h-4 text-amber-600" />
+        <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-warning/10 border border-warning/30 p-3.5 mb-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+            <Bell className="w-4 h-4 text-warning" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Pengingat harian</p>
-            <p className="text-xs text-amber-700/80 dark:text-amber-300/70">Belum ada transaksi dicatat hari ini. Yuk catat sekarang!</p>
+            <p className="text-sm font-medium text-warning">Pengingat harian</p>
+            <p className="text-xs text-warning">Belum ada transaksi dicatat hari ini. Yuk catat sekarang!</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-amber-600" />
+          <ArrowRight className="w-4 h-4 text-warning" />
         </Link>
       )}
 
@@ -223,7 +223,7 @@ export default function Home() {
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-[11px] font-medium text-white/65">Mata uang yang ditampilkan</p>
               {rateMissing && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-full px-2 py-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning bg-warning/15 border border-warning/30 rounded-full px-2 py-0.5">
                   <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
                 </span>
               )}

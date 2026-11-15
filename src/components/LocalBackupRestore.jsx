@@ -104,7 +104,7 @@ export default function LocalBackupRestore() {
       <button
         onClick={handleExport}
         disabled={exporting}
-        className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 mb-3"
+        className="w-full mb-3 btn-primary btn-sm"
       >
         {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Buat Cadangan (Unduh)
       </button>
@@ -112,9 +112,9 @@ export default function LocalBackupRestore() {
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleFilePicked} />
 
       {pending ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
+        <div className="rounded-xl border border-warning/30 bg-warning/10 p-3">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
             <p className="text-xs flex-1">Pilih mode pemulihan, lalu konfirmasi.</p>
           </div>
           <div className="rounded-lg bg-background/60 p-2.5 mb-2.5">
@@ -138,7 +138,7 @@ export default function LocalBackupRestore() {
             </button>
             <button
               onClick={() => { setMode("replace"); setConfirmReplace(false); }}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "replace" ? "bg-red-500 text-white" : "bg-muted text-muted-foreground"}`}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "replace" ? "bg-destructive text-white" : "bg-muted text-muted-foreground"}`}
             >
               Ganti total
             </button>
@@ -147,14 +147,14 @@ export default function LocalBackupRestore() {
             <p className="text-[11px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
           )}
           {mode === "replace" && (
-            <p className="text-[11px] text-red-600 mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
+            <p className="text-[11px] text-destructive mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
           )}
 
           <div className="flex gap-2">
             <button
               onClick={handleImport}
               disabled={importing}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60 ${mode === "replace" ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-60 ${mode === "replace" ? "bg-destructive text-white" : "bg-primary text-primary-foreground"}`}
             >
               {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
               {mode === "replace" && confirmReplace ? "Yakin? Data dihapus" : mode === "replace" ? "Pulihkan (Ganti total)" : "Pulihkan (Gabung)"}
@@ -165,7 +165,7 @@ export default function LocalBackupRestore() {
       ) : (
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full py-2.5 rounded-xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+          className="w-full transition-transform btn-secondary btn-sm"
         >
           <Upload className="w-4 h-4" /> Pilih File untuk Pulihkan
         </button>

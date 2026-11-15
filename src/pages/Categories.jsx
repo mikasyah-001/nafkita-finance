@@ -98,10 +98,10 @@ export default function Categories() {
                 <span className="text-[11px] font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
               ) : (
                 <>
-                  <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="btn-icon btn-icon-sm">
                     <Pencil className="w-4 h-4 text-muted-foreground" />
                   </button>
-                  <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="btn-icon btn-icon-sm">
                     <Trash2 className="w-4 h-4 text-destructive" />
                   </button>
                 </>
@@ -119,7 +119,7 @@ export default function Categories() {
 
       <button
         onClick={openAdd}
-        className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+        className="w-full btn-primary"
       >
         <Plus className="w-5 h-5" /> Tambah Kategori
       </button>

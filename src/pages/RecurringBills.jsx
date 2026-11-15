@@ -85,7 +85,7 @@ export default function RecurringBills() {
                     <p className="text-xs text-muted-foreground">{formatMoney(b.amount, b.currency)} • {frequencyLabels[b.frequency] || b.frequency}</p>
                     {asset && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Dari: {asset.name}</p>}
                   </div>
-                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} className="shrink-0 w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50">
+                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} className="disabled:opacity-50 btn-icon btn-icon-sm">
                     {toggling === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : b.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
                 </div>
@@ -152,7 +152,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
           <h2 className="font-semibold">Tagihan Berulang</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="flex gap-2 bg-muted p-1 rounded-2xl">
@@ -163,8 +163,8 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
             ))}
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Kategori / Nama Tagihan</label>
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Mis. Listrik, Internet, Sewa..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="recurring-category" className="text-xs text-muted-foreground mb-1.5 block">Kategori / Nama Tagihan</label>
+            <input id="recurring-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Mis. Listrik, Internet, Sewa..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
@@ -175,10 +175,10 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+            <label htmlFor="recurring-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-              <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
           </div>
           <div>
@@ -190,13 +190,13 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal Mulai</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="recurring-start-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Mulai</label>
+            <input id="recurring-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
           {bankAssets.length > 0 && (
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Rekening Terkait (opsional)</label>
-              <select value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+              <label htmlFor="recurring-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Rekening Terkait (opsional)</label>
+              <select id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
                 <option value="">Tidak ada — saldo tidak diubah</option>
                 {bankAssets.map((a) => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -205,12 +205,12 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
             </div>
           )}
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+            <label htmlFor="recurring-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
+            <textarea id="recurring-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
           </button>
         </div>

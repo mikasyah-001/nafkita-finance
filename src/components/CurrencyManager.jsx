@@ -81,8 +81,9 @@ export default function CurrencyManager() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang Utama</label>
+        <label htmlFor="currency-default" className="text-xs text-muted-foreground mb-1.5 block">Mata Uang Utama</label>
         <select
+          id="currency-default"
           value={defaultCur}
           onChange={(e) => setDefault(e.target.value)}
           disabled={saving}
@@ -103,17 +104,17 @@ export default function CurrencyManager() {
             const isCustom = custom.some((x) => x.code === code);
             const isDefault = code === defaultCur;
             return (
-              <div key={code} className={`flex items-center gap-3 rounded-xl border p-3 ${isDefault ? "border-amber-300 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20" : "border-border"}`}>
+              <div key={code} className={`flex items-center gap-3 rounded-xl border p-3 ${isDefault ? "border-warning/30 bg-warning/60" : "border-border"}`}>
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center font-semibold text-sm text-primary shrink-0">
                   {c.symbol}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium flex items-center gap-1.5">
                     {c.code}
-                    {isDefault && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" aria-hidden="true" />}
+                    {isDefault && <Star className="w-3.5 h-3.5 text-warning fill-amber-500" aria-hidden="true" />}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{c.label}</p>
-                  {isDefault && <span className="inline-flex mt-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Mata uang utama</span>}
+                  {isDefault && <span className="inline-flex mt-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">Mata uang utama</span>}
                 </div>
                 {!isDefault && (
                   <button type="button" onClick={() => setDefault(code)} disabled={saving} aria-label={`Jadikan ${code} mata uang utama`} className="text-[11px] text-primary px-2 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/10 disabled:opacity-50 shrink-0">
@@ -121,7 +122,7 @@ export default function CurrencyManager() {
                   </button>
                 )}
                 {isCustom && (
-                  <button onClick={() => removeCustom(code)} disabled={saving} className="text-destructive p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 shrink-0">
+                  <button onClick={() => removeCustom(code)} disabled={saving} className="text-destructive p-1.5 rounded-lg hover:bg-destructive/10 disabled:opacity-50 shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
@@ -165,12 +166,12 @@ export default function CurrencyManager() {
         <div className="rounded-xl border border-border p-3 space-y-2.5">
           <p className="text-xs font-medium">Mata Uang Kustom</p>
           <div className="grid grid-cols-3 gap-2">
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
-            <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
-            <input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
+            <input aria-label="Kode mata uang" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
+            <input aria-label="Nama mata uang" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
+            <input aria-label="Simbol mata uang" value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
           </div>
           <div className="flex gap-2">
-            <button onClick={addCustom} disabled={saving} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
+            <button onClick={addCustom} disabled={saving} className="flex-1 btn-primary btn-sm">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Tambah
             </button>
             <button onClick={() => { setShowAdd(false); setForm({ code: "", label: "", symbol: "" }); }} className="px-4 py-2 rounded-xl border border-border text-sm font-medium">Batal</button>

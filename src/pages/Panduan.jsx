@@ -30,6 +30,7 @@ export default function Panduan() {
       <div className="relative mb-6">
         <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
+          aria-label="Cari fitur atau tool"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari fitur atau tool..."

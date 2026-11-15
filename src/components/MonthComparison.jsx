@@ -40,7 +40,7 @@ export default function MonthComparison({ transactions, categories, year, month,
   return (
     <div className="surface p-4">
       <h2 className="font-semibold text-sm mb-1 flex items-center gap-2">
-        <BarChart3 className="w-4 h-4 text-indigo-500" /> Perbandingan vs {prevName}
+        <BarChart3 className="w-4 h-4 text-primary" /> Perbandingan vs {prevName}
       </h2>
       <p className="text-xs text-muted-foreground mb-3">Tren kenaikan/penurunan pengeluaran per kategori.</p>
       <div className="space-y-3">

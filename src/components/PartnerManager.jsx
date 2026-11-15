@@ -1,3 +1,4 @@
+import { ListSkeleton } from "@/components/LoadingSkeleton";
 import { useState, useEffect } from "react";
 import { usePartnership } from "@/hooks/usePartnership";
 import { Image as SmartImage } from "@/components/ui/image";
@@ -67,7 +68,7 @@ export default function PartnerManager() {
   };
 
   if (loading) {
-    return <div className="rounded-xl border border-border p-4 text-xs text-muted-foreground">Memuat...</div>;
+    return <ListSkeleton rows={1} />;
   }
 
   if (hasPartner && !showManage) {
@@ -115,6 +116,7 @@ export default function PartnerManager() {
           <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/10 p-3">
             <p className="text-xs text-muted-foreground mb-2">Alasan pemutusan (opsional) — dicatat untuk riwayat.</p>
             <input
+              aria-label="Alasan pemutusan"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="mis. tidak relevan lagi"
@@ -181,7 +183,7 @@ export default function PartnerManager() {
             <button
               onClick={handleSaveRole}
               disabled={savingRole || (rolesDeclared && manageRole === myRole)}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="w-full btn-primary btn-sm"
             >
               {savingRole ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
               {rolesDeclared && manageRole === myRole ? "Peran tersimpan" : "Simpan peran"}
@@ -271,6 +273,7 @@ export default function PartnerManager() {
               </p>
               <div className="flex gap-2 mb-2">
                 <input
+                  aria-label="Email pasangan"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -293,6 +296,7 @@ export default function PartnerManager() {
               </p>
               <div className="flex gap-2 mb-2">
                 <input
+                  aria-label="Kode referensi pasangan"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="mis. NK1A2B3"

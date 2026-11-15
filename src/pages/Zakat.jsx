@@ -188,7 +188,7 @@ export default function Zakat() {
       {/* Gold price input (IDR, untuk referensi) */}
       <div className="surface p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Harga Emas per Gram (IDR)</h2>
+          <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-warning" /> Harga Emas per Gram (IDR)</h2>
           {goldLoading ? (
             <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat</span>
           ) : goldPriceNum > 0 ? (
@@ -197,7 +197,7 @@ export default function Zakat() {
         </div>
         <div className="flex items-center rounded-lg bg-muted/50 border border-border px-3 mb-1">
           <span className="text-xs text-muted-foreground">Rp</span>
-          <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
+          <input aria-label="Harga emas per gram" type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
         </div>
         <p className="text-[11px] text-muted-foreground">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
       </div>
@@ -218,9 +218,9 @@ export default function Zakat() {
 
 function ObligationRow({ label, reached, paid, detail, amount, currency, onPay, paying }) {
   return (
-    <div className={`rounded-xl p-3 ${reached && !paid ? "bg-amber-50 dark:bg-amber-950/30" : "bg-muted/50"}`}>
+    <div className={`rounded-xl p-3 ${reached && !paid ? "bg-warning/10" : "bg-muted/50"}`}>
       <div className="flex items-center gap-2 mb-1">
-        {reached && !paid ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
+        {reached && !paid ? <AlertCircle className="w-4 h-4 text-warning" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
         <span className="text-xs font-medium flex-1">{label}</span>
         {paid && <span className="text-[11px] text-success font-medium">✓ Terbayar</span>}
       </div>
@@ -230,7 +230,7 @@ function ObligationRow({ label, reached, paid, detail, amount, currency, onPay, 
         {" "}({detail})
       </p>
       {reached && !paid && (
-        <button onClick={onPay} disabled={paying} className="w-full py-2 rounded-lg bg-emerald-600 text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
+        <button onClick={onPay} disabled={paying} className="w-full py-2 rounded-lg bg-success text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
           {paying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
           {paying ? "Memproses..." : "Bayarkan Zakat"}
         </button>

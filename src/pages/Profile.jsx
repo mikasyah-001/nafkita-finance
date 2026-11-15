@@ -96,8 +96,9 @@ export default function Profile() {
       </div>
 
       <div className="mb-5">
-        <label className="text-xs text-muted-foreground mb-1.5 block">Nama</label>
+        <label htmlFor="profile-name" className="text-xs text-muted-foreground mb-1.5 block">Nama</label>
         <input
+          id="profile-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nama lengkap"
@@ -108,7 +109,7 @@ export default function Profile() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+        className="w-full btn-primary"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
@@ -129,7 +130,7 @@ export default function Profile() {
           </div>
           <button
             onClick={copyCode}
-            className="px-4 py-3 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium active:scale-95 transition-transform"
+            className="btn-primary"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
           </button>
@@ -152,7 +153,7 @@ export default function Profile() {
 
       <div className="mt-5">
         <div className="flex items-center gap-2 mb-3">
-          <Heart className="w-4 h-4 text-rose-500" />
+          <Heart className="w-4 h-4 text-destructive" />
           <h2 className="font-semibold text-sm">Keluarga Terkoneksi</h2>
         </div>
         <PartnerManager />

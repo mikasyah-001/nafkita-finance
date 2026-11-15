@@ -8,10 +8,10 @@ import { Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
 import PageHeader from "@/components/PageHeader";
 
 const types = [
-  { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-600 dark:text-rose-400", desc: "Aplikasi error/ngebug" },
-  { key: "feature", label: "Permintaan Fitur", icon: Lightbulb, bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", desc: "Ide fitur baru" },
-  { key: "suggestion", label: "Saran", icon: MessageSquare, bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-600 dark:text-sky-400", desc: "Masukan & perbaikan" },
-  { key: "other", label: "Lainnya", icon: MoreHorizontal, bg: "bg-slate-100 dark:bg-slate-800/60", text: "text-slate-600 dark:text-slate-300", desc: "Pertanyaan dll" },
+  { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-destructive/15", text: "text-destructive", desc: "Aplikasi error/ngebug" },
+  { key: "feature", label: "Permintaan Fitur", icon: Lightbulb, bg: "bg-warning/15", text: "text-warning", desc: "Ide fitur baru" },
+  { key: "suggestion", label: "Saran", icon: MessageSquare, bg: "bg-primary/15", text: "text-primary", desc: "Masukan & perbaikan" },
+  { key: "other", label: "Lainnya", icon: MoreHorizontal, bg: "bg-muted", text: "text-muted-foreground", desc: "Pertanyaan dll" },
 ];
 
 export default function Feedback() {
@@ -52,7 +52,7 @@ export default function Feedback() {
 
       {sent ? (
         <div className="flex flex-col items-center text-center pt-10">
-          <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-4">
+          <div className="w-20 h-20 rounded-3xl bg-success/15 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-lg font-semibold">Terima kasih!</h2>
@@ -63,7 +63,7 @@ export default function Feedback() {
             <Heart className="w-3.5 h-3.5" /> Pesan diterima pengembang
           </div>
           <div className="w-full mt-8 space-y-2.5">
-            <button onClick={reset} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold active:scale-[0.99] transition-transform">
+            <button onClick={reset} className="w-full btn-primary">
               Kirim Umpan Balik Lain
             </button>
             <button onClick={() => navigate(-1)} className="w-full py-3 rounded-2xl border border-border text-foreground font-medium text-sm active:scale-[0.99] transition-transform">
@@ -99,8 +99,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Subjek</label>
+            <label htmlFor="feedback-subject" className="text-xs text-muted-foreground mb-1.5 block">Subjek</label>
             <input
+              id="feedback-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Ringkasan singkat"
@@ -110,8 +111,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Pesan</label>
+            <label htmlFor="feedback-message" className="text-xs text-muted-foreground mb-1.5 block">Pesan</label>
             <textarea
+              id="feedback-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Jelaskan secara detail…"
@@ -123,8 +125,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-6">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Kontak balasan (opsional)</label>
+            <label htmlFor="feedback-contact" className="text-xs text-muted-foreground mb-1.5 block">Kontak balasan (opsional)</label>
             <input
+              id="feedback-contact"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="Email atau WhatsApp"
@@ -136,7 +139,7 @@ export default function Feedback() {
           <button
             onClick={handleSubmit}
             disabled={sending}
-            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="w-full btn-primary"
           >
             {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Kirim ke Pengembang
           </button>

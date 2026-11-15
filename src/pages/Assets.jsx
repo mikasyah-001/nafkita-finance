@@ -28,9 +28,9 @@ const sortOptions = [
 ];
 
 const rankBadgeClass = (rank) => {
-  if (rank === 1) return "bg-amber-400 text-amber-950";
-  if (rank === 2) return "bg-slate-300 text-slate-800";
-  if (rank === 3) return "bg-orange-400 text-orange-950";
+  if (rank === 1) return "bg-warning text-warning";
+  if (rank === 2) return "bg-muted text-foreground";
+  if (rank === 3) return "bg-warning text-warning";
   return "bg-muted text-muted-foreground";
 };
 
@@ -127,10 +127,10 @@ export default function Assets() {
       <PageHeader
         title="Aset Keluarga"
         actions={<>
-          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+          <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
-          <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+          <Link to="/aset-dashboard" className="btn-icon">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
           <button onClick={openAdd} className="h-10 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1.5 active:scale-95 transition-transform">
@@ -157,15 +157,15 @@ export default function Assets() {
       </div>
 
       {missingRates.length > 0 && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum tersedia untuk {missingRates.join(", ")}. Aset dalam mata uang ini belum termasuk dalam total.</p>
+        <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <p className="text-xs text-warning">Kurs belum tersedia untuk {missingRates.join(", ")}. Aset dalam mata uang ini belum termasuk dalam total.</p>
         </div>
       )}
 
       {scopedAssets.length > 0 && (
-        <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 mb-4 active:scale-[0.99] transition-transform">
-          <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+        <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-3.5 mb-4 active:scale-[0.99] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
             <Coins className="w-4 h-4 text-success" />
           </div>
           <div className="flex-1 min-w-0">
@@ -337,7 +337,7 @@ export default function Assets() {
       {sortedAssets.length > visibleCount && (
         <button
           onClick={() => setVisibleCount((c) => c + 10)}
-          className="w-full mt-3 py-3 rounded-2xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+          className="w-full mt-3 transition-transform btn-secondary"
         >
           <ChevronDown className="w-4 h-4" /> Lihat lainnya ({sortedAssets.length - visibleCount} lagi)
         </button>

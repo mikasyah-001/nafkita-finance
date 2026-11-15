@@ -94,13 +94,13 @@ export default function Settings() {
         </SettingsAccordion>
 
         <SettingsAccordion number="05" title="Lanjutan">
-          <Link to="/kategori" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Link to="/kategori" className="w-full btn-primary btn-sm">
             <Tag className="w-4 h-4" /> Kelola Kategori
           </Link>
-          <Link to="/impor" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Link to="/impor" className="w-full btn-primary btn-sm">
             <Upload className="w-4 h-4" /> Buka Impor Laporan
           </Link>
-          <Link to="/add" className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+          <Link to="/add" className="w-full btn-primary btn-sm">
             <Sparkles className="w-4 h-4" /> Tambah Transaksi & Scan Struk
           </Link>
           {isAdmin && (

@@ -215,3 +215,28 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+/* ── Tombol standar ─────────────────────────────────────────────
+   Satu sumber gaya tombol untuk seluruh aplikasi (sebelumnya ±20 variasi
+   tinggi/sudut/tebal huruf ditulis manual per halaman). */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 h-12 px-5 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold transition active:scale-[0.99] disabled:opacity-60 disabled:pointer-events-none;
+    box-shadow: 0 8px 20px -10px hsl(var(--primary) / 0.55);
+  }
+  .btn-primary.btn-sm {
+    @apply h-10 px-4 rounded-xl text-sm;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 h-12 px-5 rounded-2xl border border-border bg-card text-foreground text-[15px] font-semibold transition hover:bg-muted active:scale-[0.99] disabled:opacity-60;
+  }
+  .btn-secondary.btn-sm {
+    @apply h-10 px-4 rounded-xl text-sm;
+  }
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-muted text-muted-foreground transition hover:text-foreground active:scale-95 disabled:opacity-50;
+  }
+  .btn-icon.btn-icon-sm {
+    @apply w-9 h-9;
+  }
+}

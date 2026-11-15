@@ -101,14 +101,14 @@ export default function Transfer() {
         </div>
 
         {bankAssets.length < 2 ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
             Anda memerlukan minimal 2 aset bank dengan mata uang {currency} untuk melakukan transfer.
           </div>
         ) : (
           <>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Dari Rekening</label>
-              <select value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+              <label htmlFor="transfer-from" className="text-xs text-muted-foreground mb-1.5 block">Dari Rekening</label>
+              <select id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
                 <option value="">Pilih rekening asal</option>
                 {bankAssets.map((a) => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -117,8 +117,8 @@ export default function Transfer() {
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Ke Rekening</label>
-              <select value={toAsset} onChange={(e) => setToAsset(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+              <label htmlFor="transfer-to" className="text-xs text-muted-foreground mb-1.5 block">Ke Rekening</label>
+              <select id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
                 <option value="">Pilih rekening tujuan</option>
                 {bankAssets.filter((a) => a.id !== fromAsset).map((a) => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -127,28 +127,28 @@ export default function Transfer() {
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+              <label htmlFor="transfer-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
               <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
                 <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-                <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+                <input id="transfer-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
-              <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="transfer-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
+              <input id="transfer-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Mis. Transfer ke tabungan pendidikan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+              <label htmlFor="transfer-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
+              <textarea id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Mis. Transfer ke tabungan pendidikan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
             </div>
           </>
         )}
       </div>
 
       <div className="mt-5">
-        <button onClick={handleSave} disabled={saving || bankAssets.length < 2} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">
+        <button onClick={handleSave} disabled={saving || bankAssets.length < 2} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Memproses..." : "Transfer Sekarang"}
         </button>

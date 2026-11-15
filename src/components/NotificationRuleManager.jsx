@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/finance";
 import { useToast } from "@/components/ui/use-toast";
 import EmptyState from "@/components/EmptyState";
 import { confirmAction } from "@/components/ConfirmHost";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
 
 export default function NotificationRuleManager() {
   const { toast } = useToast();
@@ -75,27 +76,27 @@ export default function NotificationRuleManager() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium mb-1 block">Kategori</label>
-              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input text-sm">
+              <label htmlFor="notif-rule-category" className="text-xs font-medium mb-1 block">Kategori</label>
+              <select id="notif-rule-category" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input text-sm">
                 <option value="*">Semua Kategori</option>
                 {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block">Channel</label>
-              <select value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value })} className="input text-sm">
+              <label htmlFor="notif-rule-channel" className="text-xs font-medium mb-1 block">Channel</label>
+              <select id="notif-rule-channel" value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value })} className="input text-sm">
                 <option value="in_app">In-App</option>
                 <option value="email">Email</option>
                 <option value="both">Keduanya</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block">Min. Nominal</label>
-              <input type="number" value={form.min_amount} onChange={e => setForm({ ...form, min_amount: e.target.value })} placeholder="0" className="input text-sm" />
+              <label htmlFor="notif-rule-min-amount" className="text-xs font-medium mb-1 block">Min. Nominal</label>
+              <input id="notif-rule-min-amount" type="number" value={form.min_amount} onChange={e => setForm({ ...form, min_amount: e.target.value })} placeholder="0" className="input text-sm" />
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block">Max. Nominal</label>
-              <input type="number" value={form.max_amount} onChange={e => setForm({ ...form, max_amount: e.target.value })} placeholder="Tanpa batas" className="input text-sm" />
+              <label htmlFor="notif-rule-max-amount" className="text-xs font-medium mb-1 block">Max. Nominal</label>
+              <input id="notif-rule-max-amount" type="number" value={form.max_amount} onChange={e => setForm({ ...form, max_amount: e.target.value })} placeholder="Tanpa batas" className="input text-sm" />
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -108,12 +109,12 @@ export default function NotificationRuleManager() {
               Silent (lewati semua)
             </label>
           </div>
-          <button type="submit" className="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Simpan</button>
+          <button type="submit" className="w-full btn-primary btn-sm">Simpan</button>
         </form>
       )}
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground text-center py-4">Memuat...</p>
+        <ListSkeleton rows={2} />
       ) : rules.length === 0 ? (
         <EmptyState icon={Bell} title="Belum ada aturan" subtitle="Buat aturan untuk mengontrol notifikasi per kategori" />
       ) : (
@@ -131,7 +132,7 @@ export default function NotificationRuleManager() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleToggle(rule, "enabled")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium ${rule.enabled ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium ${rule.enabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
                 >
                   {rule.enabled ? "Aktif" : "Nonaktif"}
                 </button>

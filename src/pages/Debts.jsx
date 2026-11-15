@@ -64,8 +64,8 @@ export default function Debts() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-950/40 flex items-center justify-center mb-2">
-            <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+          <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center mb-2">
+            <TrendingDown className="w-4 h-4 text-destructive" />
           </div>
           <p className="text-xs text-muted-foreground">Total Utang</p>
           {Object.entries(totals.utang).map(([c, v]) => (
@@ -74,7 +74,7 @@ export default function Debts() {
           {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
         </div>
         <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-2">
+          <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center mb-2">
             <TrendingUp className="w-4 h-4 text-success" />
           </div>
           <p className="text-xs text-muted-foreground">Total Piutang</p>
@@ -100,10 +100,10 @@ export default function Debts() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
                         {d.type === "utang" ? "Utang" : "Piutang"}
                       </span>
-                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">Sebagian</span>}
+                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Sebagian</span>}
                     </div>
                     <p className="font-medium text-sm truncate">{d.counterparty_name}</p>
                     <p className="text-xs text-muted-foreground">{formatMoney(d.amount, d.currency)}</p>
@@ -176,7 +176,7 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
           <h2 className="font-semibold">Catat Utang/Piutang</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="flex gap-2 bg-muted p-1 rounded-2xl">
@@ -187,8 +187,8 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
             ))}
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">{type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"}</label>
-            <input value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="debt-counterparty" className="text-xs text-muted-foreground mb-1.5 block">{type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"}</label>
+            <input id="debt-counterparty" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
@@ -199,29 +199,29 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+            <label htmlFor="debt-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-              <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="debt-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal</label>
+              <input id="debt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Jatuh Tempo</label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="debt-due-date" className="text-xs text-muted-foreground mb-1.5 block">Jatuh Tempo</label>
+              <input id="debt-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+            <label htmlFor="debt-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
+            <textarea id="debt-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
           </button>
         </div>
@@ -264,7 +264,7 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-semibold">Pelunasan</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="rounded-2xl bg-muted p-3 text-sm">
@@ -272,10 +272,10 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
             <p className="font-medium">Sisa: {formatMoney(outstanding, debt.currency)}</p>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal Pelunasan</label>
+            <label htmlFor="debt-payment-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal Pelunasan</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(debt.currency)}</span>
-              <input type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="debt-payment-amount" type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
             {outstanding > 0 && (
               <button onClick={() => setPaymentAmount(String(outstanding))} className="mt-1.5 text-[11px] text-primary font-medium">Lunasi penuh ({formatMoney(outstanding, debt.currency)})</button>
@@ -283,8 +283,8 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
           </div>
           {bankAssets.length > 0 && (
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Bayar dari Rekening (opsional)</label>
-              <select value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+              <label htmlFor="debt-payment-asset" className="text-xs text-muted-foreground mb-1.5 block">Bayar dari Rekening (opsional)</label>
+              <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
                 <option value="">Tidak ada — tanpa transaksi</option>
                 {bankAssets.map((a) => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -293,12 +293,12 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
             </div>
           )}
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal Bayar</label>
-            <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="debt-payment-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Bayar</label>
+            <input id="debt-payment-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Catat Pelunasan
           </button>
         </div>

@@ -134,11 +134,12 @@ export default function AgentConversation({ agentName, title }) {
       )}
 
       <div className="px-4 py-3 border-t border-border bg-background flex items-center gap-2">
-        <button onClick={() => fileRef.current?.click()} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 active:scale-95 transition-transform">
+        <button onClick={() => fileRef.current?.click()} className="btn-icon">
           <Paperclip className="w-5 h-5 text-muted-foreground" />
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickFile} />
         <input
+          aria-label="Tulis pesan"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}

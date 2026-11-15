@@ -77,7 +77,7 @@ export default function TemplateManager() {
 
       {showForm && (
         <div className="rounded-xl border border-border p-3 mb-3 space-y-3">
-          <input value={tpl.name} onChange={(e) => setTpl({ ...tpl, name: e.target.value })} placeholder="Nama (mis. Listrik, Internet)" className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none" />
+          <input aria-label="Nama template" value={tpl.name} onChange={(e) => setTpl({ ...tpl, name: e.target.value })} placeholder="Nama (mis. Listrik, Internet)" className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none" />
           <div className="flex gap-2">
             {typeOptions.map((t) => (
               <button key={t.k} onClick={() => setTpl({ ...tpl, type: t.k, category: "" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.type === t.k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{t.l}</button>
@@ -90,20 +90,20 @@ export default function TemplateManager() {
           </div>
           <div className="flex items-center rounded-lg border border-border px-3">
             <span className="text-xs text-muted-foreground mr-1">{currencySymbol(tpl.currency)}</span>
-            <input type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
+            <input aria-label="Nominal" type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
           </div>
           {tpl.type !== "sedekah" && (
-            <select value={tpl.category} onChange={(e) => setTpl({ ...tpl, category: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none bg-background">
+            <select aria-label="Kategori" value={tpl.category} onChange={(e) => setTpl({ ...tpl, category: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none bg-background">
               <option value="">Pilih kategori</option>
               {availableCategories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
           )}
-          <input value={tpl.merchant} onChange={(e) => setTpl({ ...tpl, merchant: e.target.value })} placeholder="Merchant (opsional)" className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none" />
+          <input aria-label="Merchant" value={tpl.merchant} onChange={(e) => setTpl({ ...tpl, merchant: e.target.value })} placeholder="Merchant (opsional)" className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none" />
           <div className="flex gap-2">
             <button onClick={() => setTpl({ ...tpl, visibility: "shared" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility !== "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-3 h-3" /> Bersama</button>
             <button onClick={() => setTpl({ ...tpl, visibility: "private" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-3 h-3" /> Pribadi</button>
           </div>
-          <button onClick={handleSave} disabled={saving} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary btn-sm">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simpan Template"}
           </button>
         </div>

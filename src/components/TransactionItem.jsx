@@ -27,7 +27,7 @@ export default function TransactionItem({ tx, categories }) {
             </span>
           )}
           {tx.approval_status === "rejected" && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-[11px] font-medium shrink-0">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive text-[11px] font-medium shrink-0">
               <X className="w-2.5 h-2.5" /> Ditolak
             </span>
           )}

@@ -106,13 +106,13 @@ export default function AssetForm({ asset, onClose }) {
       <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">{isEdit ? "Edit Aset" : "Tambah Aset"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={onClose} className="btn-icon btn-icon-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="space-y-3">
-          <Field label="Nama Aset">
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mis. Tabungan BCA, Emas 10gr" className="input" />
+          <Field htmlFor="asset-name" label="Nama Aset">
+            <input id="asset-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mis. Tabungan BCA, Emas 10gr" className="input" />
           </Field>
           <Field label="Jenis">
             <div className="flex gap-2 flex-wrap">
@@ -137,14 +137,14 @@ export default function AssetForm({ asset, onClose }) {
                   </div>
                 </Field>
               )}
-              <Field label="Jumlah (gram)">
-                <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" className="input" />
+              <Field htmlFor="asset-gold-quantity" label="Jumlah (gram)">
+                <input id="asset-gold-quantity" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" className="input" />
               </Field>
-              <Field label={`Harga Beli / gram (${form.type === "emas_digital" ? sym : "Rp"})`}>
-                <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="0" className="input" />
+              <Field htmlFor="asset-gold-purchase-price" label={`Harga Beli / gram (${form.type === "emas_digital" ? sym : "Rp"})`}>
+                <input id="asset-gold-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="0" className="input" />
               </Field>
               {form.type === "emas_digital" && (
-                <Field label="Tempat Pembelian / Penyimpanan">
+                <Field htmlFor="asset-gold-broker" label="Tempat Pembelian / Penyimpanan">
                   <div className="flex gap-2 flex-wrap mb-2">
                     {(digitalGoldBrokers[form.currency] || []).map((b) => (
                       <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
@@ -152,23 +152,23 @@ export default function AssetForm({ asset, onClose }) {
                       </button>
                     ))}
                   </div>
-                  <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bank Al Rajhi, Bank BSI, Pegadaian..." className="input" />
+                  <input id="asset-gold-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bank Al Rajhi, Bank BSI, Pegadaian..." className="input" />
                 </Field>
               )}
             </>
           ) : form.type === "tanah" ? (
             <>
-              <Field label="Luas Tanah (m²)">
-                <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Mis. 100" className="input" />
+              <Field htmlFor="asset-land-quantity" label="Luas Tanah (m²)">
+                <input id="asset-land-quantity" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Mis. 100" className="input" />
               </Field>
-              <Field label="Harga Beli / m² (Rp)">
-                <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="Mis. 500000" className="input" />
+              <Field htmlFor="asset-land-purchase-price" label="Harga Beli / m² (Rp)">
+                <input id="asset-land-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="Mis. 500000" className="input" />
               </Field>
               {form.purchase_price && form.quantity ? (
                 <p className="text-xs text-muted-foreground -mt-1">Total harga beli: <span className="font-medium text-foreground">{formatRupiah(Number(form.purchase_price) * Number(form.quantity))}</span></p>
               ) : null}
-              <Field label="Perkiraan Harga Sekarang (Rp)">
-                <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
+              <Field htmlFor="asset-land-value" label="Perkiraan Harga Sekarang (Rp)">
+                <input id="asset-land-value" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
               </Field>
             </>
           ) : (
@@ -182,24 +182,24 @@ export default function AssetForm({ asset, onClose }) {
                   ))}
                 </div>
               </Field>
-              <Field label={`Nilai Saat Ini (${sym})`}>
-                <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
+              <Field htmlFor="asset-value" label={`Nilai Saat Ini (${sym})`}>
+                <input id="asset-value" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
               </Field>
             </>
           )}
 
-          <Field label="Tanggal Pembelian (opsional)">
-            <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
+          <Field htmlFor="asset-purchase-date" label="Tanggal Pembelian (opsional)">
+            <input id="asset-purchase-date" type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
           </Field>
 
           {!isGoldType(form.type) && form.type !== "tanah" && (
-            <Field label={`Harga Pembelian (${sym}, opsional)`}>
-              <input type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
+            <Field htmlFor="asset-purchase-price" label={`Harga Pembelian (${sym}, opsional)`}>
+              <input id="asset-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
             </Field>
           )}
 
           {form.type === "bank" && (
-            <Field label="Bank / Tempat Simpan">
+            <Field htmlFor="asset-bank-broker" label="Bank / Tempat Simpan">
               <div className="flex gap-2 flex-wrap mb-2">
                 {["BCA", "Mandiri", "BNI", "BRI", "Cash"].map((b) => (
                   <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
@@ -207,13 +207,13 @@ export default function AssetForm({ asset, onClose }) {
                   </button>
                 ))}
               </div>
-              <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. BCA, Bank Syariah, Cash..." className="input" />
+              <input id="asset-bank-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. BCA, Bank Syariah, Cash..." className="input" />
             </Field>
           )}
 
           {form.type === "investasi" && (
-            <Field label="Tempat Pembelian / Broker (opsional)">
-              <input value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bibit, Stockbit, BNI Sekuritas" className="input" />
+            <Field htmlFor="asset-investment-broker" label="Tempat Pembelian / Broker (opsional)">
+              <input id="asset-investment-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bibit, Stockbit, BNI Sekuritas" className="input" />
             </Field>
           )}
 
@@ -244,13 +244,13 @@ export default function AssetForm({ asset, onClose }) {
               </button>
             </div>
           </Field>
-          <Field label="Pemilik (opsional)">
-            <input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className="input" />
+          <Field htmlFor="asset-owner" label="Pemilik (opsional)">
+            <input id="asset-owner" value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className="input" />
           </Field>
-          <Field label="Catatan (opsional)">
-            <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input" />
+          <Field htmlFor="asset-notes" label="Catatan (opsional)">
+            <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input" />
           </Field>
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Aset"}
           </button>
@@ -260,10 +260,10 @@ export default function AssetForm({ asset, onClose }) {
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, htmlFor, children }) {
   return (
     <div>
-      <label className="text-xs text-muted-foreground mb-1.5 block">{label}</label>
+      <label htmlFor={htmlFor} className="text-xs text-muted-foreground mb-1.5 block">{label}</label>
       {children}
     </div>
   );

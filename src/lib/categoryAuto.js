@@ -2,14 +2,14 @@ import { base44 } from "@/api/base44Client";
 
 const VALID_ICONS = [
   "Wallet", "ShoppingCart", "Car", "ReceiptText", "HeartPulse", "GraduationCap",
-  "Gamepad2", "Gift", "PiggyBank", "Landmark", "Coins", "Briefcase", "Utensils",
+  "Gamepad2", "Gift", "Vault", "Landmark", "Coins", "Briefcase", "Utensils",
   "Bus", "Lightbulb", "Package", "Sparkles", "Home", "Heart", "MoreHorizontal", "Plus",
 ];
 const VALID_COLORS = ["orange", "blue", "pink", "red", "teal", "indigo", "violet", "green", "amber", "cyan", "rose", "slate"];
 
 const norm = (s) => String(s || "").toLowerCase().trim();
 
-export const sanitizeIcon = (icon) => (VALID_ICONS.includes(icon) ? icon : "Wallet");
+export const sanitizeIcon = (icon) => (icon === "PiggyBank" ? "Vault" : VALID_ICONS.includes(icon) ? icon : "Wallet");
 export const sanitizeColor = (color) => (VALID_COLORS.includes(color) ? color : "slate");
 
 /**

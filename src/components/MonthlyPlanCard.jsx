@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useTransactions, useBudgets, useMe, useRefresh, useRateMap } from "@/hooks/useFinance";
 import { formatMoney, formatMoneyShort, monthlyPlan, planProgress, PLAN_KINDS, PLAN_CATEGORY, summarizeConsolidated, filterReportableTx, inScope, isInMonth } from "@/lib/finance";
 import { toast } from "sonner";
-import { TrendingUp, PiggyBank, CheckCircle2 } from "lucide-react";
+import { TrendingUp, Vault, CheckCircle2 } from "lucide-react";
 
 // Rencana bulanan: target pemasukan & target menabung ("sisihkan dulu").
 // Capaian memakai logika yang sama dengan Beranda: transaksi reportable,
@@ -52,7 +52,7 @@ export default function MonthlyPlanCard({ period, year, month, scope, currency }
 
   const rows = [
     { key: "income", icon: TrendingUp, label: "Target pemasukan", actual: actual.income, tone: "card-pastel-mint", hint: "Gaji, usaha, dan pemasukan lain bulan ini." },
-    { key: "savings", icon: PiggyBank, label: "Target menabung", actual: saved, tone: "card-pastel-butter", hint: "Sisa setelah pengeluaran & sedekah. Sisihkan di awal bulan." },
+    { key: "savings", icon: Vault, label: "Target menabung", actual: saved, tone: "card-pastel-butter", hint: "Sisa setelah pengeluaran & sedekah. Sisihkan di awal bulan." },
   ];
 
   return (

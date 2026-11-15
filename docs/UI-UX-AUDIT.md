@@ -246,3 +246,38 @@ Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai bac
 
 ### Catatan untuk Base44
 Perubahan skema (`Asset.type` + `tunai`, `Budget.kind`) ada di `base44/entities/`. Pastikan Base44 menerapkan skema terbaru setelah merge. Bila skema belum ikut tersinkron, membuat dompet tunai atau menyimpan rencana bisa ditolak oleh validasi.
+
+## 16. Perapian menyeluruh tahap akhir
+
+- **Catat transaksi:**
+  - urutan mengikuti alur pikir: jenis → nominal (kartu hero, format ribuan, nominal cepat) → scan → template/kategori → detail (satu kartu) → opsi lanjutan;
+  - footer simpan menempel dengan ringkasan.
+- **Riwayat:**
+  - ringkasan masuk/keluar/selisih untuk tampilan yang difilter, cari & filter bergaya kartu, grup harian;
+  - neto harian kini tanpa transfer/pending, dan sedekah dihitung sebagai uang keluar.
+- **Semua form modal** (aset, target, kategori, utang, pelunasan, tagihan) memakai `FormSheet` yang sama.
+- **Halaman lain ditata seragam:** Transfer, Zakat, Pengaturan, Profil, Persetujuan, Rekonsiliasi, Kesehatan Data, Panduan, Umpan Balik, Target, Kategori, Utang, Tagihan.
+- **Pengaturan dirampingkan:**
+  - pemilih warna (bertentangan dengan brand tetap) dihapus;
+  - menu Kategori/Impor/Catat dihapus karena duplikat;
+  - kartu Panduan dihapus karena duplikat;
+  - Panel Admin hanya untuk admin.
+
+### Audit alur tambah aset
+
+| Masalah | Perbaikan |
+|---|---|
+| Ganti jenis membawa gram/harga/satuan lama | `switchAssetType()` mengosongkan isian yang maknanya berbeda |
+| Emas fisik & tanah bisa tersimpan SAR padahal label "Rp" | Dikunci IDR |
+| Emas tanpa harga beli tersimpan bernilai 0 | Harga beli/gram wajib |
+| Tanah tanpa harga sekarang bernilai 0 | Default = luas × harga/m² |
+| Bank/tunai ditanya harga & bukti beli (mengacaukan pertumbuhan aset) | Tidak ditanyakan & tidak disimpan |
+| Halaman Aset menghitung emas digital SAR dengan harga emas Rupiah | Harga emas Rupiah hanya untuk emas IDR |
+| Angka negatif diterima | Ditolak |
+
+Aturan ini dikumpulkan di `buildAssetPayload()` dan dijaga oleh 7 unit test + 2 uji alur layar.
+
+### Verifikasi
+- Unit test: 31/31.
+- `npm run qa`: 23 halaman × 2 mode, 0 error JS.
+- `npm run qa:flows`: 13/13 alur lolos.

@@ -167,6 +167,35 @@ try {
     assert.ok(text.includes(expectedPct >= 100 ? "Tercapai" : `${expectedPct}%`), `Progres tampil (${text.replace(/\s+/g, " ")})`);
   });
 
+  await step("Tambah aset emas: nilai = gram × harga, satuan gram, mata uang IDR", async () => {
+    await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.fill("#asset-name", "QA Emas");
+    await page.fill("#asset-gold-quantity", "10");
+    await page.fill("#asset-gold-purchase-price", "1500000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Emas"));
+    assert.ok(a, "Tersimpan");
+    assert.equal(a.value, 15000000); assert.equal(a.unit, "gram"); assert.equal(a.currency, "IDR");
+  });
+
+  await step("Ganti jenis Emas → Bank: isian gram/harga tidak terbawa", async () => {
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.fill("#asset-gold-quantity", "40");
+    await page.fill("#asset-gold-purchase-price", "1250000");
+    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.fill("#asset-name", "QA Bank");
+    await page.fill("#asset-value", "7000000");
+    assert.equal(await page.locator("#asset-purchase-price").count(), 0, "Bank tidak menanyakan harga beli");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Bank"));
+    assert.equal(a.value, 7000000); assert.equal(a.quantity, 0); assert.equal(a.purchase_price, 0); assert.equal(a.unit, "");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

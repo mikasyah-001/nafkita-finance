@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { assetTypeLabels, formatRupiah, currencySymbol, isGoldType } from "@/lib/finance";
+import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen } from "lucide-react";
@@ -61,32 +61,10 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const handleSave = async () => {
-    if (!form.name) return toast.error("Isi nama aset");
-    if (!form.value && !isGoldType(form.type)) return toast.error("Isi nilai aset");
-    if (isGoldType(form.type) && !form.quantity) return toast.error("Isi jumlah gram emas");
-    if (form.type === "tanah" && !form.quantity) return toast.error("Isi luas tanah");
-    if (form.type === "tanah" && !form.purchase_price) return toast.error("Isi harga beli per m²");
+    const { error, payload } = buildAssetPayload(form);
+    if (error) return toast.error(error);
     setSaving(true);
     try {
-      const value =
-        isGoldType(form.type) && form.quantity && form.purchase_price
-          ? Number(form.quantity) * Number(form.purchase_price)
-          : Number(form.value);
-      const payload = {
-        name: form.name,
-        type: form.type,
-        value,
-        quantity: form.quantity ? Number(form.quantity) : 0,
-        unit: isGoldType(form.type) ? "gram" : form.type === "tanah" ? "m²" : form.unit,
-        purchase_date: form.purchase_date || "",
-        purchase_price: form.purchase_price ? Number(form.purchase_price) : 0,
-        purchase_proof_url: form.purchase_proof_url || "",
-        owner: form.owner,
-        notes: form.notes,
-        broker: form.broker || "",
-        currency: form.currency || "IDR",
-        visibility: form.visibility,
-      };
       if (isEdit) {
         await base44.entities.Asset.update(asset.id, payload);
         toast.success("Aset diperbarui");
@@ -129,7 +107,7 @@ export default function AssetForm({ asset, onClose }) {
             const on = form.type === t;
             return (
               <button key={t} type="button" role="radio" aria-checked={on}
-                onClick={() => setForm({ ...form, type: t, unit: isGoldType(t) ? "gram" : t === "tanah" ? "m²" : form.unit })}
+                onClick={() => setForm(switchAssetType(form, t))}
                 className={`flex flex-col items-center gap-1.5 pt-2.5 pb-2 rounded-2xl border transition-all ${on ? "border-primary bg-primary/[0.07] ring-1 ring-primary" : "border-border bg-card"}`}>
                 <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   <CategoryIcon name={meta.icon} className="w-4 h-4" />
@@ -178,9 +156,9 @@ export default function AssetForm({ asset, onClose }) {
             <HeroInput id={isGoldType(form.type) ? "asset-gold-quantity" : "asset-land-quantity"} label={isGoldType(form.type) ? "Gram" : "Luas (m²)"} value={form.quantity} onChange={(v) => setForm({ ...form, quantity: v })} />
             <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${isGoldType(form.type) && form.type === "emas_digital" ? sym : "Rp"})`}
               value={form.purchase_price}
-              onChange={(v) => setForm({ ...form, purchase_price: v, value: isGoldType(form.type) && v && form.quantity ? String(Number(v) * Number(form.quantity)) : form.value })} />
+              onChange={(v) => setForm({ ...form, purchase_price: v })} />
             {form.type === "tanah" && (
-              <div className="col-span-2"><HeroInput id="asset-land-value" label="Perkiraan harga sekarang (Rp)" value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
+              <div className="col-span-2"><HeroInput id="asset-land-value" label="Perkiraan harga sekarang (Rp, opsional)" value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
             )}
           </div>
         ) : (
@@ -191,11 +169,13 @@ export default function AssetForm({ asset, onClose }) {
           </div>
         )}
         {(goldTotal > 0 || (form.type === "tanah" && form.quantity && form.purchase_price)) && (
-          <p className="text-xs opacity-80 mt-2">Total harga beli: <span className="font-semibold">{formatRupiah(goldTotal || Number(form.purchase_price) * Number(form.quantity))}</span></p>
+          <p className="text-xs opacity-80 mt-2">Total harga beli: <span className="font-semibold">{formatMoney(goldTotal || Number(form.purchase_price) * Number(form.quantity), form.currency || "IDR")}</span></p>
         )}
+        {isGoldType(form.type) && <p className="text-[11px] opacity-70 mt-1">Nilai pasar dihitung otomatis dari harga emas terkini bila tersedia.</p>}
+        {form.type === "tunai" && <p className="text-[11px] opacity-70 mt-1">Isi jumlah uang di dompet saat ini (boleh 0).</p>}
       </section>
 
-      <FieldGroup label="Pembelian (opsional)">
+      {assetHasPurchase(form.type) && <FieldGroup label="Pembelian (opsional)">
         <FieldRow icon={CalendarDays} label="Tanggal beli" htmlFor="asset-purchase-date">
           <input id="asset-purchase-date" type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className={fieldInput} />
         </FieldRow>
@@ -217,7 +197,7 @@ export default function AssetForm({ asset, onClose }) {
             </button>
           )}
         </FieldRow>
-      </FieldGroup>
+      </FieldGroup>}
 
       <FieldGroup label="Lainnya">
         <FieldRow icon={form.visibility === "private" ? Lock : Users} label="Jangkauan"

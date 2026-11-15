@@ -193,3 +193,54 @@ test("planProgress: persen dijepit, status tercapai, sisa", () => {
   assert.equal(planProgress(-1_000, 5_000_000).pct, 0);
   assert.equal(planProgress(100, 0).reached, false);
 });
+
+// ── Alur input aset per jenis ────────────────────────────────────
+import { buildAssetPayload, switchAssetType } from "../finance.js";
+const F = (o) => ({ name: "Aset", type: "bank", value: "", quantity: "", purchase_price: "", currency: "IDR", visibility: "shared", ...o });
+test("Aset bank/tunai: nilai saja, tanpa harga beli & jumlah", () => {
+  const { payload } = buildAssetPayload(F({ type: "bank", value: "5000000", purchase_price: "999", quantity: "3" }));
+  assert.equal(payload.value, 5_000_000);
+  assert.equal(payload.purchase_price, 0);
+  assert.equal(payload.quantity, 0);
+  assert.equal(buildAssetPayload(F({ type: "tunai", value: "0" })).payload.value, 0, "dompet kosong boleh 0");
+  assert.equal(buildAssetPayload(F({ type: "tunai", value: "" })).error, "Isi nilai aset");
+});
+test("Aset emas: wajib gram & harga/gram, nilai = gram × harga, mata uang IDR", () => {
+  assert.equal(buildAssetPayload(F({ type: "emas", quantity: "10" })).error, "Isi harga beli per gram");
+  const { payload } = buildAssetPayload(F({ type: "emas", quantity: "10", purchase_price: "1500000", currency: "SAR" }));
+  assert.equal(payload.value, 15_000_000);
+  assert.equal(payload.unit, "gram");
+  assert.equal(payload.currency, "IDR");
+});
+test("Aset emas digital: boleh mata uang lain", () => {
+  const { payload } = buildAssetPayload(F({ type: "emas_digital", quantity: "2", purchase_price: "300", currency: "SAR" }));
+  assert.equal(payload.currency, "SAR");
+  assert.equal(payload.value, 600);
+});
+test("Aset tanah: nilai sekarang opsional (default = luas × harga/m²), IDR", () => {
+  const a = buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", currency: "SAR" })).payload;
+  assert.equal(a.value, 200_000_000);
+  assert.equal(a.unit, "m²");
+  assert.equal(a.currency, "IDR");
+  assert.equal(buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", value: "250000000" })).payload.value, 250_000_000);
+});
+test("Aset investasi/properti/lainnya: nilai + harga beli total, tanpa satuan", () => {
+  const { payload } = buildAssetPayload(F({ type: "investasi", value: "43500000", purchase_price: "38000000", quantity: "7" }));
+  assert.equal(payload.purchase_price, 38_000_000);
+  assert.equal(payload.quantity, 0);
+  assert.equal(payload.unit, "");
+});
+test("Aset: nama wajib, angka negatif ditolak", () => {
+  assert.equal(buildAssetPayload(F({ name: "  ", value: "1" })).error, "Isi nama aset");
+  assert.equal(buildAssetPayload(F({ value: "-5" })).error, "Nilai tidak boleh negatif");
+});
+test("Ganti jenis tidak membawa isian yang beda makna", () => {
+  const emas = { ...F({ type: "emas", quantity: "40", purchase_price: "1250000", unit: "gram" }) };
+  const bank = switchAssetType(emas, "bank");
+  assert.equal(bank.quantity, "");
+  assert.equal(bank.purchase_price, "");
+  assert.equal(bank.unit, "");
+  const digital = switchAssetType(emas, "emas_digital");
+  assert.equal(digital.quantity, "40", "sesama gram tetap");
+  assert.equal(switchAssetType(F({ currency: "SAR" }), "tanah").currency, "IDR");
+});

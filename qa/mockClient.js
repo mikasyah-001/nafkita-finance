@@ -113,7 +113,11 @@ const FN = {
 };
 const entity = (name) => ({
   list: async () => DATA[name] || [], filter: async () => DATA[name] || [], get: async () => (DATA[name] || [])[0] || null,
-  create: async (o) => { const r = { id: id(), ...o }; (DATA[name] ||= []).push(r); return r; },
+  create: async (o) => {
+    const r = { id: id(), created_by_id: "u1", ...o };
+    if (name === "Asset") db.assets.push(r); else (DATA[name] ||= []).push(r);
+    return r;
+  },
   bulkCreate: async (a) => a,
   update: async (i, o) => { const r = (DATA[name] || []).find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
   updateMany: async () => ({}),

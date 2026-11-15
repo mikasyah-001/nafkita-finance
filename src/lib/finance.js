@@ -444,3 +444,67 @@ export function planProgress(actual, target) {
   const pct = Math.max(0, Math.min(100, (actual / target) * 100));
   return { pct, reached: actual >= target, remaining: Math.max(0, target - actual) };
 }
+
+// ── Aturan input aset per jenis (sumber tunggal untuk form & test) ─────
+// emas/emas_digital: jumlah gram × harga beli/gram. tanah: luas m² × harga/m².
+// bank/tunai: hanya nilai saldo (tanpa harga beli). Lainnya: nilai + harga beli total.
+export const ASSET_UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
+export const assetUsesQuantity = (type) => !!ASSET_UNIT[type];
+export const assetIdrOnly = (type) => type === "emas" || type === "tanah";
+export const assetHasPurchase = (type) => type !== "bank" && type !== "tunai";
+
+// Saat jenis diganti: kosongkan isian yang maknanya berbeda (gram vs m² vs total)
+// agar tidak terbawa diam-diam, dan kunci mata uang untuk jenis berbasis Rupiah.
+export function switchAssetType(form, type) {
+  const sameUnit = (ASSET_UNIT[form.type] || "") === (ASSET_UNIT[type] || "");
+  return {
+    ...form,
+    type,
+    unit: ASSET_UNIT[type] || "",
+    quantity: sameUnit ? form.quantity : "",
+    purchase_price: sameUnit && assetHasPurchase(type) ? form.purchase_price : "",
+    value: isGoldType(type) ? "" : form.value,
+    currency: assetIdrOnly(type) ? "IDR" : form.currency,
+  };
+}
+
+// Validasi + susun payload. Mengembalikan { error } atau { payload }.
+export function buildAssetPayload(form) {
+  const num = (v) => (v === "" || v == null ? null : Number(v));
+  const qty = num(form.quantity), price = num(form.purchase_price), val = num(form.value);
+  const t = form.type;
+  if (!String(form.name || "").trim()) return { error: "Isi nama aset" };
+  for (const [v, label] of [[qty, "Jumlah"], [price, "Harga beli"], [val, "Nilai"]]) {
+    if (v != null && (!Number.isFinite(v) || v < 0)) return { error: `${label} tidak boleh negatif` };
+  }
+  let value;
+  if (isGoldType(t)) {
+    if (!qty) return { error: "Isi jumlah gram emas" };
+    if (!price) return { error: "Isi harga beli per gram" };
+    value = qty * price;
+  } else if (t === "tanah") {
+    if (!qty) return { error: "Isi luas tanah" };
+    if (!price) return { error: "Isi harga beli per m²" };
+    value = val || qty * price; // perkiraan harga sekarang; bila kosong = harga beli
+  } else {
+    if (val == null) return { error: "Isi nilai aset" };
+    value = val;
+  }
+  return {
+    payload: {
+      name: String(form.name).trim(),
+      type: t,
+      value,
+      quantity: assetUsesQuantity(t) ? qty : 0,
+      unit: ASSET_UNIT[t] || "",
+      purchase_date: assetHasPurchase(t) ? form.purchase_date || "" : "",
+      purchase_price: assetHasPurchase(t) ? price || 0 : 0,
+      purchase_proof_url: assetHasPurchase(t) ? form.purchase_proof_url || "" : "",
+      owner: form.owner || "",
+      notes: form.notes || "",
+      broker: form.broker || "",
+      currency: assetIdrOnly(t) ? "IDR" : form.currency || "IDR",
+      visibility: form.visibility || "shared",
+    },
+  };
+}

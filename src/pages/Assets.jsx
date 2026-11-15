@@ -56,7 +56,9 @@ export default function Assets() {
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
 
   const currentValue = (a) => {
-    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0) return a.quantity * goldPriceNum;
+    // Harga emas pasar dalam Rupiah → hanya untuk aset emas bermata uang IDR
+    // (sama dengan Dashboard Aset). Emas digital SAR/USD memakai nilai tersimpan.
+    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") return a.quantity * goldPriceNum;
     return a.value || 0;
   };
   const convertedValue = (a) => convertTo(currentValue(a), (a.currency || "IDR"), displayCurrency, rateMap);

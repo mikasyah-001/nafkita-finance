@@ -205,7 +205,11 @@ try {
       const rate = { IDR: 1, SAR: 4250 };
       let net = 0;
       for (const a of window.__qa.assets) {
-        if (a.type === "emas" || a.type === "emas_digital") net += (a.quantity || 0) * 1500000;
+        if (a.type === "emas" || a.type === "emas_digital") {
+          const d = a.purchase_date || a.created_date;
+          if (d && Date.now() < new Date(d).getTime() + 354 * 86400000) continue; // belum genap haul
+          net += (a.quantity || 0) * 1500000;
+        }
         else if (["bank", "tunai", "investasi"].includes(a.type)) net += a.value * (rate[a.currency || "IDR"] || 0);
       }
       net -= 5000000; // utang aktif jatuh tempo < 12 bulan (data contoh)
@@ -214,6 +218,8 @@ try {
     const hero = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
     assert.equal(hero, expected, "Zakat = 2,5% × harta bersih gabungan");
     assert.ok(await page.getByText("Wajib zakat").isVisible());
+    assert.ok(await page.getByText("Emas belum genap haul").isVisible(), "Emas baru dibeli tampil sebagai belum haul");
+    assert.ok(await page.getByText(/Emas tabungan anak · 15 gr/).isVisible());
   });
 
   await step("Zakat: catat pembayaran sebagian → sisa berkurang & tercatat sebagai transaksi Zakat", async () => {

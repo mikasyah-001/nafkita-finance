@@ -68,7 +68,7 @@ export default function Zakat() {
 
   const rows = [
     { key: "kas", icon: Wallet, value: z.groups.kas },
-    { key: "emas", icon: Coins, value: z.groups.emas, sub: z.goldGrams ? `${formatNumber(z.goldGrams)} gram` : null },
+    { key: "emas", icon: Coins, value: z.groups.emas, sub: z.goldGrams ? `${formatNumber(z.goldGrams)} gram sudah genap haul` : z.goldGramsPending ? "Belum ada emas yang genap haul" : null },
     { key: "investasi", icon: TrendingUp, value: z.groups.investasi },
     { key: "piutang", icon: HandCoins, value: z.groups.piutang, toggle: true },
     { key: "utang", icon: MinusCircle, value: -z.groups.utang },
@@ -154,6 +154,32 @@ export default function Zakat() {
               </div>
             </div>
           </section>
+
+          {z.goldPending.length > 0 && (
+            <section className="surface rounded-3xl mb-5" aria-labelledby="emas-belum-haul">
+              <div className="px-4 pt-4 pb-2">
+                <h2 id="emas-belum-haul" className="font-semibold text-[15px] flex items-center gap-2"><CalendarClock className="w-4 h-4 text-muted-foreground" /> Emas belum genap haul</h2>
+                <p className="text-xs text-muted-foreground">Dihitung dari tanggal beli di data aset; belum masuk zakat periode ini.</p>
+              </div>
+              <div className="divide-y divide-border">
+                {z.goldPending.map((g) => (
+                  <div key={g.id} className="flex items-center gap-3 px-4 py-3">
+                    <Coins className="w-4 h-4 text-gold shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{g.name} · {formatNumber(g.grams)} gr</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {g.dateSource === "purchase" ? "Dibeli" : "Dicatat"} {formatDate(g.acquired, "d MMM yyyy")} · haul {formatDate(g.due, "d MMM yyyy")} ({formatHijri(g.due)})
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold rounded-full bg-gold/20 px-2.5 py-1 shrink-0">{g.daysLeft} hari lagi</span>
+                  </div>
+                ))}
+              </div>
+              {z.goldPending.some((g) => g.dateSource === "recorded") && (
+                <p className="text-[11px] text-muted-foreground px-4 pb-3">Sebagian memakai tanggal aset dicatat karena tanggal beli kosong. Isi tanggal beli di menu Aset agar haul lebih tepat.</p>
+              )}
+            </section>
+          )}
 
           {(z.excluded.length > 0 || z.unconverted.length > 0) && (
             <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="tidak-dihitung">

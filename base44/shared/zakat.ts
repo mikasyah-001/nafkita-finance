@@ -63,6 +63,9 @@ export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMa
     const g = ZAKATABLE[a.type];
     if (!g) continue;
     if (g === "emas") {
+      // Haul per aset emas dari tanggal beli (atau tanggal dicatat).
+      const raw = a.purchase_date || a.created_date || null;
+      if (raw && now.getTime() < new Date(raw).getTime() + HAUL_DAYS * DAY_MS) continue;
       const grams = Number(a.quantity) || 0;
       goldGrams += grams;
       if (goldPrice > 0) groups.emas += grams * goldPrice;

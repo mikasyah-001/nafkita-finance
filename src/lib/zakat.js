@@ -12,6 +12,10 @@
 //  • Utang yang jatuh tempo (≤ 12 bulan) dikurangkan sebelum cek nisab.
 //  • Tidak dihitung: rumah tinggal/properti, tanah, kendaraan & barang
 //    pakai ("lainnya") — kecuali dimiliki untuk diperjualbelikan.
+//  • Haul emas mengikuti data aset: dihitung per aset dari tanggal beli
+//    (purchase_date; bila kosong, tanggal aset dicatat). Emas yang belum
+//    genap 354 hari belum masuk perhitungan periode ini (tiap perolehan
+//    punya haul sendiri — pendapat Syafi'i/Hanbali yang umum di Indonesia).
 //  • Perhiasan yang dipakai wajar: diperselisihkan ulama; aplikasi tidak
 //    bisa membedakannya, jadi semua emas tercatat dihitung (lebih hati-hati).
 // Hasilnya PERKIRAAN, bukan fatwa — konsultasikan ke amil/BAZNAS setempat.
@@ -56,7 +60,9 @@ export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMa
   const items = [];
   const excluded = [];
   const unconverted = [];
+  const goldPending = []; // emas yang belum genap haul
   let goldGrams = 0;
+  let goldGramsPending = 0;
 
   const toBase = (amount, from) => {
     const f = (from || "IDR").toUpperCase();
@@ -70,10 +76,19 @@ export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMa
     let value;
     if (group === "emas") {
       const grams = Number(a.quantity) || 0;
+      const haul = goldHaul(a, now);
+      if (!haul.complete) {
+        goldGramsPending += grams;
+        goldPending.push({ id: a.id, name: a.name, grams, value: goldPrice > 0 ? grams * goldPrice : null, ...haul });
+        continue;
+      }
       goldGrams += grams;
       // Emas dinilai dengan harga pasar saat ini, bukan harga beli.
       value = goldPrice > 0 ? grams * goldPrice : null;
       if (value == null) continue;
+      items.push({ id: a.id, name: a.name, group, value, grams, ...haul });
+      groups.emas += value;
+      continue;
     } else {
       value = toBase(a.value, a.currency);
       if (value == null) continue;
@@ -111,12 +126,25 @@ export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMa
 
   return {
     currency: cur, groups, items, excluded, unconverted: [...new Set(unconverted)],
-    goldGrams, goldPrice, gross, net, nisab, needsGoldPrice, reachesNisab, zakat,
+    goldGrams, goldGramsPending, goldPending, goldPrice, gross, net, nisab, needsGoldPrice, reachesNisab, zakat,
     nisabGap: reachesNisab || needsGoldPrice ? 0 : nisab - net,
   };
 }
 
 const round = (n) => Math.round(n);
+
+/**
+ * Haul satu aset emas dari data yang tersimpan di aset.
+ * acquired = purchase_date → created_date → (tidak ada: dianggap sudah haul).
+ */
+export function goldHaul(asset, now = new Date()) {
+  const raw = asset.purchase_date || asset.created_date || null;
+  if (!raw) return { complete: true, acquired: null, due: null, daysLeft: 0, dateSource: "unknown" };
+  const acquired = new Date(raw);
+  const due = new Date(acquired.getTime() + HAUL_DAYS * DAY);
+  const daysLeft = Math.ceil((due.getTime() - now.getTime()) / DAY);
+  return { complete: daysLeft <= 0, acquired, due, daysLeft: Math.max(0, daysLeft), dateSource: asset.purchase_date ? "purchase" : "recorded" };
+}
 
 // ── Haul (tahun hijriah) ──────────────────────────────────────────────────
 const hijriFmt = (() => {

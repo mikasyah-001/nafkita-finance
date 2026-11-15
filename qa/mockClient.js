@@ -11,6 +11,7 @@ const d = (dd, mOff = 0, h = 10) => new Date(Date.UTC(Y, M + mOff, dd, h)).toISO
 let n = 0; const id = () => "id" + (++n);
 const T = (o) => ({ id: id(), created_by_id: "u1", input_by_name: "Ahmad", visibility: "shared", currency: "IDR", tags: [], approval_status: "approved", ...o });
 
+const later = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 const db = {
   tx: [
     T({ type: "income", amount: 15000000, category: "Gaji", date: d(1), merchant: "PT Arrahmah" }),
@@ -34,6 +35,7 @@ const db = {
     { id: "a1", name: "Tabungan BCA", type: "bank", value: 88000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a5", name: "Rekening Mandiri", type: "bank", value: 12000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a2", name: "Emas Antam", type: "emas", quantity: 40, purchase_price: 1250000, value: 64000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
+    { id: "a7", name: "Emas tabungan anak", type: "emas", quantity: 15, purchase_price: 1400000, value: 21000000, currency: "IDR", visibility: "shared", created_by_id: "u1", purchase_date: later(-60) },
     { id: "a3", name: "Reksa Dana Syariah", type: "investasi", value: 43500000, purchase_price: 38000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a4", name: "Dompet Riyal", type: "tunai", value: 2400, currency: "SAR", visibility: "shared", created_by_id: "u1" },
     { id: "a6", name: "Dompet tunai", type: "tunai", value: 800000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
@@ -49,7 +51,6 @@ const DATA = {
   }),
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
 };
-const later = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 const FN = {
   listVisibleTransactions: () => ({ transactions: [...db.tx].sort((a, b) => new Date(b.date) - new Date(a.date)) }),
   listVisibleAssets: () => ({ assets: db.assets }),

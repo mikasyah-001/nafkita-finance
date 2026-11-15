@@ -94,3 +94,28 @@ test("Pembayaran dihitung per periode haul", () => {
   ];
   assert.equal(paymentsForPeriod(pays, period).length, 1);
 });
+
+import { goldHaul } from "../zakat.js";
+test("Haul emas per aset dari tanggal beli: belum 354 hari → belum dihitung", () => {
+  const now = new Date("2026-11-15");
+  const r = computeZakatMal({
+    assets: [
+      A({ type: "emas", quantity: 60, purchase_date: "2025-06-01" }), // sudah haul
+      A({ type: "emas", quantity: 40, purchase_date: "2026-08-01" }), // belum haul
+      A({ type: "bank", value: 50_000_000 }),
+    ],
+    goldPrice: GOLD, rateMap: RATES, now,
+  });
+  assert.equal(r.goldGrams, 60);
+  assert.equal(r.goldGramsPending, 40);
+  assert.equal(r.groups.emas, 90_000_000);
+  assert.equal(r.goldPending[0].due.toISOString().slice(0, 10), "2027-07-21");
+  assert.equal(r.zakat, Math.round(140_000_000 * 0.025));
+});
+test("Haul emas: tanpa tanggal beli pakai tanggal dicatat; tanpa keduanya dianggap sudah haul", () => {
+  const now = new Date("2026-11-15");
+  assert.equal(goldHaul({ created_date: "2026-10-01" }, now).complete, false);
+  assert.equal(goldHaul({ created_date: "2026-10-01" }, now).dateSource, "recorded");
+  assert.equal(goldHaul({}, now).complete, true);
+  assert.equal(goldHaul({ purchase_date: "2025-01-01", created_date: "2026-10-01" }, now).complete, true, "tanggal beli diutamakan");
+});

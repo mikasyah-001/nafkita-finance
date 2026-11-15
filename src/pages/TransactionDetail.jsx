@@ -399,6 +399,7 @@ export default function TransactionDetail() {
             <button
               onClick={() => setEdit(true)}
               disabled={isPending}
+              aria-label="Edit transaksi"
               title={isPending ? "Menunggu persetujuan pasangan" : "Edit"}
               className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ${isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground"}`}
             >

@@ -6,7 +6,6 @@ import Sidebar from "./Sidebar";
 import OfflineSyncManager from "./OfflineSyncManager";
 import NotificationToaster from "./NotificationToaster";
 import InstallPrompt from "./InstallPrompt";
-import { Toaster } from "sonner";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useScope } from "@/lib/ScopeContext";
 
@@ -42,7 +41,6 @@ export default function Layout() {
       <OfflineSyncManager />
       <NotificationToaster />
       <InstallPrompt />
-      <Toaster position="top-center" richColors closeButton toastOptions={{ style: { fontFamily: "var(--font-body)", borderRadius: "14px" } }} />
     </div>
   );
 }

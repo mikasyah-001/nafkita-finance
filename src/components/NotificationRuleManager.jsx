@@ -3,13 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { useNotificationRules, useCategories, useRefresh } from "@/hooks/useFinance";
 import { Bell, Plus, Trash2, X } from "lucide-react";
 import { formatMoney } from "@/lib/finance";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 
 export default function NotificationRuleManager() {
-  const { toast } = useToast();
   const { data: rules = [], isLoading } = useNotificationRules();
   const { data: categories = [] } = useCategories();
   const refresh = useRefresh();
@@ -32,12 +31,12 @@ export default function NotificationRuleManager() {
         min_amount: Number(form.min_amount) || 0,
         max_amount: form.max_amount ? Number(form.max_amount) : undefined,
       });
-      toast({ title: "Aturan dibuat" });
+      toast.success("Aturan dibuat");
       setShowForm(false);
       setForm({ category: "*", min_amount: "", max_amount: "", enabled: true, silent: false, channel: "in_app", priority: "normal" });
       refresh();
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
   };
 

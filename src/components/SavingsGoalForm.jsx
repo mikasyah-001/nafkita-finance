@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { X } from "lucide-react";
 import { formatMoney } from "@/lib/finance";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 const goalTypes = [
   { value: "darurat", label: "Dana Darurat" },
@@ -15,7 +15,6 @@ const goalTypes = [
 const colors = ["green", "blue", "amber", "violet", "pink", "teal", "orange", "cyan"];
 
 export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
-  const { toast } = useToast();
   const [form, setForm] = useState({
     name: goal?.name || "",
     type: goal?.type || "darurat",
@@ -40,14 +39,14 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
       };
       if (goal?.id) {
         await base44.entities.SavingsGoal.update(goal.id, data);
-        toast({ title: "Target diperbarui" });
+        toast.success("Target diperbarui");
       } else {
         await base44.entities.SavingsGoal.create(data);
-        toast({ title: "Target dibuat" });
+        toast.success("Target dibuat");
       }
       onSaved();
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
     setSubmitting(false);
   };

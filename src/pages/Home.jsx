@@ -121,12 +121,12 @@ export default function Home() {
   const dueBills = bills.filter((b) => b.created_by_id === user?.id && b.status === "active" && b.next_date && b.next_date <= soon);
   const overdueBills = dueBills.filter((b) => b.next_date < today);
   const quickLinks = [
-    { to: "/add?scan=1", icon: ScanLine, color: "indigo", label: "Scan struk", sub: "Catat dari foto bon" },
-    { to: "/add?type=sedekah", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
+    { to: "/add?scan=1", icon: ScanLine, color: "indigo", label: "Scan struk", sub: "Dari foto bon" },
+    { to: "/add?type=sedekah", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bln ini` },
     { to: "/transfer", icon: ArrowLeftRight, color: "violet", label: "Transfer", sub: "Antar rekening" },
     {
       to: "/tagihan-berulang", icon: CalendarClock, color: "amber", label: "Tagihan",
-      sub: overdueBills.length ? `${overdueBills.length} lewat jatuh tempo` : dueBills.length ? `${dueBills.length} jatuh tempo ≤3 hari` : "Tidak ada yang jatuh tempo",
+      sub: overdueBills.length ? `${overdueBills.length} terlambat` : dueBills.length ? `${dueBills.length} segera jatuh tempo` : "Semua aman",
       alert: overdueBills.length > 0,
     },
   ];
@@ -195,13 +195,13 @@ export default function Home() {
 
       <ScopeToggle className="mb-4" />
 
-      {hasMultiCurrency && (
+      {hasMultiCurrency && cur !== defaultCur && (
         <div className="surface p-4 mb-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Globe className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">Total Kekayaan (konversi ke {defaultCur})</p>
+            <p className="text-xs text-muted-foreground">Saldo bulan ini dalam {defaultCur} (semua mata uang)</p>
             <p className="text-xl font-bold tabular-nums break-words"><Money value={consolidatedBalance} currency={defaultCur} /></p>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function Home() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{q.label}</p>
-                <p className={`text-xs truncate ${q.alert ? "text-destructive font-medium" : "text-muted-foreground"}`}>{q.sub}</p>
+                <p className={`text-xs leading-snug line-clamp-2 ${q.alert ? "text-destructive font-medium" : "text-muted-foreground"}`}>{q.sub}</p>
               </div>
             </Link>
           );

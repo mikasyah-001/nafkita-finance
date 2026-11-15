@@ -164,3 +164,36 @@ Kedua tampilan kini memakai satu fungsi, `monthlyExpenseBreakdown()` di `lib/fin
 | Tombol utama / ikon / sekunder | ±20 variasi ditulis manual | `.btn-primary`, `.btn-secondary`, `.btn-icon` (71 tombol dikonversi) |
 
 Tombol lain yang masih ditulis manual sengaja dibiarkan karena memang bukan tombol standar: tab, chip filter, baris daftar yang bisa diketuk, dan pemilih warna.
+
+## 12. Tahap 7: QA visual dengan data contoh
+
+Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai backend tiruan berisi data keluarga contoh: IDR + SAR, transfer, transaksi pending, aset, anggaran, tagihan, utang, dan target. Harness ini hanya ada di lingkungan lokal dan tidak masuk repo.
+
+**Angka terverifikasi:** pengeluaran November Rp 6.070.000 (IDR + 320 SAR × 4.250, tanpa transfer & pending) dan saldo Rp 8.430.000 sama di Beranda, Ringkasan Belanja, Laporan · Bulan ini, dan Laporan · Analisis.
+
+| Temuan | Jenis | Perbaikan |
+|---|---|---|
+| Kartu Anggaran: "terpakai" ikut menghitung kategori tanpa anggaran → terlihat jebol (4,71 jt / 4 jt) padahal semua kategori aman | **Logika** | Terpakai hanya dari kategori beranggaran (1,96 jt / 4 jt) + baris "Rp 2,75 jt di kategori tanpa anggaran" |
+| Dashboard Aset: "Pertumbuhan +133,8%" membandingkan semua aset dengan harga beli sebagian aset | **Logika** | Hanya aset yang punya harga beli → +22,2%, dengan label jumlah aset |
+| Kartu "Total Kekayaan" di Beranda sebenarnya saldo bulan ini & duplikat kartu saldo | Label menyesatkan | Hanya tampil bila mata uang tampilan ≠ mata uang utama, dengan label yang benar |
+| Chip mata uang terpilih tak terbaca di mode gelap | Kontras | Teks tinta gelap tetap |
+| Kolom isian berlatar abu-abu bawaan browser di mode gelap | Konsistensi | Latar input global = warna kartu; `color-scheme` per tema |
+| Transfer tampil sebagai pengeluaran merah/pemasukan hijau di Riwayat | Kejelasan | Nominal transfer berwarna netral |
+| Label sumbu grafik terpotong ("p 200.000") | Keterbacaan | `formatAxis()`: 50 jt, 1,2 M, seragam di 5 grafik |
+| Subjudul aksi cepat & header terpotong; judul "Aset Kelua…" | Keterbacaan | Teks diringkas, subjudul boleh 2 baris, tombol "Tambah" |
+| Swatch warna di Pengaturan meluber ke baris kedua | Tata letak | Ukuran & jarak diperkecil |
+
+## 13. Tahap 8: QA otomatis di repo
+
+- `qa/`: aplikasi asli dengan backend & login tiruan yang stateful. Lihat `qa/README.md`.
+- `npm run qa`: screenshot 23 halaman × 2 mode. Hasilnya **0 error JavaScript**.
+- `npm run qa:flows`: **7/7 alur lolos**:
+  - catat pengeluaran;
+  - transfer (saldo & belanja tidak berubah, saldo aset berpindah);
+  - kartu persetujuan muncul lalu hilang setelah transaksi disetujui;
+  - transaksi yang disetujui baru masuk hitungan;
+  - hapus transaksi dengan konfirmasi (Batal benar-benar membatalkan).
+
+**Temuan dari uji alur:**
+- **Dua sistem notifikasi.** Aplikasi memakai sonner dan shadcn toast sekaligus. Notifikasi shadcn ("Transaksi disetujui") menutupi seluruh header halaman, termasuk tombol kembali, dan berhenti menghitung mundur selama kursor berada di atasnya. Sekarang semua notifikasi memakai sonner, dipasang global sehingga halaman daftar akun juga mendapatkannya.
+- **Tombol edit transaksi** hanya punya `title`. Sekarang ditambah `aria-label` agar terbaca oleh pembaca layar.

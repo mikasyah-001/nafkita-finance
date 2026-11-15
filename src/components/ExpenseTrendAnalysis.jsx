@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatMoney, formatMoneyShort, colorMap } from "@/lib/finance";
+import { formatMoney, formatMoneyShort, colorMap, formatAxis } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle } from "lucide-react";
@@ -76,7 +76,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
             <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} angle={-25} textAnchor="end" height={50} />
-            <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => formatMoneyShort(v, currency)} />
+            <YAxis width={44} tick={{ fontSize: 10 }} tickFormatter={formatAxis} />
             <Tooltip formatter={(v) => formatMoney(v, currency)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 12 }} />
             <Bar dataKey="prev" name={prevName} radius={[4, 4, 0, 0]} fill="#cbd5e1" />
             <Bar dataKey="current" name="Bulan ini" radius={[4, 4, 0, 0]}>

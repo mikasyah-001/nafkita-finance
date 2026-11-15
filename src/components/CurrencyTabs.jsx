@@ -19,7 +19,7 @@ export default function CurrencyTabs({ currencies, value, onChange, className = 
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
               inverse
                 ? selected
-                  ? "bg-white text-foreground border-white shadow-sm ring-2 ring-white/35"
+                  ? "bg-white text-[hsl(226_32%_17%)] border-white shadow-sm ring-2 ring-white/35"
                   : "bg-white/10 text-white/75 border-white/20 hover:bg-white/20"
                 : selected
                   ? "bg-primary text-primary-foreground border-primary shadow-sm"

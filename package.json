@@ -10,7 +10,10 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.js\""
+    "test": "node --test \"src/**/*.test.js\"",
+    "qa:serve": "vite --config qa/vite.config.mjs",
+    "qa": "node qa/screenshots.mjs",
+    "qa:flows": "node qa/flows.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.62",

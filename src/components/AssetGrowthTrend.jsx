@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAssetSnapshots, useMe, useRateMap } from "@/hooks/useFinance";
-import { formatMoney, convertTo } from "@/lib/finance";
+import { formatMoney, convertTo, formatAxis } from "@/lib/finance";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from "recharts";
 import { BarChart3, ArrowRight } from "lucide-react";
@@ -90,7 +90,7 @@ export default function AssetGrowthTrend({ displayCurrency: propDisplayCur, rate
           <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (hidden ? "" : formatMoney(v, fmtCur).replace(/\.\d+$/, ""))} />
+            <YAxis width={44} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (hidden ? "" : formatAxis(v))} />
             <Tooltip formatter={(v) => (hidden ? "••••••" : formatMoney(v, fmtCur))} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
             {mode === "all" ? (
               <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} name="Total" />

@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle } from "lucide-react";
+import { Landmark, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle, Plus } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
@@ -125,7 +125,7 @@ export default function Assets() {
   return (
     <div className="px-5 pt-6">
       <PageHeader
-        title="Aset Keluarga"
+        title="Aset"
         actions={<>
           <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
@@ -133,9 +133,9 @@ export default function Assets() {
           <Link to="/aset-dashboard" className="btn-icon">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
-          <button onClick={openAdd} className="h-10 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1.5 active:scale-95 transition-transform">
-            <Landmark className="w-4 h-4" />
-            <span className="text-xs font-medium">Tambah Aset</span>
+          <button onClick={openAdd} aria-label="Tambah aset" className="h-10 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1 active:scale-95 transition-transform">
+            <Plus className="w-4 h-4" />
+            <span className="text-xs font-semibold">Tambah</span>
           </button>
         </>}
       />

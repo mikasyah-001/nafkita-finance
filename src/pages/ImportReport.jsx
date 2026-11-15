@@ -301,7 +301,7 @@ export default function ImportReport() {
 
       {error && (
         <div className="flex items-start gap-2 mt-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3">
-          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}
@@ -331,7 +331,7 @@ export default function ImportReport() {
                       <option value="expense">Pengeluaran</option>
                       <option value="income">Pemasukan</option>
                     </select>
-                    <button onClick={() => removeRow(r.id)} className="ml-auto text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => removeRow(r.id)} className="ml-auto text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="date" value={r.date} onChange={(e) => updateRow(r.id, "date", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />

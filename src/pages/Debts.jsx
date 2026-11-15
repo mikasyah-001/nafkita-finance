@@ -4,7 +4,7 @@ import { useDebts, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useF
 import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Loader2, X, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check } from "lucide-react";
+import { Plus, Loader2, X, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check } from "lucide-react";
 
 export default function Debts() {
   const { data: debts = [] } = useDebts();
@@ -58,7 +58,7 @@ export default function Debts() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="surface p-4">
           <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-950/40 flex items-center justify-center mb-2">
             <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
           </div>
@@ -68,9 +68,9 @@ export default function Debts() {
           ))}
           {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
         </div>
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="surface p-4">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-2">
-            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <TrendingUp className="w-4 h-4 text-success" />
           </div>
           <p className="text-xs text-muted-foreground">Total Piutang</p>
           {Object.entries(totals.piutang).map(([c, v]) => (
@@ -89,14 +89,14 @@ export default function Debts() {
             const cm = colorMap[ds.color] || colorMap.slate;
             const outstanding = (d.amount || 0) - (d.paid_amount || 0);
             return (
-              <div key={d.id} className="rounded-2xl border border-border bg-card p-4">
+              <div key={d.id} className="surface p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
                         {d.type === "utang" ? "Utang" : "Piutang"}
                       </span>
-                      {d.status === "partial" && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">Sebagian</span>}
+                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">Sebagian</span>}
                     </div>
                     <p className="font-medium text-sm truncate">{d.counterparty_name}</p>
                     <p className="text-xs text-muted-foreground">{formatMoney(d.amount, d.currency)}</p>
@@ -105,7 +105,7 @@ export default function Debts() {
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-full ${cm.bg} ${cm.text}`}>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full ${cm.bg} ${cm.text}`}>
                       <ds.icon className="w-3 h-3" /> {ds.label}
                     </span>
                   </div>

@@ -42,7 +42,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="surface p-4">
         <h2 className="font-semibold text-sm mb-3 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-muted-foreground" /> Total per Jenis Aset</h2>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
@@ -69,7 +69,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="surface p-4">
         <h2 className="font-semibold text-sm mb-3">Pertumbuhan per Aset</h2>
         <div className="space-y-3">
           {perAsset.map((a) => {
@@ -91,7 +91,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
                   )}
                 </div>
                 {hasPurchase && (
-                  <div className={`text-right text-xs ${isGain ? "text-emerald-600" : "text-red-500"}`}>
+                  <div className={`text-right text-xs ${isGain ? "text-success" : "text-destructive"}`}>
                     <p className="font-medium flex items-center gap-1 justify-end">
                       {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {isGain ? "+" : ""}{a.gainPct.toFixed(1)}%

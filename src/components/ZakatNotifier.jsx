@@ -62,7 +62,7 @@ export default function ZakatNotifier() {
   return (
     <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 mb-4">
       <div className="flex items-center gap-2 mb-2">
-        <Bell className="w-4 h-4 text-emerald-600" />
+        <Bell className="w-4 h-4 text-success" />
         <p className="text-sm font-medium">Pengingat Zakat</p>
       </div>
 
@@ -75,15 +75,15 @@ export default function ZakatNotifier() {
                 <div key={ob.type} className="rounded-xl bg-background border border-border p-3">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-emerald-600" />
+                      <Icon className="w-4 h-4 text-success" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{ob.label}</p>
                       <p className="text-[11px] text-muted-foreground">{ob.detail}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">Zakat 2,5%</p>
-                      <p className="text-sm font-semibold text-emerald-600"><Money value={ob.amount} /></p>
+                      <p className="text-[11px] text-muted-foreground">Zakat 2,5%</p>
+                      <p className="text-sm font-semibold text-success"><Money value={ob.amount} /></p>
                     </div>
                   </div>
                   <button
@@ -98,7 +98,7 @@ export default function ZakatNotifier() {
               );
             })}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+          <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" /> Setelah dibayar, pengingat ini akan otomatis tersembunyi.
           </p>
         </>
@@ -117,7 +117,7 @@ export default function ZakatNotifier() {
             className="flex-1 px-2 py-2 text-xs outline-none bg-transparent"
           />
         </div>
-        <span className="text-[10px] text-muted-foreground">Nisab simpanan = 85gr × harga</span>
+        <span className="text-[11px] text-muted-foreground">Nisab simpanan = 85gr × harga</span>
       </div>
     </div>
   );

@@ -13,7 +13,8 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Plus, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle } from "lucide-react";
+import { Landmark, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle } from "lucide-react";
+import ScopeToggle from "@/components/ScopeToggle";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -130,20 +131,13 @@ export default function Assets() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="mb-4" />
 
       <div className="rounded-3xl card-gradient-primary p-5 mb-4 shadow-lg">
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs opacity-80">{scope === "private" ? "Total Aset Pribadi" : "Total Nilai Aset"}</p>
           {userCurrencies.length > 1 && (
-            <span className="text-[10px] opacity-75 flex items-center gap-1"><Globe className="w-3 h-3" /> konsolidasi ke {displayCurrency}</span>
+            <span className="text-[11px] opacity-75 flex items-center gap-1"><Globe className="w-3 h-3" /> konsolidasi ke {displayCurrency}</span>
           )}
         </div>
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={total} currency={displayCurrency} /></p>
@@ -163,20 +157,20 @@ export default function Assets() {
       {scopedAssets.length > 0 && (
         <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 mb-4 active:scale-[0.99] transition-transform">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
-            <Coins className="w-4 h-4 text-emerald-600" />
+            <Coins className="w-4 h-4 text-success" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Kelola Zakat</p>
             <p className="text-xs text-muted-foreground">Kalkulator nisab, pengingat & pembayaran zakat</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-emerald-600 shrink-0" />
+          <ArrowRight className="w-4 h-4 text-success shrink-0" />
         </Link>
       )}
 
       <AssetGrowthTrend />
 
       {scopedAssets.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-3 mb-3 space-y-2">
+        <div className="surface p-3 mb-3 space-y-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {typeOptions.map((t) => (
@@ -216,13 +210,13 @@ export default function Assets() {
             const duration = formatDuration(a.purchase_date);
 
             return (
-              <div key={a.id} className="rounded-2xl border border-border bg-card p-4">
+              <div key={a.id} className="surface p-4">
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
                     </div>
-                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
+                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
                       {rank}
                     </span>
                   </div>
@@ -251,7 +245,7 @@ export default function Assets() {
                         {a.visibility === "private" ? <Users className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                       </button>
                       {a.type === "investasi" && (
-                        <Link to={`/investasi/${a.id}`} className="text-xs text-emerald-600 flex items-center gap-1 active:scale-95 transition-transform" title="Catat DCA bulanan">
+                        <Link to={`/investasi/${a.id}`} className="text-xs text-success flex items-center gap-1 active:scale-95 transition-transform" title="Catat DCA bulanan">
                           <Layers className="w-3.5 h-3.5" />
                         </Link>
                       )}
@@ -261,7 +255,7 @@ export default function Assets() {
                       <button onClick={() => openEdit(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 flex items-center gap-1" title="Hapus aset">
+                      <button onClick={() => handleDelete(a.id)} className="text-xs text-destructive flex items-center gap-1" title="Hapus aset">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -290,7 +284,7 @@ export default function Assets() {
                         </div>
                         <div className="col-span-2">
                           <p className="text-muted-foreground">Perubahan</p>
-                          <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
+                          <p className={`font-medium flex items-center gap-1 ${isGain ? "text-success" : "text-destructive"}`}>
                             {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                             {isGain ? "+" : ""}{formatMoney(gain, a.currency)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                           </p>
@@ -305,7 +299,7 @@ export default function Assets() {
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>
                           {showChange ? (
-                            <p className={`font-medium flex items-center gap-1 ${isGain ? "text-emerald-600" : "text-red-500"}`}>
+                            <p className={`font-medium flex items-center gap-1 ${isGain ? "text-success" : "text-destructive"}`}>
                               {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                               {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>

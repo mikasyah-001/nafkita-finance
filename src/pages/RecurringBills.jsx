@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate, colorMap, computeRecurringNextDate } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, X, RefreshCw, Pause, Play, Check, CalendarClock } from "lucide-react";
@@ -66,12 +66,12 @@ export default function RecurringBills() {
             const asset = assets.find((a) => a.id === b.linked_asset_id);
             const isOverdue = b.status === "active" && b.next_date && new Date(b.next_date + "T00:00:00.000Z") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
             return (
-              <div key={b.id} className="rounded-2xl border border-border bg-card p-4">
+              <div key={b.id} className="surface p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-medium text-sm truncate">{b.category}</p>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
                         {b.status === "active" ? "Aktif" : "Jeda"}
                       </span>
                     </div>
@@ -83,8 +83,8 @@ export default function RecurringBills() {
                   </button>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-[11px]">
-                  <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-red-500" : "text-muted-foreground"}`} />
-                  <span className={isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                  <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
+                  <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
                     {isOverdue ? "Jatuh tempo — akan diproses" : `Berikutnya: ${formatDate(b.next_date, "dd MMM yyyy")}`}
                   </span>
                 </div>

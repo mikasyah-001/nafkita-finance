@@ -9,7 +9,8 @@ import Money from "@/components/Money";
 import ZakatMethodNotice from "@/components/ZakatMethodNotice";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, Wallet, Bell, CheckCircle2, AlertCircle, Loader2, Mail, Users, Lock, Scale, Globe } from "lucide-react";
+import { ArrowLeft, Coins, Wallet, CheckCircle2, AlertCircle, Loader2, Mail, Scale, Globe } from "lucide-react";
+import ScopeToggle from "@/components/ScopeToggle";
 
 export default function Zakat() {
   const navigate = useNavigate();
@@ -113,14 +114,7 @@ export default function Zakat() {
       <ZakatMethodNotice />
 
       {/* Scope toggle */}
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="mb-4" />
 
       {/* Ringkasan total gabungan (konversi IDR) */}
       <div className="card-gradient-accent rounded-3xl p-5 mb-4 shadow-lg">
@@ -148,7 +142,7 @@ export default function Zakat() {
 
       {/* Kartu per mata uang */}
       {!statusLoading && perCurrency.length === 0 && (
-        <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+        <div className="surface p-6 text-center text-sm text-muted-foreground">
           Belum ada aset untuk dihitung zakatnya.
         </div>
       )}
@@ -158,24 +152,24 @@ export default function Zakat() {
         const simpananPaid = isPaid("simpanan", p.currency);
         const hasObligation = (p.wajibEmas && !emasPaid) || (p.wajibSimpanan && !simpananPaid);
         return (
-          <div key={p.currency} className="rounded-2xl border border-border bg-card p-4 mb-4">
+          <div key={p.currency} className="surface p-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <Globe className="w-4 h-4 text-muted-foreground" />
               <h2 className="font-semibold text-sm flex-1">Mata Uang {p.currency}</h2>
-              <span className="text-[10px] text-muted-foreground">Harga emas: {p.goldPrice > 0 ? formatRupiah(p.goldPrice) : "—"}</span>
+              <span className="text-[11px] text-muted-foreground">Harga emas: {p.goldPrice > 0 ? formatRupiah(p.goldPrice) : "—"}</span>
             </div>
 
             {/* Ringkasan harta */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="rounded-xl bg-muted/50 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Coins className="w-3 h-3" /> Emas</p>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Coins className="w-3 h-3" /> Emas</p>
                 <p className="text-sm font-semibold tabular-nums">{formatNumber(p.emasGrams)} gr</p>
-                <p className="text-[10px] text-muted-foreground tabular-nums"><Money value={p.emasValue} currency={p.currency} /></p>
+                <p className="text-[11px] text-muted-foreground tabular-nums"><Money value={p.emasValue} currency={p.currency} /></p>
               </div>
               <div className="rounded-xl bg-muted/50 p-2.5">
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Wallet className="w-3 h-3" /> Simpanan</p>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Wallet className="w-3 h-3" /> Simpanan</p>
                 <p className="text-sm font-semibold tabular-nums"><Money value={p.nonEmasValue} currency={p.currency} /></p>
-                <p className="text-[10px] text-muted-foreground">Nisab: {p.goldPrice > 0 ? <Money value={p.nisab} currency={p.currency} /> : "—"}</p>
+                <p className="text-[11px] text-muted-foreground">Nisab: {p.goldPrice > 0 ? <Money value={p.nisab} currency={p.currency} /> : "—"}</p>
               </div>
             </div>
 
@@ -207,20 +201,20 @@ export default function Zakat() {
       })}
 
       {/* Gold price input (IDR, untuk referensi) */}
-      <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+      <div className="surface p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Harga Emas per Gram (IDR)</h2>
           {goldLoading ? (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat</span>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat</span>
           ) : goldPriceNum > 0 ? (
-            <span className="text-[10px] text-emerald-600 font-medium">real-time</span>
+            <span className="text-[11px] text-success font-medium">real-time</span>
           ) : null}
         </div>
         <div className="flex items-center rounded-lg bg-muted/50 border border-border px-3 mb-1">
           <span className="text-xs text-muted-foreground">Rp</span>
           <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
         </div>
-        <p className="text-[10px] text-muted-foreground">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
+        <p className="text-[11px] text-muted-foreground">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
       </div>
 
       {/* Gold price compare */}
@@ -229,7 +223,7 @@ export default function Zakat() {
       </div>
 
       {/* Email reminder */}
-      <button onClick={handleEmailReminder} disabled={sending || perCurrency.length === 0} className="w-full py-3 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform">
+      <button onClick={handleEmailReminder} disabled={sending || perCurrency.length === 0} className="w-full py-3 surface text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform">
         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
         {sending ? "Mengirim..." : "Kirim Pengingat Zakat ke Email"}
       </button>
@@ -243,7 +237,7 @@ function ObligationRow({ label, reached, paid, detail, amount, currency, onPay, 
       <div className="flex items-center gap-2 mb-1">
         {reached && !paid ? <AlertCircle className="w-4 h-4 text-amber-600" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
         <span className="text-xs font-medium flex-1">{label}</span>
-        {paid && <span className="text-[9px] text-emerald-600 font-medium">✓ Terbayar</span>}
+        {paid && <span className="text-[11px] text-success font-medium">✓ Terbayar</span>}
       </div>
       <p className="text-xs text-muted-foreground mb-2">
         {reached ? `Wajib. Zakat 2,5% = ` : "Belum wajib. "}

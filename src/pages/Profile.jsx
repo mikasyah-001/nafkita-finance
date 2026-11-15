@@ -91,7 +91,7 @@ export default function Profile() {
               {uploading ? <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /> : <User className="w-10 h-10 text-muted-foreground" />}
             </div>
           )}
-          <div className="absolute bottom-0 inset-x-0 bg-primary/80 text-primary-foreground text-[10px] py-1 flex items-center justify-center gap-1">
+          <div className="absolute bottom-0 inset-x-0 bg-primary/80 text-primary-foreground text-[11px] py-1 flex items-center justify-center gap-1">
             <Camera className="w-3 h-3" /> Ganti
           </div>
         </button>
@@ -117,7 +117,7 @@ export default function Profile() {
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
 
-      <div className="rounded-2xl border border-border bg-card p-4 mt-5">
+      <div className="surface p-4 mt-5">
         <div className="flex items-center gap-2 mb-1">
           <Hash className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold">Kode Referensi Pasangan</p>
@@ -142,7 +142,7 @@ export default function Profile() {
 
       <button
         onClick={() => navigate("/umpan-balik")}
-        className="w-full mt-5 rounded-2xl border border-border bg-card p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
+        className="w-full mt-5 surface p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
       >
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <MessageSquareHeart className="w-5 h-5 text-primary" />

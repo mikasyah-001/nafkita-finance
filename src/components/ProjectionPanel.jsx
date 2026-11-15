@@ -131,7 +131,7 @@ export default function ProjectionPanel({ scope = "shared" }) {
   const tabsList = allActiveCurs.length ? allActiveCurs : CURRENCY_CODES;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+    <div className="surface p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="font-semibold text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-indigo-500" /> Proyeksi Cash Flow</h2>
@@ -150,15 +150,15 @@ export default function ProjectionPanel({ scope = "shared" }) {
         <div className="rounded-xl border border-border p-3 mb-3 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] text-muted-foreground">Tumbuh pemasukan (%/bln)</label>
+              <label className="text-[11px] text-muted-foreground">Tumbuh pemasukan (%/bln)</label>
               <input type="number" value={draft.monthly_income_growth} onChange={(e) => setDraft({ ...draft, monthly_income_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground">Tumbuh pengeluaran (%/bln)</label>
+              <label className="text-[11px] text-muted-foreground">Tumbuh pengeluaran (%/bln)</label>
               <input type="number" value={draft.monthly_expense_growth} onChange={(e) => setDraft({ ...draft, monthly_expense_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground">Bulan ke depan</label>
+              <label className="text-[11px] text-muted-foreground">Bulan ke depan</label>
               <input type="number" min="1" max="12" value={draft.months_ahead} onChange={(e) => setDraft({ ...draft, months_ahead: Number(e.target.value) || 6 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
           </div>
@@ -177,16 +177,16 @@ export default function ProjectionPanel({ scope = "shared" }) {
         <>
           <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
             <div className="rounded-xl bg-muted/50 p-2">
-              <p className="text-muted-foreground text-[10px]">Rata-rata pemasukan</p>
+              <p className="text-muted-foreground text-[11px]">Rata-rata pemasukan</p>
               <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgIncome, cur)}</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
-              <p className="text-muted-foreground text-[10px]">Rata-rata arus keluar</p>
+              <p className="text-muted-foreground text-[11px]">Rata-rata arus keluar</p>
               <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgOutflow, cur)}</p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
-              <p className="text-muted-foreground text-[10px]">Saldo proyeksi</p>
-              <p className={`font-semibold tabular-nums truncate ${forecastEnd >= 0 ? "text-emerald-600" : "text-red-500"}`}>{formatMoneyShort(forecastEnd, cur)}</p>
+              <p className="text-muted-foreground text-[11px]">Saldo proyeksi</p>
+              <p className={`font-semibold tabular-nums truncate ${forecastEnd >= 0 ? "text-success" : "text-destructive"}`}>{formatMoneyShort(forecastEnd, cur)}</p>
             </div>
           </div>
           <div className="h-52">
@@ -197,14 +197,14 @@ export default function ProjectionPanel({ scope = "shared" }) {
                 <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatMoneyShort(v, cur)} />
                 <Tooltip formatter={(v) => formatMoneyShort(v, cur)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Line type="monotone" dataKey="Riil" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="Riil" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} />
                 <Line type="monotone" dataKey="Realist" stroke="#10b981" strokeWidth={2} strokeDasharray="5 3" dot={false} />
                 <Line type="monotone" dataKey="Optimis" stroke="#0d9488" strokeWidth={1.5} strokeDasharray="2 4" dot={false} />
                 <Line type="monotone" dataKey="Pesimis" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="2 4" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Forecast dimulai dari saldo aset bank aktual, termasuk sedekah dalam arus keluar. Rentang optimis/pesimis ±10%. Bukan jaminan finansial.</p>
+          <p className="text-[11px] text-muted-foreground mt-2">Forecast dimulai dari saldo aset bank aktual, termasuk sedekah dalam arus keluar. Rentang optimis/pesimis ±10%. Bukan jaminan finansial.</p>
         </>
       )}
     </div>

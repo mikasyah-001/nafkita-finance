@@ -152,7 +152,7 @@ export default function InvestmentDetail() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+      <div className="surface p-4 mb-4">
         <label className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
         <div className="flex gap-2">
           <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
@@ -173,7 +173,7 @@ export default function InvestmentDetail() {
       {isLoading ? (
         <div className="py-8 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
       ) : sortedLots.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card py-10 text-center">
+        <div className="surface py-10 text-center">
           <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Belum ada catatan DCA</p>
           <p className="text-xs text-muted-foreground mt-1">Mulai catat pembelian rutin tiap bulan.</p>
@@ -181,7 +181,7 @@ export default function InvestmentDetail() {
       ) : (
         <div className="space-y-2">
           {sortedLots.map((l) => (
-            <div key={l.id} className="rounded-2xl border border-border bg-card p-3.5">
+            <div key={l.id} className="surface p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{formatDate(l.date, "dd MMM yyyy")}</p>
@@ -192,7 +192,7 @@ export default function InvestmentDetail() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold tabular-nums">{formatMoney(l.amount, asset.currency)}</p>
-                  <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-red-500 flex items-center gap-1 mt-1 ml-auto">
+                  <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-destructive flex items-center gap-1 mt-1 ml-auto">
                     <Trash2 className="w-3.5 h-3.5" /> Hapus
                   </button>
                 </div>

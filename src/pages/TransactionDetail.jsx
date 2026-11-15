@@ -291,7 +291,7 @@ export default function TransactionDetail() {
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
             </div>
           )}
 
@@ -304,7 +304,7 @@ export default function TransactionDetail() {
             ) : form.photo_url ? (
               <>
                 <img src={form.photo_url} alt="bon" className="max-h-32 rounded-xl" />
-                <p className="text-xs text-emerald-600 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Bon terpasang</p>
+                <p className="text-xs text-success flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Bon terpasang</p>
               </>
             ) : (
               <>
@@ -315,7 +315,7 @@ export default function TransactionDetail() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleScan} />
           {form.photo_url && !scanning && (
-            <button onClick={() => setForm({ ...form, photo_url: "" })} className="text-xs text-red-500 flex items-center gap-1"><X className="w-3 h-3" /> Hapus bon</button>
+            <button onClick={() => setForm({ ...form, photo_url: "" })} className="text-xs text-destructive flex items-center gap-1"><X className="w-3 h-3" /> Hapus bon</button>
           )}
 
           <div>
@@ -336,7 +336,7 @@ export default function TransactionDetail() {
                   return (
                     <button key={c.id} onClick={() => setForm({ ...form, category: c.name })} className={`flex flex-col items-center gap-1.5 py-2.5 rounded-2xl border transition-all ${selected ? "border-primary bg-primary/5" : "border-border"}`}>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${ccm.bg}`}><CategoryIcon name={c.icon} className={`w-4 h-4 ${ccm.text}`} /></div>
-                      <span className="text-[10px] leading-tight text-center">{c.name}</span>
+                      <span className="text-[11px] leading-tight text-center">{c.name}</span>
                     </button>
                   );
                 })}
@@ -364,7 +364,7 @@ export default function TransactionDetail() {
             <TagInput tags={form.tags || []} onChange={(t) => setForm({ ...form, tags: t })} />
           </div>
 
-          <button onClick={handleDelete} className="w-full py-3 rounded-2xl border border-red-200 dark:border-red-900/40 text-red-500 font-medium text-sm flex items-center justify-center gap-2 mt-2">
+          <button onClick={handleDelete} className="w-full py-3 rounded-2xl border border-red-200 dark:border-red-900/40 text-destructive font-medium text-sm flex items-center justify-center gap-2 mt-2">
             <Trash2 className="w-4 h-4" /> Hapus Transaksi
           </button>
         </div>
@@ -444,7 +444,7 @@ export default function TransactionDetail() {
       )}
 
       {tx.photo_url && (
-        <div className="rounded-2xl border border-border bg-card p-3 mb-4">
+        <div className="surface p-3 mb-4">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5" /> Bon / Struk</p>
           <div className="rounded-xl overflow-hidden">
             <SmartImage src={tx.photo_url} alt="Bon transaksi" className="w-full" fittingType="fit" />
@@ -452,7 +452,7 @@ export default function TransactionDetail() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card divide-y divide-border">
+      <div className="surface divide-y divide-border">
         <DetailRow icon={CategoryIcon} iconName={icon} cm={cm} label="Kategori" value={tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category || "-"} />
         <DetailRow icon={Calendar} label="Tanggal" value={formatDate(tx.date, "EEEE, dd MMMM yyyy • HH:mm")} />
         <DetailRow icon={User} label="Dicatat oleh" value={tx.input_by_name || "Keluarga"} />
@@ -461,7 +461,7 @@ export default function TransactionDetail() {
       </div>
 
       {tx.tags?.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4 mt-4">
+        <div className="surface p-4 mt-4">
           <p className="text-xs text-muted-foreground mb-2">Tag</p>
           <div className="flex flex-wrap gap-1.5">
             {tx.tags.map((t) => (
@@ -474,7 +474,7 @@ export default function TransactionDetail() {
       {isOwner && (
         <button
           onClick={handleToggleVisibility}
-          className="w-full mt-4 py-3 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+          className="w-full mt-4 py-3 surface text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
         >
           {tx.visibility === "private" ? (
             <><Users className="w-4 h-4" /> Jadikan Bersama Keluarga</>

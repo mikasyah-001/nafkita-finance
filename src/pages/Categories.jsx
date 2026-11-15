@@ -88,7 +88,7 @@ export default function Categories() {
           const cm = colorMap[c.color] || colorMap.slate;
           const count = usage[c.name] || 0;
           return (
-            <div key={c.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+            <div key={c.id} className="flex items-center gap-3 surface p-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cm.bg}`}>
                 <CategoryIcon name={c.icon} className={`w-5 h-5 ${cm.text}`} />
               </div>
@@ -100,14 +100,14 @@ export default function Categories() {
                 </p>
               </div>
               {c.is_default ? (
-                <span className="text-[10px] font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
+                <span className="text-[11px] font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
               ) : (
                 <>
                   <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                     <Pencil className="w-4 h-4 text-muted-foreground" />
                   </button>
                   <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <Trash2 className="w-4 h-4 text-red-500" />
+                    <Trash2 className="w-4 h-4 text-destructive" />
                   </button>
                 </>
               )}

@@ -208,7 +208,7 @@ function ToggleRow({ icon: Icon, label, desc, value, onChange, disabled }) {
         aria-label={`${label}: ${value ? "Aktif" : "Nonaktif"}`}
         onClick={() => onChange(!value)}
         disabled={disabled}
-        className={`h-8 min-w-[82px] px-2.5 rounded-lg transition-colors shrink-0 text-[10px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60 ${
+        className={`h-8 min-w-[82px] px-2.5 rounded-lg transition-colors shrink-0 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60 ${
           value ? "bg-primary text-primary-foreground" : "bg-muted border border-border text-muted-foreground"
         }`}
       >

@@ -19,13 +19,13 @@ export default function PartnerOnboarding() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="surface p-4">
         <PartnerManager />
       </div>
 
       <button
         onClick={() => navigate("/")}
-        className="mt-5 w-full py-3.5 rounded-2xl border border-border bg-card text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+        className="mt-5 w-full py-3.5 surface text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
       >
         {hasPartner ? "Selesai" : "Lewati, nanti saja"}
         <ArrowRight className="w-4 h-4" />

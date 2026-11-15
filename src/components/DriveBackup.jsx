@@ -112,7 +112,7 @@ export default function DriveBackup() {
               className={`w-full text-left rounded-xl border p-2.5 transition-colors ${restoreFile === f.id ? "border-primary bg-primary/5" : "border-border"}`}
             >
               <p className="text-xs font-medium truncate">{f.name}</p>
-              <p className="text-[10px] text-muted-foreground">{fmtDate(f.createdTime)}</p>
+              <p className="text-[11px] text-muted-foreground">{fmtDate(f.createdTime)}</p>
             </button>
           ))}
         </div>
@@ -139,10 +139,10 @@ export default function DriveBackup() {
             </button>
           </div>
           {mode === "merge" && (
-            <p className="text-[10px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
+            <p className="text-[11px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
           )}
           {mode === "replace" && (
-            <p className="text-[10px] text-red-600 mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
+            <p className="text-[11px] text-red-600 mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
           )}
           <div className="flex gap-2">
             <button

@@ -10,7 +10,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
 
   return (
     <div className="flex-1 px-5 py-5 space-y-4 overflow-y-auto">
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="surface p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="font-semibold text-sm">{items.length} transaksi terbaca</p>
@@ -31,7 +31,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   )}
                   <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
                     {findDuplicate(t, existingTransactions) && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[9px] font-medium shrink-0">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[11px] font-medium shrink-0">
                         <Copy className="w-2.5 h-2.5" /> Duplikat
                       </span>
                     )}
@@ -57,7 +57,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                 </select>
               </div>
               <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="text-[10px] text-muted-foreground shrink-0">Tanggal</span>
+                <span className="text-[11px] text-muted-foreground shrink-0">Tanggal</span>
                 <input
                   type="date"
                   value={t.date || ""}

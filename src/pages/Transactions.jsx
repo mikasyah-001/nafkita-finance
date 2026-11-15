@@ -132,7 +132,7 @@ export default function Transactions() {
       </div>
 
       {showFilter && (
-        <div className="rounded-2xl border border-border bg-card p-4 mb-4 space-y-4">
+        <div className="surface p-4 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Filter Lanjutan</p>
             {hasActiveFilter && (
@@ -195,7 +195,7 @@ export default function Transactions() {
           {category !== "all" && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{category}</span>}
           {fromDate && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">dari {formatDate(fromDate, "dd MMM")}</span>}
           {toDate && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">sampai {formatDate(toDate, "dd MMM")}</span>}
-          <button onClick={resetFilter} className="text-red-500 flex items-center gap-0.5"><X className="w-3 h-3" /></button>
+          <button onClick={resetFilter} className="text-destructive flex items-center gap-0.5"><X className="w-3 h-3" /></button>
         </div>
       )}
 
@@ -211,10 +211,10 @@ export default function Transactions() {
               <div className="flex items-center justify-between gap-2 mb-1 px-1">
                 <p className="text-xs text-muted-foreground truncate">{formatDate(date, "EEEE, dd MMM")}</p>
                 {Object.entries(nets).filter(([, v]) => v !== 0).map(([c, v]) => (
-                  <span key={c} className={`text-[11px] font-medium tabular-nums shrink-0 ${v > 0 ? "text-emerald-600" : "text-red-500"}`}>{v > 0 ? "+" : ""}{formatMoney(v, c)}</span>
+                  <span key={c} className={`text-[11px] font-medium tabular-nums shrink-0 ${v > 0 ? "text-success" : "text-destructive"}`}>{v > 0 ? "+" : ""}{formatMoney(v, c)}</span>
                 ))}
               </div>
-              <div className="rounded-2xl border border-border bg-card px-4">
+              <div className="surface px-4">
                 {items.map((t) => (
                   <TransactionItem key={t.id} tx={t} categories={categories} />
                 ))}

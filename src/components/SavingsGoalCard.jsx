@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Target, TrendingUp, Calendar, CheckCircle2, MoreVertical, Edit2, Trash2, DollarSign } from "lucide-react";
+import { Target, TrendingUp, Calendar, CheckCircle2, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { formatMoney, formatDate, colorMap } from "@/lib/finance";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -42,7 +42,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   };
 
   return (
-    <div className="relative rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="relative surface p-5 shadow-sm">
       {/* Menu */}
       <div className="absolute top-4 right-4">
         <button onClick={() => setShowMenu(!showMenu)} className="p-1 rounded-lg hover:bg-muted">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { formatMoney, currencySymbol } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRightLeft, Loader2, Check, Users, Lock } from "lucide-react";

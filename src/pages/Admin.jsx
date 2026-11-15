@@ -249,7 +249,7 @@ export default function Admin() {
             const pid = partnerOf[u.id];
             const partner = pid && userMap[pid];
             return (
-              <div key={u.id} className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3">
+              <div key={u.id} className="surface p-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <UserCircle className="w-6 h-6" />
                 </div>
@@ -257,13 +257,13 @@ export default function Admin() {
                   <p className="text-sm font-medium truncate flex items-center gap-1.5">
                     {u.full_name || u.email}
                     {u.role === "admin" && (
-                      <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-semibold">ADMIN</span>
+                      <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[11px] font-semibold">ADMIN</span>
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     {partner ? (
-                      <><Link2 className="w-3 h-3 text-emerald-500" /> <span className="text-emerald-600">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
+                      <><Link2 className="w-3 h-3 text-emerald-500" /> <span className="text-success">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
                     ) : (
                       <span className="text-amber-600">Belum terhubung</span>
                     )}
@@ -300,7 +300,7 @@ export default function Admin() {
             };
             const statusLabel = { active: "Aktif", pending: "Menunggu", ended: "Berakhir", cancelled: "Dibatalkan", declined: "Ditolak" };
             return (
-              <div key={p.id} className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3">
+              <div key={p.id} className="surface p-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Link2 className="w-5 h-5" />
                 </div>
@@ -309,7 +309,7 @@ export default function Admin() {
                     {a?.full_name || a?.email || "—"}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""} <span className="text-muted-foreground mx-0.5">⇄</span> {b?.full_name || b?.email || p.invitee_email}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusStyle[p.status]}`}>{statusLabel[p.status]}</span>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${statusStyle[p.status]}`}>{statusLabel[p.status]}</span>
                     {p.end_reason && <span className="text-[11px] text-muted-foreground truncate">{p.end_reason}</span>}
                   </div>
                 </div>
@@ -365,7 +365,7 @@ export default function Admin() {
               <Link
                 to={`/transaksi/${tx.id}`}
                 key={tx.id}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 active:scale-[0.99] transition-transform"
+                className="flex items-center gap-3 surface p-3 active:scale-[0.99] transition-transform"
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c.bg}`}>
                   <CategoryIcon name={icon} className={`w-5 h-5 ${c.text}`} />
@@ -378,7 +378,7 @@ export default function Admin() {
                     {owner?.full_name || owner?.email || "—"} • {formatDate(tx.date, "dd MMM, HH:mm")}
                   </p>
                 </div>
-                <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-emerald-600" : isSedekah ? "text-teal-600" : ""}`}>
+                <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-success" : isSedekah ? "text-teal-600" : ""}`}>
                   {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
                 </div>
               </Link>
@@ -435,7 +435,7 @@ export default function Admin() {
           }).map((a) => {
             const owner = userMap[a.created_by_id];
             return (
-              <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+              <div key={a.id} className="flex items-center gap-3 surface p-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Landmark className="w-5 h-5" />
                 </div>
@@ -443,11 +443,11 @@ export default function Admin() {
                   <p className="text-sm font-medium truncate flex items-center gap-1.5">
                     {a.name || "Tanpa Nama"}
                     {a.visibility === "private" && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-medium shrink-0">private</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-medium shrink-0">private</span>
                     )}
                   </p>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium capitalize shrink-0">{a.type || "lainnya"}</span>
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium capitalize shrink-0">{a.type || "lainnya"}</span>
                     {a.quantity > 0 && (
                       <span className="text-[11px] text-muted-foreground tabular-nums">
                         {a.quantity}{a.unit ? ` ${a.unit}` : ""} {a.purchase_price ? `× ${formatMoneyShort(a.purchase_price, a.currency)}` : ""}
@@ -476,7 +476,7 @@ export default function Admin() {
             <EmptyState icon={ScrollText} title="Belum ada catatan audit" subtitle="Riwayat tindakan admin akan muncul di sini." />
           )}
           {!auditLoading && auditLogs.map((log) => (
-            <div key={log.id} className="rounded-2xl border border-border bg-card p-3">
+            <div key={log.id} className="surface p-3">
               <div className="flex items-start gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <ScrollText className="w-4 h-4" />
@@ -484,7 +484,7 @@ export default function Admin() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium truncate">{log.actor_name || log.actor_email || "Admin"}</p>
-                    <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                    <p className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
                       {formatDate(log.created_date, "dd MMM, HH:mm")}
                     </p>
                   </div>

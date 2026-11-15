@@ -67,7 +67,7 @@ export default function InstallPrompt() {
 
   return (
     <div className="fixed bottom-24 left-3 right-3 z-50 max-w-md mx-auto animate-in slide-in-from-bottom duration-300">
-      <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
+      <div className="surface shadow-xl overflow-hidden">
         <div className="flex items-start gap-3 p-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Download className="w-5 h-5 text-primary" />

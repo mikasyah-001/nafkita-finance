@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType } from "@/lib/finance";
-import CurrencyTabs from "@/components/CurrencyTabs";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Users, Lock, Layers, Globe, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
 import ZakatStatus from "@/components/ZakatStatus";
 import { useScope } from "@/lib/ScopeContext";
+import ScopeToggle from "@/components/ScopeToggle";
 
 export default function AssetDashboard() {
   const navigate = useNavigate();
@@ -188,14 +188,7 @@ export default function AssetDashboard() {
         <h1 className="text-xl font-semibold">Dashboard Aset</h1>
       </div>
 
-      <div className="flex gap-2 mb-3">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="mb-3" />
 
       <div className="mb-5">
         <div className="flex flex-wrap gap-1.5">
@@ -217,7 +210,7 @@ export default function AssetDashboard() {
         <div className="flex items-center justify-between">
           <p className="text-xs opacity-80">{isConsolidated ? "Total Nilai Aset (Konsolidasi)" : "Total Nilai Aset"}</p>
           {isConsolidated && rateDate && (
-            <span className="text-[10px] opacity-75 flex items-center gap-1 bg-white/15 rounded-full px-2 py-0.5">
+            <span className="text-[11px] opacity-75 flex items-center gap-1 bg-white/15 rounded-full px-2 py-0.5">
               <Globe className="w-2.5 h-2.5" />
               dikonversi ke {displayCurrency} · kurs {rateSource === "bi" ? "BI" : "pasar"} {formatDate(rateDate, "dd MMM")}
             </span>
@@ -269,13 +262,13 @@ export default function AssetDashboard() {
               const meta = assetTypeLabels[t.type];
               const cm = colorMap[meta.color] || colorMap.slate;
               return (
-                <div key={t.type} className="rounded-2xl border border-border bg-card p-4">
+                <div key={t.type} className="surface p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
                     </div>
                     {t.growth !== 0 && (
-                      <span className={`text-[10px] font-medium flex items-center gap-0.5 ${t.growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      <span className={`text-[11px] font-medium flex items-center gap-0.5 ${t.growth >= 0 ? "text-success" : "text-destructive"}`}>
                         {t.growth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                         {t.growth >= 0 ? "+" : ""}{t.growth.toFixed(1)}%
                       </span>
@@ -283,7 +276,7 @@ export default function AssetDashboard() {
                   </div>
                   <p className="text-xs text-muted-foreground">{meta.label}</p>
                   <p className="font-semibold text-sm mt-0.5 truncate tabular-nums">{formatMoneyShort(t.value, displayCurrency)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{t.count} aset{isGoldType(t.type) ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{t.count} aset{isGoldType(t.type) ? ` • ${formatNumber(emasGrams)} gr` : ""}</p>
                 </div>
               );
             })}
@@ -300,7 +293,7 @@ export default function AssetDashboard() {
             const gain = hasPurchase ? curVal - totalPurchase : 0;
             const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
             return (
-              <div key={a.id} className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
+              <div key={a.id} className="surface p-3.5 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cm.bg}`}>
                   <CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} />
                 </div>
@@ -313,7 +306,7 @@ export default function AssetDashboard() {
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold tabular-nums">{formatMoneyShort(curVal, displayCurrency)}</p>
                   {hasPurchase && (
-                    <p className={`text-[10px] flex items-center gap-0.5 justify-end ${gain >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    <p className={`text-[11px] flex items-center gap-0.5 justify-end ${gain >= 0 ? "text-success" : "text-destructive"}`}>
                       {gain >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {gain >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
                     </p>
@@ -337,7 +330,7 @@ export default function AssetDashboard() {
         <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 mb-5">
+      <div className="surface p-4 mb-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Pertumbuhan Emas</h2>
@@ -371,14 +364,14 @@ export default function AssetDashboard() {
             {goldChartData.length >= 2 && (
               <div className="flex items-center justify-between mt-2 text-xs">
                 <span className="text-muted-foreground">Awal: {formatRupiah(goldChartData[0].value)}</span>
-                <span className={`flex items-center gap-1 font-medium ${goldChartData[goldChartData.length - 1].value >= goldChartData[0].value ? "text-emerald-600" : "text-red-500"}`}>
+                <span className={`flex items-center gap-1 font-medium ${goldChartData[goldChartData.length - 1].value >= goldChartData[0].value ? "text-success" : "text-destructive"}`}>
                   {goldChartData[goldChartData.length - 1].value >= goldChartData[0].value ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {formatRupiah(goldChartData[goldChartData.length - 1].value)}
                 </span>
               </div>
             )}
             {goldSource && (
-              <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Sumber: {goldSource}</p>
+              <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Sumber: {goldSource}</p>
             )}
           </>
         ) : (
@@ -389,7 +382,7 @@ export default function AssetDashboard() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="surface p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Pertumbuhan Total Aset</h2>
@@ -407,7 +400,7 @@ export default function AssetDashboard() {
                 <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatMoneyShort(v, displayCurrency).replace(/[A-Za-z$.]/g, "")} />
                 <Tooltip formatter={(v) => formatMoneyShort(v, displayCurrency)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Emas" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Investasi" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="Bank" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
@@ -423,7 +416,7 @@ export default function AssetDashboard() {
       </div>
 
       {allocation.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4 mt-5">
+        <div className="surface p-4 mt-5">
           <h2 className="font-semibold text-sm flex items-center gap-2 mb-3"><PieChartIcon className="w-4 h-4 text-violet-500" /> Komposisi Aset</h2>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">

@@ -35,7 +35,7 @@ export default function Settings() {
       </div>
 
       {/* Pintasan */}
-      <Link to="/profil" className="rounded-2xl border border-border bg-card p-4 mb-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
+      <Link to="/profil" className="surface p-4 mb-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
         <div className="w-12 h-12 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center shrink-0">
           {user?.photo_url ? (
             <SmartImage src={user.photo_url} alt="foto profil" className="w-full h-full" fittingType="fill" />
@@ -50,7 +50,7 @@ export default function Settings() {
         <ArrowRight className="w-4 h-4 text-muted-foreground" />
       </Link>
 
-      <Link to="/panduan" className="rounded-2xl border border-border bg-card p-4 mb-5 flex items-center gap-3 active:scale-[0.99] transition-transform">
+      <Link to="/panduan" className="surface p-4 mb-5 flex items-center gap-3 active:scale-[0.99] transition-transform">
         <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
           <BookOpen className="w-6 h-6" />
         </div>

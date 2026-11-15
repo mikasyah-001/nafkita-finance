@@ -349,7 +349,7 @@ export default function AddTransaction() {
             </button>
           </div>
           {visibility === "private" && (
-            <p className="text-[10px] text-muted-foreground mt-1.5">Hanya Anda yang dapat melihat transaksi ini.</p>
+            <p className="text-[11px] text-muted-foreground mt-1.5">Hanya Anda yang dapat melihat transaksi ini.</p>
           )}
         </div>
 
@@ -383,7 +383,7 @@ export default function AddTransaction() {
                 <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
               ))}
             </select>
-            <p className="text-[10px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
+            <p className="text-[11px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
           </div>
         )}
 
@@ -399,14 +399,14 @@ export default function AddTransaction() {
                   <button
                     key={t.id}
                     onClick={() => applyTemplate(t)}
-                    className="shrink-0 flex items-center gap-2 rounded-2xl border border-border bg-card pl-2 pr-3 py-2 active:scale-95 transition-transform"
+                    className="shrink-0 flex items-center gap-2 surface pl-2 pr-3 py-2 active:scale-95 transition-transform"
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={icon} className={`w-4 h-4 ${cm.text}`} />
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-medium leading-tight">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{formatMoney(t.amount, t.currency)}</p>
+                      <p className="text-[11px] text-muted-foreground">{formatMoney(t.amount, t.currency)}</p>
                     </div>
                   </button>
                 );
@@ -434,7 +434,7 @@ export default function AddTransaction() {
                     <img key={i} src={u} alt={`bon ${i + 1}`} className="w-16 h-16 object-cover rounded-xl" />
                   ))}
                 </div>
-                <p className="text-xs flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> {photoUrls.length} bon terunggah</p>
+                <p className="text-xs flex items-center gap-1 text-success"><Check className="w-3.5 h-3.5" /> {photoUrls.length} bon terunggah</p>
               </>
             ) : (
               <>
@@ -446,7 +446,7 @@ export default function AddTransaction() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScan} />
           {photoUrls.length > 0 && !scanning && (
-            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-red-500 flex items-center gap-1">
+            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
               <X className="w-3 h-3" /> Hapus semua foto
             </button>
           )}
@@ -485,7 +485,7 @@ export default function AddTransaction() {
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={c.icon} className={`w-4 h-4 ${cm.text}`} />
                     </div>
-                    <span className="text-[10px] leading-tight text-center">{c.name}</span>
+                    <span className="text-[11px] leading-tight text-center">{c.name}</span>
                   </button>
                 );
               })}

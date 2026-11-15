@@ -58,13 +58,13 @@ export default function Feedback() {
       {sent ? (
         <div className="flex flex-col items-center text-center pt-10">
           <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <CheckCircle2 className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-lg font-semibold">Terima kasih!</h2>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
             Umpan balik Anda telah terkirim ke pengembang. Kami sangat menghargai masukan Anda untuk menyempurnakan NAFKITA.
           </p>
-          <div className="flex items-center gap-1.5 mt-3 text-xs text-emerald-600">
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-success">
             <Heart className="w-3.5 h-3.5" /> Pesan diterima pengembang
           </div>
           <div className="w-full mt-8 space-y-2.5">
@@ -124,7 +124,7 @@ export default function Feedback() {
               maxLength={2000}
               className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none"
             />
-            <p className="text-[10px] text-muted-foreground text-right mt-1">{message.length}/2000</p>
+            <p className="text-[11px] text-muted-foreground text-right mt-1">{message.length}/2000</p>
           </div>
 
           <div className="mb-6">

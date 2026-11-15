@@ -61,9 +61,9 @@ export default function GoldPriceCompare({ value, onChange, grams = 0 }) {
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs font-medium truncate flex items-center gap-1.5 ${active ? "text-white" : ""}`}>
                     {s.source}
-                    {standard && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${active ? "bg-white/20 text-white" : "bg-amber-100 dark:bg-amber-950/40 text-amber-600"}`}>Standar</span>}
+                    {standard && <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${active ? "bg-white/20 text-white" : "bg-amber-100 dark:bg-amber-950/40 text-amber-600"}`}>Standar</span>}
                   </p>
-                  <p className={`text-[10px] truncate ${active ? "text-white/80" : "text-muted-foreground"}`}>{s.date || "—"}{grams > 0 ? ` • nilai ${formatRupiah(grams * price)}` : ""}</p>
+                  <p className={`text-[11px] truncate ${active ? "text-white/80" : "text-muted-foreground"}`}>{s.date || "—"}{grams > 0 ? ` • nilai ${formatRupiah(grams * price)}` : ""}</p>
                 </div>
                 {s.url && (
                   <a href={s.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className={`shrink-0 ${active ? "text-white/80" : "text-muted-foreground"}`} title={s.url}>
@@ -75,7 +75,7 @@ export default function GoldPriceCompare({ value, onChange, grams = 0 }) {
               </div>
             );
           })}
-          {fetchedAt && <p className="text-[10px] text-muted-foreground pt-1">Diperbarui: {fetchedAt.toLocaleTimeString("id-ID")}</p>}
+          {fetchedAt && <p className="text-[11px] text-muted-foreground pt-1">Diperbarui: {fetchedAt.toLocaleTimeString("id-ID")}</p>}
         </div>
       ) : (
         <p className="text-[11px] text-muted-foreground mt-1">Tekan "Bandingkan Sumber" untuk memuat harga dari beberapa referensi publik (Antam, Pegadaian, Logam Mulia, dll).</p>

@@ -124,7 +124,7 @@ export default function TemplateManager() {
                 <p className="text-sm truncate">{t.name}</p>
                 <p className="text-xs text-muted-foreground">{formatMoney(t.amount, t.currency)}{t.category ? ` • ${t.category}` : ""}{t.visibility === "private" ? " • Pribadi" : ""}</p>
               </div>
-              <button onClick={() => handleDelete(t.id)} className="text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => handleDelete(t.id)} className="text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           );
         })}

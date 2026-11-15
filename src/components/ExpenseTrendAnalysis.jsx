@@ -4,7 +4,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle } from "lucide-react";
 
-const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
+const chartColors = ["#5C64D6", "#2E9E98", "#E08A5C", "#D46A86", "#4F8FD1", "#8B67C7", "#C9A545", "#7C869A"];
 
 export default function ExpenseTrendAnalysis({ transactions, categories, year, month, currency = "IDR" }) {
   const prevName = useMemo(() => new Date(year, month - 1, 1).toLocaleDateString("id-ID", { month: "long" }), [year, month]);
@@ -49,7 +49,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
   const chartData = rows.slice(0, 8).map((r) => ({ name: r.name.length > 10 ? r.name.slice(0, 9) + "…" : r.name, current: r.value, prev: r.prev }));
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <h2 className="font-semibold text-sm mb-1 flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-indigo-500" /> Analisis Tren Pengeluaran
       </h2>
@@ -57,16 +57,16 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
 
       <div className="rounded-xl bg-muted/50 p-3 mb-4 grid grid-cols-2 gap-3">
         <div>
-          <p className="text-[10px] text-muted-foreground">Bulan ini</p>
+          <p className="text-[11px] text-muted-foreground">Bulan ini</p>
           <p className="text-sm font-semibold tabular-nums">{formatMoney(total, currency)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">{prevName}</p>
+          <p className="text-[11px] text-muted-foreground">{prevName}</p>
           <p className="text-sm font-semibold tabular-nums">{formatMoney(prevTotal, currency)}</p>
         </div>
         <div className="col-span-2 flex items-center gap-1.5 pt-2 border-t border-border">
-          {totalDiff > 0 ? <TrendingUp className="w-3.5 h-3.5 text-red-500" /> : totalDiff < 0 ? <TrendingDown className="w-3.5 h-3.5 text-emerald-600" /> : null}
-          <span className={`text-xs font-medium ${totalDiff > 0 ? "text-red-500" : totalDiff < 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+          {totalDiff > 0 ? <TrendingUp className="w-3.5 h-3.5 text-destructive" /> : totalDiff < 0 ? <TrendingDown className="w-3.5 h-3.5 text-success" /> : null}
+          <span className={`text-xs font-medium ${totalDiff > 0 ? "text-destructive" : totalDiff < 0 ? "text-success" : "text-muted-foreground"}`}>
             {totalDiff > 0 ? "Naik" : totalDiff < 0 ? "Turun" : "Stabil"} {prevTotal > 0 ? `${Math.abs(totalPct).toFixed(0)}%` : ""} ({totalDiff >= 0 ? "+" : ""}{formatMoney(totalDiff, currency)})
           </span>
         </div>
@@ -85,7 +85,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex items-center gap-4 mb-4 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-4 mb-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300" /> {prevName}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: chartColors[0] }} /> Bulan ini</span>
       </div>
@@ -105,22 +105,22 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{r.name}</p>
-                <p className="text-[10px] text-muted-foreground tabular-nums truncate">
+                <p className="text-[11px] text-muted-foreground tabular-nums truncate">
                   {formatMoney(r.value, currency)} • {share.toFixed(0)}% {r.prev > 0 && <>• dari {formatMoneyShort(r.prev, currency)}</>}
                 </p>
               </div>
               <div className="text-right shrink-0">
                 {isNew ? (
-                  <span className="text-[10px] font-medium text-red-500 flex items-center gap-0.5 justify-end"><AlertTriangle className="w-3 h-3" /> Baru</span>
+                  <span className="text-[11px] font-medium text-destructive flex items-center gap-0.5 justify-end"><AlertTriangle className="w-3 h-3" /> Baru</span>
                 ) : r.prev === 0 ? null : up ? (
-                  <span className="text-[10px] font-medium text-red-500 flex items-center gap-0.5 justify-end"><TrendingUp className="w-3 h-3" /> +{Math.abs(r.pct).toFixed(0)}%</span>
+                  <span className="text-[11px] font-medium text-destructive flex items-center gap-0.5 justify-end"><TrendingUp className="w-3 h-3" /> +{Math.abs(r.pct).toFixed(0)}%</span>
                 ) : down ? (
-                  <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> -{Math.abs(r.pct).toFixed(0)}%</span>
+                  <span className="text-[11px] font-medium text-success flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> -{Math.abs(r.pct).toFixed(0)}%</span>
                 ) : (
-                  <span className="text-[10px] font-medium text-muted-foreground">0%</span>
+                  <span className="text-[11px] font-medium text-muted-foreground">0%</span>
                 )}
                 {r.prev > 0 && (
-                  <p className={`text-[10px] tabular-nums ${up ? "text-red-500" : down ? "text-emerald-600" : "text-muted-foreground"}`}>
+                  <p className={`text-[11px] tabular-nums ${up ? "text-destructive" : down ? "text-success" : "text-muted-foreground"}`}>
                     {up ? "+" : down ? "-" : ""}{formatMoney(Math.abs(r.diff), currency)}
                   </p>
                 )}

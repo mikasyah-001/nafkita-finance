@@ -54,7 +54,7 @@ export default function MonthlySummary({ scope = "shared" }) {
   const top = rows[0] || null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+    <div className="surface p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="font-semibold text-sm flex items-center gap-2"><PieChart className="w-4 h-4 text-muted-foreground" /> Ringkasan Belanja</h2>
@@ -67,7 +67,7 @@ export default function MonthlySummary({ scope = "shared" }) {
         <div className="mb-3 flex items-center justify-between gap-2">
           <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} />
           {rateMissing && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-full px-2 py-0.5 shrink-0">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-full px-2 py-0.5 shrink-0">
               <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
             </span>
           )}
@@ -80,7 +80,7 @@ export default function MonthlySummary({ scope = "shared" }) {
           <p className="text-xl font-bold tabular-nums break-words"><Money value={total} currency={cur} /></p>
         </div>
         {prevTotal > 0 && (
-          <span className={`text-xs font-medium flex items-center gap-1 shrink-0 ${total <= prevTotal ? "text-emerald-600" : "text-red-500"}`}>
+          <span className={`text-xs font-medium flex items-center gap-1 shrink-0 ${total <= prevTotal ? "text-success" : "text-destructive"}`}>
             {total <= prevTotal ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
             {total > prevTotal ? "+" : ""}{delta.toFixed(0)}% vs bln lalu
           </span>
@@ -101,7 +101,7 @@ export default function MonthlySummary({ scope = "shared" }) {
                 </div>
                 <span className="text-xs font-medium flex-1 truncate">{r.name}</span>
                 <span className="text-xs font-semibold tabular-nums shrink-0"><Money value={r.value} format="short" currency={cur} /></span>
-                <span className="text-[10px] text-muted-foreground tabular-nums w-9 text-right shrink-0">{share.toFixed(0)}%</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right shrink-0">{share.toFixed(0)}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div className={`h-full rounded-full ${cm.solid}`} style={{ width: `${pct}%` }} />

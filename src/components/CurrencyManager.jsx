@@ -113,15 +113,15 @@ export default function CurrencyManager() {
                     {isDefault && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" aria-hidden="true" />}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{c.label}</p>
-                  {isDefault && <span className="inline-flex mt-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">Mata uang utama</span>}
+                  {isDefault && <span className="inline-flex mt-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Mata uang utama</span>}
                 </div>
                 {!isDefault && (
-                  <button type="button" onClick={() => setDefault(code)} disabled={saving} aria-label={`Jadikan ${code} mata uang utama`} className="text-[10px] text-primary px-2 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/10 disabled:opacity-50 shrink-0">
+                  <button type="button" onClick={() => setDefault(code)} disabled={saving} aria-label={`Jadikan ${code} mata uang utama`} className="text-[11px] text-primary px-2 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/10 disabled:opacity-50 shrink-0">
                     Jadikan utama
                   </button>
                 )}
                 {isCustom && (
-                  <button onClick={() => removeCustom(code)} disabled={saving} className="text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 shrink-0">
+                  <button onClick={() => removeCustom(code)} disabled={saving} className="text-destructive p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
@@ -131,7 +131,7 @@ export default function CurrencyManager() {
                   disabled={saving}
                   aria-label={isDefault ? `${code} adalah mata uang utama dan harus tetap aktif` : `Nonaktifkan ${code}`}
                   aria-pressed="true"
-                  className="h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-medium flex items-center gap-1 disabled:opacity-40 shrink-0"
+                  className="h-8 px-2.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-medium flex items-center gap-1 disabled:opacity-40 shrink-0"
                 >
                   <Power className="w-3 h-3" /> Aktif
                 </button>
@@ -182,7 +182,7 @@ export default function CurrencyManager() {
         </button>
       )}
 
-      <p className="text-[10px] text-muted-foreground">Total di dashboard tetap dipisah per mata uang (tanpa konversi). Nonaktifkan mata uang yang tidak terpakai agar tampilan lebih ringkas.</p>
+      <p className="text-[11px] text-muted-foreground">Total di dashboard tetap dipisah per mata uang (tanpa konversi). Nonaktifkan mata uang yang tidak terpakai agar tampilan lebih ringkas.</p>
     </div>
   );
 }

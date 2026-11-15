@@ -5,7 +5,7 @@ import { mainItems, toolItems, accountItems } from "@/lib/navConfig";
 
 function NavSection({ items }) {
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-col gap-0.5">
       {items.map((it) => {
         const Icon = it.icon;
         return (
@@ -16,8 +16,8 @@ function NavSection({ items }) {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                 isActive
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               }`
             }
           >
@@ -50,21 +50,21 @@ export default function Sidebar() {
       <div className="px-3 py-4 flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6">
         <NavSection items={mainItems} />
         <div>
-          <p className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Alat</p>
+          <p className="px-3 mb-1.5 text-xs text-muted-foreground font-semibold">Alat</p>
           <NavSection items={toolItems} />
         </div>
         <div>
-          <p className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Akun</p>
+          <p className="px-3 mb-1.5 text-xs text-muted-foreground font-semibold">Akun</p>
           <NavSection items={visibleAccountItems} />
         </div>
       </div>
 
       <Link
         to="/add"
-        className="mx-4 mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+        className="mx-4 mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:brightness-105 transition shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.6)]"
       >
         <Plus className="w-5 h-5" />
-        Tambah Transaksi
+        Catat Transaksi
       </Link>
     </aside>
   );

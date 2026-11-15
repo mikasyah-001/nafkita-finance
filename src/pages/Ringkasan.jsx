@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useCategories, useMe, useRateMap } from "@/hooks/useFinance";
-import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, formatUnconverted } from "@/lib/finance";
+import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, formatUnconverted, summarizeConsolidated, convertTo } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
@@ -8,10 +8,11 @@ import { downloadMonthlyReport } from "@/lib/exportReport";
 import { toast } from "sonner";
 import { useScope } from "@/lib/ScopeContext";
 import { Image } from "@/components/ui/image";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText, PieChart, Download, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText, PieChart, Download, ChevronDown, Share2 } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import ShareReportSheet from "@/components/ShareReportSheet";
 
 export default function Ringkasan({ embedded = false }) {
   const { data: transactions = [], isLoading } = useTransactions();
@@ -20,6 +21,7 @@ export default function Ringkasan({ embedded = false }) {
   const { map: rateMap } = useRateMap();
   const [cursor, setCursor] = useState(new Date());
   const [expanded, setExpanded] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const { scope, setScope } = useScope();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
@@ -42,6 +44,20 @@ export default function Ringkasan({ embedded = false }) {
     return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur, unconverted: r.unconverted };
   }, [transactions, scope, year, month, currency, rateMap, me?.default_currency]);
 
+  // Ringkasan & kontribusi per orang untuk gambar laporan (logika sama: transaksi
+  // reportable bulan ini, dikonversi ke mata uang tampilan).
+  const shareSummary = useMemo(() => summarizeConsolidated(txList, cur, rateMap), [txList, cur, rateMap]);
+  const contributors = useMemo(() => {
+    const m = {};
+    txList.forEach((t) => {
+      if (t.transfer_pair_id) return;
+      const name = (t.input_by_name || "Keluarga").split(/\s+/)[0];
+      const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
+      m[name] ||= { name, income: 0, expense: 0 };
+      if (t.type === "income") m[name].income += v; else if (t.type === "expense") m[name].expense += v;
+    });
+    return Object.values(m).sort((a, b) => b.income + b.expense - (a.income + a.expense));
+  }, [txList, cur, rateMap]);
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -76,13 +92,26 @@ export default function Ringkasan({ embedded = false }) {
         <div className="mb-4"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
       )}
 
-      <button
-        onClick={handleDownload}
-        disabled={txList.length === 0}
-        className="w-full mb-4 surface py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
-      >
-        <Download className="w-4 h-4" /> Unduh Laporan (CSV)
-      </button>
+      <div className="grid grid-cols-[1fr_auto] gap-2 mb-4">
+        <button onClick={() => setShareOpen(true)} disabled={txList.length === 0} className="btn-gold !h-11 !rounded-2xl !text-sm">
+          <Share2 className="w-4 h-4" /> Bagikan sebagai gambar
+        </button>
+        <button onClick={handleDownload} disabled={txList.length === 0} aria-label="Unduh laporan CSV" className="btn-secondary !h-11 !px-4 !rounded-2xl !text-sm">
+          <Download className="w-4 h-4" /> CSV
+        </button>
+      </div>
+
+      <ShareReportSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        monthName={monthName}
+        scopeLabel={scope === "private" ? "Pribadi" : "Bersama"}
+        cur={cur}
+        summary={shareSummary}
+        rows={rows}
+        contributors={contributors}
+        extraordinary={0}
+      />
 
       <div className="card-gradient-primary rounded-3xl p-5 mb-4">
         <p className="text-xs opacity-80">Total pengeluaran{activeCurs.length > 1 ? ` (semua mata uang → ${cur})` : ` (${cur})`}</p>

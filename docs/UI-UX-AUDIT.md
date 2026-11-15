@@ -281,3 +281,36 @@ Aturan ini dikumpulkan di `buildAssetPayload()` dan dijaga oleh 7 unit test + 2 
 - Unit test: 31/31.
 - `npm run qa`: 23 halaman × 2 mode, 0 error JS.
 - `npm run qa:flows`: 13/13 alur lolos.
+
+## 17. Audit zakat mal
+
+**Rujukan:** praktik BAZNAS (situs BAZNAS daerah) dan PMA 52/2014 jo. PMA 31/2019. Ketentuannya:
+- nisab 85 gr emas dengan harga saat dihitung, kadar 2,5%, haul 1 tahun hijriah;
+- harta simpanan (tabungan, deposito, emas) digabung;
+- utang jatuh tempo dikurangkan;
+- rumah tinggal dan kendaraan pakai bukan objek zakat mal.
+
+| Temuan | Jenis | Perbaikan |
+|---|---|---|
+| Nisab dihitung terpisah per mata uang | Syariat | Semua harta simpanan dikonversi & digabung dalam IDR |
+| Emas & simpanan dicek nisab terpisah (50 gr + Rp60 jt → tidak wajib) | Syariat | Digabung |
+| Rumah, tanah, "lainnya" ikut dihitung | Syariat | Dikecualikan dan ditampilkan sebagai "Tidak dihitung" |
+| Utang jatuh tempo tidak dikurangkan; piutang diabaikan | Syariat | Utang ≤12 bulan dikurangkan; piutang lancar dihitung (bisa dimatikan) |
+| Emas dinilai harga beli bila harga pasar belum ada | Syariat | Wajib harga emas terkini; status "Butuh harga emas" |
+| Haul tidak ada; lunas dicatat per tahun Masehi | Syariat/alur | Tanggal haul (354 hari), periode & jatuh tempo hijriah |
+| 3 jalur hitung berbeda (backend, Dashboard Aset, notifier) | Alur | `src/lib/zakat.js` + cermin `base44/shared/zakat.ts`; paritas diuji |
+| Lunas per jenis tanpa mata uang (bayar emas IDR = emas SAR lunas) | Bug | Pembayaran per periode haul, bisa dicicil, sisa terlihat |
+| Bayar zakat tidak tercatat di keuangan | Alur | Tercatat sebagai transaksi sedekah kategori Zakat (opsional dari rekening) |
+| Toggle Bersama/Pribadi di halaman Zakat tidak berpengaruh | Bug | Dihapus |
+| Input harga emas tidak dipakai perhitungan | Bug | Dipakai & disimpan di profil |
+| Harga emas dari AI tanpa batas kewajaran | Risiko | Rentang Rp500 rb–10 jt/gr; sumber & tanggal ditampilkan |
+| Email: nominal SAR diformat "Rp"; dikirim tanpa melihat haul | Bug | Aturan sama, format benar, hanya saat haul ≤30 hari |
+
+**Masih bergantung pada keputusan pengguna/amil:**
+- Perhiasan yang dipakai: semua emas dihitung (lebih hati-hati).
+- Saham/reksa dana dihitung dengan nilai pasar.
+- Harta suami & istri dihitung gabungan (milik sendiri + bersama pasangan). Bila ingin per individu, perlu atribut kepemilikan per aset.
+
+## 18. Simbol riyal Saudi resmi
+- Simbol SAMA (Feb 2025), Unicode 17 **U+20C1**. Font bawaan perangkat umumnya belum memuat glyph-nya, jadi font *Saudi Riyal* (OFL-1.1) disertakan di `public/fonts/saudi-riyal` khusus untuk karakter itu (`unicode-range`).
+- Tampilan aplikasi memakai simbol resmi. PDF, CSV, email, dan teks dropdown native memakai kode "SAR" (`formatMoneyPlain`), karena tidak bisa memuat font tambahan.

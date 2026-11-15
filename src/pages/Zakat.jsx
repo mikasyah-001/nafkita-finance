@@ -143,7 +143,9 @@ export default function Zakat() {
                       Hitung
                     </label>
                   )}
-                  <p className={`text-sm font-semibold tabular-nums ${value < 0 ? "text-expense" : ""}`}>{value < 0 ? "−" : ""}{formatMoney(Math.abs(value), cur)}</p>
+                  {key === "emas" && z.needsGoldPrice && z.goldGrams > 0
+                    ? <p className="text-xs font-semibold text-warning">Butuh harga emas</p>
+                    : <p className={`text-sm font-semibold tabular-nums ${value < 0 ? "text-expense" : ""}`}>{value < 0 ? "−" : ""}{formatMoney(Math.abs(value), cur)}</p>}
                 </div>
               ))}
               <div className="flex items-center justify-between px-4 py-3 bg-muted/40 rounded-b-3xl">
@@ -198,8 +200,8 @@ export default function Zakat() {
             ) : (
               <p className="text-xs rounded-2xl bg-muted/60 p-3 mb-3">Tanggal haul belum diatur. Pembayaran dicatat per tahun hijriah berjalan ({z.period.hijriYear} H).</p>
             )}
+            <label htmlFor="zakat-haul-date" className="block text-xs text-muted-foreground mb-1.5">Harta mencapai nisab sejak</label>
             <div className="flex gap-2 items-center">
-              <label htmlFor="zakat-haul-date" className="text-xs text-muted-foreground shrink-0">Harta mencapai nisab sejak</label>
               <input id="zakat-haul-date" type="date" value={haulDraft ?? z.me?.zakat_haul_date ?? ""} onChange={(e) => setHaulDraft(e.target.value)} className="flex-1 min-w-0 h-10 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 ring-primary/30" />
               <button onClick={() => savePrefs({ zakat_haul_date: haulDraft || null }, "Tanggal haul disimpan").then(() => setHaulDraft(null))} disabled={haulDraft == null || savingPref} className="btn-secondary btn-sm">Simpan</button>
             </div>

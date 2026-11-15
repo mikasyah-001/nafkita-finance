@@ -156,13 +156,13 @@
      browser (abu-abu netral di mode gelap, tidak senada dengan tema). */
   :root { color-scheme: light; }
   .dark { color-scheme: dark; }
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
-  textarea,
-  select {
+  /* :where() → spesifisitas 0, sehingga kelas utilitas (bg-transparent dll.)
+     tetap menang; aturan ini hanya mengisi input yang tidak diberi latar. */
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select) {
     background-color: hsl(var(--card));
     color: hsl(var(--foreground));
   }
-  input::placeholder, textarea::placeholder {
+  :where(input, textarea)::placeholder {
     color: hsl(var(--muted-foreground) / 0.8);
   }
 

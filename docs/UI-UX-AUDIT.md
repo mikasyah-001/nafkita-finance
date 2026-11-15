@@ -217,3 +217,32 @@ Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai bac
   - judul seksi berupa pertanyaan: "Ke mana perginya?", "Masih aman?", "Jejak terakhir".
 - **Navigasi bawah:** pil melayang dengan tombol Catat emas; item aktif berupa ubin lembut.
 - Pola diadopsi dari referensi, tetapi identitas visualnya (warna, logo, ilustrasi) tetap milik NAFKITA.
+
+## 15. Fitur baru dari referensi (bertahap)
+
+### 15.1 Laporan bulanan sebagai gambar
+- Di **Laporan › Bulan ini** ada tombol "Bagikan sebagai gambar". Gambar berisi total pengeluaran, pemasukan, sedekah, rasio menabung, 4 kategori teratas, kontribusi per orang, dan catatan pengeluaran luar biasa.
+- Di HP gambar bisa dibagikan langsung ke WhatsApp; di perangkat lain bisa disimpan sebagai PNG. Daftar transaksi rinci sengaja tidak dimuat.
+
+### 15.2 Audit kas tunai & pengeluaran luar biasa
+- **Struktur data:** jenis aset baru `tunai` (enum Asset, aditif).
+- **Halaman `/audit-kas`:**
+  - menampilkan "seharusnya di tangan" untuk dompet yang dipilih;
+  - tiga langkah: tarik tunai (Transfer rekening → dompet), belanja tunai ("Dibayar dari" dompet), hitung uang fisik;
+  - selisih disesuaikan lewat `reconcileAsset` yang sudah ada.
+- **Aturan kunci:** hanya transaksi yang dibayar dari dompet itu yang dihitung. Ini menghindari kesalahan di aplikasi referensi, yang membandingkan semua pengeluaran (termasuk non-tunai) dengan tarik tunai.
+- **Pengeluaran luar biasa:** tag `luar-biasa`, diatur lewat sakelar di form Catat. Tetap masuk total, tetapi dikeluarkan dari rata-rata harian ("rutin"). Ditandai badge di daftar transaksi dan disebut di laporan.
+
+### 15.3 Rencana bulanan
+- **Struktur data:** `Budget.kind`: `expense` | `income_plan` | `savings_plan` (aditif; anggaran lama otomatis `expense`).
+- **Kartu "Rencana bulan ini"** di Anggaran berisi target pemasukan dan target menabung. Capaian memakai logika yang sama dengan Beranda: menabung = pemasukan − pengeluaran − sedekah.
+- Progres rencana menabung juga tampil di kartu saldo Beranda.
+- **Bug diperbaiki:** toggle Bersama/Pribadi di halaman Anggaran tidak berpengaruh, karena halaman itu memakai state lokal sementara toggle mengubah state global.
+- **Bug diperbaiki:** aturan latar input global terlalu spesifik sehingga menimpa `bg-transparent`, dan kolom di kartu pastel tampil sebagai kotak putih/hitam. Sekarang memakai `:where()`.
+
+### Verifikasi
+- Unit test: 24/24.
+- Uji alur `npm run qa:flows`: 11 alur, termasuk audit kas, pengeluaran luar biasa, rencana menabung, dan toggle cakupan Anggaran.
+
+### Catatan untuk Base44
+Perubahan skema (`Asset.type` + `tunai`, `Budget.kind`) ada di `base44/entities/`. Pastikan Base44 menerapkan skema terbaru setelah merge. Bila skema belum ikut tersinkron, membuat dompet tunai atau menyimpan rencana bisa ditolak oleh validasi.

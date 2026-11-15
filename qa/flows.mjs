@@ -138,7 +138,8 @@ try {
     await nav("/add");
     await page.fill("#add-tx-amount", "60000000");
     await page.getByRole("button", { name: "Belanja" }).first().click();
-    await page.check("#add-tx-extraordinary");
+    await page.locator("label[for=\"add-tx-extraordinary\"]").click();
+    assert.ok(await page.isChecked("#add-tx-extraordinary"), "Sakelar aktif");
     await page.getByRole("button", { name: /Simpan Transaksi/ }).click();
     await page.waitForURL(BASE + "/", { timeout: 5000 });
     await nav("/laporan?tab=bulanan");

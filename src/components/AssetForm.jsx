@@ -4,7 +4,9 @@ import { useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
 import { assetTypeLabels, formatRupiah, currencySymbol, isGoldType } from "@/lib/finance";
 import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
-import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
+import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen } from "lucide-react";
+import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
+import CategoryIcon from "@/components/CategoryIcon";
 
 const types = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
 
@@ -100,171 +102,149 @@ export default function AssetForm({ asset, onClose }) {
     setSaving(false);
   };
 
+  const showCurrency = (!isGoldType(form.type) && form.type !== "tanah") || form.type === "emas_digital";
+  const brokerSuggestions = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
+  const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
+  const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
+  const goldTotal = isGoldType(form.type) && form.quantity && form.purchase_price ? Number(form.quantity) * Number(form.purchase_price) : 0;
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center max-w-md mx-auto">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">{isEdit ? "Edit Aset" : "Tambah Aset"}</h2>
-          <button onClick={onClose} className="btn-icon btn-icon-sm">
-            <X className="w-4 h-4" />
-          </button>
+    <FormSheet
+      title={isEdit ? "Edit aset" : "Tambah aset"}
+      subtitle="Catat tabungan, dompet tunai, emas, investasi, dan properti keluarga."
+      onClose={onClose}
+      footer={
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+          {saving ? "Menyimpan..." : isEdit ? "Simpan perubahan" : "Simpan aset"}
+        </button>
+      }
+    >
+      {/* Jenis */}
+      <section>
+        <p className="text-xs font-semibold text-muted-foreground mb-2">Jenis aset</p>
+        <div role="radiogroup" aria-label="Jenis aset" className="grid grid-cols-4 gap-2">
+          {types.map((t) => {
+            const meta = assetTypeLabels[t];
+            const on = form.type === t;
+            return (
+              <button key={t} type="button" role="radio" aria-checked={on}
+                onClick={() => setForm({ ...form, type: t, unit: isGoldType(t) ? "gram" : t === "tanah" ? "m²" : form.unit })}
+                className={`flex flex-col items-center gap-1.5 pt-2.5 pb-2 rounded-2xl border transition-all ${on ? "border-primary bg-primary/[0.07] ring-1 ring-primary" : "border-border bg-card"}`}>
+                <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                  <CategoryIcon name={meta.icon} className="w-4 h-4" />
+                </span>
+                <span className={`text-[11px] leading-tight text-center px-0.5 ${on ? "font-semibold" : ""}`}>{meta.label}</span>
+              </button>
+            );
+          })}
         </div>
-        <div className="space-y-3">
-          <Field htmlFor="asset-name" label="Nama Aset">
-            <input id="asset-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mis. Tabungan BCA, Emas 10gr" className="input" />
-          </Field>
-          <Field label="Jenis">
-            <div className="flex gap-2 flex-wrap">
-              {types.map((t) => (
-                <button key={t} onClick={() => setForm({ ...form, type: t, unit: isGoldType(t) ? "gram" : t === "tanah" ? "m²" : form.unit })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.type === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                  {assetTypeLabels[t].label}
-                </button>
+      </section>
+
+      <FieldGroup label="Identitas">
+        <FieldRow icon={Tag} label="Nama aset" htmlFor="asset-name">
+          <input id="asset-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={form.type === "tunai" ? "Mis. Dompet tunai, Riyal umrah" : "Mis. Tabungan BCA, Emas Antam"} className={fieldInput} />
+        </FieldRow>
+        {showBroker && (
+          <FieldRow icon={Building2} label={brokerLabel} htmlFor="asset-broker">
+            <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Opsional" className={fieldInput} />
+            {brokerSuggestions.length > 0 && (
+              <div className="mt-2"><ChipChoice size="sm" ariaLabel="Saran" options={brokerSuggestions} value={form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
+            )}
+          </FieldRow>
+        )}
+        <FieldRow icon={UserRound} label="Pemilik (opsional)" htmlFor="asset-owner">
+          <input id="asset-owner" value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+
+      {/* Nilai */}
+      <section className="card-gradient-primary rounded-[24px] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs opacity-80">
+            {isGoldType(form.type) ? "Jumlah & harga emas" : form.type === "tanah" ? "Luas & harga tanah" : "Nilai saat ini"}
+          </p>
+          {showCurrency && userCurrencies.length > 1 && (
+            <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
+              {userCurrencies.map((c) => (
+                <button key={c.code} type="button" role="radio" aria-checked={form.currency === c.code} onClick={() => setForm({ ...form, currency: c.code })}
+                  className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${form.currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
               ))}
             </div>
-          </Field>
-
-          {isGoldType(form.type) ? (
-            <>
-              {form.type === "emas_digital" && (
-                <Field label="Mata Uang">
-                  <div className="flex flex-wrap gap-2">
-                    {userCurrencies.map((c) => (
-                      <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                        {c.code}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-              )}
-              <Field htmlFor="asset-gold-quantity" label="Jumlah (gram)">
-                <input id="asset-gold-quantity" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="0" className="input" />
-              </Field>
-              <Field htmlFor="asset-gold-purchase-price" label={`Harga Beli / gram (${form.type === "emas_digital" ? sym : "Rp"})`}>
-                <input id="asset-gold-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value, value: e.target.value && form.quantity ? String(Number(e.target.value) * Number(form.quantity)) : form.value })} placeholder="0" className="input" />
-              </Field>
-              {form.type === "emas_digital" && (
-                <Field htmlFor="asset-gold-broker" label="Tempat Pembelian / Penyimpanan">
-                  <div className="flex gap-2 flex-wrap mb-2">
-                    {(digitalGoldBrokers[form.currency] || []).map((b) => (
-                      <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                        {b}
-                      </button>
-                    ))}
-                  </div>
-                  <input id="asset-gold-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bank Al Rajhi, Bank BSI, Pegadaian..." className="input" />
-                </Field>
-              )}
-            </>
-          ) : form.type === "tanah" ? (
-            <>
-              <Field htmlFor="asset-land-quantity" label="Luas Tanah (m²)">
-                <input id="asset-land-quantity" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Mis. 100" className="input" />
-              </Field>
-              <Field htmlFor="asset-land-purchase-price" label="Harga Beli / m² (Rp)">
-                <input id="asset-land-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="Mis. 500000" className="input" />
-              </Field>
-              {form.purchase_price && form.quantity ? (
-                <p className="text-xs text-muted-foreground -mt-1">Total harga beli: <span className="font-medium text-foreground">{formatRupiah(Number(form.purchase_price) * Number(form.quantity))}</span></p>
-              ) : null}
-              <Field htmlFor="asset-land-value" label="Perkiraan Harga Sekarang (Rp)">
-                <input id="asset-land-value" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
-              </Field>
-            </>
-          ) : (
-            <>
-              <Field label="Mata Uang">
-                <div className="flex flex-wrap gap-2">
-                  {userCurrencies.map((c) => (
-                    <button key={c.code} onClick={() => setForm({ ...form, currency: c.code })} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${form.currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                      {c.code}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-              <Field htmlFor="asset-value" label={`Nilai Saat Ini (${sym})`}>
-                <input id="asset-value" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0" className="input" />
-              </Field>
-            </>
           )}
-
-          <Field htmlFor="asset-purchase-date" label="Tanggal Pembelian (opsional)">
-            <input id="asset-purchase-date" type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="input" />
-          </Field>
-
-          {!isGoldType(form.type) && form.type !== "tanah" && (
-            <Field htmlFor="asset-purchase-price" label={`Harga Pembelian (${sym}, opsional)`}>
-              <input id="asset-purchase-price" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className="input" />
-            </Field>
-          )}
-
-          {form.type === "bank" && (
-            <Field htmlFor="asset-bank-broker" label="Bank / Tempat Simpan">
-              <div className="flex gap-2 flex-wrap mb-2">
-                {["BCA", "Mandiri", "BNI", "BRI", "Cash"].map((b) => (
-                  <button key={b} onClick={() => setForm({ ...form, broker: b })} className={`px-3 py-1.5 rounded-full text-xs font-medium ${form.broker === b ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                    {b}
-                  </button>
-                ))}
-              </div>
-              <input id="asset-bank-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. BCA, Bank Syariah, Cash..." className="input" />
-            </Field>
-          )}
-
-          {form.type === "investasi" && (
-            <Field htmlFor="asset-investment-broker" label="Tempat Pembelian / Broker (opsional)">
-              <input id="asset-investment-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Mis. Bibit, Stockbit, BNI Sekuritas" className="input" />
-            </Field>
-          )}
-
-          <Field label="Bukti Pembelian (opsional)">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            {form.purchase_proof_url ? (
-              <div className="relative w-fit">
-                <SmartImage src={form.purchase_proof_url} alt="Bukti pembelian" className="w-28 h-28 rounded-xl object-cover" fittingType="fill" />
-                <button onClick={() => setForm({ ...form, purchase_proof_url: "" })} className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => fileRef.current?.click()} disabled={uploading} className="w-full rounded-2xl border-2 border-dashed border-border py-5 flex flex-col items-center gap-1.5 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60">
-                {uploading ? <Loader2 className="w-6 h-6 animate-spin text-primary" /> : <Upload className="w-6 h-6" />}
-                <span className="text-xs">{uploading ? "Mengunggah..." : "Unggah foto bukti"}</span>
-              </button>
-            )}
-          </Field>
-
-          <Field label="Jangkauan">
-            <div className="flex gap-2">
-              <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                <Users className="w-4 h-4" /> Bersama
-              </button>
-              <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                <Lock className="w-4 h-4" /> Pribadi
-              </button>
-            </div>
-          </Field>
-          <Field htmlFor="asset-owner" label="Pemilik (opsional)">
-            <input id="asset-owner" value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} placeholder="Mis. Suami / Istri" className="input" />
-          </Field>
-          <Field htmlFor="asset-notes" label="Catatan (opsional)">
-            <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input" />
-          </Field>
-          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-            {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Aset"}
-          </button>
         </div>
-      </div>
-    </div>
+        {isGoldType(form.type) || form.type === "tanah" ? (
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <HeroInput id={isGoldType(form.type) ? "asset-gold-quantity" : "asset-land-quantity"} label={isGoldType(form.type) ? "Gram" : "Luas (m²)"} value={form.quantity} onChange={(v) => setForm({ ...form, quantity: v })} />
+            <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${isGoldType(form.type) && form.type === "emas_digital" ? sym : "Rp"})`}
+              value={form.purchase_price}
+              onChange={(v) => setForm({ ...form, purchase_price: v, value: isGoldType(form.type) && v && form.quantity ? String(Number(v) * Number(form.quantity)) : form.value })} />
+            {form.type === "tanah" && (
+              <div className="col-span-2"><HeroInput id="asset-land-value" label="Perkiraan harga sekarang (Rp)" value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-lg font-semibold opacity-70">{sym}</span>
+            <input id="asset-value" aria-label={`Nilai saat ini (${sym})`} type="number" inputMode="decimal" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0"
+              className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
+          </div>
+        )}
+        {(goldTotal > 0 || (form.type === "tanah" && form.quantity && form.purchase_price)) && (
+          <p className="text-xs opacity-80 mt-2">Total harga beli: <span className="font-semibold">{formatRupiah(goldTotal || Number(form.purchase_price) * Number(form.quantity))}</span></p>
+        )}
+      </section>
+
+      <FieldGroup label="Pembelian (opsional)">
+        <FieldRow icon={CalendarDays} label="Tanggal beli" htmlFor="asset-purchase-date">
+          <input id="asset-purchase-date" type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className={fieldInput} />
+        </FieldRow>
+        {!isGoldType(form.type) && form.type !== "tanah" && (
+          <FieldRow icon={Receipt} label={`Harga beli (${sym})`} htmlFor="asset-purchase-price" hint="Untuk menghitung pertumbuhan nilai aset.">
+            <input id="asset-purchase-price" type="number" inputMode="decimal" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className={`${fieldInput} tabular-nums`} />
+          </FieldRow>
+        )}
+        <FieldRow icon={ImageIcon} label="Bukti pembelian">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          {form.purchase_proof_url ? (
+            <div className="relative w-fit mt-1">
+              <SmartImage src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 rounded-xl object-cover" fittingType="fill" />
+              <button onClick={() => setForm({ ...form, purchase_proof_url: "" })} aria-label="Hapus bukti" className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
+            </div>
+          ) : (
+            <button onClick={() => fileRef.current?.click()} disabled={uploading} className="mt-1 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-dashed border-border text-xs font-semibold text-muted-foreground disabled:opacity-60">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} {uploading ? "Mengunggah..." : "Unggah foto"}
+            </button>
+          )}
+        </FieldRow>
+      </FieldGroup>
+
+      <FieldGroup label="Lainnya">
+        <FieldRow icon={form.visibility === "private" ? Lock : Users} label="Jangkauan"
+          trailing={
+            <div role="radiogroup" aria-label="Jangkauan" className="flex gap-1 p-0.5 rounded-full bg-muted shrink-0 self-center">
+              {[["shared", "Bersama"], ["private", "Pribadi"]].map(([v, l]) => (
+                <button key={v} type="button" role="radio" aria-checked={(form.visibility || "shared") === v} onClick={() => setForm({ ...form, visibility: v })}
+                  className={`h-7 px-3 rounded-full text-xs font-semibold transition-colors ${(form.visibility || "shared") === v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>{l}</button>
+              ))}
+            </div>
+          }>
+          <p className="text-sm">{form.visibility === "private" ? "Hanya Anda" : "Terlihat pasangan"}</p>
+        </FieldRow>
+        <FieldRow icon={NotebookPen} label="Catatan" htmlFor="asset-notes">
+          <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Opsional" className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+    </FormSheet>
   );
 }
 
-function Field({ label, htmlFor, children }) {
+function HeroInput({ id, label, value, onChange }) {
   return (
-    <div>
-      <label htmlFor={htmlFor} className="text-xs text-muted-foreground mb-1.5 block">{label}</label>
-      {children}
+    <div className="rounded-2xl bg-white/[0.08] border border-white/10 px-3 py-2">
+      <label htmlFor={id} className="block text-[11px] opacity-75">{label}</label>
+      <input id={id} type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder="0"
+        className="w-full bg-transparent outline-none text-lg font-bold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
     </div>
   );
 }

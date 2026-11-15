@@ -134,7 +134,7 @@ export default function AssetForm({ asset, onClose }) {
                 <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   <CategoryIcon name={meta.icon} className="w-4 h-4" />
                 </span>
-                <span className={`text-[11px] leading-tight text-center px-0.5 ${on ? "font-semibold" : ""}`}>{meta.label}</span>
+                <span className={`text-[11px] leading-tight text-center px-0.5 [overflow-wrap:anywhere] ${on ? "font-semibold" : ""}`}>{meta.label.replace("/", "/\u200b")}</span>
               </button>
             );
           })}

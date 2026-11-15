@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransactions, useCategories, useMe, useRateMap } from "@/hooks/useFinance";
-import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, hasRate } from "@/lib/finance";
+import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, formatUnconverted } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
@@ -28,7 +28,7 @@ export default function Ringkasan() {
   const month = cursor.getMonth();
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
-  const { rows, total, prevTotal, count, txList, activeCurs, cur } = useMemo(() => {
+  const { rows, total, prevTotal, count, txList, activeCurs, cur, unconverted } = useMemo(() => {
     // Logika sama persis dengan kartu "Ringkasan Belanja" di Beranda
     // (monthlyExpenseBreakdown): tanpa transfer & transaksi pending/ditolak,
     // semua mata uang dikonversi ke mata uang tampilan.
@@ -39,7 +39,7 @@ export default function Ringkasan() {
     const txList = transactions
       .filter((t) => inScope(t, scope) && isInMonth(t, year, month) && filterReportableTx(t))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur };
+    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur, unconverted: r.unconverted };
   }, [transactions, scope, year, month, currency, rateMap, me?.default_currency]);
 
   const max = rows.length ? rows[0].value : 0;
@@ -86,7 +86,7 @@ export default function Ringkasan() {
 
       <div className="card-gradient-primary rounded-3xl p-5 mb-4">
         <p className="text-xs opacity-80">Total pengeluaran{activeCurs.length > 1 ? ` (semua mata uang → ${cur})` : ` (${cur})`}</p>
-        {activeCurs.length > 1 && activeCurs.some((c) => !hasRate(c, rateMap)) && <p className="text-[11px] mt-1 opacity-90">⚠ Kurs belum tersedia — nominal mata uang lain dijumlahkan apa adanya.</p>}
+        {formatUnconverted(unconverted) && <p className="text-[11px] mt-1 inline-flex items-center bg-white/15 rounded-full px-2 py-0.5">⚠ Belum termasuk {formatUnconverted(unconverted)} — kurs belum tersedia</p>}
         <p className="text-2xl sm:text-3xl font-bold tabular-nums break-words">{formatMoney(total, cur)}</p>
         <div className="flex gap-4 mt-3 text-xs">
           <div className="min-w-0">

@@ -63,7 +63,9 @@ export default function Home() {
     [scopeMonth, cur, rateMap, configuredCodes]
   );
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
-  const rateMissing = !hasRate(cur, rateMap);
+  // Mata uang yang transaksinya tidak ikut dijumlahkan karena kurs belum ada.
+  const excludedCurs = Object.keys(s.unconverted || {});
+  const rateMissing = excludedCurs.length > 0 || !hasRate(cur, rateMap);
 
   // Total konsolidasi: semua mata uang dikonversi ke mata uang utama.
   const consolidatedBalance = useMemo(
@@ -200,6 +202,11 @@ export default function Home() {
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
         </div>
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
+        {excludedCurs.length > 0 && (
+          <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium bg-white/15 rounded-full px-2 py-0.5">
+            <AlertTriangle className="w-3 h-3" /> Belum termasuk transaksi {excludedCurs.join(", ")} (kurs belum tersedia)
+          </p>
+        )}
         {activeCurs.length > 1 && (
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">

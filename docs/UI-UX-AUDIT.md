@@ -125,3 +125,18 @@ Kedua tampilan kini memakai satu fungsi, `monthlyExpenseBreakdown()` di `lib/fin
 ### Masih menunggu keputusan
 - Gabung Ringkasan + Laporan menjadi satu halaman bertab.
 - Ganti 4 quick link Beranda dengan tombol aksi.
+
+## 9. Tahap 4: nominal tanpa kurs tidak lagi dijumlahkan diam-diam
+
+**Sebelum:** bila kurs belum tersedia, `convertTo()` mengembalikan nominal mentah. Akibatnya 500 SAR terhitung Rp 500. Kebalikannya juga terjadi: Rp 5 jt bisa tampil sebagai SAR 5 jt saat mata uang tampilan SAR.
+
+**Sesudah:**
+- `convertTo()` mengembalikan 0 bila kurs tidak ada, dan `canConvert()` dipakai untuk mendeteksinya.
+- `summarizeConsolidated()` dan `monthlyExpenseBreakdown()` mengumpulkan nominal yang dikecualikan di `unconverted` (per mata uang).
+- Tampilan menyebutnya secara eksplisit:
+  - **Beranda** (kartu saldo): "Belum termasuk transaksi SAR (kurs belum tersedia)".
+  - **Ringkasan Belanja** dan **Ringkasan**: "Belum termasuk SAR 500,00".
+  - **Aset** dan **Dashboard Aset**: "Aset dalam mata uang ini belum termasuk dalam total".
+  - **Laporan**: catatan di bawah tombol "Muat Kurs".
+
+**Catatan zakat:** Dashboard Aset menghitung nilai emas & non-emas lewat `convertTo()`. Aset tanpa kurs kini *dikecualikan*, bukan dijumlahkan dengan satuan yang salah, dan peringatannya tampil di halaman. Pastikan kurs termuat sebelum mengambil keputusan nisab.

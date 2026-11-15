@@ -26,14 +26,12 @@ export function ColorPrefsProvider({ children }) {
   // Hanya override token bila user memilih warna sendiri. Tanpa itu, token
   // dari index.css dipakai — termasuk varian mode gelap yang lebih terang.
   // (Sebelumnya selalu di-set inline sehingga mode gelap ikut warna terang.)
+  // Sejak rebrand "Hutan & Emas", warna brand tetap (tidak lagi bisa diubah
+  // pengguna). Bersihkan override lama yang mungkin pernah tersimpan.
   useEffect(() => {
     const root = document.documentElement;
-    const apply = (name, v) => (v ? root.style.setProperty(name, v) : root.style.removeProperty(name));
-    apply("--primary", customPrimary);
-    apply("--ring", customPrimary);
-    apply("--scope-shared", customShared);
-    apply("--scope-private", customPrivate);
-  }, [customPrimary, customShared, customPrivate]);
+    ["--primary", "--ring", "--scope-shared", "--scope-private"].forEach((n) => root.style.removeProperty(n));
+  }, []);
 
   const saveColorPrefs = useCallback(async (prefs) => {
     await base44.auth.updateMe(prefs);

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { ArrowRight, LogOut, User, BookOpen, Tag, Upload, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowRight, LogOut, User, ShieldCheck } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import CurrencyManager from "@/components/CurrencyManager";
@@ -11,7 +11,6 @@ import DriveBackup from "@/components/DriveBackup";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import NotificationRuleManager from "@/components/NotificationRuleManager";
 import ThemeToggle from "@/components/ThemeToggle";
-import ColorPreferenceManager from "@/components/ColorPreferenceManager";
 import SettingsAccordion from "@/components/SettingsAccordion";
 import { usePartnership } from "@/hooks/usePartnership";
 import PageHeader from "@/components/PageHeader";
@@ -45,16 +44,6 @@ export default function Settings() {
         <ArrowRight className="w-4 h-4 opacity-70" />
       </Link>
 
-      <Link to="/panduan" className="surface rounded-3xl px-4 py-3.5 mb-6 flex items-center gap-3 active:scale-[0.99] transition-transform">
-        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <BookOpen className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">Panduan Tools</p>
-          <p className="text-xs text-muted-foreground">Pelajari semua fitur & cara pemakaian</p>
-        </div>
-        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-      </Link>
 
       <div className="mb-2.5">
         <h2 className="font-semibold text-[17px] leading-tight">Atur aplikasi</h2>
@@ -63,12 +52,9 @@ export default function Settings() {
 
       {/* Grup accordion */}
       <div className="grid md:grid-cols-2 gap-3 items-start">
-        <SettingsAccordion number="01" title="Tampilan & Warna" subtitle="Tema terang/gelap dan warna" defaultOpen>
-          <p className="text-xs text-muted-foreground">Pilih tema aplikasi. "Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
+        <SettingsAccordion number="01" title="Tampilan" subtitle="Terang, gelap, atau ikuti perangkat" defaultOpen>
+          <p className="text-xs text-muted-foreground">"Sistem" mengikuti pengaturan gelap/terang perangkat Anda.</p>
           <ThemeToggle />
-          <div className="border-t border-border pt-4">
-            <ColorPreferenceManager />
-          </div>
         </SettingsAccordion>
 
         <SettingsAccordion number="02" title="Pasangan & Notifikasi" subtitle="Hubungkan pasangan, atur pemberitahuan" defaultOpen={!hasPartner}>
@@ -88,7 +74,7 @@ export default function Settings() {
           <CurrencyManager />
         </SettingsAccordion>
 
-        <SettingsAccordion number="04" title="Data & Cadangan" subtitle="Cadangan lokal, Drive, template">
+        <SettingsAccordion number="04" title="Data & Cadangan" subtitle="Cadangan lokal, Google Drive, template transaksi">
           <LocalBackupRestore />
           <div className="border-t border-border pt-4">
             <DriveBackup />
@@ -98,22 +84,16 @@ export default function Settings() {
           </div>
         </SettingsAccordion>
 
-        <SettingsAccordion number="05" title="Lanjutan" subtitle="Kategori, impor, scan struk">
-          <nav aria-label="Menu lanjutan" className="-mx-4 -my-4 divide-y divide-border">
-            {[
-              { to: "/kategori", icon: Tag, label: "Kelola Kategori" },
-              { to: "/impor", icon: Upload, label: "Buka Impor Laporan" },
-              { to: "/add", icon: Sparkles, label: "Tambah Transaksi & Scan Struk" },
-              ...(isAdmin ? [{ to: "/admin", icon: ShieldCheck, label: "Panel Admin" }] : []),
-            ].map(({ to, icon: Icon, label }) => (
-              <Link key={to} to={to} className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 active:bg-muted transition-colors">
-                <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><Icon className="w-4 h-4" /></span>
-                <span className="flex-1 min-w-0">{label}</span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </nav>
-        </SettingsAccordion>
+        {/* Menu Kategori/Impor/Catat dihapus dari sini: sudah ada di menu Lainnya & tombol Catat. */}
+        {isAdmin && (
+          <SettingsAccordion number="05" title="Admin" subtitle="Khusus pengelola aplikasi">
+            <Link to="/admin" className="-mx-4 -my-4 flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 active:bg-muted transition-colors">
+              <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><ShieldCheck className="w-4 h-4" /></span>
+              <span className="flex-1 min-w-0">Panel Admin</span>
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+          </SettingsAccordion>
+        )}
       </div>
 
       <button onClick={handleLogout} className="w-full btn-secondary text-destructive border-destructive/25 hover:bg-destructive/5 mt-6 mb-4">

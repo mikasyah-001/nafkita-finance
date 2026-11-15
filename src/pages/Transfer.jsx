@@ -101,7 +101,7 @@ export default function Transfer() {
         </div>
 
         {bankAssets.length < 2 ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
             Anda memerlukan minimal 2 aset bank dengan mata uang {currency} untuk melakukan transfer.
           </div>
         ) : (

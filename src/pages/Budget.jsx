@@ -141,7 +141,7 @@ export default function Budget() {
         {totalLimit > 0 && (
           <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
             <div
-              className={`h-full rounded-full ${totalSpent > totalLimit ? "bg-red-300" : "bg-white"}`}
+              className={`h-full rounded-full ${totalSpent > totalLimit ? "bg-destructive/40" : "bg-white"}`}
               style={{ width: `${Math.min(100, (totalSpent / totalLimit) * 100)}%` }}
             />
           </div>
@@ -176,7 +176,7 @@ export default function Budget() {
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
                       {rolloverAmount !== 0 && (
-                        <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"}`}>
+                        <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
                           Rollover {rolloverAmount > 0 ? "+" : ""}{formatMoney(rolloverAmount, currency)}
                         </span>
                       )}
@@ -211,7 +211,7 @@ export default function Budget() {
                   <>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${over ? "bg-red-500" : pct > 80 ? "bg-amber-500" : cm.solid}`}
+                        className={`h-full rounded-full transition-all ${over ? "bg-destructive" : pct > 80 ? "bg-warning" : cm.solid}`}
                         style={{ width: `${Math.min(100, pct)}%` }}
                       />
                     </div>
@@ -222,7 +222,7 @@ export default function Budget() {
                           <AlertTriangle className="w-3 h-3" /> Lebih {formatMoney(Math.abs(remaining), currency)}
                         </span>
                       ) : remaining < effectiveLimit * 0.2 ? (
-                        <span className="text-amber-600 flex items-center gap-1 font-medium">
+                        <span className="text-warning flex items-center gap-1 font-medium">
                           <AlertTriangle className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>
                       ) : (

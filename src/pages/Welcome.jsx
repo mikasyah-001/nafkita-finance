@@ -30,11 +30,11 @@ const flagshipSteps = [
 // Setiap fitur punya `group` agar bisa dikelompokkan di halaman sambutan —
 // samakan warna ikon per grup supaya asosiasi kategori terasa konsisten.
 const FEATURE_GROUPS = [
-  { key: "catat", label: "Pencatatan & AI", bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400" },
-  { key: "pasangan", label: "Kolaborasi Pasangan", bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400" },
-  { key: "aset", label: "Aset, Zakat & Investasi", bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400" },
-  { key: "laporan", label: "Anggaran & Laporan", bg: "bg-sky-50 dark:bg-sky-950/30", text: "text-sky-600 dark:text-sky-400" },
-  { key: "keamanan", label: "Keamanan & Data", bg: "bg-slate-100 dark:bg-slate-800/40", text: "text-slate-600 dark:text-slate-300" },
+  { key: "catat", label: "Pencatatan & AI", bg: "bg-scope-private/10", text: "text-scope-private" },
+  { key: "pasangan", label: "Kolaborasi Pasangan", bg: "bg-primary/10", text: "text-primary" },
+  { key: "aset", label: "Aset, Zakat & Investasi", bg: "bg-warning/10", text: "text-warning" },
+  { key: "laporan", label: "Anggaran & Laporan", bg: "bg-primary/10", text: "text-primary" },
+  { key: "keamanan", label: "Keamanan & Data", bg: "bg-muted", text: "text-muted-foreground" },
 ];
 
 const features = [
@@ -110,8 +110,8 @@ export default function Welcome() {
       {/* ───────── HERO ───────── */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
         {/* Decorative orbs */}
-        <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-amber-300/15 blur-3xl" />
-        <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-fuchsia-400/15 blur-3xl" />
+        <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-warning/15 blur-3xl" />
+        <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-scope-private/15 blur-3xl" />
         <div className="absolute top-28 right-12 w-24 h-24 rounded-full bg-white/5 blur-xl" />
 
         <div className="relative">
@@ -121,7 +121,7 @@ export default function Welcome() {
             transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-medium mb-5 border border-white/20"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-200" /> Selamat datang di
+            <Sparkles className="w-3.5 h-3.5 text-warning" /> Selamat datang di
           </motion.div>
 
           <motion.h1
@@ -149,10 +149,10 @@ export default function Welcome() {
             className="mt-8 flex justify-center"
           >
             <div className="relative w-[210px]">
-              <div className="absolute inset-0 bg-amber-300/20 blur-2xl rounded-[2.5rem]" />
+              <div className="absolute inset-0 bg-warning/20 blur-2xl rounded-[2.5rem]" />
               <div className="relative rounded-[2.5rem] border-[7px] border-white/25 bg-white shadow-2xl overflow-hidden">
                 {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-900 rounded-b-2xl z-10" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-[hsl(226_30%_12%)] rounded-b-2xl z-10" />
                 {/* Header */}
                 <div className="bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] p-4 pt-6 text-white">
                   <p className="text-[11px] opacity-80">Saldo bersama • bulan ini</p>
@@ -171,13 +171,13 @@ export default function Welcome() {
                 {/* Transaction list */}
                 <div className="p-3 space-y-2 bg-white">
                   {[
-                    { i: "🛒", n: "Indomaret", a: "−32 rb", c: "text-rose-500" },
-                    { i: "💰", n: "Gaji", a: "+8,5 jt", c: "text-emerald-500" },
-                    { i: "🕌", n: "Sedekah", a: "−50 rb", c: "text-teal-500" },
+                    { i: "🛒", n: "Indomaret", a: "−32 rb", c: "text-destructive" },
+                    { i: "💰", n: "Gaji", a: "+8,5 jt", c: "text-success" },
+                    { i: "🕌", n: "Sedekah", a: "−50 rb", c: "text-sedekah" },
                   ].map((r) => (
                     <div key={r.n} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm">{r.i}</div>
-                      <p className="text-[11px] font-medium text-slate-700 flex-1">{r.n}</p>
+                      <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-sm">{r.i}</div>
+                      <p className="text-[11px] font-medium text-foreground flex-1">{r.n}</p>
                       <p className={`text-[11px] font-semibold tabular-nums ${r.c}`}>{r.a}</p>
                     </div>
                   ))}
@@ -192,7 +192,7 @@ export default function Welcome() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex items-center justify-center gap-2 mt-6 text-xs opacity-90"
           >
-            <Heart className="w-4 h-4 text-amber-200" />
+            <Heart className="w-4 h-4 text-warning" />
             <span>Catat, pantau, & tumbuhkan kekayaan bersama pasangan</span>
           </motion.div>
         </div>
@@ -262,11 +262,11 @@ export default function Welcome() {
           transition={{ duration: 0.5 }}
           className="rounded-3xl bg-gradient-to-br from-primary via-[hsl(226_55%_52%)] to-[hsl(212_55%_46%)] text-white p-6 overflow-hidden relative shadow-xl shadow-primary/20"
         >
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-300/15 blur-3xl" />
-          <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-warning/15 blur-3xl" />
+          <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
           <div className="relative">
             <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-medium mb-3 border border-white/20">
-              <Sparkles className="w-3 h-3 text-amber-200" /> Unggulan
+              <Sparkles className="w-3 h-3 text-warning" /> Unggulan
             </div>
             <h2 className="text-lg font-bold leading-tight">Scan Bon dengan AI</h2>
             <p className="text-xs opacity-90 mt-2 leading-relaxed">
@@ -427,8 +427,8 @@ export default function Welcome() {
           transition={{ duration: 0.5 }}
           className="rounded-3xl bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
         >
-          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-amber-300/15 blur-3xl" />
-          <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />
+          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-warning/15 blur-3xl" />
+          <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mx-auto mb-4 border border-white/20">
               <PiggyBank className="w-8 h-8" />

@@ -345,7 +345,7 @@ function ReportsAnalysis() {
         <button
           onClick={handleFetchRates}
           disabled={fetchingRates}
-          className="w-full rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2"
+          className="w-full rounded-2xl border border-warning/30 bg-warning/10 py-2.5 text-sm font-medium text-warning flex items-center justify-center gap-2"
         >
           {fetchingRates ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           {fetchingRates ? "Mengambil kurs..." : `Muat Kurs (${missingRates.join(", ")})`}
@@ -408,8 +408,8 @@ function ReportsAnalysis() {
 
       <AssetGrowthChart assets={scopedAssets} goldPrice={emasPriceNum} currency={cur} rateMap={rateMap} />
 
-      <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 active:scale-[0.99] transition-transform">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+      <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-4 active:scale-[0.99] transition-transform">
+        <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
           <Coins className="w-5 h-5 text-success" />
         </div>
         <div className="flex-1 min-w-0">

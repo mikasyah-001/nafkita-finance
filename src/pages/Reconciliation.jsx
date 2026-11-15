@@ -120,15 +120,15 @@ export default function Reconciliation() {
           </button>
 
           {reconResult && (
-            <div className={`rounded-2xl border p-4 space-y-3 ${isMatch ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50 dark:bg-amber-950/20"}`}>
+            <div className={`rounded-2xl border p-4 space-y-3 ${isMatch ? "border-success/30 bg-success/10" : "border-warning/30 bg-warning/10"}`}>
               <div className="flex items-center gap-2">
-                {isMatch ? <Check className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
+                {isMatch ? <Check className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-warning" />}
                 <h2 className="font-semibold text-sm">{isMatch ? "Saldo Cocok" : "Ada Selisih"}</h2>
               </div>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo statement</span><span className="font-medium tabular-nums">{formatMoney(reconResult.statement_balance, selectedAsset?.currency)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo terhitung</span><span className="font-medium tabular-nums">{formatMoney(reconResult.computed_balance, selectedAsset?.currency)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-amber-600"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-warning"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
               </div>
               {!isMatch && reconResult.status !== "reconciled" && (
                 <button onClick={handleAdjust} disabled={adjusting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">

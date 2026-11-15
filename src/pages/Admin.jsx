@@ -249,9 +249,9 @@ export default function Admin() {
                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                     {partner ? (
-                      <><Link2 className="w-3 h-3 text-emerald-500" /> <span className="text-success">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
+                      <><Link2 className="w-3 h-3 text-success" /> <span className="text-success">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
                     ) : (
-                      <span className="text-amber-600">Belum terhubung</span>
+                      <span className="text-warning">Belum terhubung</span>
                     )}
                   </p>
                 </div>
@@ -278,8 +278,8 @@ export default function Admin() {
             const b = p.invitee_id ? userMap[p.invitee_id] : null;
             const terminal = p.status === "ended" || p.status === "cancelled" || p.status === "declined";
             const statusStyle = {
-              active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-              pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+              active: "bg-success/15 text-success",
+              pending: "bg-warning/15 text-warning",
               ended: "bg-muted text-muted-foreground",
               cancelled: "bg-muted text-muted-foreground",
               declined: "bg-muted text-muted-foreground",
@@ -365,7 +365,7 @@ export default function Admin() {
                     {owner?.full_name || owner?.email || "—"} • {formatDate(tx.date, "dd MMM, HH:mm")}
                   </p>
                 </div>
-                <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-success" : isSedekah ? "text-teal-600" : ""}`}>
+                <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-success" : isSedekah ? "text-sedekah" : ""}`}>
                   {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
                 </div>
               </Link>
@@ -424,14 +424,14 @@ export default function Admin() {
             const owner = userMap[a.created_by_id];
             return (
               <div key={a.id} className="flex items-center gap-3 surface p-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
                   <Landmark className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate flex items-center gap-1.5">
                     {a.name || "Tanpa Nama"}
                     {a.visibility === "private" && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-medium shrink-0">private</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-medium shrink-0">private</span>
                     )}
                   </p>
                   <div className="flex items-center gap-1.5 flex-wrap">

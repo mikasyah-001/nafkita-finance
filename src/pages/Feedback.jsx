@@ -8,10 +8,10 @@ import { Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
 import PageHeader from "@/components/PageHeader";
 
 const types = [
-  { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-600 dark:text-rose-400", desc: "Aplikasi error/ngebug" },
-  { key: "feature", label: "Permintaan Fitur", icon: Lightbulb, bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", desc: "Ide fitur baru" },
-  { key: "suggestion", label: "Saran", icon: MessageSquare, bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-600 dark:text-sky-400", desc: "Masukan & perbaikan" },
-  { key: "other", label: "Lainnya", icon: MoreHorizontal, bg: "bg-slate-100 dark:bg-slate-800/60", text: "text-slate-600 dark:text-slate-300", desc: "Pertanyaan dll" },
+  { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-destructive/15", text: "text-destructive", desc: "Aplikasi error/ngebug" },
+  { key: "feature", label: "Permintaan Fitur", icon: Lightbulb, bg: "bg-warning/15", text: "text-warning", desc: "Ide fitur baru" },
+  { key: "suggestion", label: "Saran", icon: MessageSquare, bg: "bg-primary/15", text: "text-primary", desc: "Masukan & perbaikan" },
+  { key: "other", label: "Lainnya", icon: MoreHorizontal, bg: "bg-muted", text: "text-muted-foreground", desc: "Pertanyaan dll" },
 ];
 
 export default function Feedback() {
@@ -52,7 +52,7 @@ export default function Feedback() {
 
       {sent ? (
         <div className="flex flex-col items-center text-center pt-10">
-          <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-4">
+          <div className="w-20 h-20 rounded-3xl bg-success/15 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-lg font-semibold">Terima kasih!</h2>

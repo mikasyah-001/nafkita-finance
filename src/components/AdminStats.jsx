@@ -174,10 +174,10 @@ export default function AdminStats() {
                 <p className="text-[11px] text-muted-foreground truncate">{ub.email}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <span className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-[11px] font-semibold tabular-nums" title="Jumlah transaksi">
+                <span className="px-2 py-1 rounded-lg bg-primary/10 text-primary text-[11px] font-semibold tabular-nums" title="Jumlah transaksi">
                   {ub.tx_count} tx
                 </span>
-                <span className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 text-[11px] font-semibold tabular-nums" title="Jumlah aset">
+                <span className="px-2 py-1 rounded-lg bg-warning/10 text-warning text-[11px] font-semibold tabular-nums" title="Jumlah aset">
                   {ub.asset_count} aset
                 </span>
               </div>
@@ -190,14 +190,14 @@ export default function AdminStats() {
 }
 
 const COLOR_MAP = {
-  emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-success" },
-  blue: { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400" },
-  violet: { bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400" },
-  green: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-success" },
-  red: { bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-600 dark:text-red-400" },
-  teal: { bg: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400" },
-  amber: { bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400" },
-  slate: { bg: "bg-slate-100 dark:bg-slate-800/50", text: "text-slate-600 dark:text-slate-400" },
+  emerald: { bg: "bg-success/10", text: "text-success" },
+  blue: { bg: "bg-primary/10", text: "text-primary" },
+  violet: { bg: "bg-scope-private/10", text: "text-scope-private" },
+  green: { bg: "bg-success/10", text: "text-success" },
+  red: { bg: "bg-destructive/10", text: "text-destructive" },
+  teal: { bg: "bg-sedekah/10", text: "text-sedekah" },
+  amber: { bg: "bg-warning/10", text: "text-warning" },
+  slate: { bg: "bg-muted", text: "text-muted-foreground" },
 };
 
 function StatCard({ icon: Icon, color, label, value, pulse, compact }) {
@@ -210,8 +210,8 @@ function StatCard({ icon: Icon, color, label, value, pulse, compact }) {
         </div>
         {pulse && (
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
           </span>
         )}
       </div>

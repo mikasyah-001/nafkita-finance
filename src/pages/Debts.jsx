@@ -64,8 +64,8 @@ export default function Debts() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-950/40 flex items-center justify-center mb-2">
-            <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+          <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center mb-2">
+            <TrendingDown className="w-4 h-4 text-destructive" />
           </div>
           <p className="text-xs text-muted-foreground">Total Utang</p>
           {Object.entries(totals.utang).map(([c, v]) => (
@@ -74,7 +74,7 @@ export default function Debts() {
           {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
         </div>
         <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-2">
+          <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center mb-2">
             <TrendingUp className="w-4 h-4 text-success" />
           </div>
           <p className="text-xs text-muted-foreground">Total Piutang</p>
@@ -100,10 +100,10 @@ export default function Debts() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
                         {d.type === "utang" ? "Utang" : "Piutang"}
                       </span>
-                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">Sebagian</span>}
+                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Sebagian</span>}
                     </div>
                     <p className="font-medium text-sm truncate">{d.counterparty_name}</p>
                     <p className="text-xs text-muted-foreground">{formatMoney(d.amount, d.currency)}</p>

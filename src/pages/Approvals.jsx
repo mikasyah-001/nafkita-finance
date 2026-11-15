@@ -19,7 +19,7 @@ export default function Approvals() {
       <div className="mb-8">
         <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
           <Clock className="w-4 h-4" /> Perlu Persetujuan Anda
-          {pending.length > 0 && <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs">{pending.length}</span>}
+          {pending.length > 0 && <span className="px-2 py-0.5 rounded-full bg-warning text-white text-xs">{pending.length}</span>}
         </h2>
         {isLoading ? (
           <ListSkeleton rows={2} />

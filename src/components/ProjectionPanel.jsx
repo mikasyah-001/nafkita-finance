@@ -134,7 +134,7 @@ export default function ProjectionPanel({ scope = "shared" }) {
     <div className="surface p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-indigo-500" /> Proyeksi Cash Flow</h2>
+          <h2 className="font-semibold text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Proyeksi Cash Flow</h2>
           <p className="text-xs text-muted-foreground">Perkiraan {monthsAhead} bulan ke depan ({cur}) • {scope === "private" ? "Pribadi" : "Bersama"}</p>
         </div>
         <button onClick={() => setOpen(!open)} className="text-xs text-muted-foreground flex items-center gap-1">

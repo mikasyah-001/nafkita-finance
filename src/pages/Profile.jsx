@@ -153,7 +153,7 @@ export default function Profile() {
 
       <div className="mt-5">
         <div className="flex items-center gap-2 mb-3">
-          <Heart className="w-4 h-4 text-rose-500" />
+          <Heart className="w-4 h-4 text-destructive" />
           <h2 className="font-semibold text-sm">Keluarga Terkoneksi</h2>
         </div>
         <PartnerManager />

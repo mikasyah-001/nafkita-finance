@@ -31,7 +31,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
                   )}
                   <p className="text-sm font-medium truncate flex-1">{t.merchant || t.notes || "Transaksi"}</p>
                     {findDuplicate(t, existingTransactions) && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 text-[11px] font-medium shrink-0">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[11px] font-medium shrink-0">
                         <Copy className="w-2.5 h-2.5" /> Duplikat
                       </span>
                     )}
@@ -89,7 +89,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
       </div>
 
       {dupCount > 0 && (
-        <p className="text-xs text-amber-600 text-center -mt-2 mb-2">
+        <p className="text-xs text-warning text-center -mt-2 mb-2">
           {dupCount} transaksi terdeteksi duplikat dan akan dilewati
         </p>
       )}

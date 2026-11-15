@@ -49,12 +49,12 @@ export default function DataHealth() {
       ) : (
         <>
           {/* Status Banner */}
-          <div className={`rounded-2xl border p-4 mb-4 ${isHealthy ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30"}`}>
+          <div className={`rounded-2xl border p-4 mb-4 ${isHealthy ? "border-success/30 bg-success/10" : "border-warning/30 bg-warning/10"}`}>
             <div className="flex items-center gap-3">
               {isHealthy ? (
                 <CheckCircle2 className="w-8 h-8 text-success shrink-0" />
               ) : (
-                <AlertTriangle className="w-8 h-8 text-amber-600 shrink-0" />
+                <AlertTriangle className="w-8 h-8 text-warning shrink-0" />
               )}
               <div>
                 <p className="font-semibold text-sm">
@@ -117,14 +117,14 @@ export default function DataHealth() {
             >
               {issues.negativeAssets.map((a) => (
                 <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                  <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-950/40 flex items-center justify-center shrink-0">
-                    <CategoryIcon name="Landmark" className="w-4 h-4 text-red-600" />
+                  <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center shrink-0">
+                    <CategoryIcon name="Landmark" className="w-4 h-4 text-destructive" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{a.name}</p>
                     <p className="text-xs text-muted-foreground">{a.type}</p>
                   </div>
-                  <div className="text-sm font-semibold text-red-600 whitespace-nowrap shrink-0">
+                  <div className="text-sm font-semibold text-destructive whitespace-nowrap shrink-0">
                     <Money value={a.value} currency={a.currency} />
                   </div>
                 </div>
@@ -145,8 +145,8 @@ export default function DataHealth() {
                 const daysAgo = Math.floor((Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24));
                 return (
                   <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
-                      <CategoryIcon name="Landmark" className="w-4 h-4 text-amber-600" />
+                    <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+                      <CategoryIcon name="Landmark" className="w-4 h-4 text-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{a.name}</p>

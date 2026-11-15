@@ -297,9 +297,9 @@ export default function ImportReport() {
       )}
 
       {error && (
-        <div className="flex items-start gap-2 mt-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3">
+        <div className="flex items-start gap-2 mt-4 rounded-2xl bg-destructive/10 border border-destructive/30 p-3">
           <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-          <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
+          <p className="text-xs text-destructive">{error}</p>
         </div>
       )}
 

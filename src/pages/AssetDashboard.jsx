@@ -228,9 +228,9 @@ export default function AssetDashboard() {
       </div>
 
       {missingRates.length > 0 && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum tersedia untuk {missingRates.join(", ")}. Aset dalam mata uang ini belum termasuk dalam total.</p>
+        <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 mb-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <p className="text-xs text-warning">Kurs belum tersedia untuk {missingRates.join(", ")}. Aset dalam mata uang ini belum termasuk dalam total.</p>
         </div>
       )}
 
@@ -327,10 +327,10 @@ export default function AssetDashboard() {
       <div className="surface p-4 mb-5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-amber-500" /> Pertumbuhan Emas</h2>
+            <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-warning" /> Pertumbuhan Emas</h2>
             <p className="text-xs text-muted-foreground">Nilai emas per bulan mengikuti harga pasar</p>
           </div>
-          <button onClick={fetchGoldHistory} disabled={fetching} className="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
+          <button onClick={fetchGoldHistory} disabled={fetching} className="px-3 py-1.5 rounded-xl bg-warning text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-60">
             {fetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             Cek History
           </button>
@@ -379,7 +379,7 @@ export default function AssetDashboard() {
       <div className="surface p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Pertumbuhan Total Aset</h2>
+            <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" /> Pertumbuhan Total Aset</h2>
             <p className="text-xs text-muted-foreground">{isConsolidated ? `Konsolidasi · ${displayCurrency}` : `Snapshot per bulan · ${displayCurrency}`}</p>
           </div>
           {seeding && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
@@ -411,7 +411,7 @@ export default function AssetDashboard() {
 
       {allocation.length > 0 && (
         <div className="surface p-4 mt-5">
-          <h2 className="font-semibold text-sm flex items-center gap-2 mb-3"><PieChartIcon className="w-4 h-4 text-violet-500" /> Komposisi Aset</h2>
+          <h2 className="font-semibold text-sm flex items-center gap-2 mb-3"><PieChartIcon className="w-4 h-4 text-scope-private" /> Komposisi Aset</h2>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

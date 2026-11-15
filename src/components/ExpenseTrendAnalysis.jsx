@@ -51,7 +51,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
   return (
     <div className="surface p-4">
       <h2 className="font-semibold text-sm mb-1 flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-indigo-500" /> Analisis Tren Pengeluaran
+        <Sparkles className="w-4 h-4 text-primary" /> Analisis Tren Pengeluaran
       </h2>
       <p className="text-xs text-muted-foreground mb-3">Perbandingan kategori bulan ini vs {prevName}.</p>
 
@@ -86,7 +86,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
         </ResponsiveContainer>
       </div>
       <div className="flex items-center gap-4 mb-4 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300" /> {prevName}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-muted" /> {prevName}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: chartColors[0] }} /> Bulan ini</span>
       </div>
 

@@ -132,7 +132,7 @@ export default function NotificationRuleManager() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleToggle(rule, "enabled")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium ${rule.enabled ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium ${rule.enabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
                 >
                   {rule.enabled ? "Aktif" : "Nonaktif"}
                 </button>

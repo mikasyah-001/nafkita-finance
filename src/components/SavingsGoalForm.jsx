@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
-import { formatMoney, currencySymbol } from "@/lib/finance";
+import { currencySymbol, formatMoneyPlain } from "@/lib/finance";
 import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 
@@ -137,7 +137,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
             >
               <option value="">Tidak ada</option>
               {assets.filter(a => a.type === "bank").map(a => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value || 0, a.currency)})</option>
+                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
             </select>
           </FieldRow>

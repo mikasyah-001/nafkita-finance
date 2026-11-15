@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
-import { formatMoney } from "@/lib/finance";
+// Ekspor (PDF/CSV) tidak bisa memuat font simbol riyal → pakai kode "SAR".
+import { formatMoneyPlain as formatMoney } from "@/lib/finance";
 
 const TYPE_LABEL = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 

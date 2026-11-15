@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useDebts, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check, UserRound, CalendarDays, NotebookPen, Landmark } from "lucide-react";
@@ -322,7 +322,7 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
             <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
               <option value="">Tidak ada — tanpa transaksi</option>
               {bankAssets.map((a) => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
               ))}
             </select>
           </FieldRow>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane } from "lucide-react";
-import { formatMoney, formatDate } from "@/lib/finance";
+import { formatMoney, formatDate, formatMoneyPlain } from "@/lib/finance";
 import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
 
@@ -134,7 +134,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
               >
                 <option value="">Pilih aset sumber...</option>
                 {assets.filter(a => a.type === "bank").map(a => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value || 0, a.currency)})</option>
+                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
                 ))}
               </select>
             )}

@@ -1,4 +1,5 @@
-import { formatMoney } from "@/lib/finance";
+// Ekspor (PDF/CSV) tidak bisa memuat font simbol riyal → pakai kode "SAR".
+import { formatMoneyPlain as formatMoney } from "@/lib/finance";
 
 function csvCell(v) {
   let s = v == null ? "" : String(v);

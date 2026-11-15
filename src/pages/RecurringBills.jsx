@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, RefreshCw, Pause, Play, Check, CalendarClock, Tag, Repeat, CalendarDays, Landmark, NotebookPen } from "lucide-react";
@@ -226,7 +226,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
             <select id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
               <option value="">Tidak ada — saldo tidak diubah</option>
               {bankAssets.map((a) => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
               ))}
             </select>
           </FieldRow>

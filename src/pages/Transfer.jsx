@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, isMoneyAsset } from "@/lib/finance";
+import { formatMoney, currencySymbol, isMoneyAsset, formatMoneyPlain } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -130,7 +130,7 @@ export default function Transfer() {
                 <select id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening asal</option>
                   {bankAssets.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                    <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
                 </select>
               </FieldRow>
@@ -138,7 +138,7 @@ export default function Transfer() {
                 <select id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening tujuan</option>
                   {bankAssets.filter((a) => a.id !== fromAsset).map((a) => (
-                    <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+                    <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
                 </select>
               </FieldRow>

@@ -70,7 +70,7 @@ export default function ShareReportSheet({ open, onClose, monthName, scopeLabel,
 
         {/* ── Kartu yang dirender menjadi gambar ── */}
         <div className="flex justify-center">
-          <div ref={cardRef} style={{ width: 340, background: C.ivory, color: C.ink, padding: 16, borderRadius: 24, fontFamily: "'Nunito Sans', sans-serif" }}>
+          <div ref={cardRef} style={{ width: 340, background: C.ivory, color: C.ink, padding: 16, borderRadius: 24, fontFamily: "'Saudi Riyal', 'Nunito Sans', sans-serif" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <img src="/brand/mark.png" alt="" style={{ width: 28, height: 28 }} />
@@ -81,7 +81,7 @@ export default function ShareReportSheet({ open, onClose, monthName, scopeLabel,
 
             <div style={{ background: `linear-gradient(150deg, ${C.heroA}, ${C.heroB})`, color: "#F7F4EA", borderRadius: 20, padding: 16 }}>
               <div style={{ fontSize: 11, opacity: 0.8 }}>Total pengeluaran</div>
-              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: -0.5, marginTop: 2, lineHeight: "36px" }}>{formatMoney(summary.expense, cur)}</div>
+              <div style={{ fontFamily: "'Saudi Riyal', 'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: -0.5, marginTop: 2, lineHeight: "36px" }}>{formatMoney(summary.expense, cur)}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 {[["Pemasukan", formatMoneyShort(summary.income, cur)], ["Sedekah", formatMoneyShort(summary.sedekah, cur)], ["Menabung", savings.label || `${savings.rate}%`]].map(([l, v]) => (
                   <div key={l} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "6px 8px" }}>
@@ -93,7 +93,7 @@ export default function ShareReportSheet({ open, onClose, monthName, scopeLabel,
             </div>
 
             <div style={{ background: "#FFFFFF", border: `1px solid ${C.line}`, borderRadius: 18, padding: 14, marginTop: 10 }}>
-              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Ke mana perginya?</div>
+              <div style={{ fontFamily: "'Saudi Riyal', 'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Ke mana perginya?</div>
               {top.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>Belum ada pengeluaran.</div>}
               {top.map((r, i) => (
                 <div key={r.name} style={{ marginBottom: 10 }}>

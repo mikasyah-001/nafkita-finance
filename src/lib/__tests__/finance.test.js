@@ -115,7 +115,7 @@ test("monthlyExpenseBreakdown: tanpa kurs → dikecualikan, dicatat untuk UI", (
     { year: 2026, month: 10, currency: "IDR", rateMap: { IDR: 1 } });
   assert.equal(r.total, 100_000);
   assert.deepEqual(r.unconverted, { SAR: 500 });
-  assert.match(formatUnconverted(r.unconverted), /SAR/);
+  assert.match(formatUnconverted(r.unconverted), /\u20C1/, "simbol riyal resmi");
 });
 
 // ── Rasio menabung ───────────────────────────────────────────────
@@ -227,4 +227,14 @@ test("Ganti jenis tidak membawa isian yang beda makna", () => {
   const digital = switchAssetType(emas, "emas_digital");
   assert.equal(digital.quantity, "40", "sesama gram tetap");
   assert.equal(switchAssetType(F({ currency: "SAR" }), "tanah").currency, "IDR");
+});
+
+// ── Simbol riyal resmi ───────────────────────────────────────────
+import { formatMoney, formatMoneyPlain, currencySymbol, SAR_SIGN } from "../finance.js";
+test("SAR memakai simbol resmi U+20C1 di tampilan, kode 'SAR' untuk ekspor", () => {
+  assert.equal(SAR_SIGN, "⃁");
+  assert.equal(currencySymbol("SAR"), "⃁");
+  assert.equal(formatMoney(2400, "SAR"), "⃁ 2,400.00");
+  assert.equal(formatMoneyPlain(2400, "SAR"), "SAR 2,400.00");
+  assert.equal(formatMoneyPlain(150000, "IDR"), formatMoney(150000, "IDR"));
 });

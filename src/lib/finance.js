@@ -21,7 +21,7 @@ export function formatRupiahShort(n) {
 // Katalog mata uang bawaan (dapat diperluas pengguna lewat Pengaturan).
 export const currencies = [
   { code: "IDR", label: "Rupiah", symbol: "Rp" },
-  { code: "SAR", label: "Riyal Saudi", symbol: "SAR" },
+  { code: "SAR", label: "Riyal Saudi", symbol: "\u20C1" },
   { code: "USD", label: "Dolar AS", symbol: "$" },
   { code: "EUR", label: "Euro", symbol: "€" },
   { code: "GBP", label: "Pound Sterling", symbol: "£" },
@@ -47,12 +47,24 @@ export function findCurrency(code) {
 }
 export function allCurrencies() { return [...currencies, ..._customCurrencies]; }
 
+// Simbol riyal Saudi resmi (SAMA, Feb 2025; Unicode 17 U+20C1). Ditampilkan
+// dengan font "Saudi Riyal" (src/index.css). Untuk PDF/CSV/email yang tidak
+// bisa memuat font tambahan, pakai formatMoneyPlain() (kode "SAR").
+export const SAR_SIGN = "\u20C1";
+
+// Format dengan KODE mata uang (tanpa simbol khusus) — untuk ekspor & email.
+export function formatMoneyPlain(n, currency = "IDR") {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
+  return formatMoney(n, c);
+}
+
 export function formatMoney(n, currency = "IDR") {
   const c = (currency || "IDR").toUpperCase();
   const v = Number(n) || 0;
   if (c === "IDR") return formatRupiah(v);
   if (c === "USD") return "$" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  if (c === "SAR") return "SAR " + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  if (c === "SAR") return SAR_SIGN + "\u00A0" + new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
   const sym = currencySymbol(c);
   return `${sym} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
 }
@@ -67,7 +79,7 @@ export function currencySymbol(code) {
   const c = (code || "IDR").toUpperCase();
   if (c === "IDR") return "Rp";
   if (c === "USD") return "$";
-  if (c === "SAR") return "SAR";
+  if (c === "SAR") return SAR_SIGN;
   const f = findCurrency(c);
   return f ? f.symbol : c;
 }

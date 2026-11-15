@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Simbol riyal Saudi resmi (SAMA 2025, Unicode U+20C1). Font bawaan perangkat
+   umumnya belum punya glyph ini → disertakan sendiri, hanya untuk karakter itu. */
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal/saudi-riyal-regular.woff2") format("woff2");
+  font-weight: 100 600;
+  font-display: swap;
+  unicode-range: U+20C1, U+E900;
+}
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal/saudi-riyal-bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-display: swap;
+  unicode-range: U+20C1, U+E900;
+}
+
 @layer base {
   :root {
     /* ── NAFKITA "Hutan & Emas" ─────────────────────────────────────
@@ -60,9 +77,9 @@
     --pastel-peach: 22 85% 89%;
     --pastel-sage: 170 22% 86%;
     --pastel-ink: 168 45% 14%;
-    --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-heading: "Saudi Riyal", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Saudi Riyal", "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Saudi Riyal", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --sidebar-background: 50 28% 97%;
     --sidebar-foreground: 168 25% 25%;

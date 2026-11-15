@@ -5,6 +5,7 @@ import { History, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
 
 const changeTypeLabels = {
   manual_edit: "Edit Manual",
@@ -53,7 +54,7 @@ export default function AssetMutations() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground text-center py-4">Memuat...</p>
+        <ListSkeleton rows={4} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={History} title="Belum ada riwayat mutasi" subtitle="Setiap perubahan nilai aset akan tercatat di sini" />
       ) : (

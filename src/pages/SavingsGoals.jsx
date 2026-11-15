@@ -7,6 +7,7 @@ import SavingsGoalForm from "@/components/SavingsGoalForm";
 import EmptyState from "@/components/EmptyState";
 import { confirmAction } from "@/components/ConfirmHost";
 import PageHeader from "@/components/PageHeader";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
 
 export default function SavingsGoals() {
   const { data: goals = [], isLoading } = useSavingsGoals();
@@ -61,7 +62,7 @@ export default function SavingsGoals() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Memuat...</div>
+        <ListSkeleton rows={3} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={Target} title="Belum ada target tabungan" subtitle="Buat target pertama Anda untuk mulai menabung" />
       ) : (

@@ -303,7 +303,7 @@ export default function Welcome() {
         >
           {FEATURE_GROUPS.map((g) => (
             <div key={g.key} className="col-span-full">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-2.5 first:mt-0">{g.label}</p>
+              <p className="text-xs font-semibold text-muted-foreground mt-2 mb-2.5 first:mt-0">{g.label}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {features.filter((f) => f.group === g.key).map((f) => {
                   const Icon = f.icon;
@@ -466,7 +466,7 @@ function Section({ children, className = "" }) {
 
 function SectionLabel({ children }) {
   return (
-    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+    <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary">
       <span className="w-5 h-px bg-primary/40" />
       {children}
     </div>

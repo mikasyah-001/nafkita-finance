@@ -63,7 +63,7 @@ export default function AdminStats() {
 
       {/* Kartu aktivitas user */}
       <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
           <Activity className="w-3.5 h-3.5" /> Aktivitas Pengguna
         </h3>
         <div className="grid grid-cols-3 gap-2.5">
@@ -94,7 +94,7 @@ export default function AdminStats() {
 
       {/* Kartu transaksi */}
       <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
           <Receipt className="w-3.5 h-3.5" /> Transaksi
         </h3>
         <div className="grid grid-cols-2 gap-2.5">
@@ -130,7 +130,7 @@ export default function AdminStats() {
 
       {/* Kartu aset */}
       <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
           <Landmark className="w-3.5 h-3.5" /> Aset
         </h3>
         <div className="grid grid-cols-2 gap-2.5">
@@ -152,7 +152,7 @@ export default function AdminStats() {
 
       {/* Breakdown per-user */}
       <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2">
           Aktivitas per Pengguna
         </h3>
         <div className="space-y-2">

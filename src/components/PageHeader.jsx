@@ -24,7 +24,7 @@ export default function PageHeader({ title, subtitle, back = false, actions, cla
       )}
       <div className="flex-1 min-w-0">
         <h1 className="text-xl font-bold leading-tight truncate">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-muted-foreground mt-0.5 leading-snug line-clamp-2">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>

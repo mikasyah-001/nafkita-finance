@@ -134,6 +134,20 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Kolom isian tanpa latar eksplisit mengikuti kartu, bukan warna bawaan
+     browser (abu-abu netral di mode gelap, tidak senada dengan tema). */
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  select {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+  }
+  input::placeholder, textarea::placeholder {
+    color: hsl(var(--muted-foreground) / 0.8);
+  }
+
   ::selection {
     background-color: hsl(var(--primary) / 0.18);
   }

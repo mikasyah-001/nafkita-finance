@@ -394,3 +394,15 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
     .sort((a, b) => b.value - a.value);
   return { rows, total, prevTotal, count, currencies: [...currencies], unconverted };
 }
+
+// Label sumbu grafik yang ringkas & konsisten: 500 rb, 12 jt, 1,2 M (tanpa simbol).
+export function formatAxis(v) {
+  const n = Number(v) || 0;
+  const a = Math.abs(n);
+  const fmt = (x) => x.toLocaleString("id-ID", { maximumFractionDigits: x < 10 ? 1 : 0 });
+  if (a >= 1e12) return `${fmt(n / 1e12)} T`;
+  if (a >= 1e9) return `${fmt(n / 1e9)} M`;
+  if (a >= 1e6) return `${fmt(n / 1e6)} jt`;
+  if (a >= 1e3) return `${fmt(n / 1e3)} rb`;
+  return fmt(n);
+}

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatMoney, formatNumber, colorMap, assetTypeLabels, convertTo, isGoldType } from "@/lib/finance";
+import { formatMoney, colorMap, assetTypeLabels, convertTo, isGoldType, formatAxis } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
@@ -48,7 +48,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={byType} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={55} />
-              <YAxis tickFormatter={(v) => formatNumber(v)} tick={{ fontSize: 10 }} width={48} />
+              <YAxis tickFormatter={formatAxis} tick={{ fontSize: 10 }} width={44} />
               <Tooltip formatter={(v) => formatMoney(v, currency)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
               <Bar dataKey="total" radius={[6, 6, 0, 0]}>
                 {byType.map((d, i) => (

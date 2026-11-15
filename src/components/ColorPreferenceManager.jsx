@@ -59,10 +59,10 @@ function SwatchRow({ title, desc, current, defaultVal, saving, onPick }) {
         {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
       </div>
       <p className="text-xs text-muted-foreground mb-2.5">{desc}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => onPick(defaultVal)}
-          className={`w-8 h-8 rounded-full border-2 border-dashed flex items-center justify-center transition-colors ${isDefault ? "border-primary text-primary" : "border-border text-muted-foreground hover:border-foreground/40"}`}
+          className={`w-7 h-7 rounded-full border-2 border-dashed flex items-center justify-center transition-colors ${isDefault ? "border-primary text-primary" : "border-border text-muted-foreground hover:border-foreground/40"}`}
           title="Kembalikan ke default"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ function SwatchRow({ title, desc, current, defaultVal, saving, onPick }) {
             <button
               key={p.hsl}
               onClick={() => onPick(p.hsl)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 ${selected ? "ring-2 ring-offset-2 ring-offset-background ring-foreground/40" : ""}`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90 ${selected ? "ring-2 ring-offset-2 ring-offset-background ring-foreground/40" : ""}`}
               style={{ backgroundColor: `hsl(${p.hsl})` }}
               title={p.name}
               aria-label={p.name}

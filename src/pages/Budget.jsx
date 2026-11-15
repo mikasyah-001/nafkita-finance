@@ -63,7 +63,16 @@ export default function Budget() {
     const b = budgetMap[c.name];
     return s + (b?.limit_amount || 0) + (b?.rollover_amount || 0);
   }, 0);
-  const totalSpent = Object.values(spentByCategory).reduce((s, v) => s + v, 0);
+  // Bandingkan apel dengan apel: "terpakai" hanya dari kategori yang punya
+  // anggaran. Pengeluaran kategori tanpa anggaran ditampilkan terpisah, agar
+  // kartu tidak terlihat "jebol" padahal semua kategori beranggaran masih aman.
+  const budgetedNames = expenseCategories
+    .filter((c) => (budgetMap[c.name]?.limit_amount || 0) + (budgetMap[c.name]?.rollover_amount || 0) > 0)
+    .map((c) => c.name);
+  const totalSpent = budgetedNames.reduce((s, n) => s + (spentByCategory[n] || 0), 0);
+  const unbudgetedSpent = Object.entries(spentByCategory)
+    .filter(([n]) => !budgetedNames.includes(n))
+    .reduce((s, [, v]) => s + v, 0);
 
   const getLimit = (catName) => {
     if (limits[catName] !== undefined) return limits[catName];
@@ -141,10 +150,13 @@ export default function Budget() {
         {totalLimit > 0 && (
           <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
             <div
-              className={`h-full rounded-full ${totalSpent > totalLimit ? "bg-destructive/40" : "bg-white"}`}
+              className={`h-full rounded-full ${totalSpent > totalLimit ? "bg-[hsl(354_80%_75%)]" : "bg-white"}`}
               style={{ width: `${Math.min(100, (totalSpent / totalLimit) * 100)}%` }}
             />
           </div>
+        )}
+        {unbudgetedSpent > 0 && (
+          <p className="text-xs opacity-80 mt-2">+ {formatMoney(unbudgetedSpent, currency)} di kategori tanpa anggaran</p>
         )}
       </div>
 

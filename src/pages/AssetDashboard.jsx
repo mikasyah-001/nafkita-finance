@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType, formatAxis } from "@/lib/finance";
 import { toast } from "sonner";
 import { Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
@@ -74,8 +74,13 @@ export default function AssetDashboard() {
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
   const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
   const missingRates = assetCurrencies.filter((c) => c !== displayCurrency && !hasRate(c, rateMap));
-  const totalPurchase = scopedAssets.reduce((s, a) => s + convertTo((isGoldType(a.type) || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
-  const totalGrowth = totalPurchase > 0 ? ((totalCurrent - totalPurchase) / totalPurchase) * 100 : 0;
+  // Pertumbuhan hanya untuk aset yang punya harga beli. Sebelumnya nilai
+  // SEMUA aset (termasuk tabungan bank tanpa harga beli) dibandingkan dengan
+  // harga beli sebagian aset, sehingga muncul angka semu seperti +133%.
+  const withPurchase = scopedAssets.filter((a) => (a.purchase_price || 0) > 0);
+  const totalPurchase = withPurchase.reduce((s, a) => s + convertTo((isGoldType(a.type) || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
+  const purchasedCurrent = withPurchase.reduce((s, a) => s + displayValue(a), 0);
+  const totalGrowth = totalPurchase > 0 ? ((purchasedCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
   const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
   const allocation = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
@@ -213,11 +218,11 @@ export default function AssetDashboard() {
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatMoneyShort(totalCurrent, displayCurrency)}</p>
         <div className="flex gap-4 mt-2 text-xs">
           <div>
-            <p className="opacity-80">Nilai Beli</p>
+            <p className="opacity-80">Nilai beli ({withPurchase.length} aset)</p>
             <p className="font-semibold tabular-nums">{formatMoneyShort(totalPurchase, displayCurrency)}</p>
           </div>
           <div>
-            <p className="opacity-80">Pertumbuhan</p>
+            <p className="opacity-80">Pertumbuhan aset tsb.</p>
             <p className="font-semibold tabular-nums flex items-center gap-1">{totalGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}{totalGrowth >= 0 ? "+" : ""}{totalGrowth.toFixed(1)}%</p>
           </div>
           <div>
@@ -349,7 +354,7 @@ export default function AssetDashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`} />
+                  <YAxis width={44} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={formatAxis} />
                   <Tooltip formatter={(v) => formatRupiah(v)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={2} fill="url(#goldGrad)" name="Nilai Emas" />
                 </AreaChart>
@@ -391,7 +396,7 @@ export default function AssetDashboard() {
               <LineChart data={snapshotChartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="period" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatMoneyShort(v, displayCurrency).replace(/[A-Za-z$.]/g, "")} />
+                <YAxis width={44} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={formatAxis} />
                 <Tooltip formatter={(v) => formatMoneyShort(v, displayCurrency)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />

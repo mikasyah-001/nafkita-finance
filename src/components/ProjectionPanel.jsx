@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useTransactions, useAssets, useMe } from "@/hooks/useFinance";
-import { summarizeByCurrency, formatMoneyShort, CURRENCY_CODES, activeCurrencies } from "@/lib/finance";
+import { summarizeByCurrency, formatMoneyShort, CURRENCY_CODES, activeCurrencies, formatAxis } from "@/lib/finance";
 import { base44 } from "@/api/base44Client";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { TrendingUp, SlidersHorizontal, Loader2 } from "lucide-react";
@@ -194,7 +194,7 @@ export default function ProjectionPanel({ scope = "shared" }) {
               <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatMoneyShort(v, cur)} />
+                <YAxis width={44} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={formatAxis} />
                 <Tooltip formatter={(v) => formatMoneyShort(v, cur)} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 <Line type="monotone" dataKey="Riil" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} />

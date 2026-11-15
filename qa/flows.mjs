@@ -225,6 +225,28 @@ try {
     await nav("/aset");
   });
 
+  await step("Bukti pembelian: ikon di daftar aset & thumbnail di form membuka pratinjau gambar", async () => {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==";
+    await page.evaluate((u) => window.__qa.assets.push({ id: "qa-proof", name: "QA Emas Bukti", type: "emas", quantity: 1, purchase_price: 1500000, value: 1500000, currency: "IDR", unit: "gram", purchase_proof_url: u, visibility: "shared", created_by_id: "u1", created_date: new Date().toISOString(), updated_date: new Date(Date.now() + 60000).toISOString() }), png);
+    await nav("/kesehatan-data"); await nav("/aset");
+    await page.getByRole("button", { name: "Lihat bukti pembelian QA Emas Bukti" }).click();
+    const dlg = page.getByRole("dialog", { name: "Bukti pembelian" });
+    assert.ok(await dlg.isVisible(), "Pratinjau terbuka");
+    const box = await dlg.locator("img").boundingBox();
+    assert.ok(box && box.height > 50, `Gambar terlihat (tinggi ${box?.height})`);
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    assert.equal(await dlg.count(), 0, "Pratinjau tertutup");
+    await page.getByRole("button", { name: "Edit aset QA Emas Bukti" }).click();
+    await page.getByRole("button", { name: "Lihat bukti pembelian", exact: true }).click();
+    assert.ok(await dlg.isVisible(), "Pratinjau dari form terbuka");
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    assert.ok(await page.locator("#asset-name").isVisible(), "Form aset tetap terbuka setelah pratinjau ditutup");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    if (await page.locator("#asset-name").count()) await page.getByRole("button", { name: /Tutup|Batal/ }).first().click();
+    await page.waitForTimeout(300);
+  });
+
   await step("Ganti jenis Emas → Bank: isian gram/harga tidak terbawa", async () => {
     await page.getByRole("button", { name: /Tambah aset/i }).first().click();
     await page.getByRole("radio", { name: "Emas", exact: true }).click();

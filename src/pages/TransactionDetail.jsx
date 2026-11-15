@@ -6,7 +6,7 @@ import { formatMoney, formatDate, colorMap, currencySymbol, formatMoneyPlain } f
 import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
-import { Image as SmartImage } from "@/components/ui/image";
+import ProofViewer from "@/components/ProofViewer";
 import { scanReceipt } from "@/lib/scanReceipt";
 import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export default function TransactionDetail() {
   const partnerName = partners[0]?.full_name || "pasangan";
 
   const [edit, setEdit] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(null);
   const [scanning, setScanning] = useState(false);
@@ -446,11 +447,12 @@ export default function TransactionDetail() {
       {tx.photo_url && (
         <div className="surface p-3 mb-4">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5" /> Bon / Struk</p>
-          <div className="rounded-xl overflow-hidden">
-            <SmartImage src={tx.photo_url} alt="Bon transaksi" className="w-full" fittingType="fit" />
-          </div>
+          <button type="button" onClick={() => setViewPhoto(true)} aria-label="Lihat bon layar penuh" className="block w-full rounded-xl overflow-hidden bg-muted">
+            <img src={tx.photo_url} alt="Bon transaksi" className="w-full max-h-80 object-contain" />
+          </button>
         </div>
       )}
+      {viewPhoto && tx.photo_url && <ProofViewer url={tx.photo_url} title="Bon / Struk" onClose={() => setViewPhoto(false)} />}
 
       <div className="surface divide-y divide-border">
         <DetailRow icon={CategoryIcon} iconName={icon} cm={cm} label="Kategori" value={tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category || "-"} />

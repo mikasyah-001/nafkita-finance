@@ -6,9 +6,9 @@ import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetT
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
+import ProofViewer from "@/components/ProofViewer";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import CurrencyTabs from "@/components/CurrencyTabs";
-import { Image as SmartImage } from "@/components/ui/image";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
@@ -243,8 +243,8 @@ export default function Assets() {
                     <p className="text-sm font-semibold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
                       {a.purchase_proof_url && (
-                        <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
-                          <Receipt className="w-3.5 h-3.5" />
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setViewProof(a.purchase_proof_url); }} aria-label={`Lihat bukti pembelian ${a.name}`} className="-m-2 p-2 text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
+                          <Receipt className="w-4 h-4" />
                         </button>
                       )}
                       <button onClick={() => handleToggleVisibility(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}>
@@ -258,7 +258,7 @@ export default function Assets() {
                       <Link to={`/mutasi-aset?asset_id=${a.id}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Riwayat mutasi aset">
                         <History className="w-3.5 h-3.5" />
                       </Link>
-                      <button onClick={() => openEdit(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
+                      <button onClick={() => openEdit(a)} aria-label={`Edit aset ${a.name}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => handleDelete(a.id)} className="text-xs text-destructive flex items-center gap-1" title="Hapus aset">
@@ -352,16 +352,7 @@ export default function Assets() {
 
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 
-      {viewProof && (
-        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-5" onClick={() => setViewProof(null)}>
-          <button className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center">
-            <X className="w-5 h-5" />
-          </button>
-          <div className="max-w-md w-full max-h-[85vh] rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <SmartImage src={viewProof} alt="Bukti pembelian" className="w-full" fittingType="fit" />
-          </div>
-        </div>
-      )}
+      {viewProof && <ProofViewer url={viewProof} onClose={() => setViewProof(null)} />}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview } from "@/lib/finance";
-import { Image as SmartImage } from "@/components/ui/image";
+import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
@@ -38,6 +38,7 @@ export default function AssetForm({ asset, onClose }) {
   );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(false);
   const fileRef = useRef(null);
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
@@ -207,7 +208,9 @@ export default function AssetForm({ asset, onClose }) {
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
           {form.purchase_proof_url ? (
             <div className="relative w-fit mt-1">
-              <SmartImage src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 rounded-xl object-cover" fittingType="fill" />
+              <button type="button" onClick={() => setPreview(true)} aria-label="Lihat bukti pembelian" className="block rounded-xl overflow-hidden active:scale-95 transition-transform">
+                <img src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 object-cover bg-muted" />
+              </button>
               <button onClick={() => setForm({ ...form, purchase_proof_url: "" })} aria-label="Hapus bukti" className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
             </div>
           ) : (
@@ -234,6 +237,7 @@ export default function AssetForm({ asset, onClose }) {
           <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Opsional" className={fieldInput} />
         </FieldRow>
       </FieldGroup>
+      {preview && <ProofViewer url={form.purchase_proof_url} onClose={() => setPreview(false)} />}
     </FormSheet>
   );
 }

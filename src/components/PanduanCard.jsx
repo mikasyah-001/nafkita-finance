@@ -8,13 +8,13 @@ export default function PanduanCard({ item, accentClass }) {
   const Icon = item.icon;
 
   return (
-    <div className="surface overflow-hidden transition-shadow hover:shadow-sm">
+    <article className="surface rounded-3xl overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 p-4 text-left"
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-muted/40 transition-colors"
         aria-expanded={open}
       >
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${accentClass}`}>
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${accentClass}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -25,24 +25,24 @@ export default function PanduanCard({ item, accentClass }) {
       </button>
 
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-4 border-t border-border/60">
+        <div className="px-4 pb-4 pt-1 space-y-4 border-t border-border">
           <p className="text-sm text-muted-foreground leading-relaxed pt-3">{item.description}</p>
 
           <div>
             <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-1.5">
-              <Workflow className="w-3.5 h-3.5 text-primary" /> Cara Kerja
+              <Workflow className="w-3.5 h-3.5 text-primary" /> Cara kerja
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed">{item.howItWorks}</p>
           </div>
 
           <div>
             <h4 className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-2">
-              <ListChecks className="w-3.5 h-3.5 text-success" /> Langkah Pemakaian
+              <ListChecks className="w-3.5 h-3.5 text-primary" /> Langkah pemakaian
             </h4>
-            <ol className="space-y-1.5">
+            <ol className="space-y-2">
               {item.steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                  <span className="w-5 h-5 rounded-full bg-success/10 text-success text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-gold text-gold-foreground text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <span className="leading-relaxed">{step}</span>
@@ -51,9 +51,9 @@ export default function PanduanCard({ item, accentClass }) {
             </ol>
           </div>
 
-          <div className="rounded-xl bg-warning/10 border border-warning/60 p-3 flex items-start gap-2">
-            <Lightbulb className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <p className="text-xs text-warning leading-relaxed">{item.tips}</p>
+          <div className="card-pastel card-pastel-butter rounded-2xl p-3 flex items-start gap-2">
+            <Lightbulb className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="text-xs leading-relaxed">{item.tips}</p>
           </div>
 
           <button
@@ -64,6 +64,6 @@ export default function PanduanCard({ item, accentClass }) {
           </button>
         </div>
       )}
-    </div>
+    </article>
   );
 }

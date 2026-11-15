@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy, Heart } from "lucide-react";
+import { ArrowRight, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy, Heart } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import UserAuditLog from "@/components/UserAuditLog";
 import { deriveRefCode } from "@/lib/refCode";
 import PageHeader from "@/components/PageHeader";
+import { FieldRow, fieldInput } from "@/components/FormSheet";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -74,37 +75,44 @@ export default function Profile() {
     <div className="px-5 pt-6">
       <PageHeader title="Profil" back />
 
-      <div className="flex flex-col items-center mb-6">
+      <section aria-label="Foto & identitas" className="card-gradient-primary rounded-[28px] p-5 mb-5 flex items-center gap-4">
         <button
+          type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-border active:scale-95 transition-transform disabled:opacity-60"
+          aria-label="Ganti foto profil"
+          className="relative w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/15 shrink-0 active:scale-95 transition-transform disabled:opacity-60"
         >
           {photoUrl ? (
             <SmartImage src={photoUrl} alt="foto profil" className="w-full h-full" fittingType="fill" />
           ) : (
-            <div className="w-full h-full bg-muted flex items-center justify-center">
-              {uploading ? <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /> : <User className="w-10 h-10 text-muted-foreground" />}
+            <div className="w-full h-full bg-white/10 flex items-center justify-center">
+              {uploading ? <Loader2 className="w-8 h-8 animate-spin opacity-80" /> : <User className="w-10 h-10 opacity-80" />}
             </div>
           )}
-          <div className="absolute bottom-0 inset-x-0 bg-primary/80 text-primary-foreground text-[11px] py-1 flex items-center justify-center gap-1">
+          <div className="absolute bottom-0 inset-x-0 bg-gold text-gold-foreground text-[11px] font-semibold py-1 flex items-center justify-center gap-1">
             <Camera className="w-3 h-3" /> Ganti
           </div>
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-        <p className="text-xs text-muted-foreground mt-2">{user?.email}</p>
-      </div>
+        <div className="min-w-0">
+          <p className="text-xs opacity-75">Akun Anda</p>
+          <p className="font-heading text-2xl font-extrabold leading-tight tracking-tight truncate">{name || user?.full_name || "Tanpa nama"}</p>
+          <p className="text-xs opacity-75 truncate mt-0.5">{user?.email}</p>
+        </div>
+      </section>
 
-      <div className="mb-5">
-        <label htmlFor="profile-name" className="text-xs text-muted-foreground mb-1.5 block">Nama</label>
-        <input
-          id="profile-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nama lengkap"
-          className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30"
-        />
-      </div>
+      <section aria-label="Data profil" className="surface rounded-3xl divide-y divide-border mb-4">
+        <FieldRow icon={User} label="Nama" htmlFor="profile-name">
+          <input
+            id="profile-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nama lengkap"
+            className={fieldInput}
+          />
+        </FieldRow>
+      </section>
 
       <button
         onClick={handleSave}
@@ -114,18 +122,18 @@ export default function Profile() {
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
 
-      <div className="surface p-4 mt-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Hash className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold">Kode Referensi Pasangan</p>
+      <section aria-labelledby="profile-ref-code" className="surface rounded-3xl p-4 mt-6">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="w-9 h-9 rounded-full bg-gold text-gold-foreground flex items-center justify-center shrink-0"><Hash className="w-4 h-4" /></span>
+          <h2 id="profile-ref-code" className="font-semibold text-[17px] leading-tight">Kode referensi pasangan</h2>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">
+        <p className="text-xs text-muted-foreground mb-3 leading-snug">
           Bagikan kode ini ke pasangan. Pasangan memasukkannya di{" "}
           <span className="font-medium">Pengaturan → Undang Pasangan → Via Kode Referensi</span>{" "}
           untuk menghubungkan akun keduanya.
         </p>
         <div className="flex items-center gap-2">
-          <div className="flex-1 rounded-xl bg-muted px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.15em]">
+          <div className="flex-1 rounded-2xl bg-muted px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.15em]">
             {myCode || "—"}
           </div>
           <button
@@ -135,26 +143,26 @@ export default function Profile() {
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
           </button>
         </div>
-      </div>
+      </section>
 
       <button
         onClick={() => navigate("/umpan-balik")}
-        className="w-full mt-5 surface p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
+        className="w-full mt-4 card-pastel card-pastel-sage rounded-3xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
       >
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <MessageSquareHeart className="w-5 h-5 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
+          <MessageSquareHeart className="w-5 h-5" />
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold">Kirim Umpan Balik</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Laporan error, ide fitur, atau saran untuk pengembang</p>
+          <p className="text-xs opacity-75 mt-0.5">Laporan error, ide fitur, atau saran untuk pengembang</p>
         </div>
-        <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+        <ArrowRight className="w-4 h-4 opacity-70" />
       </button>
 
-      <div className="mt-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Heart className="w-4 h-4 text-destructive" />
-          <h2 className="font-semibold text-sm">Keluarga Terkoneksi</h2>
+      <div className="mt-6">
+        <div className="mb-2.5">
+          <h2 className="font-semibold text-[17px] leading-tight flex items-center gap-2"><Heart className="w-4 h-4 text-destructive" /> Keluarga terkoneksi</h2>
+          <p className="text-xs text-muted-foreground">Akun yang berbagi catatan dengan Anda</p>
         </div>
         <PartnerManager />
       </div>

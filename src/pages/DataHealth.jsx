@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
-import { formatDate, colorMap } from "@/lib/finance";
+import { formatDate } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
@@ -42,39 +42,35 @@ export default function DataHealth() {
 
   return (
     <div className="px-5 pt-6">
-      <PageHeader title="Kesehatan Data" subtitle="Deteksi masalah data keuangan Anda" back />
+      <PageHeader title="Kesehatan data" subtitle="Deteksi masalah data keuangan Anda" back />
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          {/* Status Banner */}
-          <div className={`rounded-2xl border p-4 mb-4 ${isHealthy ? "border-success/30 bg-success/10" : "border-warning/30 bg-warning/10"}`}>
+          {/* Status */}
+          <section aria-label="Status kesehatan data" className="card-gradient-primary rounded-[28px] p-5 mb-5">
             <div className="flex items-center gap-3">
-              {isHealthy ? (
-                <CheckCircle2 className="w-8 h-8 text-success shrink-0" />
-              ) : (
-                <AlertTriangle className="w-8 h-8 text-warning shrink-0" />
-              )}
-              <div>
-                <p className="font-semibold text-sm">
+              <span className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${isHealthy ? "bg-white/15" : "bg-gold text-gold-foreground"}`}>
+                {isHealthy ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              </span>
+              <div className="min-w-0">
+                <p className="font-heading text-[26px] leading-tight font-extrabold tracking-tight">
                   {isHealthy ? "Data Anda Sehat!" : `${totalIssues} masalah ditemukan`}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs opacity-75 leading-snug">
                   {isHealthy
                     ? "Tidak ada masalah pada transaksi dan aset Anda."
                     : "Perbaiki masalah di bawah untuk menjaga akurasi laporan."}
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            <SummaryCard icon={Tag} count={issues.noCategory.length} label="Tanpa Kategori" color="orange" />
-            <SummaryCard icon={TrendingDown} count={issues.negativeAssets.length} label="Saldo Negatif" color="red" />
-            <SummaryCard icon={Clock} count={issues.staleAssets.length} label="Aset Stale" color="amber" />
-          </div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <SummaryCard icon={Tag} count={issues.noCategory.length} label="Tanpa Kategori" />
+              <SummaryCard icon={TrendingDown} count={issues.negativeAssets.length} label="Saldo Negatif" />
+              <SummaryCard icon={Clock} count={issues.staleAssets.length} label="Aset Stale" />
+            </div>
+          </section>
 
           {/* Transaksi tanpa kategori */}
           {issues.noCategory.length > 0 && (
@@ -82,11 +78,11 @@ export default function DataHealth() {
               icon={Tag}
               title="Transaksi Tanpa Kategori"
               subtitle={`${issues.noCategory.length} transaksi belum dikategorisasi`}
-              color="orange"
+              tone="warning"
             >
               {issues.noCategory.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                  <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <CategoryIcon name="Wallet" className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -98,7 +94,7 @@ export default function DataHealth() {
                   </div>
                   <button
                     onClick={() => navigate(`/transaksi/${tx.id}`)}
-                    className="text-xs text-primary font-medium px-2 py-1 rounded-lg bg-primary/10 shrink-0"
+                    className="h-8 px-3.5 rounded-full border border-primary bg-primary text-primary-foreground text-xs font-semibold shrink-0 active:scale-95 transition-transform"
                   >
                     Perbaiki
                   </button>
@@ -113,11 +109,11 @@ export default function DataHealth() {
               icon={TrendingDown}
               title="Aset dengan Saldo Negatif"
               subtitle={`${issues.negativeAssets.length} aset bernilai negatif`}
-              color="red"
+              tone="destructive"
             >
               {issues.negativeAssets.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                  <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center shrink-0">
+                <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
                     <CategoryIcon name="Landmark" className="w-4 h-4 text-destructive" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -138,14 +134,14 @@ export default function DataHealth() {
               icon={Clock}
               title={`Aset Tidak Diperbarui (${STALE_DAYS}+ hari)`}
               subtitle={`${issues.staleAssets.length} aset belum diperbarui dalam ${STALE_DAYS} hari`}
-              color="amber"
+              tone="warning"
             >
               {issues.staleAssets.map((a) => {
                 const lastUpdate = new Date(a.updated_date || a.created_date);
                 const daysAgo = Math.floor((Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24));
                 return (
-                  <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                    <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center shrink-0">
+                  <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
                       <CategoryIcon name="Landmark" className="w-4 h-4 text-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -162,11 +158,13 @@ export default function DataHealth() {
           )}
 
           {isHealthy && (
+            <div className="surface rounded-3xl px-4 mb-4">
             <EmptyState
               icon={CheckCircle2}
               title="Semua data bersih"
               subtitle="Tidak ada transaksi tanpa kategori, saldo negatif, atau aset yang belum diperbarui."
             />
+            </div>
           )}
         </>
       )}
@@ -174,33 +172,34 @@ export default function DataHealth() {
   );
 }
 
-function SummaryCard({ icon: Icon, count, label, color }) {
-  const cm = colorMap[color] || colorMap.slate;
+function SummaryCard({ icon: Icon, count, label }) {
   return (
-    <div className="surface p-3 text-center">
-      <div className={`w-9 h-9 rounded-xl ${cm.bg} flex items-center justify-center mx-auto mb-1.5`}>
-        <Icon className={`w-4 h-4 ${cm.text}`} />
-      </div>
-      <p className="text-xl font-bold tabular-nums">{count}</p>
-      <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
+    <div className="rounded-2xl bg-white/[0.07] border border-white/10 px-2.5 py-2.5 text-center">
+      <Icon className="w-4 h-4 mx-auto mb-1 opacity-75" />
+      <p className="font-heading text-xl font-extrabold tabular-nums leading-none">{count}</p>
+      <p className="text-[11px] opacity-75 leading-tight mt-1">{label}</p>
     </div>
   );
 }
 
-function IssueSection({ icon: Icon, title, subtitle, color, children }) {
-  const cm = colorMap[color] || colorMap.slate;
+const TONES = {
+  warning: "bg-warning/15 text-warning",
+  destructive: "bg-destructive/15 text-destructive",
+};
+
+function IssueSection({ icon: Icon, title, subtitle, tone, children }) {
   return (
-    <div className="surface p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-8 h-8 rounded-lg ${cm.bg} flex items-center justify-center shrink-0`}>
-          <Icon className={`w-4 h-4 ${cm.text}`} />
+    <section className="mb-5">
+      <div className="flex items-center gap-3 mb-2.5">
+        <div className={`w-8 h-8 rounded-full ${TONES[tone] || "bg-muted text-muted-foreground"} flex items-center justify-center shrink-0`}>
+          <Icon className="w-4 h-4" />
         </div>
-        <div>
-          <h2 className="font-semibold text-sm">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="font-semibold text-[17px] leading-tight">{title}</h2>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
-      <div>{children}</div>
-    </div>
+      <div className="surface rounded-3xl divide-y divide-border">{children}</div>
+    </section>
   );
 }

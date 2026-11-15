@@ -94,29 +94,34 @@ export default function Zakat() {
 
   return (
     <div className="px-5 pt-6">
-      <PageHeader title="Zakat Mal" subtitle="Nisab per mata uang • 85 gr emas" back />
-
-      <ZakatMethodNotice />
+      <PageHeader title="Zakat mal" subtitle="Nisab per mata uang • 85 gr emas" back />
 
       {/* Scope toggle */}
       <ScopeToggle className="mb-4" />
 
       {/* Ringkasan total gabungan (konversi IDR) */}
-      <div className="card-gradient-accent rounded-3xl p-5 mb-4 shadow-lg">
-        <p className="text-xs opacity-80">Total Harta Gabungan (IDR)</p>
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatRupiah(totalHartaIDR)}</p>
-        <div className="flex gap-3 mt-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs opacity-80"><Coins className="w-3.5 h-3.5" /> Total Zakat</div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{formatRupiah(totalZakatIDR)}</p>
+      <section aria-label="Ringkasan zakat" className="card-gradient-primary rounded-[28px] p-5 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/10 rounded-full px-2.5 py-1">
+            <Coins className="w-3 h-3" /> Zakat {year}
+          </span>
+          <span className="text-[11px] opacity-70">Konversi IDR</span>
+        </div>
+        <p className="text-xs opacity-75">Total harta gabungan</p>
+        <p className="font-heading text-[30px] sm:text-[34px] leading-[1.1] font-extrabold tracking-tight tabular-nums break-words">{formatRupiah(totalHartaIDR)}</p>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 min-w-0">
+            <p className="text-[11px] opacity-75 flex items-center gap-1"><Coins className="w-3 h-3" /> Total zakat</p>
+            <p className="font-semibold text-sm tabular-nums truncate">{formatRupiah(totalZakatIDR)}</p>
           </div>
-          <div className="w-px bg-white/20" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs opacity-80"><Scale className="w-3.5 h-3.5" /> Nisab</div>
-            <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">85 gr emas/currency</p>
+          <div className="rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 min-w-0">
+            <p className="text-[11px] opacity-75 flex items-center gap-1"><Scale className="w-3 h-3" /> Nisab</p>
+            <p className="font-semibold text-sm tabular-nums truncate">85 gr emas/mata uang</p>
           </div>
         </div>
-      </div>
+      </section>
+
+      <ZakatMethodNotice />
 
       {/* Loading state */}
       {statusLoading && (
@@ -125,9 +130,16 @@ export default function Zakat() {
         </div>
       )}
 
+      {!statusLoading && (
+        <div className="mb-2.5">
+          <h2 className="font-semibold text-[17px] leading-tight">Kewajiban per mata uang</h2>
+          <p className="text-xs text-muted-foreground">Dihitung terpisah untuk tiap mata uang aset</p>
+        </div>
+      )}
+
       {/* Kartu per mata uang */}
       {!statusLoading && perCurrency.length === 0 && (
-        <div className="surface p-6 text-center text-sm text-muted-foreground">
+        <div className="surface rounded-3xl p-6 mb-5 text-center text-sm text-muted-foreground">
           Belum ada aset untuk dihitung zakatnya.
         </div>
       )}
@@ -135,33 +147,32 @@ export default function Zakat() {
       {!statusLoading && perCurrency.map((p) => {
         const emasPaid = isPaid("emas", p.currency);
         const simpananPaid = isPaid("simpanan", p.currency);
-        const hasObligation = (p.wajibEmas && !emasPaid) || (p.wajibSimpanan && !simpananPaid);
         return (
-          <div key={p.currency} className="surface p-4 mb-4">
+          <section key={p.currency} className="surface rounded-3xl p-4 mb-4" aria-label={`Zakat mata uang ${p.currency}`}>
             <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              <h2 className="font-semibold text-sm flex-1">Mata Uang {p.currency}</h2>
-              <span className="text-[11px] text-muted-foreground">Harga emas: {p.goldPrice > 0 ? formatRupiah(p.goldPrice) : "—"}</span>
+              <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0"><Globe className="w-4 h-4 text-muted-foreground" /></span>
+              <h3 className="font-semibold text-[15px] flex-1">Mata uang {p.currency}</h3>
+              <span className="text-[11px] text-muted-foreground tabular-nums">Emas: {p.goldPrice > 0 ? formatRupiah(p.goldPrice) : "—"}/gr</span>
             </div>
 
             {/* Ringkasan harta */}
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="rounded-xl bg-muted/50 p-2.5">
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Coins className="w-3 h-3" /> Emas</p>
+              <div className="card-pastel card-pastel-butter rounded-2xl p-3">
+                <p className="text-[11px] opacity-75 flex items-center gap-1"><Coins className="w-3 h-3" /> Emas</p>
                 <p className="text-sm font-semibold tabular-nums">{formatNumber(p.emasGrams)} gr</p>
-                <p className="text-[11px] text-muted-foreground tabular-nums"><Money value={p.emasValue} currency={p.currency} /></p>
+                <p className="text-[11px] opacity-75 tabular-nums"><Money value={p.emasValue} currency={p.currency} /></p>
               </div>
-              <div className="rounded-xl bg-muted/50 p-2.5">
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Wallet className="w-3 h-3" /> Simpanan</p>
+              <div className="card-pastel card-pastel-mint rounded-2xl p-3">
+                <p className="text-[11px] opacity-75 flex items-center gap-1"><Wallet className="w-3 h-3" /> Simpanan</p>
                 <p className="text-sm font-semibold tabular-nums"><Money value={p.nonEmasValue} currency={p.currency} /></p>
-                <p className="text-[11px] text-muted-foreground">Nisab: {p.goldPrice > 0 ? <Money value={p.nisab} currency={p.currency} /> : "—"}</p>
+                <p className="text-[11px] opacity-75">Nisab: {p.goldPrice > 0 ? <Money value={p.nisab} currency={p.currency} /> : "—"}</p>
               </div>
             </div>
 
             {/* Status kewajiban */}
             <div className="space-y-2">
               <ObligationRow
-                label="Zakat Emas"
+                label="Zakat emas"
                 reached={p.wajibEmas}
                 paid={emasPaid}
                 detail={`${formatNumber(p.emasGrams)} gr ${p.wajibEmas ? `≥ ${NISAB_GRAM} gr` : `< ${NISAB_GRAM} gr`}`}
@@ -171,7 +182,7 @@ export default function Zakat() {
                 paying={paying === `emas-${p.currency}`}
               />
               <ObligationRow
-                label="Zakat Simpanan"
+                label="Zakat simpanan"
                 reached={p.wajibSimpanan}
                 paid={simpananPaid}
                 detail={p.wajibSimpanan ? "Simpanan ≥ nisab" : "Simpanan < nisab"}
@@ -181,26 +192,35 @@ export default function Zakat() {
                 paying={paying === `simpanan-${p.currency}`}
               />
             </div>
-          </div>
+          </section>
         );
       })}
 
       {/* Gold price input (IDR, untuk referensi) */}
-      <div className="surface p-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold text-sm flex items-center gap-2"><Coins className="w-4 h-4 text-warning" /> Harga Emas per Gram (IDR)</h2>
-          {goldLoading ? (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat</span>
-          ) : goldPriceNum > 0 ? (
-            <span className="text-[11px] text-success font-medium">real-time</span>
-          ) : null}
-        </div>
-        <div className="flex items-center rounded-lg bg-muted/50 border border-border px-3 mb-1">
-          <span className="text-xs text-muted-foreground">Rp</span>
-          <input aria-label="Harga emas per gram" type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
-        </div>
-        <p className="text-[11px] text-muted-foreground">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
+      <div className="mb-2.5 mt-5">
+        <h2 className="font-semibold text-[17px] leading-tight">Harga emas</h2>
+        <p className="text-xs text-muted-foreground">Dasar perhitungan nisab simpanan</p>
       </div>
+      <section aria-label="Harga emas per gram" className="surface rounded-3xl divide-y divide-border mb-4">
+        <div className="flex items-start gap-3 px-4 py-3">
+          <Coins className="w-4 h-4 text-gold shrink-0 mt-1" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="zakat-gold-price" className="block text-[11px] text-muted-foreground">Harga emas per gram (IDR)</label>
+              {goldLoading ? (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> memuat</span>
+              ) : goldPriceNum > 0 ? (
+                <span className="text-[11px] text-success font-medium">real-time</span>
+              ) : null}
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm text-muted-foreground">Rp</span>
+              <input id="zakat-gold-price" aria-label="Harga emas per gram" type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="w-full bg-transparent text-base font-semibold tabular-nums outline-none py-1 placeholder:text-muted-foreground/70 placeholder:font-normal" />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
+          </div>
+        </div>
+      </section>
 
       {/* Gold price compare */}
       <div className="mb-4">
@@ -208,7 +228,7 @@ export default function Zakat() {
       </div>
 
       {/* Email reminder */}
-      <button onClick={handleEmailReminder} disabled={sending || perCurrency.length === 0} className="w-full py-3 surface text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition-transform">
+      <button onClick={handleEmailReminder} disabled={sending || perCurrency.length === 0} className="w-full btn-secondary mb-4">
         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
         {sending ? "Mengirim..." : "Kirim Pengingat Zakat ke Email"}
       </button>
@@ -218,11 +238,11 @@ export default function Zakat() {
 
 function ObligationRow({ label, reached, paid, detail, amount, currency, onPay, paying }) {
   return (
-    <div className={`rounded-xl p-3 ${reached && !paid ? "bg-warning/10" : "bg-muted/50"}`}>
+    <div className={`rounded-2xl border p-3 ${reached && !paid ? "bg-warning/10 border-warning/30" : "bg-card border-border"}`}>
       <div className="flex items-center gap-2 mb-1">
-        {reached && !paid ? <AlertCircle className="w-4 h-4 text-warning" /> : <CheckCircle2 className="w-4 h-4 text-muted-foreground" />}
-        <span className="text-xs font-medium flex-1">{label}</span>
-        {paid && <span className="text-[11px] text-success font-medium">✓ Terbayar</span>}
+        {reached && !paid ? <AlertCircle className="w-4 h-4 text-warning" /> : <CheckCircle2 className={`w-4 h-4 ${paid ? "text-success" : "text-muted-foreground"}`} />}
+        <span className="text-sm font-semibold flex-1">{label}</span>
+        {paid && <span className="text-[11px] text-success font-semibold bg-success/10 rounded-full px-2 py-0.5">Terbayar</span>}
       </div>
       <p className="text-xs text-muted-foreground mb-2">
         {reached ? `Wajib. Zakat 2,5% = ` : "Belum wajib. "}
@@ -230,8 +250,8 @@ function ObligationRow({ label, reached, paid, detail, amount, currency, onPay, 
         {" "}({detail})
       </p>
       {reached && !paid && (
-        <button onClick={onPay} disabled={paying} className="w-full py-2 rounded-lg bg-success text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
-          {paying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+        <button onClick={onPay} disabled={paying} className="w-full btn-primary btn-sm">
+          {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           {paying ? "Memproses..." : "Bayarkan Zakat"}
         </button>
       )}

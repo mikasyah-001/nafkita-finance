@@ -72,28 +72,28 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
   const showIdrNote = displayCurrency !== "IDR";
 
   return (
-    <div className="rounded-2xl border border-success/30 bg-success/10 p-4 mb-5">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
-          <Bell className="w-4 h-4 text-success" />
+    <section aria-label={`Status zakat ${year}`} className="surface rounded-3xl p-4 mb-5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-9 h-9 rounded-full bg-gold text-gold-foreground flex items-center justify-center shrink-0">
+          <Bell className="w-4 h-4" />
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Status Zakat {year}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-[17px] leading-tight">Status zakat {year}</p>
           <p className="text-[11px] text-muted-foreground">Nisab emas = {NISAB_GRAM} gram</p>
         </div>
         {showIdrNote && (
-          <span className="text-[11px] font-medium text-success bg-success/15 rounded-full px-2 py-0.5 flex items-center gap-1">
+          <span className="text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2.5 py-1 flex items-center gap-1 shrink-0">
             <Info className="w-3 h-3" /> Dihitung dalam IDR
           </span>
         )}
       </div>
 
       {/* Status Emas */}
-      <div className="rounded-xl bg-background border border-border p-3 mb-2">
+      <div className="rounded-2xl border border-border p-3 mb-2">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Coins className="w-4 h-4 text-warning" />
-            <p className="text-sm font-medium">Zakat Emas</p>
+            <Coins className="w-4 h-4 text-gold" />
+            <p className="text-sm font-semibold">Zakat emas</p>
           </div>
           {emasPaid ? (
             <span className="text-[11px] font-medium text-success flex items-center gap-1">
@@ -118,7 +118,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${emasReachedNisab ? "bg-warning" : "bg-warning/40"}`}
+                className={`h-full rounded-full transition-all ${emasReachedNisab ? "bg-gold" : "bg-gold/40"}`}
                 style={{ width: `${emasProgress}%` }}
               />
             </div>
@@ -126,7 +126,7 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
               {emasReachedNisab
                 ? `Melebihi nisab • zakat 2,5% = `
                 : `Kurang ${formatNumber(NISAB_GRAM - emasGrams)} gr menuju nisab`}
-              {emasReachedNisab && <span className="font-semibold text-warning"><Money value={zakatEmas} currency={ZK} /></span>}
+              {emasReachedNisab && <span className="font-semibold text-foreground"><Money value={zakatEmas} currency={ZK} /></span>}
             </p>
           </>
         ) : (
@@ -136,11 +136,11 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
 
       {/* Status Simpanan */}
       {goldPrice > 0 && (
-        <div className="rounded-xl bg-background border border-border p-3 mb-2">
+        <div className="rounded-2xl border border-border p-3 mb-2">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-primary" />
-              <p className="text-sm font-medium">Zakat Simpanan</p>
+              <p className="text-sm font-semibold">Zakat simpanan</p>
             </div>
             {simpananPaid ? (
               <span className="text-[11px] font-medium text-success flex items-center gap-1">
@@ -182,26 +182,26 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
           {obligations.map((ob) => {
             const Icon = ob.icon;
             return (
-              <div key={ob.type} className="rounded-xl bg-background border border-border p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-success" />
+              <div key={ob.type} className="card-pastel card-pastel-mint rounded-2xl p-3">
+                <div className="flex items-center gap-3 mb-2.5">
+                  <div className="w-9 h-9 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{ob.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{ob.detail}</p>
+                    <p className="text-sm font-semibold">{ob.label}</p>
+                    <p className="text-[11px] opacity-75">{ob.detail}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] text-muted-foreground">2,5%</p>
-                    <p className="text-sm font-semibold text-success"><Money value={ob.amount} currency={ZK} /></p>
+                    <p className="text-[11px] opacity-75">2,5%</p>
+                    <p className="font-heading text-base font-extrabold tabular-nums"><Money value={ob.amount} currency={ZK} /></p>
                   </div>
                 </div>
                 <button
                   onClick={() => handlePay(ob)}
                   disabled={paying === ob.type}
-                  className="w-full py-2 rounded-lg bg-success text-white text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform"
+                  className="w-full btn-primary btn-sm"
                 >
-                  {paying === ob.type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {paying === ob.type ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   {paying === ob.type ? "Memproses..." : "Bayarkan Zakat"}
                 </button>
               </div>
@@ -212,10 +212,9 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
 
       {/* Notifikasi nisab emas tercapai */}
       {emasReachedNisab && obligations.length > 0 && (
-        <div className="mt-3 flex items-start gap-2 rounded-xl bg-warning/15 border border-warning/30 p-2.5">
-          <Sparkles className="w-4 h-4 text-warning shrink-0 mt-0.5">
-          </Sparkles>
-          <p className="text-[11px] text-warning leading-relaxed">
+        <div className="mt-3 flex items-start gap-2 rounded-2xl bg-warning/10 border border-warning/30 p-3">
+          <Sparkles className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <p className="text-[11px] text-foreground/80 leading-relaxed">
             Simpanan emas Anda telah mencapai nisab ({NISAB_GRAM} gram). Saatnya menunaikan zakat emas sebesar 2,5% dari total nilai emas.
           </p>
         </div>
@@ -226,6 +225,6 @@ export default function ZakatStatus({ emasGrams = 0, emasValue = 0, nonEmasValue
           <Info className="w-3 h-3" /> Masukkan harga emas untuk mengecek nisab zakat simpanan.
         </p>
       )}
-    </div>
+    </section>
   );
 }

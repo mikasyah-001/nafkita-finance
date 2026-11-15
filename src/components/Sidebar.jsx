@@ -1,5 +1,6 @@
 import { NavLink, Link } from "react-router-dom";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 import { useAuth } from "@/lib/AuthContext";
 import { mainItems, toolItems, accountItems } from "@/lib/navConfig";
 
@@ -39,11 +40,8 @@ export default function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-border bg-sidebar h-screen sticky top-0">
       <div className="px-5 py-5 border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-heading font-bold text-lg">NAFKITA</span>
+        <Link to="/" aria-label="NAFKITA — Beranda" className="flex items-center">
+          <BrandLogo markClassName="h-10 w-10" wordClassName="h-[18px]" />
         </Link>
       </div>
 
@@ -61,7 +59,7 @@ export default function Sidebar() {
 
       <Link
         to="/add"
-        className="mx-4 mb-4 hover:brightness-105 shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.6)] btn-primary"
+        className="mx-4 mb-4 hover:brightness-105 btn-gold"
       >
         <Plus className="w-5 h-5" />
         Catat Transaksi

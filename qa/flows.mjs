@@ -20,13 +20,13 @@ const nav = async (p) => {
 const rupiah = (s) => Number(String(s).replace(/[^\d-]/g, "")) * (/^-|−/.test(String(s).trim()) ? 1 : 1);
 const homeNumbers = async () => {
   await nav("/");
-  const saldo = rupiah(await page.locator(".card-gradient-primary p.text-2xl").first().innerText());
+  const saldo = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
   const belanja = rupiah(await page.getByText("Total pengeluaran", { exact: true }).locator("xpath=following-sibling::p[1]").innerText());
   return { saldo, belanja };
 };
 const laporanTotal = async () => {
   await nav("/laporan?tab=bulanan");
-  return rupiah(await page.locator(".card-gradient-primary p.text-2xl").first().innerText());
+  return rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
 };
 
 const results = [];

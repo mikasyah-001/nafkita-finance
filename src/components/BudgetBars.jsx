@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useBudgets, useUserCurrencies } from "@/hooks/useFinance";
 import { colorMap, filterReportableTx } from "@/lib/finance";
 import Money from "@/components/Money";
-import { Target, ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function BudgetBars({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
@@ -60,12 +60,13 @@ export default function BudgetBars({ scope = "shared" }) {
   }
 
   return (
-    <div className="surface p-4 mb-6">
+    <div className="surface rounded-3xl p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-sm flex items-center gap-2">
-          <Target className="w-4 h-4 text-primary" /> Sisa Anggaran
-        </h2>
-        <Link to="/anggaran" className="text-xs text-muted-foreground flex items-center gap-1">
+        <div>
+          <h2 className="font-semibold text-[17px] leading-tight">Masih aman?</h2>
+          <p className="text-xs text-muted-foreground">Sisa anggaran per kategori</p>
+        </div>
+        <Link to="/anggaran" className="text-xs font-medium text-primary flex items-center gap-1">
           Kelola <ArrowRight className="w-3 h-3" />
         </Link>
       </div>

@@ -197,3 +197,23 @@ Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai bac
 **Temuan dari uji alur:**
 - **Dua sistem notifikasi.** Aplikasi memakai sonner dan shadcn toast sekaligus. Notifikasi shadcn ("Transaksi disetujui") menutupi seluruh header halaman, termasuk tombol kembali, dan berhenti menghitung mundur selama kursor berada di atasnya. Sekarang semua notifikasi memakai sonner, dipasang global sehingga halaman daftar akun juga mendapatkannya.
 - **Tombol edit transaksi** hanya punya `title`. Sekarang ditambah `aria-label` agar terbaca oleh pembaca layar.
+
+## 14. Rebrand NAFKITA: logo baru & arah visual "Hutan & Emas"
+
+- **Logo:** dompet hijau + wordmark. Asetnya ada di `public/brand/` (ikon, wordmark gelap & terang, ikon PWA 180/192/512) dan `public/favicon.png`. Dipakai di favicon, manifest PWA, sidebar, halaman auth, dan Welcome lewat komponen `BrandLogo`. Logo Base44 tidak lagi dipakai.
+- **Palet dari logo:**
+  - latar gading `#F8F6EF`;
+  - primer hijau hutan `#157A5A`;
+  - aksen emas `#F8C33A` (tombol Catat, CTA Daftar);
+  - hero hijau tua dengan pendar emas;
+  - pastel mint/mentega/limau/persik/sage untuk kartu rencana;
+  - mode gelap hijau-hitam.
+- **Beranda (arah B, versi elegan):**
+  - sapaan pasangan dengan avatar berdua;
+  - chip aksi cepat;
+  - hero "Sisa uang bulan ini";
+  - carousel **Rencana kita** (target tabungan);
+  - **pengingat kontekstual** berbasis aturan: pengeluaran > pemasukan, belum ada anggaran, belum mencatat hari ini;
+  - judul seksi berupa pertanyaan: "Ke mana perginya?", "Masih aman?", "Jejak terakhir".
+- **Navigasi bawah:** pil melayang dengan tombol Catat emas; item aktif berupa ubin lembut.
+- Pola diadopsi dari referensi, tetapi identitas visualnya (warna, logo, ilustrasi) tetap milik NAFKITA.

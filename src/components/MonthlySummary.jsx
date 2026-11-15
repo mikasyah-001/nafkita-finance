@@ -5,7 +5,7 @@ import { formatDate, colorMap, hasRate, monthlyExpenseBreakdown, formatUnconvert
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
-import { PieChart, TrendingUp, TrendingDown, ArrowRight, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
@@ -38,13 +38,13 @@ export default function MonthlySummary({ scope = "shared" }) {
   const top = rows[0] || null;
 
   return (
-    <div className="surface p-4 mb-4">
+    <div className="surface rounded-3xl p-4 mb-5">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-sm flex items-center gap-2"><PieChart className="w-4 h-4 text-muted-foreground" /> Ringkasan Belanja</h2>
-          <p className="text-xs text-muted-foreground">{monthLabel}</p>
+          <h2 className="font-semibold text-[17px] leading-tight">Ke mana perginya?</h2>
+          <p className="text-xs text-muted-foreground">Pengeluaran {monthLabel}</p>
         </div>
-        <Link to="/laporan?tab=bulanan" className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
+        <Link to="/laporan?tab=bulanan" className="text-xs font-medium text-primary flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
       </div>
 
       {activeCurs.length > 0 && (

@@ -149,3 +149,18 @@ Kedua tampilan kini memakai satu fungsi, `monthlyExpenseBreakdown()` di `lib/fin
   - **Sedekah:** menampilkan total sedekah bulan ini.
   - **Transfer:** antar rekening.
   - **Tagihan:** menampilkan jumlah tagihan yang lewat atau mendekati jatuh tempo (≤3 hari). Teks berwarna merah bila ada yang lewat jatuh tempo.
+
+## 11. Tahap 6: perapian menyeluruh
+
+| Area | Sebelum | Sesudah |
+|---|---|---|
+| Test otomatis | 0 | 20 test logika keuangan (`npm test`, test runner bawaan Node) |
+| Bug tanggal tagihan bulanan (frontend) | 31 Jan → 3 Mar | 31 Jan → 28/29 Feb, sama dengan backend |
+| Kolom isian tanpa label aksesibel | 114 | 0 (`htmlFor`/`aria-label`) |
+| Tombol ikon tanpa label | 4 | 0 |
+| Teks "Memuat..." | 5 | Skeleton |
+| Judul kecil berhuruf kapital & berjarak lebar | 9 | 1 (kolom kode undangan, memang sengaja kapital) |
+| Warna palet hardcoded | ±420 | ±3 (di komponen dasar shadcn) |
+| Tombol utama / ikon / sekunder | ±20 variasi ditulis manual | `.btn-primary`, `.btn-secondary`, `.btn-icon` (71 tombol dikonversi) |
+
+Tombol lain yang masih ditulis manual sengaja dibiarkan karena memang bukan tombol standar: tab, chip filter, baris daftar yang bisa diketuk, dan pemilih warna.

@@ -176,7 +176,7 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
           <h2 className="font-semibold">Catat Utang/Piutang</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="flex gap-2 bg-muted p-1 rounded-2xl">
@@ -221,7 +221,7 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
           </button>
         </div>
@@ -264,7 +264,7 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-semibold">Pelunasan</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="rounded-2xl bg-muted p-3 text-sm">
@@ -298,7 +298,7 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Catat Pelunasan
           </button>
         </div>

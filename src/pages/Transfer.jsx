@@ -148,7 +148,7 @@ export default function Transfer() {
       </div>
 
       <div className="mt-5">
-        <button onClick={handleSave} disabled={saving || bankAssets.length < 2} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">
+        <button onClick={handleSave} disabled={saving || bankAssets.length < 2} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Memproses..." : "Transfer Sekarang"}
         </button>

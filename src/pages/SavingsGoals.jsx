@@ -37,7 +37,7 @@ export default function SavingsGoals() {
         subtitle="Capai target finansial keluarga"
         back
         actions={<>
-          <button onClick={() => { setEditingGoal(null); setShowForm(true); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
+          <button onClick={() => { setEditingGoal(null); setShowForm(true); }} className="btn-primary btn-sm">
             <Plus className="w-4 h-4" /> Tambah
           </button>
         </>}

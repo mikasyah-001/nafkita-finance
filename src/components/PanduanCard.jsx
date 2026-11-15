@@ -58,7 +58,7 @@ export default function PanduanCard({ item, accentClass }) {
 
           <button
             onClick={() => navigate(item.to)}
-            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+            className="w-full btn-primary btn-sm"
           >
             Buka {item.name} <ArrowRight className="w-4 h-4" />
           </button>

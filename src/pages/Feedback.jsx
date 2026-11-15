@@ -63,7 +63,7 @@ export default function Feedback() {
             <Heart className="w-3.5 h-3.5" /> Pesan diterima pengembang
           </div>
           <div className="w-full mt-8 space-y-2.5">
-            <button onClick={reset} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold active:scale-[0.99] transition-transform">
+            <button onClick={reset} className="w-full btn-primary">
               Kirim Umpan Balik Lain
             </button>
             <button onClick={() => navigate(-1)} className="w-full py-3 rounded-2xl border border-border text-foreground font-medium text-sm active:scale-[0.99] transition-transform">
@@ -139,7 +139,7 @@ export default function Feedback() {
           <button
             onClick={handleSubmit}
             disabled={sending}
-            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="w-full btn-primary"
           >
             {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Kirim ke Pengembang
           </button>

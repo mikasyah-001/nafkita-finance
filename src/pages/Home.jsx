@@ -140,10 +140,10 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />
-          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+          <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
-          <Link to="/pengaturan" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+          <Link to="/pengaturan" className="btn-icon">
             <Settings className="w-5 h-5 text-muted-foreground" />
           </Link>
         </div>

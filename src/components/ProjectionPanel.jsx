@@ -162,7 +162,7 @@ export default function ProjectionPanel({ scope = "shared" }) {
               <input id="projection-months-ahead" type="number" min="1" max="12" value={draft.months_ahead} onChange={(e) => setDraft({ ...draft, months_ahead: Number(e.target.value) || 6 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
           </div>
-          <button onClick={saveAssumptions} disabled={saving} className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
+          <button onClick={saveAssumptions} disabled={saving} className="w-full btn-primary btn-sm">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Simpan Asumsi
           </button>
         </div>

@@ -143,7 +143,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           <button
             onClick={handleAddProgress}
             disabled={submitting || !progressAmount || (progressMethod === "topup" && !sourceAssetId)}
-            className="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            className="w-full btn-primary btn-sm"
           >
             {submitting ? "Memproses..." : "Tambah"}
           </button>

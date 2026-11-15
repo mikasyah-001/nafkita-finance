@@ -183,7 +183,7 @@ export default function PartnerManager() {
             <button
               onClick={handleSaveRole}
               disabled={savingRole || (rolesDeclared && manageRole === myRole)}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="w-full btn-primary btn-sm"
             >
               {savingRole ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
               {rolesDeclared && manageRole === myRole ? "Peran tersimpan" : "Simpan peran"}

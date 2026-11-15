@@ -320,9 +320,9 @@ function ReportsAnalysis() {
         </div>
       ) : (
         <div className="flex items-center justify-between surface p-3">
-          <button onClick={prevPeriod} aria-label="Periode sebelumnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={prevPeriod} aria-label="Periode sebelumnya" className="btn-icon btn-icon-sm"><ChevronLeft className="w-5 h-5" /></button>
           <p className="font-medium">{periodLabel}</p>
-          <button onClick={nextPeriod} aria-label="Periode berikutnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={nextPeriod} aria-label="Periode berikutnya" className="btn-icon btn-icon-sm"><ChevronRight className="w-5 h-5" /></button>
         </div>
       )}
 

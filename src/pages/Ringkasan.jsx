@@ -65,9 +65,9 @@ export default function Ringkasan({ embedded = false }) {
       {!embedded && <PageHeader title="Ringkasan Bulanan" back />}
 
       <div className="flex items-center justify-between surface p-3 mb-3">
-        <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="btn-icon btn-icon-sm"><ChevronLeft className="w-5 h-5" /></button>
         <p className="font-medium text-sm">{monthName}</p>
-        <button onClick={() => setCursor(new Date(year, month + 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronRight className="w-5 h-5" /></button>
+        <button onClick={() => setCursor(new Date(year, month + 1, 1))} className="btn-icon btn-icon-sm"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
       <ScopeToggle className="mb-3" />

@@ -171,7 +171,7 @@ export default function CurrencyManager() {
             <input aria-label="Simbol mata uang" value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
           </div>
           <div className="flex gap-2">
-            <button onClick={addCustom} disabled={saving} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
+            <button onClick={addCustom} disabled={saving} className="flex-1 btn-primary btn-sm">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Tambah
             </button>
             <button onClick={() => { setShowAdd(false); setForm({ code: "", label: "", symbol: "" }); }} className="px-4 py-2 rounded-xl border border-border text-sm font-medium">Batal</button>

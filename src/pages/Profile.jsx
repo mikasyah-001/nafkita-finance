@@ -109,7 +109,7 @@ export default function Profile() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+        className="w-full btn-primary"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
       </button>
@@ -130,7 +130,7 @@ export default function Profile() {
           </div>
           <button
             onClick={copyCode}
-            className="px-4 py-3 rounded-xl bg-primary text-primary-foreground flex items-center gap-1.5 text-sm font-medium active:scale-95 transition-transform"
+            className="btn-primary"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
           </button>

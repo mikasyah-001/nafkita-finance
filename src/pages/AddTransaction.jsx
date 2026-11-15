@@ -287,7 +287,7 @@ export default function AddTransaction() {
     return (
       <div className="min-h-screen flex flex-col">
         <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <button onClick={() => setMultiTx(null)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={() => setMultiTx(null)} className="btn-icon btn-icon-sm">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-semibold">Pratinjau Transaksi</h1>
@@ -309,7 +309,7 @@ export default function AddTransaction() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+        <button onClick={() => navigate(-1)} className="btn-icon btn-icon-sm">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-semibold">Catat Transaksi</h1>
@@ -553,7 +553,7 @@ export default function AddTransaction() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+          className="w-full btn-primary"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Menyimpan..." : "Simpan Transaksi"}

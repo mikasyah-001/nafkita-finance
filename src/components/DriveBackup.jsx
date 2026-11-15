@@ -91,7 +91,7 @@ export default function DriveBackup() {
       <button
         onClick={handleBackup}
         disabled={backing}
-        className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 mb-3"
+        className="w-full mb-3 btn-primary btn-sm"
       >
         {backing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />} Buat Cadangan ke Drive
       </button>

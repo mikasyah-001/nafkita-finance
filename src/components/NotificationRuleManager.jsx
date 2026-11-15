@@ -109,7 +109,7 @@ export default function NotificationRuleManager() {
               Silent (lewati semua)
             </label>
           </div>
-          <button type="submit" className="w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Simpan</button>
+          <button type="submit" className="w-full btn-primary btn-sm">Simpan</button>
         </form>
       )}
 

@@ -81,7 +81,7 @@ export default function Transactions() {
       <PageHeader
         title="Riwayat Transaksi"
         actions={<>
-          <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+          <Link to="/impor" className="btn-icon btn-icon-sm">
             <Upload className="w-4 h-4 text-muted-foreground" />
           </Link>
         </>}

@@ -165,7 +165,7 @@ export default function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform relative"
+        className="relative btn-icon"
         aria-label="Notifikasi"
       >
         <Bell className="w-5 h-5 text-muted-foreground" />

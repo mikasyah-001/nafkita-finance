@@ -106,7 +106,7 @@ export default function AssetForm({ asset, onClose }) {
       <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">{isEdit ? "Edit Aset" : "Tambah Aset"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={onClose} className="btn-icon btn-icon-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -250,7 +250,7 @@ export default function AssetForm({ asset, onClose }) {
           <Field htmlFor="asset-notes" label="Catatan (opsional)">
             <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input" />
           </Field>
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Aset"}
           </button>

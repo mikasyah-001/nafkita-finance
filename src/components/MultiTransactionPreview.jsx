@@ -16,7 +16,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
             <p className="font-semibold text-sm">{items.length} transaksi terbaca</p>
             <p className="text-xs text-muted-foreground">Periksa kategori lalu simpan semua</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={onCancel} className="btn-icon btn-icon-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -96,7 +96,7 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
       <button
         onClick={() => onSave(items.filter((t) => !findDuplicate(t, existingTransactions)))}
         disabled={saving || items.length - dupCount === 0}
-        className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+        className="w-full btn-primary"
       >
         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
         {saving ? "Menyimpan..." : `Simpan (${items.length - dupCount}/${items.length})`}

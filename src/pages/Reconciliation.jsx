@@ -115,7 +115,7 @@ export default function Reconciliation() {
             <input id="recon-as-of-date" type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
 
-          <button onClick={handleCompute} disabled={computing || !selectedAssetId} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">
+          <button onClick={handleCompute} disabled={computing || !selectedAssetId} className="w-full btn-primary">
             {computing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Scale className="w-5 h-5" />} Hitung Rekonsiliasi
           </button>
 
@@ -131,7 +131,7 @@ export default function Reconciliation() {
                 <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-warning"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
               </div>
               {!isMatch && reconResult.status !== "reconciled" && (
-                <button onClick={handleAdjust} disabled={adjusting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
+                <button onClick={handleAdjust} disabled={adjusting} className="w-full btn-primary btn-sm">
                   {adjusting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Buat Penyesuaian & Tandai Selesai
                 </button>
               )}

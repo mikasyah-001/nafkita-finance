@@ -376,7 +376,7 @@ export default function Admin() {
             <button
               onClick={() => loadTransactions(false)}
               disabled={txLoadingMore}
-              className="w-full py-2.5 rounded-xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="w-full disabled:opacity-60 btn-secondary btn-sm"
             >
               {txLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />} Muat lebih banyak
             </button>

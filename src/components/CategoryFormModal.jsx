@@ -66,7 +66,7 @@ export default function CategoryFormModal({ open, onClose, onSaved, initial, cat
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-lg">{isEdit ? "Edit Kategori" : "Kategori Baru"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm">✕</button>
+          <button onClick={onClose} className="text-sm btn-icon btn-icon-sm">✕</button>
         </div>
 
         {!isEdit && (
@@ -122,7 +122,7 @@ export default function CategoryFormModal({ open, onClose, onSaved, initial, cat
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+          className="w-full btn-primary"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Menyimpan..." : "Simpan"}

@@ -57,7 +57,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl sm:rounded-3xl border border-border p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">{goal?.id ? "Edit Target" : "Target Tabungan Baru"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <button onClick={onClose} className="btn-icon btn-icon-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -148,7 +148,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50"
+            className="w-full btn-primary"
           >
             {submitting ? "Menyimpan..." : "Simpan"}
           </button>

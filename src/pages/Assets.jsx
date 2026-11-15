@@ -127,10 +127,10 @@ export default function Assets() {
       <PageHeader
         title="Aset Keluarga"
         actions={<>
-          <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
+          <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
-          <Link to="/aset-dashboard" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+          <Link to="/aset-dashboard" className="btn-icon">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>
           <button onClick={openAdd} className="h-10 px-3.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1.5 active:scale-95 transition-transform">
@@ -337,7 +337,7 @@ export default function Assets() {
       {sortedAssets.length > visibleCount && (
         <button
           onClick={() => setVisibleCount((c) => c + 10)}
-          className="w-full mt-3 py-3 rounded-2xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+          className="w-full mt-3 transition-transform btn-secondary"
         >
           <ChevronDown className="w-4 h-4" /> Lihat lainnya ({sortedAssets.length - visibleCount} lagi)
         </button>

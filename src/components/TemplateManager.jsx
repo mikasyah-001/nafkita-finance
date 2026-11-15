@@ -103,7 +103,7 @@ export default function TemplateManager() {
             <button onClick={() => setTpl({ ...tpl, visibility: "shared" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility !== "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-3 h-3" /> Bersama</button>
             <button onClick={() => setTpl({ ...tpl, visibility: "private" })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${tpl.visibility === "private" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-3 h-3" /> Pribadi</button>
           </div>
-          <button onClick={handleSave} disabled={saving} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary btn-sm">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simpan Template"}
           </button>
         </div>

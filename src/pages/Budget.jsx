@@ -123,9 +123,9 @@ export default function Budget() {
       <PageHeader title="Anggaran Bulanan" back />
 
       <div className="flex items-center justify-between surface p-3 mb-4">
-        <button onClick={prevMonth} aria-label="Bulan sebelumnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={prevMonth} aria-label="Bulan sebelumnya" className="btn-icon btn-icon-sm"><ChevronLeft className="w-5 h-5" /></button>
         <p className="font-medium">{monthName}</p>
-        <button onClick={nextMonth} aria-label="Bulan berikutnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+        <button onClick={nextMonth} aria-label="Bulan berikutnya" className="btn-icon btn-icon-sm"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
       <ScopeToggle className="mb-4" />

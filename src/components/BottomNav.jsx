@@ -82,7 +82,7 @@ export default function BottomNav() {
               <button
                 onClick={() => setShowMore(false)}
                 aria-label="Tutup menu"
-                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"
+                className="btn-icon btn-icon-sm"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -104,7 +104,7 @@ export default function LocalBackupRestore() {
       <button
         onClick={handleExport}
         disabled={exporting}
-        className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60 mb-3"
+        className="w-full mb-3 btn-primary btn-sm"
       >
         {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Buat Cadangan (Unduh)
       </button>
@@ -165,7 +165,7 @@ export default function LocalBackupRestore() {
       ) : (
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full py-2.5 rounded-xl border border-border text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform"
+          className="w-full transition-transform btn-secondary btn-sm"
         >
           <Upload className="w-4 h-4" /> Pilih File untuk Pulihkan
         </button>

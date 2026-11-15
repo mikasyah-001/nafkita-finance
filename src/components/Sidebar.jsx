@@ -61,7 +61,7 @@ export default function Sidebar() {
 
       <Link
         to="/add"
-        className="mx-4 mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:brightness-105 transition shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.6)]"
+        className="mx-4 mb-4 hover:brightness-105 shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.6)] btn-primary"
       >
         <Plus className="w-5 h-5" />
         Catat Transaksi

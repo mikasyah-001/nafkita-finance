@@ -288,7 +288,7 @@ export default function ImportReport() {
           <button
             onClick={handleAnalyzeText}
             disabled={parsing || !text.trim()}
-            className="w-full mt-3 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="w-full mt-3 btn-primary"
           >
             {parsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSearch className="w-5 h-5" />}
             {parsing ? "Menganalisis..." : "Analisis Teks"}
@@ -366,7 +366,7 @@ export default function ImportReport() {
           <button
             onClick={handleImport}
             disabled={importing || selectedCount === 0}
-            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60"
+            className="w-full btn-primary"
           >
             {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             {importing ? "Menyimpan..." : `Masukkan ${selectedCount} Transaksi`}

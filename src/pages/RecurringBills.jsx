@@ -85,7 +85,7 @@ export default function RecurringBills() {
                     <p className="text-xs text-muted-foreground">{formatMoney(b.amount, b.currency)} • {frequencyLabels[b.frequency] || b.frequency}</p>
                     {asset && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Dari: {asset.name}</p>}
                   </div>
-                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} className="shrink-0 w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50">
+                  <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} className="disabled:opacity-50 btn-icon btn-icon-sm">
                     {toggling === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : b.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
                 </div>
@@ -152,7 +152,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
       <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
           <h2 className="font-semibold">Tagihan Berulang</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="flex gap-2 bg-muted p-1 rounded-2xl">
@@ -210,7 +210,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
           </button>
         </div>

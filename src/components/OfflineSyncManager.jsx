@@ -67,7 +67,7 @@ export default function OfflineSyncManager() {
     );
   } else if (syncing) {
     content = (
-      <div className="bg-primary text-primary-foreground text-xs font-medium px-4 py-2 flex items-center justify-center gap-2">
+      <div className="btn-primary btn-sm">
         <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Menyinkronkan transaksi offline...
       </div>
     );

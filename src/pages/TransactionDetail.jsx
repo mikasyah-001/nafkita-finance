@@ -229,7 +229,7 @@ export default function TransactionDetail() {
         <PageHeader
           title="Edit Transaksi"
           actions={<>
-            <button onClick={() => { setEdit(false); setForm(null); }} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <button onClick={() => { setEdit(false); setForm(null); }} className="btn-icon btn-icon-sm">
               <X className="w-5 h-5" />
             </button>
             <button onClick={handleSave} disabled={saving} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-60">
@@ -384,7 +384,7 @@ export default function TransactionDetail() {
               onClick={handleToggleVisibility}
               disabled={toggling}
               title={tx.visibility === "private" ? "Jadikan Bersama Keluarga" : "Jadikan Pribadi"}
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center disabled:opacity-60 active:scale-95 transition-transform"
+              className="disabled:opacity-60 btn-icon btn-icon-sm"
             >
               {toggling ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -405,7 +405,7 @@ export default function TransactionDetail() {
               <Pencil className="w-4 h-4" />
             </button>
           ) : !isOwner ? (
-            <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center" title="Transaksi milik pasangan — hanya bisa dilihat">
+            <span className="btn-icon btn-icon-sm" title="Transaksi milik pasangan — hanya bisa dilihat">
               <EyeOff className="w-4 h-4 text-muted-foreground" />
             </span>
           ) : null}

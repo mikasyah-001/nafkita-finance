@@ -155,7 +155,7 @@ export default function InvestmentDetail() {
         {cp > 0 && totalUnits > 0 && <p className="text-xs text-muted-foreground mt-2">Nilai saat ini: <span className="font-medium text-foreground">{formatMoney(currentValue, asset.currency)}</span></p>}
       </div>
 
-      <button onClick={() => setShowForm(true)} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 mb-4 active:scale-[0.99] transition-transform">
+      <button onClick={() => setShowForm(true)} className="w-full mb-4 btn-primary">
         <Plus className="w-5 h-5" /> Catat DCA Bulanan
       </button>
 
@@ -202,7 +202,7 @@ export default function InvestmentDetail() {
           <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Catat DCA Bulanan</h2>
-              <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowForm(false)} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -224,7 +224,7 @@ export default function InvestmentDetail() {
                 <label htmlFor="investment-lot-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
                 <input id="investment-lot-notes" value={lot.notes} onChange={(e) => setLot({ ...lot, notes: e.target.value })} placeholder="Mis. DCA rutin bulan ke-3" className="input" />
               </div>
-              <button onClick={handleAddLot} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+              <button onClick={handleAddLot} disabled={saving} className="w-full btn-primary">
                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                 {saving ? "Menyimpan..." : "Simpan DCA"}
               </button>

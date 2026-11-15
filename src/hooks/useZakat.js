@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAssets, useDebts, useMe, useRateMap, useZakatPayments } from "@/hooks/useFinance";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
-import { computeZakatMal, haulPeriod, paymentsForPeriod } from "@/lib/zakat";
+import { computeZakatMal, haulPeriod, paymentsForPeriod, paymentInZakatCurrency } from "@/lib/zakat";
 
 export { isPlausibleGoldPrice, GOLD_PRICE_MIN, GOLD_PRICE_MAX } from "@/hooks/useGoldPrice";
 
@@ -22,12 +22,13 @@ export function useZakat() {
   const period = haulPeriod(me?.zakat_haul_date || null);
   const myPayments = payments.filter((p) => !me?.id || p.created_by_id === me.id || !p.created_by_id);
   const paid = paymentsForPeriod(myPayments, period);
-  const paidTotal = paid.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  // Pembayaran SAR dsb. dinilai setara IDR (kurs saat bayar bila tersimpan).
+  const paidTotal = paid.reduce((s, p) => s + paymentInZakatCurrency(p, rateMap), 0);
   const remaining = Math.max(0, result.zakat - paidTotal);
 
   return {
     ...result, me, goldSource, goldLoading, includeReceivables, period,
-    payments: myPayments, paid, paidTotal, remaining,
+    payments: myPayments, paid, paidTotal, remaining, rateMap,
     isPaidOff: result.zakat > 0 && remaining <= 0,
     loading: assetsLoading,
   };

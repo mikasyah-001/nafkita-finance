@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useUserCurrencies } from "@/hooks/useFinance";
-import { formatRupiah, colorMap } from "@/lib/finance";
+import { formatMoney, colorMap } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -185,7 +185,13 @@ export default function ImportReport() {
   };
 
   const selectedCount = rows.filter((r) => r.selected).length;
-  const selectedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
+  // Total per mata uang — jangan menjumlahkan SAR + IDR sebagai Rupiah.
+  const selectedTotals = rows.filter((r) => r.selected).reduce((m, r) => {
+    const c = (r.currency || importCurrency || "IDR").toUpperCase();
+    m[c] = (m[c] || 0) + (Number(r.amount) || 0);
+    return m;
+  }, {});
+  const selectedTotalLabel = Object.entries(selectedTotals).map(([c, v]) => formatMoney(v, c)).join(" · ") || formatMoney(0, importCurrency || "IDR");
 
   const handleImport = async () => {
     const selected = rows.filter((r) => r.selected);
@@ -361,7 +367,7 @@ export default function ImportReport() {
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border px-5 py-4 z-50">
           <div className="flex items-center justify-between mb-2 text-xs">
             <span className="text-muted-foreground">{selectedCount} transaksi dipilih</span>
-            <span className="font-semibold">{formatRupiah(selectedTotal)}</span>
+            <span className="font-semibold tabular-nums text-right">{selectedTotalLabel}</span>
           </div>
           <button
             onClick={handleImport}

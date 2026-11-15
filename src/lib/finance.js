@@ -448,7 +448,82 @@ export function planProgress(actual, target) {
 // bank/tunai: hanya nilai saldo (tanpa harga beli). Lainnya: nilai + harga beli total.
 export const ASSET_UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
 export const assetUsesQuantity = (type) => !!ASSET_UNIT[type];
-export const assetIdrOnly = (type) => type === "emas" || type === "tanah";
+// Semua jenis aset boleh bermata uang selain IDR (mis. emas fisik dibeli di
+// Makkah dalam SAR). Dulu emas fisik & tanah dipaksa IDR saat disimpan,
+// sementara mata uang & label form bisa berbeda → nominal salah tafsir.
+// Mata uang kini selalu eksplisit di form dan disimpan apa adanya.
+
+// ── Deteksi salah tafsir mata uang ─────────────────────────────────────
+// Kurs kasar (IDR per 1 unit) HANYA untuk mendeteksi nominal yang
+// kemungkinan diketik dalam mata uang lain — bukan untuk perhitungan.
+const ROUGH_IDR_PER_UNIT = { IDR: 1, SAR: 4300, AED: 4400, USD: 16000, EUR: 17500, GBP: 20500, SGD: 12000, MYR: 3600, QAR: 4400, KWD: 52000, JPY: 105, CNY: 2200, TRY: 450, EGP: 330 };
+export const GOLD_PRICE_MIN_IDR = 500_000;
+export const GOLD_PRICE_MAX_IDR = 10_000_000;
+
+export function idrPerUnit(currency, rateMap = {}) {
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "IDR") return 1;
+  return Number(rateMap[c]) > 0 ? Number(rateMap[c]) : ROUGH_IDR_PER_UNIT[c] || null;
+}
+
+const inGoldRange = (idr) => idr >= GOLD_PRICE_MIN_IDR && idr <= GOLD_PRICE_MAX_IDR;
+
+/**
+ * Harga emas per gram yang tidak masuk akal untuk mata uangnya.
+ * Mengembalikan null bila wajar/tidak bisa dinilai, atau
+ * { suggest, message } — suggest = mata uang yang lebih mungkin dimaksud.
+ * Contoh: 1.250.000 dengan mata uang SAR → setara ±Rp 5,4 miliar/gr → suggest IDR.
+ */
+export function goldPriceCurrencyHint(pricePerGram, currency, candidates = [], rateMap = {}) {
+  const p = Number(pricePerGram) || 0;
+  const c = (currency || "IDR").toUpperCase();
+  const r = idrPerUnit(c, rateMap);
+  if (!(p > 0) || !r || inGoldRange(p * r)) return null;
+  const pool = [...new Set(["IDR", ...candidates.map((x) => String(x).toUpperCase())])].filter((x) => x !== c);
+  const suggest = pool.find((x) => { const rx = idrPerUnit(x, rateMap); return rx && inGoldRange(p * rx); });
+  if (!suggest) return null;
+  return {
+    suggest,
+    message: `${formatMoneyPlain(p, c)}/gr tidak wajar untuk emas (setara ±${formatMoneyPlain(Math.round(p * r), "IDR")}/gr). Sepertinya nominal ini dalam ${suggest}.`,
+  };
+}
+
+/** Harga beli emas per gram di luar rentang wajar untuk mata uangnya. */
+export function goldPriceLooksWrong(asset, rateMap = {}) {
+  if (!isGoldType(asset?.type)) return false;
+  const p = Number(asset.purchase_price) || 0;
+  const r = idrPerUnit(asset.currency, rateMap);
+  return p > 0 && !!r && !inGoldRange(p * r);
+}
+
+/** Aset emas yang harga beli per gram-nya tampak salah mata uang. */
+export function assetCurrencyIssue(asset, candidates = [], rateMap = {}) {
+  if (!isGoldType(asset?.type)) return null;
+  return goldPriceCurrencyHint(asset.purchase_price, asset.currency, candidates, rateMap);
+}
+
+/**
+ * Nominal transaksi dalam mata uang asing yang kemungkinan diketik dalam
+ * Rupiah (mis. SAR 150.000 ≈ Rp 645 juta untuk belanja harian).
+ * Peringatan lunak saja — pengguna tetap boleh menyimpan.
+ */
+export function amountCurrencyHint(amount, currency, rateMap = {}) {
+  const a = Number(amount) || 0;
+  const c = (currency || "IDR").toUpperCase();
+  if (c === "IDR" || a < 50_000) return null;
+  const r = idrPerUnit(c, rateMap);
+  if (!r || a * r < 100_000_000) return null;
+  return { suggest: "IDR", message: `${formatMoneyPlain(a, c)} setara ±${formatMoneyPlain(Math.round(a * r), "IDR")}. Yakin bukan Rupiah?` };
+}
+
+/** Pratinjau konversi "≈ Rp 1.075.000" untuk input bermata uang asing. */
+export function conversionPreview(amount, from, to = "IDR", rateMap = {}) {
+  const a = Number(amount) || 0;
+  const f = (from || "IDR").toUpperCase();
+  const t = (to || "IDR").toUpperCase();
+  if (!(a > 0) || f === t || !canConvert(f, t, rateMap)) return "";
+  return `≈ ${formatMoneyPlain(convertTo(a, f, t, rateMap), t)}`;
+}
 export const assetHasPurchase = (type) => type !== "bank" && type !== "tunai";
 
 // Saat jenis diganti: kosongkan isian yang maknanya berbeda (gram vs m² vs total)
@@ -462,7 +537,7 @@ export function switchAssetType(form, type) {
     quantity: sameUnit ? form.quantity : "",
     purchase_price: sameUnit && assetHasPurchase(type) ? form.purchase_price : "",
     value: isGoldType(type) ? "" : form.value,
-    currency: assetIdrOnly(type) ? "IDR" : form.currency,
+    currency: form.currency,
   };
 }
 
@@ -501,7 +576,7 @@ export function buildAssetPayload(form) {
       owner: form.owner || "",
       notes: form.notes || "",
       broker: form.broker || "",
-      currency: assetIdrOnly(t) ? "IDR" : form.currency || "IDR",
+      currency: (form.currency || "IDR").toUpperCase(),
       visibility: form.visibility || "shared",
     },
   };
@@ -539,7 +614,10 @@ export function assetGain(a, goldPriceIdr = 0, rateMap = {}) {
   const cost = assetCost(a);
   const value = assetMarketValue(a, goldPriceIdr, rateMap);
   const goldPriced = !isGoldType(a?.type) || goldPriceIn(a.currency, goldPriceIdr, rateMap) > 0;
-  const available = cost > 0 && goldPriced;
+  // Harga beli/gr yang mustahil untuk mata uangnya (mis. Rupiah tersimpan
+  // sebagai SAR) → untung/rugi tidak ditampilkan daripada menyesatkan.
+  const currencySuspect = goldPriceLooksWrong(a, rateMap);
+  const available = cost > 0 && goldPriced && !currencySuspect;
   const gain = available ? value - cost : 0;
-  return { cost, value, gain, pct: available ? (gain / cost) * 100 : 0, available, needsGoldPrice: isGoldType(a?.type) && !goldPriced };
+  return { cost, value, gain, pct: available ? (gain / cost) * 100 : 0, available, needsGoldPrice: isGoldType(a?.type) && !goldPriced, currencySuspect };
 }

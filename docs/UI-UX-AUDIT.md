@@ -314,3 +314,19 @@ Aturan ini dikumpulkan di `buildAssetPayload()` dan dijaga oleh 7 unit test + 2 
 ## 18. Simbol riyal Saudi resmi
 - Simbol SAMA (Feb 2025), Unicode 17 **U+20C1**. Font bawaan perangkat umumnya belum memuat glyph-nya, jadi font *Saudi Riyal* (OFL-1.1) disertakan di `public/fonts/saudi-riyal` khusus untuk karakter itu (`unicode-range`).
 - Tampilan aplikasi memakai simbol resmi. PDF, CSV, email, dan teks dropdown native memakai kode "SAR" (`formatMoneyPlain`), karena tidak bisa memuat font tambahan.
+
+## 19. Audit mata uang: input vs tampilan (laporan & seluruh aplikasi)
+Kasus pemicu: Laporan › Pertumbuhan per Aset menampilkan "Emas 1g ⃁502.38 → ⃁2,517,000.00 +500915%". Ini terjadi karena harga emas acuan dalam IDR dipakai langsung pada aset bermata uang SAR. Perbaikannya sudah ada di §emas (`assetMarketValue`/`goldPriceIn`). Hasil sekarang: ⃁502.38 → ±⃁592 (+18%).
+
+| Temuan | Jenis | Perbaikan |
+|---|---|---|
+| Form aset emas/tanah: label "Rp" walau mata uang form SAR. Total ditampilkan dalam SAR, lalu tersimpan dipaksa IDR. Edit aset SAR lama berubah diam-diam jadi IDR | Bug | Mata uang dipilih eksplisit untuk semua jenis aset, label ikut mata uang ("Harga beli / gr (SAR)"), dan disimpan apa adanya |
+| Default mata uang form aset tidak pernah mengikuti mata uang utama | Bug | Form baru memakai mata uang utama profil |
+| Rupiah diketik saat mata uang SAR (atau sebaliknya) tidak terdeteksi | Risiko | Harga emas/gr dicek kewajarannya per mata uang. Muncul peringatan "Sepertinya nominal ini dalam IDR" dengan tombol ganti satu ketuk |
+| Data lama yang sudah salah mata uang | Data | Kesehatan data › "Mata Uang Tampak Keliru" dengan tombol "Jadikan IDR". Untung/rugi aset tersebut tidak ditampilkan (ditandai) agar laporan tidak menyesatkan |
+| Catat transaksi SAR tanpa rasa nilai Rupiah | UX | Pratinjau "≈ Rp …" dan peringatan lunak bila nominal SAR tampak Rupiah (mis. SAR 150.000) |
+| Total impor mutasi menjumlahkan SAR + IDR sebagai Rupiah | Bug | Total per mata uang |
+| Notifikasi duplikat menampilkan "Rp" untuk transaksi SAR | Bug | Memakai mata uang transaksi |
+| Zakat hanya bisa dibayar dalam IDR dan hanya dari rekening IDR | Alur | Bisa dibayar dalam SAR dari dompet Riyal. Setara IDR disimpan (`amount_idr`) dan sisa zakat dihitung dalam IDR |
+
+Sudah benar dan tidak diubah: Laporan (konsolidasi memakai kurs, mata uang tanpa kurs diberi peringatan), Anggaran (per mata uang), Proyeksi (saldo per mata uang terpilih), dan grafik kontribusi/tren (menerima transaksi yang sudah dikonversi).

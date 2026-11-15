@@ -189,20 +189,22 @@ test("Aset bank/tunai: nilai saja, tanpa harga beli & jumlah", () => {
   assert.equal(buildAssetPayload(F({ type: "tunai", value: "0" })).payload.value, 0, "dompet kosong boleh 0");
   assert.equal(buildAssetPayload(F({ type: "tunai", value: "" })).error, "Isi nilai aset");
 });
-test("Aset emas: wajib gram & harga/gram, nilai = gram × harga, mata uang IDR", () => {
+test("Aset emas: wajib gram & harga/gram, nilai = gram × harga, mata uang disimpan apa adanya", () => {
   assert.equal(buildAssetPayload(F({ type: "emas", quantity: "10" })).error, "Isi harga beli per gram");
-  const { payload } = buildAssetPayload(F({ type: "emas", quantity: "10", purchase_price: "1500000", currency: "SAR" }));
+  const { payload } = buildAssetPayload(F({ type: "emas", quantity: "10", purchase_price: "1500000", currency: "IDR" }));
   assert.equal(payload.value, 15_000_000);
   assert.equal(payload.unit, "gram");
   assert.equal(payload.currency, "IDR");
+  // Emas fisik dibeli di Makkah: SAR tetap SAR (dulu dipaksa IDR → salah tafsir).
+  assert.equal(buildAssetPayload(F({ type: "emas", quantity: "1", purchase_price: "502.38", currency: "SAR" })).payload.currency, "SAR");
 });
 test("Aset emas digital: boleh mata uang lain", () => {
   const { payload } = buildAssetPayload(F({ type: "emas_digital", quantity: "2", purchase_price: "300", currency: "SAR" }));
   assert.equal(payload.currency, "SAR");
   assert.equal(payload.value, 600);
 });
-test("Aset tanah: nilai sekarang opsional (default = luas × harga/m²), IDR", () => {
-  const a = buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", currency: "SAR" })).payload;
+test("Aset tanah: nilai sekarang opsional (default = luas × harga/m²)", () => {
+  const a = buildAssetPayload(F({ type: "tanah", quantity: "100", purchase_price: "2000000", currency: "IDR" })).payload;
   assert.equal(a.value, 200_000_000);
   assert.equal(a.unit, "m²");
   assert.equal(a.currency, "IDR");
@@ -226,7 +228,7 @@ test("Ganti jenis tidak membawa isian yang beda makna", () => {
   assert.equal(bank.unit, "");
   const digital = switchAssetType(emas, "emas_digital");
   assert.equal(digital.quantity, "40", "sesama gram tetap");
-  assert.equal(switchAssetType(F({ currency: "SAR" }), "tanah").currency, "IDR");
+  assert.equal(switchAssetType(F({ currency: "SAR" }), "tanah").currency, "SAR", "mata uang tidak diganti diam-diam");
 });
 
 // ── Simbol riyal resmi ───────────────────────────────────────────
@@ -268,4 +270,51 @@ test("Non-emas: untung = nilai − harga beli; tanpa harga beli tidak tersedia",
   assert.equal(assetGain({ type: "investasi", value: 43_500_000, purchase_price: 38_000_000 }).gain, 5_500_000);
   assert.equal(assetGain({ type: "bank", value: 1 }).available, false);
   assert.equal(assetCost({ type: "tanah", quantity: 100, purchase_price: 2_000_000 }), 200_000_000);
+});
+
+// ── Salah tafsir mata uang (Rupiah diketik saat mata uang SAR) ─────
+import { goldPriceCurrencyHint, assetCurrencyIssue, conversionPreview, idrPerUnit } from "../finance.js";
+test("Harga emas Rupiah dengan mata uang SAR terdeteksi → sarankan IDR", () => {
+  const h = goldPriceCurrencyHint(1_250_000, "SAR", ["IDR", "SAR"]);
+  assert.equal(h.suggest, "IDR");
+  assert.match(h.message, /SAR 1,250,000\.00\/gr tidak wajar/);
+});
+test("Harga emas Riyal dengan mata uang IDR terdeteksi → sarankan SAR", () => {
+  assert.equal(goldPriceCurrencyHint(502.38, "IDR", ["IDR", "SAR"]).suggest, "SAR");
+});
+test("Harga emas wajar tidak memicu peringatan", () => {
+  assert.equal(goldPriceCurrencyHint(1_250_000, "IDR", ["SAR"]), null);
+  assert.equal(goldPriceCurrencyHint(502.38, "SAR", ["IDR"]), null);
+  assert.equal(goldPriceCurrencyHint(0, "SAR", ["IDR"]), null);
+});
+test("Kurs asli dipakai bila ada, kurs kasar hanya cadangan", () => {
+  assert.equal(idrPerUnit("SAR", { SAR: 4200 }), 4200);
+  assert.equal(idrPerUnit("SAR", {}), 4300);
+  assert.equal(idrPerUnit("XYZ", {}), null);
+});
+test("assetCurrencyIssue hanya untuk emas", () => {
+  assert.equal(assetCurrencyIssue({ type: "bank", value: 1_000_000, currency: "SAR" }, ["IDR"]), null);
+  assert.equal(assetCurrencyIssue({ type: "emas", quantity: 1, purchase_price: 1_400_000, currency: "SAR" }, ["IDR"]).suggest, "IDR");
+});
+test("Pratinjau konversi hanya bila kurs tersedia", () => {
+  assert.match(conversionPreview(100, "SAR", "IDR", { IDR: 1, SAR: 4300 }), /^≈ Rp\s430\.000$/);
+  assert.equal(conversionPreview(100, "SAR", "IDR", { IDR: 1 }), "");
+  assert.equal(conversionPreview(100, "IDR", "IDR", {}), "");
+});
+import { amountCurrencyHint, goldPriceLooksWrong, assetGain as assetGain2 } from "../finance.js";
+test("Nominal SAR yang tampak Rupiah diberi peringatan lunak", () => {
+  assert.equal(amountCurrencyHint(150_000, "SAR").suggest, "IDR");
+  assert.equal(amountCurrencyHint(2_400, "SAR"), null);
+  assert.equal(amountCurrencyHint(150_000, "IDR"), null);
+});
+test("Untung emas tidak dihitung bila harga beli/gr salah mata uang", () => {
+  const bad = { type: "emas", quantity: 1, purchase_price: 1_400_000, currency: "SAR", value: 1_400_000 };
+  assert.equal(goldPriceLooksWrong(bad), true);
+  const g = assetGain2(bad, 2_517_000, { IDR: 1, SAR: 4300 });
+  assert.equal(g.available, false);
+  assert.equal(g.currencySuspect, true);
+  const ok = { type: "emas", quantity: 1, purchase_price: 502.38, currency: "SAR", value: 502.38 };
+  const g2 = assetGain2(ok, 2_517_000, { IDR: 1, SAR: 4300 });
+  assert.equal(g2.available, true);
+  assert.ok(g2.pct > 10 && g2.pct < 30, `pct wajar, dapat ${g2.pct}`);
 });

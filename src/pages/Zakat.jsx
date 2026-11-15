@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { useZakat } from "@/hooks/useZakat";
 import GoldPriceCard from "@/components/GoldPriceCard";
-import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain } from "@/lib/finance";
+import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain, convertTo, canConvert, currencySymbol } from "@/lib/finance";
 import { ZAKAT_GROUP_LABEL, NISAB_GOLD_GRAM, formatHijri, HAUL_DAYS } from "@/lib/zakat";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import PageHeader from "@/components/PageHeader";
@@ -230,7 +230,10 @@ export default function Zakat() {
                     <p className="text-sm font-medium">{p.zakat_type === "mal" ? "Zakat mal" : p.zakat_type === "emas" ? "Zakat emas (data lama)" : "Zakat simpanan (data lama)"}</p>
                     <p className="text-[11px] text-muted-foreground">{p.paid_date ? formatDate(p.paid_date, "d MMM yyyy") : "—"}{p.notes ? ` · ${p.notes}` : ""}</p>
                   </div>
-                  <p className="text-sm font-semibold tabular-nums">{formatMoney(p.amount || 0, p.currency || "IDR")}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold tabular-nums">{formatMoney(p.amount || 0, p.currency || "IDR")}</p>
+                    {(p.currency || "IDR") !== "IDR" && p.amount_idr > 0 && <p className="text-[11px] text-muted-foreground tabular-nums">≈ {formatMoney(p.amount_idr, "IDR")}</p>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -254,8 +257,24 @@ export default function Zakat() {
 
 function PayZakatSheet({ z, onClose, onSaved }) {
   const { data: assets = [] } = useAssets();
-  const moneyAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === z.currency && a.created_by_id === z.me?.id);
+  // Zakat dihitung dalam IDR, tetapi boleh dibayar dengan mata uang lain
+  // (mis. SAR dari dompet Riyal). Nominal disimpan dalam mata uang bayar
+  // beserta setara IDR-nya saat itu.
+  const userCurrencies = useUserCurrencies();
+  const payable = userCurrencies.filter((c) => canConvert(c.code, z.currency, z.rateMap));
+  const [payCur, setPayCur] = useState(z.currency);
+  const toPay = (v) => convertTo(v, z.currency, payCur, z.rateMap);
+  const moneyAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === payCur && a.created_by_id === z.me?.id);
   const [amount, setAmount] = useState(String(Math.round(z.remaining)));
+  const switchCur = (c) => {
+    if (c === payCur) return;
+    const inZakat = convertTo(Number(amount) || 0, payCur, z.currency, z.rateMap);
+    const next = convertTo(inZakat, z.currency, c, z.rateMap);
+    setPayCur(c);
+    setAssetId("");
+    setAmount(String(c === "IDR" ? Math.round(next) : Math.round(next * 100) / 100));
+  };
+  const amountIdr = payCur === z.currency ? Number(amount) || 0 : convertTo(Number(amount) || 0, payCur, z.currency, z.rateMap);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [recipient, setRecipient] = useState("");
   const [assetId, setAssetId] = useState("");
@@ -267,14 +286,14 @@ function PayZakatSheet({ z, onClose, onSaved }) {
     setSaving(true);
     try {
       const res = await saveTransactionWithAsset({
-        type: "sedekah", amount: amt, currency: z.currency, category: "Zakat",
+        type: "sedekah", amount: amt, currency: payCur, category: "Zakat",
         date: new Date(`${date}T10:00:00`).toISOString(), merchant: recipient || "Zakat mal",
         notes: `Zakat mal · ${z.period.label}`, visibility: "shared",
         input_by_name: z.me?.full_name || z.me?.email || "Keluarga", tags: ["zakat"],
         linked_asset_id: assetId || undefined,
       });
       await base44.entities.ZakatPayment.create({
-        year: z.period.hijriYear, zakat_type: "mal", amount: amt, currency: z.currency, status: "paid",
+        year: z.period.hijriYear, zakat_type: "mal", amount: amt, currency: payCur, amount_idr: Math.round(amountIdr), status: "paid",
         paid_date: date, period_key: z.period.key, transaction_id: res?.transaction?.id || res?.id || "",
         notes: recipient || "",
       });
@@ -290,11 +309,22 @@ function PayZakatSheet({ z, onClose, onSaved }) {
     <FormSheet title="Catat pembayaran zakat" subtitle={`${z.period.label} · sisa ${formatMoney(z.remaining, z.currency)}`} onClose={onClose}
       footer={<button onClick={save} disabled={saving} className="w-full btn-primary">{saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan pembayaran</button>}>
       <section className="card-gradient-primary rounded-[24px] p-4">
-        <label htmlFor="zakat-pay-amount" className="text-xs opacity-80">Nominal dibayar</label>
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="zakat-pay-amount" className="text-xs opacity-80">Nominal dibayar</label>
+          {payable.length > 1 && (
+            <div role="radiogroup" aria-label="Mata uang pembayaran" className="flex gap-1">
+              {payable.map((c) => (
+                <button key={c.code} type="button" role="radio" aria-checked={payCur === c.code} onClick={() => switchCur(c.code)}
+                  className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${payCur === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-lg font-semibold opacity-70">Rp</span>
+          <span className="text-lg font-semibold opacity-70">{currencySymbol(payCur)}</span>
           <input id="zakat-pay-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[30px] leading-none font-extrabold tabular-nums text-[hsl(var(--hero-foreground))]" />
         </div>
+        {payCur !== z.currency && <p className="text-xs opacity-85 mt-1 tabular-nums">≈ {formatMoneyPlain(Math.round(amountIdr), z.currency)} · sisa {formatMoneyPlain(toPay(z.remaining), payCur)}</p>}
         <p className="text-[11px] opacity-75 mt-1">Boleh dicicil; sisa tetap terlihat di halaman Zakat.</p>
       </section>
       <FieldGroup>

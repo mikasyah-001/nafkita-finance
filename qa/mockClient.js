@@ -53,7 +53,7 @@ const DATA = {
 };
 const FN = {
   listVisibleTransactions: () => ({ transactions: [...db.tx].sort((a, b) => new Date(b.date) - new Date(a.date)) }),
-  listVisibleAssets: () => ({ assets: db.assets }),
+  listVisibleAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }), // salinan, seperti respons server
   listVisibleBudgets: () => ({ budgets: [...(DATA.Budget || []),
     { id: "b1", category: "Belanja", limit_amount: 2000000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b2", category: "Makanan", limit_amount: 1500000, currency: "IDR", period: ym, visibility: "shared" },
@@ -120,7 +120,7 @@ const entity = (name) => ({
     return r;
   },
   bulkCreate: async (a) => a,
-  update: async (i, o) => { const r = (DATA[name] || []).find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
+  update: async (i, o) => { const list = name === "Asset" ? db.assets : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
   updateMany: async () => ({}),
   delete: async (i) => { DATA[name] = (DATA[name] || []).filter((r) => r.id !== i); return {}; },
   subscribe: () => () => {},

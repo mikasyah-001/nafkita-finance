@@ -119,3 +119,11 @@ test("Haul emas: tanpa tanggal beli pakai tanggal dicatat; tanpa keduanya diangg
   assert.equal(goldHaul({}, now).complete, true);
   assert.equal(goldHaul({ purchase_date: "2025-01-01", created_date: "2026-10-01" }, now).complete, true, "tanggal beli diutamakan");
 });
+
+import { paymentInZakatCurrency } from "../zakat.js";
+test("Pembayaran zakat SAR dinilai setara IDR", () => {
+  assert.equal(paymentInZakatCurrency({ amount: 500_000, currency: "IDR" }), 500_000);
+  assert.equal(paymentInZakatCurrency({ amount: 100, currency: "SAR", amount_idr: 430_000 }, {}), 430_000);
+  assert.equal(paymentInZakatCurrency({ amount: 100, currency: "SAR" }, { IDR: 1, SAR: 4300 }), 430_000);
+  assert.equal(paymentInZakatCurrency({ amount: 100, currency: "SAR" }, { IDR: 1 }), 0);
+});

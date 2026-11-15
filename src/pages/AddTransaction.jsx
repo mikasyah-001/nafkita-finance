@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain } from "@/lib/finance";
+import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -52,6 +52,7 @@ export default function AddTransaction() {
   const [currency, setCurrency] = useState("IDR");
   const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -275,7 +276,7 @@ export default function AddTransaction() {
     );
     if (dup) {
       toast("Transaksi serupa sudah tercatat", {
-        description: `${dup.merchant || dup.category || "Transaksi"} • ${formatRupiah(dup.amount)} • ${formatDate(dup.date, "dd MMM yyyy, HH:mm")}`,
+        description: `${dup.merchant || dup.category || "Transaksi"} • ${formatMoneyPlain(dup.amount, dup.currency)} • ${formatDate(dup.date, "dd MMM yyyy, HH:mm")}`,
         action: { label: "Tetap Simpan", onClick: performSave },
       });
       return;
@@ -289,6 +290,7 @@ export default function AddTransaction() {
     sedekah: { active: "bg-sedekah text-sedekah-foreground", soft: "text-sedekah", label: "Sedekah" },
   }[type];
   const amountNum = Number(amount) || 0;
+  const amountHint = amountCurrencyHint(amountNum, currency, rateMap);
   const quickAmounts = currency === "IDR" ? [10000, 25000, 50000, 100000] : [10, 25, 50, 100];
   const linkedAsset = bankAssets.find((a) => a.id === linkedAssetId);
   const chosenCategory = type === "sedekah" ? "Sedekah & Infaq" : category;
@@ -384,7 +386,14 @@ export default function AddTransaction() {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
-          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? formatMoney(amountNum, currency) : ""}</p>
+          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? `${formatMoney(amountNum, currency)} ${conversionPreview(amountNum, currency, "IDR", rateMap)}`.trim() : ""}</p>
+          {amountHint && userCurrencies.some((c) => c.code === "IDR") && (
+            <div role="alert" className="mt-2 rounded-2xl bg-white/12 border border-white/25 px-3 py-2 text-xs flex items-center gap-2">
+              <span className="flex-1 min-w-0 opacity-90">{amountHint.message}</span>
+              <button type="button" onClick={() => { setCurrency("IDR"); setLinkedAssetId(""); setAmount(String(Math.round(amountNum))); }}
+                className="shrink-0 h-7 px-3 rounded-full bg-white text-[hsl(var(--hero-from))] font-bold">Jadikan IDR</button>
+            </div>
+          )}
           <div className="flex gap-1.5 mt-3 overflow-x-auto no-scrollbar">
             {quickAmounts.map((q) => (
               <button key={q} onClick={() => setAmount(String(amountNum + q))} className="shrink-0 h-8 px-3 rounded-full bg-white/10 border border-white/15 text-xs font-semibold active:scale-95 transition-transform">

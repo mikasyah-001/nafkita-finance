@@ -185,3 +185,12 @@ export function haulPeriod(haulStart, now = new Date()) {
 export function paymentsForPeriod(payments = [], period) {
   return payments.filter((p) => p.status === "paid" && (p.period_key ? p.period_key === period.key : p.zakat_type === "mal" && p.year === period.hijriYear));
 }
+
+/** Nominal satu pembayaran dalam mata uang zakat (IDR). */
+export function paymentInZakatCurrency(p, rateMap = {}) {
+  const amt = Number(p?.amount) || 0;
+  const c = (p?.currency || ZAKAT_CURRENCY).toUpperCase();
+  if (c === ZAKAT_CURRENCY) return amt;
+  if (Number(p.amount_idr) > 0) return Number(p.amount_idr);
+  return canConvert(c, ZAKAT_CURRENCY, rateMap) ? convertTo(amt, c, ZAKAT_CURRENCY, rateMap) : 0;
+}

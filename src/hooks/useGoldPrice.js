@@ -6,8 +6,9 @@ import { fetchGoldPricesMulti, pickAntamSource } from "@/lib/goldPrice";
 // Harga emas acuan (Rp/gram) — SATU sumber untuk Aset, Dashboard, Laporan, Zakat.
 // Prioritas: isian pengguna (tersimpan di profil) → otomatis (pencarian AI, dicache 6 jam).
 // Harga di luar rentang wajar ditolak agar nilai aset & nisab tidak kacau.
-export const GOLD_PRICE_MIN = 500_000;
-export const GOLD_PRICE_MAX = 10_000_000;
+import { GOLD_PRICE_MIN_IDR, GOLD_PRICE_MAX_IDR } from "@/lib/finance";
+export const GOLD_PRICE_MIN = GOLD_PRICE_MIN_IDR;
+export const GOLD_PRICE_MAX = GOLD_PRICE_MAX_IDR;
 export const isPlausibleGoldPrice = (v) => Number(v) >= GOLD_PRICE_MIN && Number(v) <= GOLD_PRICE_MAX;
 
 export function useGoldSources(enabled = true) {

@@ -322,7 +322,7 @@ export default function Assets() {
                               {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>
                           ) : (
-                            <p className="text-[11px] text-warning">{g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Isi harga emas acuan di atas") : "—"}</p>
+                            <p className="text-[11px] text-warning">{g.currencySuspect ? <Link to="/kesehatan-data" className="underline">Mata uang tampak keliru — periksa</Link> : g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Isi harga emas acuan di atas") : "—"}</p>
                           )}
                         </div>
                       </>

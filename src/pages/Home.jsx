@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills } from "@/hooks/useFinance";
 import { formatMoneyShort, formatDate, summarizeConsolidated, computeSavingsRate, hasRate } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { BarChart3, CheckCheck, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
+import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 
@@ -35,6 +35,7 @@ export default function Home() {
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
   const { data: approvals } = usePendingApprovals();
+  const { data: bills = [] } = useRecurringBills();
   const pendingApprovals = approvals?.pending_approvals?.length || 0;
 
   const defaultCur = user?.default_currency || "IDR";
@@ -113,11 +114,21 @@ export default function Home() {
     return "Selamat malam";
   })();
 
+  // Aksi cepat: hal yang sering DILAKUKAN, bukan pintasan menu (menu sudah ada di nav).
+  const today = new Date().toISOString().slice(0, 10);
+  const soon = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
+  // Sama dengan halaman Tagihan: hanya tagihan milik user ini.
+  const dueBills = bills.filter((b) => b.created_by_id === user?.id && b.status === "active" && b.next_date && b.next_date <= soon);
+  const overdueBills = dueBills.filter((b) => b.next_date < today);
   const quickLinks = [
-    { to: "/laporan", icon: BarChart3, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
-    { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
-    { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
+    { to: "/add?scan=1", icon: ScanLine, color: "indigo", label: "Scan struk", sub: "Catat dari foto bon" },
     { to: "/add?type=sedekah", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
+    { to: "/transfer", icon: ArrowLeftRight, color: "violet", label: "Transfer", sub: "Antar rekening" },
+    {
+      to: "/tagihan-berulang", icon: CalendarClock, color: "amber", label: "Tagihan",
+      sub: overdueBills.length ? `${overdueBills.length} lewat jatuh tempo` : dueBills.length ? `${dueBills.length} jatuh tempo ≤3 hari` : "Tidak ada yang jatuh tempo",
+      alert: overdueBills.length > 0,
+    },
   ];
 
   return (
@@ -254,7 +265,7 @@ export default function Home() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{q.label}</p>
-                <p className="text-xs text-muted-foreground truncate">{q.sub}</p>
+                <p className={`text-xs truncate ${q.alert ? "text-destructive font-medium" : "text-muted-foreground"}`}>{q.sub}</p>
               </div>
             </Link>
           );

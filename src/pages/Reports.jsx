@@ -21,10 +21,12 @@ import { useRateMap } from "@/hooks/useFinance";
 import { toast } from "sonner";
 import ScopeToggle from "@/components/ScopeToggle";
 import PageHeader from "@/components/PageHeader";
+import Ringkasan from "@/pages/Ringkasan";
+import { useSearchParams } from "react-router-dom";
 
 const chartColors = ["#5C64D6", "#2E9E98", "#E08A5C", "#D46A86", "#4F8FD1", "#8B67C7", "#C9A545", "#7C869A"];
 
-export default function Reports() {
+function ReportsAnalysis() {
   const { data: transactions = [] } = useTransactions();
   const { data: assets = [] } = useAssets();
   const { data: categories = [] } = useCategories();
@@ -294,8 +296,7 @@ export default function Reports() {
   const emasPriceNum = Number(emasPrice) || 0;
 
   return (
-    <div className="px-5 pt-6 space-y-5">
-      <PageHeader title="Laporan Keuangan" back />
+    <div className="space-y-5">
 
       <div className="flex gap-1.5 bg-muted p-1 rounded-2xl">
         {[["weekly","Mingguan"],["monthly","Bulanan"],["yearly","Tahunan"],["custom","Rentang"]].map(([val, label]) => (
@@ -430,6 +431,37 @@ function StatCard({ icon: Icon, color, label, value }) {
       </div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{value}</p>
+    </div>
+  );
+}
+
+// Laporan = satu halaman, dua tab (sebelumnya dua menu terpisah:
+// "Ringkasan" dan "Laporan" yang menjawab pertanyaan hampir sama).
+const TABS = [
+  { key: "bulanan", label: "Bulan ini" },
+  { key: "analisis", label: "Analisis & ekspor" },
+];
+
+export default function Reports() {
+  const [params, setParams] = useSearchParams();
+  const tab = TABS.some((t) => t.key === params.get("tab")) ? params.get("tab") : "bulanan";
+  return (
+    <div className="px-5 pt-6">
+      <PageHeader title="Laporan" back />
+      <div role="tablist" aria-label="Jenis laporan" className="flex gap-1 p-1 rounded-2xl bg-muted mb-5">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setParams({ tab: t.key }, { replace: true })}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "bulanan" ? <Ringkasan embedded /> : <ReportsAnalysis />}
     </div>
   );
 }

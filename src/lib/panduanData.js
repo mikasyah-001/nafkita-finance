@@ -91,9 +91,9 @@ export const panduanCategories = [
         tips: "Bila kurs belum dimuat untuk mata uang tertentu, akan muncul peringatan dengan tombol untuk memuat kurs secara manual.",
       },
       {
-        to: "/ringkasan",
+        to: "/laporan?tab=bulanan",
         icon: PiggyBank,
-        name: "Ringkasan",
+        name: "Laporan — Bulan ini",
         short: "Rincian pengeluaran per kategori & perbandingan bulan",
         description: "Halaman ringkasan mendalam yang menampilkan breakdown pengeluaran per kategori, perbandingan dengan bulan sebelumnya, dan tren pengeluaran.",
         howItWorks: "Menghitung total pengeluaran per kategori untuk periode terpilih, lalu membandingkannya dengan periode sebelumnya untuk menunjukkan kategori yang naik atau turun.",

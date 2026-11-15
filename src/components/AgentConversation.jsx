@@ -139,6 +139,7 @@ export default function AgentConversation({ agentName, title }) {
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickFile} />
         <input
+          aria-label="Tulis pesan"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}

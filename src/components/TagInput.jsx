@@ -29,6 +29,7 @@ export default function TagInput({ tags = [], onChange }) {
       )}
       <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
         <input
+          aria-label="Tambah tag"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

@@ -110,6 +110,7 @@ export default function ZakatNotifier() {
         <div className="flex items-center flex-1 rounded-lg bg-background border border-border px-3">
           <span className="text-[11px] text-muted-foreground">Rp</span>
           <input
+            aria-label="Harga emas per gram"
             type="number"
             value={goldPrice}
             onChange={(e) => setGoldPrice(e.target.value)}

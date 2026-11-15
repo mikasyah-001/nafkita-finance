@@ -99,8 +99,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Subjek</label>
+            <label htmlFor="feedback-subject" className="text-xs text-muted-foreground mb-1.5 block">Subjek</label>
             <input
+              id="feedback-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Ringkasan singkat"
@@ -110,8 +111,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Pesan</label>
+            <label htmlFor="feedback-message" className="text-xs text-muted-foreground mb-1.5 block">Pesan</label>
             <textarea
+              id="feedback-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Jelaskan secara detail…"
@@ -123,8 +125,9 @@ export default function Feedback() {
           </div>
 
           <div className="mb-6">
-            <label className="text-xs text-muted-foreground mb-1.5 block">Kontak balasan (opsional)</label>
+            <label htmlFor="feedback-contact" className="text-xs text-muted-foreground mb-1.5 block">Kontak balasan (opsional)</label>
             <input
+              id="feedback-contact"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="Email atau WhatsApp"

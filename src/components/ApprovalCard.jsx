@@ -124,6 +124,7 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
       {showReject && isPending && (
         <div className="mt-3 space-y-2">
           <textarea
+            aria-label="Alasan penolakan"
             value={reason}
             onChange={e => setReason(e.target.value)}
             placeholder="Alasan penolakan (opsional)"

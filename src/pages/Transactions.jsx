@@ -90,6 +90,7 @@ export default function Transactions() {
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
+          aria-label="Cari transaksi"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari merchant, catatan, kategori..."
@@ -171,6 +172,7 @@ export default function Transactions() {
             <p className="text-xs text-muted-foreground mb-2">Rentang Tanggal</p>
             <div className="flex items-center gap-2">
               <input
+                aria-label="Dari tanggal"
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
@@ -178,6 +180,7 @@ export default function Transactions() {
               />
               <span className="text-muted-foreground text-xs">sampai</span>
               <input
+                aria-label="Sampai tanggal"
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}

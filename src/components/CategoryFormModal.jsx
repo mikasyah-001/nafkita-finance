@@ -86,8 +86,9 @@ export default function CategoryFormModal({ open, onClose, onSaved, initial, cat
           </div>
         )}
 
-        <label className="text-xs text-muted-foreground mb-1.5 block">Nama Kategori</label>
+        <label htmlFor="category-name" className="text-xs text-muted-foreground mb-1.5 block">Nama Kategori</label>
         <input
+          id="category-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Mis. Kopi, Hewan Peliharaan..."

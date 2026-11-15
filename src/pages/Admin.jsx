@@ -319,13 +319,14 @@ export default function Admin() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
+                aria-label="Cari transaksi"
                 value={txFilter}
                 onChange={(e) => setTxFilter(e.target.value)}
                 placeholder="Cari transaksi…"
                 className="input pl-9"
               />
             </div>
-            <select value={txUserFilter} onChange={(e) => setTxUserFilter(e.target.value)} className="input max-w-[40%]">
+            <select aria-label="Filter user transaksi" value={txUserFilter} onChange={(e) => setTxUserFilter(e.target.value)} className="input max-w-[40%]">
               <option value="all">Semua User</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
             </select>
@@ -388,13 +389,14 @@ export default function Admin() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
+                aria-label="Cari aset"
                 value={assetFilter}
                 onChange={(e) => setAssetFilter(e.target.value)}
                 placeholder="Cari aset…"
                 className="input pl-9"
               />
             </div>
-            <select value={assetUserFilter} onChange={(e) => setAssetUserFilter(e.target.value)} className="input max-w-[40%]">
+            <select aria-label="Filter user aset" value={assetUserFilter} onChange={(e) => setAssetUserFilter(e.target.value)} className="input max-w-[40%]">
               <option value="all">Semua User</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
             </select>

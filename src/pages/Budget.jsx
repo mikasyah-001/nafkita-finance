@@ -186,6 +186,7 @@ export default function Budget() {
                     <div className="flex items-center rounded-xl border border-border px-2 focus-within:ring-2 ring-primary/30">
                       <span className="text-xs text-muted-foreground">{currencySymbol(currency)}</span>
                       <input
+                        aria-label={`Batas anggaran ${c.name}`}
                         type="number"
                         value={getLimit(c.name)}
                         onChange={(e) => setLimits({ ...limits, [c.name]: e.target.value })}

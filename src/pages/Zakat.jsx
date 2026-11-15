@@ -197,7 +197,7 @@ export default function Zakat() {
         </div>
         <div className="flex items-center rounded-lg bg-muted/50 border border-border px-3 mb-1">
           <span className="text-xs text-muted-foreground">Rp</span>
-          <input type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
+          <input aria-label="Harga emas per gram" type="number" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder="Mis. 1.500.000" className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent" />
         </div>
         <p className="text-[11px] text-muted-foreground">Referensi harga emas Indonesia. Nisab simpanan = {NISAB_GRAM} gr × harga emas.</p>
       </div>

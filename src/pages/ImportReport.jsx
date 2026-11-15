@@ -278,6 +278,7 @@ export default function ImportReport() {
       ) : (
         <>
           <textarea
+            aria-label="Teks laporan keuangan"
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={8}
@@ -323,25 +324,25 @@ export default function ImportReport() {
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={icon} className={`w-4 h-4 ${cm.text}`} />
                     </div>
-                    <select value={r.type} onChange={(e) => updateRow(r.id, "type", e.target.value)} className="text-xs rounded-lg border border-border px-2 py-1 bg-background outline-none">
+                    <select aria-label="Jenis transaksi" value={r.type} onChange={(e) => updateRow(r.id, "type", e.target.value)} className="text-xs rounded-lg border border-border px-2 py-1 bg-background outline-none">
                       <option value="expense">Pengeluaran</option>
                       <option value="income">Pemasukan</option>
                     </select>
                     <button onClick={() => removeRow(r.id)} className="ml-auto text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="date" value={r.date} onChange={(e) => updateRow(r.id, "date", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
-                    <input type="time" value={r.time || ""} onChange={(e) => updateRow(r.id, "time", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
-                    <input type="number" value={r.amount} onChange={(e) => updateRow(r.id, "amount", Number(e.target.value))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
-                    <input value={r.merchant} onChange={(e) => updateRow(r.id, "merchant", e.target.value)} placeholder="Merchant / No Transaksi" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
-                    <select value={r.currency} onChange={(e) => updateRow(r.id, "currency", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
+                    <input aria-label="Tanggal" type="date" value={r.date} onChange={(e) => updateRow(r.id, "date", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
+                    <input aria-label="Jam" type="time" value={r.time || ""} onChange={(e) => updateRow(r.id, "time", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
+                    <input aria-label="Nominal" type="number" value={r.amount} onChange={(e) => updateRow(r.id, "amount", Number(e.target.value))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
+                    <input aria-label="Merchant / No Transaksi" value={r.merchant} onChange={(e) => updateRow(r.id, "merchant", e.target.value)} placeholder="Merchant / No Transaksi" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
+                    <select aria-label="Mata uang" value={r.currency} onChange={(e) => updateRow(r.id, "currency", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
                       {userCurrencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
                     </select>
-                    <select value={r.visibility} onChange={(e) => updateRow(r.id, "visibility", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
+                    <select aria-label="Visibilitas" value={r.visibility} onChange={(e) => updateRow(r.id, "visibility", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
                       <option value="shared">Bersama</option>
                       <option value="private">Pribadi</option>
                     </select>
-                    <select value={r.category} onChange={(e) => updateRow(r.id, "category", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background col-span-2">
+                    <select aria-label="Kategori" value={r.category} onChange={(e) => updateRow(r.id, "category", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background col-span-2">
                       <option value="">Pilih kategori</option>
                       {r.category_new && r.category && !categories.some((c) => c.type === r.type && c.name.toLowerCase() === r.category.toLowerCase()) && (
                         <option value={r.category}>{r.category} (usulan AI — baru)</option>

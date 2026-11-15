@@ -64,8 +64,9 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Nama Target</label>
+            <label htmlFor="savings-goal-name" className="text-sm font-medium mb-1.5 block">Nama Target</label>
             <input
+              id="savings-goal-name"
               type="text"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
@@ -76,15 +77,16 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Jenis Target</label>
-            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
+            <label htmlFor="savings-goal-type" className="text-sm font-medium mb-1.5 block">Jenis Target</label>
+            <select id="savings-goal-type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
               {goalTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Nominal Target</label>
+            <label htmlFor="savings-goal-target-amount" className="text-sm font-medium mb-1.5 block">Nominal Target</label>
             <input
+              id="savings-goal-target-amount"
               type="number"
               value={form.target_amount}
               onChange={e => setForm({ ...form, target_amount: e.target.value })}
@@ -95,8 +97,9 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Tanggal Target</label>
+            <label htmlFor="savings-goal-target-date" className="text-sm font-medium mb-1.5 block">Tanggal Target</label>
             <input
+              id="savings-goal-target-date"
               type="date"
               value={form.target_date}
               onChange={e => setForm({ ...form, target_date: e.target.value })}
@@ -105,8 +108,9 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Aset Sumber (opsional)</label>
+            <label htmlFor="savings-goal-linked-asset" className="text-sm font-medium mb-1.5 block">Aset Sumber (opsional)</label>
             <select
+              id="savings-goal-linked-asset"
               value={form.linked_asset_id}
               onChange={e => setForm({ ...form, linked_asset_id: e.target.value })}
               className="input"
@@ -134,8 +138,8 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Visibilitas</label>
-            <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="input">
+            <label htmlFor="savings-goal-visibility" className="text-sm font-medium mb-1.5 block">Visibilitas</label>
+            <select id="savings-goal-visibility" value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="input">
               <option value="shared">Bersama Pasangan</option>
               <option value="private">Pribadi</option>
             </select>

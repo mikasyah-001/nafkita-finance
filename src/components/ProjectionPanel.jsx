@@ -150,16 +150,16 @@ export default function ProjectionPanel({ scope = "shared" }) {
         <div className="rounded-xl border border-border p-3 mb-3 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[11px] text-muted-foreground">Tumbuh pemasukan (%/bln)</label>
-              <input type="number" value={draft.monthly_income_growth} onChange={(e) => setDraft({ ...draft, monthly_income_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
+              <label htmlFor="projection-income-growth" className="text-[11px] text-muted-foreground">Tumbuh pemasukan (%/bln)</label>
+              <input id="projection-income-growth" type="number" value={draft.monthly_income_growth} onChange={(e) => setDraft({ ...draft, monthly_income_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground">Tumbuh pengeluaran (%/bln)</label>
-              <input type="number" value={draft.monthly_expense_growth} onChange={(e) => setDraft({ ...draft, monthly_expense_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
+              <label htmlFor="projection-expense-growth" className="text-[11px] text-muted-foreground">Tumbuh pengeluaran (%/bln)</label>
+              <input id="projection-expense-growth" type="number" value={draft.monthly_expense_growth} onChange={(e) => setDraft({ ...draft, monthly_expense_growth: Number(e.target.value) || 0 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground">Bulan ke depan</label>
-              <input type="number" min="1" max="12" value={draft.months_ahead} onChange={(e) => setDraft({ ...draft, months_ahead: Number(e.target.value) || 6 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
+              <label htmlFor="projection-months-ahead" className="text-[11px] text-muted-foreground">Bulan ke depan</label>
+              <input id="projection-months-ahead" type="number" min="1" max="12" value={draft.months_ahead} onChange={(e) => setDraft({ ...draft, months_ahead: Number(e.target.value) || 6 })} className="w-full rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
             </div>
           </div>
           <button onClick={saveAssumptions} disabled={saving} className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">

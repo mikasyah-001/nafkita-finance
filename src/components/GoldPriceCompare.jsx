@@ -45,7 +45,7 @@ export default function GoldPriceCompare({ value, onChange, grams = 0 }) {
 
       <div className="flex items-center rounded-lg bg-background border border-border px-3 mb-2">
         <span className="text-xs text-muted-foreground">Rp</span>
-        <input type="number" value={value} onChange={(e) => onChange(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2 text-sm outline-none bg-transparent" />
+        <input aria-label="Harga emas pasar per gram" type="number" value={value} onChange={(e) => onChange(e.target.value)} placeholder="harga / gram" className="flex-1 px-2 py-2 text-sm outline-none bg-transparent" />
         {grams > 0 && valueNum > 0 && <span className="text-[11px] text-muted-foreground shrink-0">= {formatRupiah(grams * valueNum)}</span>}
       </div>
 

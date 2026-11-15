@@ -280,8 +280,9 @@ export default function TransactionDetail() {
 
           {bankAssets.length > 0 && (
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
+              <label htmlFor="tx-detail-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
               <select
+                id="tx-detail-linked-asset"
                 value={form.linked_asset_id || ""}
                 onChange={(e) => setForm({ ...form, linked_asset_id: e.target.value })}
                 className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
@@ -319,10 +320,10 @@ export default function TransactionDetail() {
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+            <label htmlFor="tx-detail-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(form.currency || "IDR")}</span>
-              <input type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="tx-detail-amount" type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
           </div>
 
@@ -345,18 +346,18 @@ export default function TransactionDetail() {
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
-            <input type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="tx-detail-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
+            <input id="tx-detail-date" type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">{form.type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
-            <input value={form.merchant} onChange={(e) => setForm({ ...form, merchant: e.target.value })} placeholder="Mis. Indomaret, Masjid..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="tx-detail-merchant" className="text-xs text-muted-foreground mb-1.5 block">{form.type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
+            <input id="tx-detail-merchant" value={form.merchant} onChange={(e) => setForm({ ...form, merchant: e.target.value })} placeholder="Mis. Indomaret, Masjid..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Tambah catatan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+            <label htmlFor="tx-detail-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
+            <textarea id="tx-detail-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Tambah catatan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
           </div>
 
           <div>

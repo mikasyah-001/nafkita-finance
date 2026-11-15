@@ -147,9 +147,9 @@ export default function InvestmentDetail() {
       </div>
 
       <div className="surface p-4 mb-4">
-        <label className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
+        <label htmlFor="investment-current-price" className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
         <div className="flex gap-2">
-          <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
+          <input id="investment-current-price" type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
           <button onClick={async () => { if (asset && cp > 0) { try { await base44.entities.Asset.update(asset.id, { value: Math.round(currentValue) }); refresh(); toast.success("Nilai aset diperbarui"); } catch { toast.error("Gagal memperbarui"); } } }} className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium shrink-0">Simpan</button>
         </div>
         {cp > 0 && totalUnits > 0 && <p className="text-xs text-muted-foreground mt-2">Nilai saat ini: <span className="font-medium text-foreground">{formatMoney(currentValue, asset.currency)}</span></p>}
@@ -206,23 +206,23 @@ export default function InvestmentDetail() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal Pembelian</label>
-                <input type="date" value={lot.date} onChange={(e) => setLot({ ...lot, date: e.target.value })} className="input" />
+                <label htmlFor="investment-lot-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Pembelian</label>
+                <input id="investment-lot-date" type="date" value={lot.date} onChange={(e) => setLot({ ...lot, date: e.target.value })} className="input" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Harga Beli / unit ({currencySymbol(asset.currency)})</label>
-                <input type="number" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} placeholder="Mis. 1500" className="input" />
+                <label htmlFor="investment-lot-price" className="text-xs text-muted-foreground mb-1.5 block">Harga Beli / unit ({currencySymbol(asset.currency)})</label>
+                <input id="investment-lot-price" type="number" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} placeholder="Mis. 1500" className="input" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Jumlah Unit</label>
-                <input type="number" value={lot.quantity} onChange={(e) => setLot({ ...lot, quantity: e.target.value })} placeholder="Mis. 10" className="input" />
+                <label htmlFor="investment-lot-quantity" className="text-xs text-muted-foreground mb-1.5 block">Jumlah Unit</label>
+                <input id="investment-lot-quantity" type="number" value={lot.quantity} onChange={(e) => setLot({ ...lot, quantity: e.target.value })} placeholder="Mis. 10" className="input" />
               </div>
               {lot.price_per_unit && lot.quantity ? (
                 <p className="text-xs text-muted-foreground -mt-1">Total beli: <span className="font-medium text-foreground">{formatMoney(Number(lot.price_per_unit) * Number(lot.quantity), asset.currency)}</span></p>
               ) : null}
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-                <input value={lot.notes} onChange={(e) => setLot({ ...lot, notes: e.target.value })} placeholder="Mis. DCA rutin bulan ke-3" className="input" />
+                <label htmlFor="investment-lot-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
+                <input id="investment-lot-notes" value={lot.notes} onChange={(e) => setLot({ ...lot, notes: e.target.value })} placeholder="Mis. DCA rutin bulan ke-3" className="input" />
               </div>
               <button onClick={handleAddLot} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}

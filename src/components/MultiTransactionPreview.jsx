@@ -40,12 +40,14 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
               </div>
               <div className="flex gap-2">
                 <input
+                  aria-label="Merchant"
                   value={t.merchant}
                   onChange={(e) => onChange(i, { merchant: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                   placeholder="Merchant"
                 />
                 <select
+                  aria-label="Kategori"
                   value={t.category}
                   onChange={(e) => onChange(i, { category: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1.5 text-xs bg-background outline-none focus:ring-2 ring-primary/30"
@@ -59,18 +61,21 @@ export default function MultiTransactionPreview({ items, categories, onChange, o
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span className="text-[11px] text-muted-foreground shrink-0">Tanggal</span>
                 <input
+                  aria-label="Tanggal"
                   type="date"
                   value={t.date || ""}
                   onChange={(e) => onChange(i, { date: e.target.value })}
                   className="flex-1 rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
                 <input
+                  aria-label="Jam"
                   type="time"
                   value={t.time || ""}
                   onChange={(e) => onChange(i, { time: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1 text-xs bg-transparent outline-none focus:ring-2 ring-primary/30"
                 />
                 <select
+                  aria-label="Mata uang"
                   value={t.currency || "IDR"}
                   onChange={(e) => onChange(i, { currency: e.target.value })}
                   className="rounded-lg border border-border px-2 py-1 text-xs bg-background outline-none focus:ring-2 ring-primary/30"

@@ -187,8 +187,8 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
             ))}
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">{type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"}</label>
-            <input value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="debt-counterparty" className="text-xs text-muted-foreground mb-1.5 block">{type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"}</label>
+            <input id="debt-counterparty" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
@@ -199,25 +199,25 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+            <label htmlFor="debt-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-              <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="debt-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal</label>
+              <input id="debt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Jatuh Tempo</label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="debt-due-date" className="text-xs text-muted-foreground mb-1.5 block">Jatuh Tempo</label>
+              <input id="debt-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
+            <label htmlFor="debt-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
+            <textarea id="debt-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
@@ -272,10 +272,10 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
             <p className="font-medium">Sisa: {formatMoney(outstanding, debt.currency)}</p>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Nominal Pelunasan</label>
+            <label htmlFor="debt-payment-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal Pelunasan</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
               <span className="text-lg text-muted-foreground mr-1">{currencySymbol(debt.currency)}</span>
-              <input type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
+              <input id="debt-payment-amount" type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
             </div>
             {outstanding > 0 && (
               <button onClick={() => setPaymentAmount(String(outstanding))} className="mt-1.5 text-[11px] text-primary font-medium">Lunasi penuh ({formatMoney(outstanding, debt.currency)})</button>
@@ -283,8 +283,8 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
           </div>
           {bankAssets.length > 0 && (
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Bayar dari Rekening (opsional)</label>
-              <select value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+              <label htmlFor="debt-payment-asset" className="text-xs text-muted-foreground mb-1.5 block">Bayar dari Rekening (opsional)</label>
+              <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
                 <option value="">Tidak ada — tanpa transaksi</option>
                 {bankAssets.map((a) => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -293,8 +293,8 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
             </div>
           )}
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal Bayar</label>
-            <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="debt-payment-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Bayar</label>
+            <input id="debt-payment-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
         </div>
         <div className="px-5 py-4 border-t border-border">

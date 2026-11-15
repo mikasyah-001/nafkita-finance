@@ -81,8 +81,9 @@ export default function CurrencyManager() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang Utama</label>
+        <label htmlFor="currency-default" className="text-xs text-muted-foreground mb-1.5 block">Mata Uang Utama</label>
         <select
+          id="currency-default"
           value={defaultCur}
           onChange={(e) => setDefault(e.target.value)}
           disabled={saving}
@@ -165,9 +166,9 @@ export default function CurrencyManager() {
         <div className="rounded-xl border border-border p-3 space-y-2.5">
           <p className="text-xs font-medium">Mata Uang Kustom</p>
           <div className="grid grid-cols-3 gap-2">
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
-            <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
-            <input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
+            <input aria-label="Kode mata uang" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-z]/gi, "").toUpperCase().slice(0, 3) })} placeholder="Kode" className="input py-2" />
+            <input aria-label="Nama mata uang" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Nama" className="input py-2" />
+            <input aria-label="Simbol mata uang" value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} placeholder="Simbol" className="input py-2" />
           </div>
           <div className="flex gap-2">
             <button onClick={addCustom} disabled={saving} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">

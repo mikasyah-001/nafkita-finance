@@ -87,8 +87,8 @@ export default function Reconciliation() {
       ) : (
         <>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Pilih Rekening</label>
-            <select value={selectedAssetId} onChange={(e) => { setSelectedAssetId(e.target.value); setReconResult(null); }} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
+            <label htmlFor="recon-asset" className="text-xs text-muted-foreground mb-1.5 block">Pilih Rekening</label>
+            <select id="recon-asset" value={selectedAssetId} onChange={(e) => { setSelectedAssetId(e.target.value); setReconResult(null); }} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
               <option value="">Pilih rekening bank</option>
               {bankAssets.map((a) => (
                 <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
@@ -104,15 +104,15 @@ export default function Reconciliation() {
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Saldo per Statement</label>
+            <label htmlFor="recon-statement-balance" className="text-xs text-muted-foreground mb-1.5 block">Saldo per Statement</label>
             <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <input type="number" inputMode="numeric" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} placeholder="0" className="flex-1 py-3 text-xl font-bold outline-none bg-transparent" />
+              <input id="recon-statement-balance" type="number" inputMode="numeric" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} placeholder="0" className="flex-1 py-3 text-xl font-bold outline-none bg-transparent" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Per Tanggal</label>
-            <input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+            <label htmlFor="recon-as-of-date" className="text-xs text-muted-foreground mb-1.5 block">Per Tanggal</label>
+            <input id="recon-as-of-date" type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
           </div>
 
           <button onClick={handleCompute} disabled={computing || !selectedAssetId} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">

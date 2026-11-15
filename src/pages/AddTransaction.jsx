@@ -379,8 +379,9 @@ export default function AddTransaction() {
 
         {bankAssets.length > 0 && (
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
+            <label htmlFor="add-tx-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
             <select
+              id="add-tx-linked-asset"
               value={linkedAssetId}
               onChange={(e) => setLinkedAssetId(e.target.value)}
               className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
@@ -461,10 +462,11 @@ export default function AddTransaction() {
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
+          <label htmlFor="add-tx-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
           <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
             <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
             <input
+              id="add-tx-amount"
               type="number"
               inputMode="numeric"
               value={amount}
@@ -502,8 +504,9 @@ export default function AddTransaction() {
         )}
 
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
+          <label htmlFor="add-tx-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
           <input
+            id="add-tx-date"
             type="datetime-local"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -513,8 +516,9 @@ export default function AddTransaction() {
 
         {type !== "income" && (
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">{type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
+            <label htmlFor="add-tx-merchant" className="text-xs text-muted-foreground mb-1.5 block">{type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
             <input
+              id="add-tx-merchant"
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
               placeholder={type === "sedekah" ? "Mis. Masjid, Yatim..." : "Mis. Indomaret, Toko A..."}
@@ -524,8 +528,9 @@ export default function AddTransaction() {
         )}
 
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
+          <label htmlFor="add-tx-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
           <textarea
+            id="add-tx-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}

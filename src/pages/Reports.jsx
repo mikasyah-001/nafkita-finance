@@ -308,21 +308,21 @@ function ReportsAnalysis() {
         <div className="surface p-3 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">Dari</label>
-              <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="reports-custom-start" className="text-[11px] text-muted-foreground block mb-1">Dari</label>
+              <input id="reports-custom-start" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">Sampai</label>
-              <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <label htmlFor="reports-custom-end" className="text-[11px] text-muted-foreground block mb-1">Sampai</label>
+              <input id="reports-custom-end" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
           {!customStart && !customEnd && <p className="text-[11px] text-muted-foreground text-center">Pilih rentang tanggal untuk melihat laporan</p>}
         </div>
       ) : (
         <div className="flex items-center justify-between surface p-3">
-          <button onClick={prevPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={prevPeriod} aria-label="Periode sebelumnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
           <p className="font-medium">{periodLabel}</p>
-          <button onClick={nextPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={nextPeriod} aria-label="Periode berikutnya" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
         </div>
       )}
 

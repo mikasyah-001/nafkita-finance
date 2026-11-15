@@ -96,8 +96,9 @@ export default function Profile() {
       </div>
 
       <div className="mb-5">
-        <label className="text-xs text-muted-foreground mb-1.5 block">Nama</label>
+        <label htmlFor="profile-name" className="text-xs text-muted-foreground mb-1.5 block">Nama</label>
         <input
+          id="profile-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nama lengkap"

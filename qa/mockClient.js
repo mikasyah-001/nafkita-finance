@@ -127,7 +127,7 @@ const entity = (name) => ({
 });
 export const base44 = {
   auth: {
-    me: async () => ME, updateMe: async (o) => Object.assign(ME, o), isAuthenticated: async () => true,
+    me: async () => ({ ...ME }), updateMe: async (o) => ({ ...Object.assign(ME, o) }), isAuthenticated: async () => true,
     logout: () => {}, redirectToLogin: () => {}, setToken: () => {}, loginWithProvider: () => {},
   },
   entities: new Proxy({}, { get: (_, k) => entity(k) }),

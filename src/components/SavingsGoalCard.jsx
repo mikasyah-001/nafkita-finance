@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane } from "lucide-react";
-import { formatMoney, formatDate, formatMoneyPlain } from "@/lib/finance";
+import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
 import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
 
@@ -132,8 +132,8 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
                 onChange={(e) => setSourceAssetId(e.target.value)}
                 className={panelInput}
               >
-                <option value="">Pilih aset sumber...</option>
-                {assets.filter(a => a.type === "bank").map(a => (
+                <option value="">Pilih aset sumber ({goal.currency || "IDR"})...</option>
+                {assets.filter(a => isMoneyAsset(a) && (a.currency || "IDR") === (goal.currency || "IDR")).map(a => (
                   <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
                 ))}
               </select>
@@ -144,7 +144,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
               inputMode="decimal"
               value={progressAmount}
               onChange={(e) => setProgressAmount(e.target.value)}
-              placeholder="Nominal"
+              placeholder={`Nominal (${goal.currency || "IDR"})`}
               className={`${panelInput} tabular-nums`}
             />
             <button

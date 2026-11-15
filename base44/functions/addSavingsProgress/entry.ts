@@ -30,6 +30,9 @@ export default async function (req) {
       if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
       if (asset.created_by_id !== me.id)
         return Response.json({ error: "forbidden" }, { status: 403 });
+      // Tanpa konversi kurs: aset sumber harus bermata uang sama dengan target.
+      if ((asset.currency || "IDR").toUpperCase() !== (goal.currency || "IDR").toUpperCase())
+        return Response.json({ error: "Mata uang aset sumber berbeda dengan target" }, { status: 400 });
       if ((asset.value || 0) < amt)
         return Response.json({ error: "saldo_tidak_cukup" }, { status: 400 });
 

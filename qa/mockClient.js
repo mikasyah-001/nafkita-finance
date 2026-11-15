@@ -4,7 +4,7 @@
 // sehingga alur input bisa diuji end-to-end. Reset saat halaman dimuat ulang.
 import { defaultCategories } from "@/lib/finance";
 
-const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
+const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
 const now = new Date();
 const Y = now.getUTCFullYear(), M = now.getUTCMonth();
 const d = (dd, mOff = 0, h = 10) => new Date(Date.UTC(Y, M + mOff, dd, h)).toISOString();
@@ -66,7 +66,7 @@ const FN = {
     { id: "r1", created_by_id: "u1", name: "Listrik PLN", amount: 750000, currency: "IDR", frequency: "monthly", next_date: later(-1), start_date: later(-1), status: "active", category: "Tagihan", type: "expense" },
     { id: "r2", created_by_id: "u1", name: "Internet", amount: 450000, currency: "IDR", frequency: "monthly", next_date: later(2), start_date: later(2), status: "active", category: "Tagihan", type: "expense" },
   ] }),
-  listSavingsGoals: () => ({ goals: [{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" }] }),
+  listSavingsGoals: () => ({ goals: [...(DATA.SavingsGoal || []),{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" }] }),
   listPendingApprovals: () => ({
     pending_approvals: db.approvals.filter((a) => a.status === "pending").map((a) => ({ ...a, transaction: db.tx.find((t) => t.id === a.transaction_id) })),
     my_requests: [],
@@ -135,5 +135,5 @@ export const base44 = {
   integrations: new Proxy({}, { get: () => new Proxy({}, { get: () => async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.
-if (typeof window !== "undefined") window.__qa = db;
+if (typeof window !== "undefined") { window.__qa = db; window.__qaData = DATA; }
 export default base44;

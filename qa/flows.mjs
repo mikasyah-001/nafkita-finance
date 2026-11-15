@@ -235,6 +235,23 @@ try {
     assert.ok(tx && tx.type === "sedekah" && tx.amount === 1000000, "Transaksi zakat tercatat");
   });
 
+  await step("Target tabungan dalam riyal: mata uang aktif bisa dipilih, aset sumber hanya SAR", async () => {
+    await nav("/target-tabungan");
+    await page.getByRole("button", { name: /Tambah/ }).first().click();
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    const opts = await page.locator("#savings-goal-linked-asset option").allInnerTexts();
+    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia");
+    assert.ok(!opts.some((o) => o.includes("Tabungan BCA")), "Rekening IDR tidak ditawarkan");
+    await page.fill("#savings-goal-name", "QA Umrah SAR");
+    await page.fill("#savings-goal-target-amount", "20000");
+    await page.getByRole("button", { name: /^Simpan$/ }).click();
+    await page.waitForTimeout(800);
+    const g = await page.evaluate(() => (window.__qaData.SavingsGoal || []).find((x) => x.name === "QA Umrah SAR"));
+    assert.equal(g?.currency, "SAR");
+    assert.equal(g?.target_amount, 20000);
+    assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

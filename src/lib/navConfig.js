@@ -1,19 +1,18 @@
 // Sumber tunggal item navigasi untuk Sidebar (desktop) & BottomNav (mobile).
 // Mencegah drift antar dua komponen dan memastikan konsistensi menu.
 import {
-  Home, ReceiptText, Landmark, BarChart3, Wallet, PiggyBank,
+  Home, ReceiptText, Landmark, BarChart3, Wallet,
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, CheckCheck,
   Upload, Tags, Activity, Coins, User, Settings, MessageSquare,
   Shield, BookOpen,
 } from "lucide-react";
 
-// Item utama (Sidebar) — Beranda, Riwayat, Aset, Laporan, Ringkasan, Anggaran.
+// Item utama (Sidebar) — Beranda, Riwayat, Aset, Laporan (termasuk ringkasan bulanan), Anggaran.
 export const mainItems = [
   { to: "/", icon: Home, label: "Beranda", end: true },
   { to: "/riwayat", icon: ReceiptText, label: "Riwayat" },
   { to: "/aset", icon: Landmark, label: "Aset" },
   { to: "/laporan", icon: BarChart3, label: "Laporan" },
-  { to: "/ringkasan", icon: PiggyBank, label: "Ringkasan" },
   { to: "/anggaran", icon: Wallet, label: "Anggaran" },
 ];
 
@@ -47,8 +46,7 @@ export const moreGroups = [
     title: "Pantau",
     tone: "primary",
     items: [
-      { to: "/ringkasan", icon: PiggyBank, label: "Ringkasan" },
-      { to: "/laporan", icon: BarChart3, label: "Laporan" },
+          { to: "/laporan", icon: BarChart3, label: "Laporan" },
       { to: "/anggaran", icon: Wallet, label: "Anggaran" },
       { to: "/target-tabungan", icon: Target, label: "Target Tabungan" },
     ],

@@ -44,7 +44,7 @@ export default function MonthlySummary({ scope = "shared" }) {
           <h2 className="font-semibold text-sm flex items-center gap-2"><PieChart className="w-4 h-4 text-muted-foreground" /> Ringkasan Belanja</h2>
           <p className="text-xs text-muted-foreground">{monthLabel}</p>
         </div>
-        <Link to="/ringkasan" className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
+        <Link to="/laporan?tab=bulanan" className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
       </div>
 
       {activeCurs.length > 0 && (

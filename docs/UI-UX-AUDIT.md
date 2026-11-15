@@ -140,3 +140,12 @@ Kedua tampilan kini memakai satu fungsi, `monthlyExpenseBreakdown()` di `lib/fin
   - **Laporan**: catatan di bawah tombol "Muat Kurs".
 
 **Catatan zakat:** Dashboard Aset menghitung nilai emas & non-emas lewat `convertTo()`. Aset tanpa kurs kini *dikecualikan*, bukan dijumlahkan dengan satuan yang salah, dan peringatannya tampil di halaman. Pastikan kurs termuat sebelum mengambil keputusan nisab.
+
+## 10. Tahap 5: alur Beranda & Laporan
+
+- **Ringkasan + Laporan digabung.** `/laporan` sekarang punya dua tab: *Bulan ini* (isi halaman Ringkasan sebelumnya) dan *Analisis & ekspor*. `/ringkasan` dialihkan ke `/laporan?tab=bulanan`, jadi tautan lama tetap berfungsi. Menu berkurang satu.
+- **Pintasan Beranda → aksi.** Pintasan Laporan, Anggaran, dan Aset (sudah ada di navigasi) diganti dengan aksi yang sering dilakukan:
+  - **Scan struk:** membuka form catat dengan tombol scan disorot. Pemilih file tidak bisa dibuka otomatis tanpa ketukan pengguna.
+  - **Sedekah:** menampilkan total sedekah bulan ini.
+  - **Transfer:** antar rekening.
+  - **Tagihan:** menampilkan jumlah tagihan yang lewat atau mendekati jatuh tempo (≤3 hari). Teks berwarna merah bila ada yang lewat jatuh tempo.

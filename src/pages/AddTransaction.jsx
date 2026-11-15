@@ -55,6 +55,13 @@ export default function AddTransaction() {
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
+  const scanBtnRef = useRef(null);
+  // Dibuka dari aksi "Scan struk" di Beranda: sorot tombol scan.
+  // (Pemilih file tidak bisa dibuka otomatis tanpa ketukan pengguna.)
+  const [highlightScan] = useState(() => new URLSearchParams(window.location.search).get("scan") === "1");
+  useEffect(() => {
+    if (highlightScan) scanBtnRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightScan]);
 
   useEffect(() => {
     base44.auth.me().then((u) => {
@@ -417,9 +424,10 @@ export default function AddTransaction() {
 
         <div>
           <button
+            ref={scanBtnRef}
             onClick={() => fileRef.current?.click()}
             disabled={scanning}
-            className="w-full rounded-2xl border-2 border-dashed border-border py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60"
+            className={`w-full rounded-2xl border-2 border-dashed ${highlightScan ? "border-primary bg-primary/5" : "border-border"} py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60`}
           >
             {scanning ? (
               <>

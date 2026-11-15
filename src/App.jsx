@@ -27,7 +27,6 @@ const ImportReport = lazy(() => import('@/pages/ImportReport'));
 const TransactionDetail = lazy(() => import('@/pages/TransactionDetail'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const Categories = lazy(() => import('@/pages/Categories'));
-const Ringkasan = lazy(() => import('@/pages/Ringkasan'));
 const InvestmentDetail = lazy(() => import('@/pages/InvestmentDetail'));
 const Feedback = lazy(() => import('@/pages/Feedback'));
 import Welcome from '@/pages/Welcome';
@@ -97,7 +96,7 @@ const AuthenticatedApp = () => {
           <Route path="/add" element={<AddTransaction />} />
           <Route path="/aset" element={<Assets />} />
           <Route path="/laporan" element={<Reports />} />
-          <Route path="/ringkasan" element={<Ringkasan />} />
+          <Route path="/ringkasan" element={<Navigate to="/laporan?tab=bulanan" replace />} />
           <Route path="/anggaran" element={<Budget />} />
           <Route path="/aset-dashboard" element={<AssetDashboard />} />
           <Route path="/impor" element={<ImportReport />} />

@@ -227,15 +227,20 @@ export function filterPeriod(txs, startDate, endDate) {
 
 // Hitung tanggal berikutnya untuk tagihan berulang berdasarkan frekuensi.
 export function computeRecurringNextDate(currentDate, frequency) {
-  const d = new Date(currentDate);
-  switch (frequency) {
-    case "daily": d.setDate(d.getDate() + 1); break;
-    case "weekly": d.setDate(d.getDate() + 7); break;
-    case "yearly": d.setFullYear(d.getFullYear() + 1); break;
-    case "monthly":
-    default: d.setMonth(d.getMonth() + 1); break;
+  // Sama dengan backend (processRecurringBills): berbasis UTC dan tanggal
+  // dibatasi ke akhir bulan, agar 31 Jan → 28/29 Feb (bukan 3 Maret).
+  const [y, m, d] = String(currentDate).slice(0, 10).split("-").map(Number);
+  const fmt = (yy, mm, dd) => `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+  const lastDay = (yy, mm) => new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+  if (frequency === "daily" || frequency === "weekly") {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + (frequency === "daily" ? 1 : 7));
+    return dt.toISOString().slice(0, 10);
   }
-  return d.toISOString().slice(0, 10);
+  if (frequency === "yearly") return fmt(y + 1, m, Math.min(d, lastDay(y + 1, m)));
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  return fmt(ny, nm, Math.min(d, lastDay(ny, nm)));
 }
 
 // Savings rate memperhitungkan sedekah, dijepit 0–100% dengan label saat di luar rentang.

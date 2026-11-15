@@ -2,10 +2,9 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, X } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/finance";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 export default function ApprovalCard({ approval, mode, onRefresh }) {
-  const { toast } = useToast();
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -17,11 +16,11 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
     try {
       const res = await base44.functions.invoke("approveTransaction", { approval_id: approval.id });
       if (res.data?.ok) {
-        toast({ title: "Transaksi disetujui" });
+        toast.success("Transaksi disetujui");
         onRefresh();
       }
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
     setSubmitting(false);
   };
@@ -31,13 +30,13 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
     try {
       const res = await base44.functions.invoke("rejectTransaction", { approval_id: approval.id, reason });
       if (res.data?.ok) {
-        toast({ title: "Transaksi ditolak" });
+        toast.success("Transaksi ditolak");
         setShowReject(false);
         setReason("");
         onRefresh();
       }
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
     setSubmitting(false);
   };
@@ -47,11 +46,11 @@ export default function ApprovalCard({ approval, mode, onRefresh }) {
     try {
       const res = await base44.functions.invoke("cancelApproval", { approval_id: approval.id });
       if (res.data?.ok) {
-        toast({ title: "Permintaan dibatalkan" });
+        toast.success("Permintaan dibatalkan");
         onRefresh();
       }
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
     setSubmitting(false);
   };

@@ -2,10 +2,9 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Target, TrendingUp, Calendar, CheckCircle2, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { formatMoney, formatDate, colorMap } from "@/lib/finance";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefresh }) {
-  const { toast } = useToast();
   const [showMenu, setShowMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [progressAmount, setProgressAmount] = useState("");
@@ -30,13 +29,13 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         source_asset_id: progressMethod === "topup" ? sourceAssetId : undefined,
       });
       if (res.data?.ok) {
-        toast({ title: "Progress ditambahkan" });
+        toast.success("Progress ditambahkan");
         setShowProgress(false);
         setProgressAmount("");
         onRefresh();
       }
     } catch (e) {
-      toast({ title: "Gagal", description: e?.message, variant: "destructive" });
+      toast.error("Gagal", { description: e?.message });
     }
     setSubmitting(false);
   };

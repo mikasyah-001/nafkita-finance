@@ -182,3 +182,18 @@ Semua halaman (24 rute, mode terang & gelap, lebar 390px) dijalankan memakai bac
 | Label sumbu grafik terpotong ("p 200.000") | Keterbacaan | `formatAxis()`: 50 jt, 1,2 M, seragam di 5 grafik |
 | Subjudul aksi cepat & header terpotong; judul "Aset Kelua…" | Keterbacaan | Teks diringkas, subjudul boleh 2 baris, tombol "Tambah" |
 | Swatch warna di Pengaturan meluber ke baris kedua | Tata letak | Ukuran & jarak diperkecil |
+
+## 13. Tahap 8: QA otomatis di repo
+
+- `qa/`: aplikasi asli dengan backend & login tiruan yang stateful. Lihat `qa/README.md`.
+- `npm run qa`: screenshot 23 halaman × 2 mode. Hasilnya **0 error JavaScript**.
+- `npm run qa:flows`: **7/7 alur lolos**:
+  - catat pengeluaran;
+  - transfer (saldo & belanja tidak berubah, saldo aset berpindah);
+  - kartu persetujuan muncul lalu hilang setelah transaksi disetujui;
+  - transaksi yang disetujui baru masuk hitungan;
+  - hapus transaksi dengan konfirmasi (Batal benar-benar membatalkan).
+
+**Temuan dari uji alur:**
+- **Dua sistem notifikasi.** Aplikasi memakai sonner dan shadcn toast sekaligus. Notifikasi shadcn ("Transaksi disetujui") menutupi seluruh header halaman, termasuk tombol kembali, dan berhenti menghitung mundur selama kursor berada di atasnya. Sekarang semua notifikasi memakai sonner, dipasang global sehingga halaman daftar akun juga mendapatkannya.
+- **Tombol edit transaksi** hanya punya `title`. Sekarang ditambah `aria-label` agar terbaca oleh pembaca layar.

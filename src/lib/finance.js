@@ -258,6 +258,14 @@ export function activeCurrencies(summary) {
   return Object.keys(summary || {}).filter((c) => summary[c]?.count > 0);
 }
 
+// Aset yang bisa menjadi sumber/tujuan uang: rekening bank & dompet tunai.
+export const isMoneyAsset = (a) => a?.type === "bank" || a?.type === "tunai";
+
+// Pengeluaran luar biasa (tidak rutin, mis. beli kendaraan): ditandai lewat
+// tag agar tidak merusak rata-rata harian & tren. Tetap dihitung di total.
+export const EXTRAORDINARY_TAG = "luar-biasa";
+export const isExtraordinary = (t) => Array.isArray(t?.tags) && t.tags.includes(EXTRAORDINARY_TAG);
+
 // Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).
 // Emas dan simpanan diperlakukan terpisah: emas nisab 85 gr, simpanan nisab = 85 gr emas.
 export const NISAB_GRAM = 85;
@@ -341,6 +349,7 @@ export function formatDuration(fromDate) {
 
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
+  tunai: { label: "Uang Tunai", icon: "Wallet", color: "green" },
   emas: { label: "Emas", icon: "Coins", color: "amber" },
   emas_digital: { label: "Emas Digital", icon: "Coins", color: "amber" },
   investasi: { label: "Investasi", icon: "Briefcase", color: "green" },
@@ -372,6 +381,7 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const currencies = new Set();
   const unconverted = {};
   let count = 0;
+  let extraordinary = 0;
   base.forEach((t) => {
     const from = (t.currency || "IDR").toUpperCase();
     const ok = canConvert(from, cur, rateMap);
@@ -379,6 +389,7 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
     if (isInMonth(t, year, month)) {
       currencies.add(from);
       if (!ok) { unconverted[from] = (unconverted[from] || 0) + (Number(t.amount) || 0); return; }
+      if (isExtraordinary(t)) extraordinary += v;
       if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
       map[t.category].value += v;
       map[t.category].count += 1;
@@ -392,7 +403,8 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const rows = Object.entries(map)
     .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
     .sort((a, b) => b.value - a.value);
-  return { rows, total, prevTotal, count, currencies: [...currencies], unconverted };
+  // routineTotal: total tanpa pengeluaran luar biasa — dipakai rata-rata/hari.
+  return { rows, total, prevTotal, count, currencies: [...currencies], unconverted, extraordinary, routineTotal: total - extraordinary };
 }
 
 // Label sumbu grafik yang ringkas & konsisten: 500 rb, 12 jt, 1,2 M (tanpa simbol).

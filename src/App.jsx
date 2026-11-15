@@ -46,6 +46,7 @@ const AssetMutations = lazy(() => import('@/pages/AssetMutations'));
 const DataHealth = lazy(() => import('@/pages/DataHealth'));
 const Zakat = lazy(() => import('@/pages/Zakat'));
 const Panduan = lazy(() => import('@/pages/Panduan'));
+const AuditKas = lazy(() => import('@/pages/AuditKas'));
 
 // Halaman selain Beranda & auth dimuat saat dibuka (code-splitting), sehingga
 // pembukaan pertama aplikasi jauh lebih ringan di jaringan lemah.
@@ -119,6 +120,7 @@ const AuthenticatedApp = () => {
           <Route path="/kesehatan-data" element={<DataHealth />} />
           <Route path="/zakat" element={<Zakat />} />
           <Route path="/panduan" element={<Panduan />} />
+          <Route path="/audit-kas" element={<AuditKas />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

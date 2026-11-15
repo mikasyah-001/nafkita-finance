@@ -6,7 +6,7 @@ import { Image as SmartImage } from "@/components/ui/image";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Check, Trash2, Users, Lock } from "lucide-react";
 
-const types = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
+const types = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
 
 const digitalGoldBrokers = {
   SAR: ["Bank Al Rajhi", "Bank Aljazira", "SNB"],

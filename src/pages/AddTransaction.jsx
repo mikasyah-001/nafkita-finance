@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol } from "@/lib/finance";
+import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -50,7 +50,7 @@ export default function AddTransaction() {
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
   const [currency, setCurrency] = useState("IDR");
-  const [linkedAssetId, setLinkedAssetId] = useState("");
+  const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
@@ -71,7 +71,7 @@ export default function AddTransaction() {
   }, []);
 
   const availableCategories = categories.filter((c) => c.type === type);
-  const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
+  const bankAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
 
   const applyTemplate = (t) => {
     setType(t.type);
@@ -379,14 +379,14 @@ export default function AddTransaction() {
 
         {bankAssets.length > 0 && (
           <div>
-            <label htmlFor="add-tx-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
+            <label htmlFor="add-tx-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Dibayar dari / masuk ke (opsional)</label>
             <select
               id="add-tx-linked-asset"
               value={linkedAssetId}
               onChange={(e) => setLinkedAssetId(e.target.value)}
               className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
             >
-              <option value="">Tidak ada — saldo tidak diubah</option>
+              <option value="">Tidak dipilih — saldo rekening tidak diubah</option>
               {bankAssets.map((a) => (
                 <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
               ))}
@@ -541,8 +541,24 @@ export default function AddTransaction() {
 
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Tag</label>
-          <TagInput tags={tags} onChange={setTags} />
+          <TagInput tags={tags.filter((t) => t !== EXTRAORDINARY_TAG)} onChange={(next) => setTags(tags.includes(EXTRAORDINARY_TAG) ? [...next, EXTRAORDINARY_TAG] : next)} />
         </div>
+
+        {type === "expense" && (
+          <label htmlFor="add-tx-extraordinary" className="flex items-start gap-3 rounded-2xl border border-border bg-card p-3.5 cursor-pointer">
+            <input
+              id="add-tx-extraordinary"
+              type="checkbox"
+              checked={tags.includes(EXTRAORDINARY_TAG)}
+              onChange={(e) => setTags(e.target.checked ? [...tags.filter((t) => t !== EXTRAORDINARY_TAG), EXTRAORDINARY_TAG] : tags.filter((t) => t !== EXTRAORDINARY_TAG))}
+              className="mt-0.5 w-4 h-4 accent-[hsl(var(--primary))]"
+            />
+            <span>
+              <span className="block text-sm font-semibold">Pengeluaran luar biasa</span>
+              <span className="block text-xs text-muted-foreground leading-snug">Tidak rutin, mis. beli kendaraan atau renovasi. Tetap masuk total, tapi tidak merusak rata-rata harian.</span>
+            </span>
+          </label>
+        )}
       </div>
 
       <div className="px-5 py-4 border-t border-border bg-background">

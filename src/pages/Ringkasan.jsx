@@ -30,7 +30,7 @@ export default function Ringkasan({ embedded = false }) {
   const month = cursor.getMonth();
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
-  const { rows, total, prevTotal, count, txList, activeCurs, cur, unconverted } = useMemo(() => {
+  const { rows, total, prevTotal, count, txList, activeCurs, cur, unconverted, extraordinary, routineTotal } = useMemo(() => {
     // Logika sama persis dengan kartu "Ringkasan Belanja" di Beranda
     // (monthlyExpenseBreakdown): tanpa transfer & transaksi pending/ditolak,
     // semua mata uang dikonversi ke mata uang tampilan.
@@ -41,7 +41,7 @@ export default function Ringkasan({ embedded = false }) {
     const txList = transactions
       .filter((t) => inScope(t, scope) && isInMonth(t, year, month) && filterReportableTx(t))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur, unconverted: r.unconverted };
+    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur, unconverted: r.unconverted, extraordinary: r.extraordinary, routineTotal: r.routineTotal };
   }, [transactions, scope, year, month, currency, rateMap, me?.default_currency]);
 
   // Ringkasan & kontribusi per orang untuk gambar laporan (logika sama: transaksi
@@ -61,7 +61,8 @@ export default function Ringkasan({ embedded = false }) {
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const avgPerDay = total / daysInMonth;
+  // Rata-rata harian tanpa pengeluaran luar biasa agar mencerminkan kebiasaan rutin.
+  const avgPerDay = routineTotal / daysInMonth;
   const top = rows[0] || null;
   const riser = rows.length ? rows.filter((r) => r.prev > 0).sort((a, b) => (b.value - b.prev) - (a.value - a.prev))[0] : null;
 
@@ -110,16 +111,17 @@ export default function Ringkasan({ embedded = false }) {
         summary={shareSummary}
         rows={rows}
         contributors={contributors}
-        extraordinary={0}
+        extraordinary={extraordinary}
       />
 
       <div className="card-gradient-primary rounded-3xl p-5 mb-4">
         <p className="text-xs opacity-80">Total pengeluaran{activeCurs.length > 1 ? ` (semua mata uang → ${cur})` : ` (${cur})`}</p>
         {formatUnconverted(unconverted) && <p className="text-[11px] mt-1 inline-flex items-center bg-white/15 rounded-full px-2 py-0.5">⚠ Belum termasuk {formatUnconverted(unconverted)} — kurs belum tersedia</p>}
         <p className="text-2xl sm:text-3xl font-bold tabular-nums break-words">{formatMoney(total, cur)}</p>
+        {extraordinary > 0 && <p className="text-[11px] mt-1 opacity-80">Termasuk pengeluaran luar biasa {formatMoneyShort(extraordinary, cur)}</p>}
         <div className="flex gap-4 mt-3 text-xs">
           <div className="min-w-0">
-            <p className="opacity-80">Rata-rata/hari</p>
+            <p className="opacity-80">Rata-rata/hari{extraordinary > 0 ? " (rutin)" : ""}</p>
             <p className="font-semibold tabular-nums">{formatMoneyShort(avgPerDay, cur)}</p>
           </div>
           <div className="w-px bg-primary-foreground/20" />

@@ -108,6 +108,44 @@ try {
     assert.equal(start.belanja - after.belanja, 100000, "Belanja kembali turun");
   });
 
+  await step("Audit kas: tarik tunai menambah 'seharusnya di tangan', selisih disesuaikan & tercatat", async () => {
+    const wallet = () => page.evaluate(() => window.__qa.assets.find((a) => a.id === "a6").value);
+    const w0 = await wallet();
+    await nav("/transfer?to=a6");
+    await page.selectOption("#transfer-from", "a1");
+    await page.fill("#transfer-amount", "500000");
+    await page.getByRole("button", { name: /Transfer Sekarang/ }).click();
+    await page.waitForTimeout(800);
+    assert.equal(await wallet(), w0 + 500000, "Dompet bertambah dari tarik tunai");
+    const h0 = await homeNumbers();
+    await nav("/audit-kas");
+    const expected = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(expected, w0 + 500000, "Seharusnya di tangan");
+    await page.fill("#audit-physical", String(expected - 50000));
+    assert.ok(await page.getByText("Kurang Rp 50.000").isVisible(), "Selisih tampil");
+    await page.getByRole("button", { name: /Sesuaikan saldo/ }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Sesuaikan" }).click();
+    await page.waitForTimeout(800);
+    assert.equal(await wallet(), expected - 50000, "Saldo dompet = uang fisik");
+    const h1 = await homeNumbers();
+    assert.equal(h1.belanja - h0.belanja, 50000, "Kekurangan tercatat sebagai pengeluaran");
+  });
+
+  await step("Pengeluaran luar biasa: ditandai, total naik, rata-rata harian rutin tidak berubah", async () => {
+    await nav("/laporan?tab=bulanan");
+    const avgText = async () => page.getByText(/Rata-rata\/hari/).locator("xpath=following-sibling::p[1]").innerText();
+    const avg0 = await avgText();
+    await nav("/add");
+    await page.fill("#add-tx-amount", "60000000");
+    await page.getByRole("button", { name: "Belanja" }).first().click();
+    await page.check("#add-tx-extraordinary");
+    await page.getByRole("button", { name: /Simpan Transaksi/ }).click();
+    await page.waitForURL(BASE + "/", { timeout: 5000 });
+    await nav("/laporan?tab=bulanan");
+    assert.equal(await avgText(), avg0, "Rata-rata harian rutin sama");
+    assert.ok(await page.getByText(/Termasuk pengeluaran luar biasa/).first().isVisible(), "Catatan luar biasa tampil");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

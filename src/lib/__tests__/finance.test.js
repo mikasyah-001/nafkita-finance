@@ -153,3 +153,21 @@ test("computeRecurringNextDate: bulanan dari akhir bulan tidak melompat 2 bulan"
   assert.equal(computeRecurringNextDate("2028-01-31", "monthly"), "2028-02-29");
   assert.equal(computeRecurringNextDate("2026-03-31", "monthly"), "2026-04-30");
 });
+
+// ── Pengeluaran luar biasa & aset uang ──────────────────────────
+import { isExtraordinary, EXTRAORDINARY_TAG, isMoneyAsset } from "../finance.js";
+test("Pengeluaran luar biasa: tetap di total, keluar dari total rutin", () => {
+  const r = monthlyExpenseBreakdown([
+    tx({ amount: 100_000 }),
+    tx({ amount: 60_000_000, tags: [EXTRAORDINARY_TAG], category: "Kendaraan" }),
+  ], { year: 2026, month: 10, currency: "IDR", rateMap: RATES });
+  assert.equal(r.total, 60_100_000);
+  assert.equal(r.extraordinary, 60_000_000);
+  assert.equal(r.routineTotal, 100_000);
+  assert.equal(isExtraordinary(tx({ tags: ["liburan"] })), false);
+});
+test("isMoneyAsset: rekening bank & dompet tunai saja", () => {
+  assert.equal(isMoneyAsset({ type: "bank" }), true);
+  assert.equal(isMoneyAsset({ type: "tunai" }), true);
+  assert.equal(isMoneyAsset({ type: "emas" }), false);
+});

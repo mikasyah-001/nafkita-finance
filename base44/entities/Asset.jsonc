@@ -9,6 +9,7 @@
       "type": "string",
       "enum": [
         "bank",
+        "tunai",
         "emas",
         "emas_digital",
         "investasi",

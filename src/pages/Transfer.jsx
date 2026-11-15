@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol } from "@/lib/finance";
+import { formatMoney, currencySymbol, isMoneyAsset } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -13,8 +13,9 @@ export default function Transfer() {
   const { data: assets = [] } = useAssets();
   const userCurrencies = useUserCurrencies();
   const [user, setUser] = useState(null);
-  const [fromAsset, setFromAsset] = useState("");
-  const [toAsset, setToAsset] = useState("");
+  const qs = new URLSearchParams(window.location.search);
+  const [fromAsset, setFromAsset] = useState(qs.get("from") || "");
+  const [toAsset, setToAsset] = useState(qs.get("to") || "");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("IDR");
   const [date, setDate] = useState(() => {
@@ -33,8 +34,9 @@ export default function Transfer() {
     }).catch(() => {});
   }, []);
 
+  // Rekening bank & dompet tunai (tarik tunai = transfer bank → dompet tunai).
   const bankAssets = assets.filter(
-    (a) => a.type === "bank" && (a.currency || "IDR") === currency && a.created_by_id === user?.id
+    (a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id
   );
 
   const handleSave = async () => {
@@ -102,7 +104,7 @@ export default function Transfer() {
 
         {bankAssets.length < 2 ? (
           <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
-            Anda memerlukan minimal 2 aset bank dengan mata uang {currency} untuk melakukan transfer.
+            Anda memerlukan minimal 2 rekening atau dompet tunai bermata uang {currency} untuk transfer.
           </div>
         ) : (
           <>

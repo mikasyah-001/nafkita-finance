@@ -130,6 +130,7 @@ export default function Home() {
     { to: "/add?type=income", icon: TrendingUp, label: "Pemasukan" },
     { to: "/add?type=sedekah", icon: Heart, label: "Sedekah" },
     { to: "/transfer", icon: ArrowLeftRight, label: "Transfer" },
+    { to: "/audit-kas", icon: Banknote, label: "Audit kas" },
     { to: "/tagihan-berulang", icon: CalendarClock, label: overdueBills.length ? `Tagihan · ${overdueBills.length} terlambat` : dueBills.length ? `Tagihan · ${dueBills.length} segera` : "Tagihan", alert: overdueBills.length > 0 },
   ];
 

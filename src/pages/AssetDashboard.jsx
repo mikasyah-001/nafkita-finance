@@ -82,15 +82,15 @@ export default function AssetDashboard() {
   const purchasedCurrent = withPurchase.reduce((s, a) => s + displayValue(a), 0);
   const totalGrowth = totalPurchase > 0 ? ((purchasedCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
-  const allocColors = { "Tabungan/Bank": "#3b82f6", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
-  const allocation = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
+  const allocColors = { "Tabungan/Bank": "#3b82f6", "Uang Tunai": "#157A5A", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
+  const allocation = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + displayValue(a), 0);
       return { name: assetTypeLabels[type]?.label || type, value: Math.round(val) };
     })
     .filter((x) => x.value > 0);
 
-  const typeTotals = ["bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
+  const typeTotals = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + displayValue(a), 0);

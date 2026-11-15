@@ -23,7 +23,7 @@ const db = {
     T({ type: "expense", amount: 5000000, category: "Transfer", date: d(10), merchant: "BCA → Mandiri", transfer_pair_id: "p1" }),
     T({ type: "income", amount: 5000000, category: "Transfer", date: d(10), merchant: "BCA → Mandiri", transfer_pair_id: "p1" }),
     T({ id: "tx-pending", type: "expense", amount: 3200000, category: "Belanja", date: d(12), merchant: "Elektronik", approval_status: "pending", input_by_name: "Siti" }),
-    T({ type: "expense", amount: 175000, category: "Makanan", date: d(13), merchant: "Warteg Bahari", input_by_name: "Siti" }),
+    T({ type: "expense", amount: 175000, category: "Makanan", date: d(13), merchant: "Warteg Bahari", input_by_name: "Siti", linked_asset_id: "a6" }),
     T({ type: "expense", amount: 900000, category: "Belanja", date: d(5), visibility: "private", merchant: "Hadiah" }),
     T({ type: "income", amount: 15000000, category: "Gaji", date: d(1, -1) }),
     T({ type: "expense", amount: 1800000, category: "Belanja", date: d(3, -1) }),
@@ -35,7 +35,8 @@ const db = {
     { id: "a5", name: "Rekening Mandiri", type: "bank", value: 12000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a2", name: "Emas Antam", type: "emas", quantity: 40, purchase_price: 1250000, value: 64000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a3", name: "Reksa Dana Syariah", type: "investasi", value: 43500000, purchase_price: 38000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
-    { id: "a4", name: "Dompet Riyal", type: "lainnya", value: 2400, currency: "SAR", visibility: "shared", created_by_id: "u1" },
+    { id: "a4", name: "Dompet Riyal", type: "tunai", value: 2400, currency: "SAR", visibility: "shared", created_by_id: "u1" },
+    { id: "a6", name: "Dompet tunai", type: "tunai", value: 800000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
   ],
   approvals: [{ id: "ap1", transaction_id: "tx-pending", requester_name: "Siti", amount: 3200000, currency: "IDR", status: "pending" }],
 };
@@ -74,7 +75,21 @@ const FN = {
   // ── Mutasi ──
   saveTransactionWithAsset: ({ transaction, transaction_id }) => {
     if (transaction_id) { const t = db.tx.find((x) => x.id === transaction_id); Object.assign(t, transaction); return { ok: true, transaction: t }; }
-    const t = T(transaction); db.tx.push(t); return { ok: true, transaction: t };
+    const t = T(transaction); db.tx.push(t);
+    const a = db.assets.find((x) => x.id === t.linked_asset_id);
+    if (a) a.value += t.type === "income" ? t.amount : -t.amount;
+    return { ok: true, transaction: t };
+  },
+  reconcileAsset: ({ asset_id, statement_balance, as_of_date, create_adjustment, notes }) => {
+    const a = db.assets.find((x) => x.id === asset_id);
+    const difference = statement_balance - a.value;
+    const rec = { id: id(), asset_id, asset_name: a.name, statement_balance, computed_balance: a.value, difference, currency: a.currency, as_of_date, status: "open", notes };
+    if (create_adjustment && Math.abs(difference) > 0.005) {
+      db.tx.push(T({ type: difference > 0 ? "income" : "expense", amount: Math.abs(difference), currency: a.currency, category: "Penyesuaian Rekonsiliasi", date: as_of_date + "T23:59:00.000Z", merchant: `Penyesuaian ${a.name}`, linked_asset_id: asset_id }));
+      a.value = statement_balance; rec.status = "reconciled";
+    } else if (Math.abs(difference) <= 0.005) rec.status = "reconciled";
+    (DATA.Reconciliation ||= []).unshift(rec);
+    return rec;
   },
   saveTransactionBatch: ({ transactions }) => { transactions.forEach((t) => db.tx.push(T(t))); return { saved: transactions.length, pending: 0 }; },
   deleteTransactionWithAsset: ({ transaction_id }) => { db.tx = db.tx.filter((t) => t.id !== transaction_id); return { ok: true }; },
@@ -82,8 +97,8 @@ const FN = {
     const from = db.assets.find((a) => a.id === from_asset_id), to = db.assets.find((a) => a.id === to_asset_id);
     from.value -= amount; to.value += amount;
     const pair = id(), merchant = `${from.name} → ${to.name}`;
-    db.tx.push(T({ type: "expense", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair }));
-    db.tx.push(T({ type: "income", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair }));
+    db.tx.push(T({ type: "expense", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: from_asset_id }));
+    db.tx.push(T({ type: "income", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: to_asset_id }));
     return { ok: true };
   },
   approveTransaction: ({ approval_id }) => {

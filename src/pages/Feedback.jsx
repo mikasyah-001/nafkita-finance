@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import {
-  ArrowLeft, Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
+import { Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
   Loader2, CheckCircle2, Heart,
 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 const types = [
   { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-600 dark:text-rose-400", desc: "Aplikasi error/ngebug" },
@@ -47,24 +47,19 @@ export default function Feedback() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-10">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Umpan Balik</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Umpan Balik" back />
 
       {sent ? (
         <div className="flex flex-col items-center text-center pt-10">
           <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <CheckCircle2 className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-lg font-semibold">Terima kasih!</h2>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
             Umpan balik Anda telah terkirim ke pengembang. Kami sangat menghargai masukan Anda untuk menyempurnakan NAFKITA.
           </p>
-          <div className="flex items-center gap-1.5 mt-3 text-xs text-emerald-600">
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-success">
             <Heart className="w-3.5 h-3.5" /> Pesan diterima pengembang
           </div>
           <div className="w-full mt-8 space-y-2.5">
@@ -124,7 +119,7 @@ export default function Feedback() {
               maxLength={2000}
               className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none"
             />
-            <p className="text-[10px] text-muted-foreground text-right mt-1">{message.length}/2000</p>
+            <p className="text-[11px] text-muted-foreground text-right mt-1">{message.length}/2000</p>
           </div>
 
           <div className="mb-6">

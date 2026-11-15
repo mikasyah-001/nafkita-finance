@@ -175,7 +175,7 @@ export default function PartnerManager() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mb-3">
+            <p className="text-[11px] text-muted-foreground mb-3">
               Pasangan otomatis tercatat sebagai {ROLE_LABEL[complement(manageRole)]}.
             </p>
             <button
@@ -203,7 +203,7 @@ export default function PartnerManager() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{inviter?.full_name || inviter?.email || "Pasangan"}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Mengundang Anda sebagai {p.invitee_role ? ROLE_LABEL[p.invitee_role] : "pasangan"}
                     </p>
                   </div>
@@ -246,7 +246,7 @@ export default function PartnerManager() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">Pasangan akan tercatat sebagai {ROLE_LABEL[complement(role)]}.</p>
+            <p className="text-[11px] text-muted-foreground mt-1.5">Pasangan akan tercatat sebagai {ROLE_LABEL[complement(role)]}.</p>
           </div>
 
           <div className="flex gap-1 bg-muted p-1 rounded-xl mb-3">
@@ -318,7 +318,7 @@ export default function PartnerManager() {
             <div key={p.id} className="flex items-center gap-2 rounded-xl border border-border p-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{p.invitee_email}</p>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Menunggu • sebagai {p.invitee_role ? ROLE_LABEL[p.invitee_role] : "pasangan"}
                 </p>
               </div>

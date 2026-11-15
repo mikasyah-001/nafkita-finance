@@ -8,10 +8,13 @@ import { downloadMonthlyReport } from "@/lib/exportReport";
 import { toast } from "sonner";
 import { useScope } from "@/lib/ScopeContext";
 import { Image } from "@/components/ui/image";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, Lock, ReceiptText, PieChart, Download, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText, PieChart, Download, ChevronDown } from "lucide-react";
+import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 export default function Ringkasan() {
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
   const [cursor, setCursor] = useState(new Date());
@@ -76,19 +79,16 @@ export default function Ringkasan() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-4">
-      <h1 className="text-xl font-semibold mb-4">Ringkasan Bulanan</h1>
+    <div className="px-5 pt-6">
+      <PageHeader title="Ringkasan Bulanan" back />
 
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 mb-3">
+      <div className="flex items-center justify-between surface p-3 mb-3">
         <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronLeft className="w-5 h-5" /></button>
         <p className="font-medium text-sm">{monthName}</p>
         <button onClick={() => setCursor(new Date(year, month + 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
-      <div className="flex gap-2 mb-3">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}><Users className="w-4 h-4" /> Bersama</button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}><Lock className="w-4 h-4" /> Pribadi</button>
-      </div>
+      <ScopeToggle className="mb-3" />
 
       {activeCurs.length > 0 && (
         <div className="mb-4"><CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} /></div>
@@ -97,7 +97,7 @@ export default function Ringkasan() {
       <button
         onClick={handleDownload}
         disabled={txList.length === 0}
-        className="w-full mb-4 rounded-2xl border border-border bg-card py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
+        className="w-full mb-4 surface py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
       >
         <Download className="w-4 h-4" /> Unduh Laporan (CSV)
       </button>
@@ -127,7 +127,9 @@ export default function Ringkasan() {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={5} />
+      ) : rows.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Belum ada pengeluaran" subtitle={`Tidak ada catatan pengeluaran ${scope === "private" ? "pribadi" : "bersama"} ${cur} di ${monthName}.`} />
       ) : (
         <div className="space-y-3">
@@ -144,7 +146,7 @@ export default function Ringkasan() {
               .filter((t) => t.category === r.name && t.type === "expense")
               .sort((a, b) => new Date(b.date) - new Date(a.date));
             return (
-              <div key={r.name} className="rounded-2xl border border-border bg-card p-3.5">
+              <div key={r.name} className="surface p-3.5">
                 <button
                   onClick={() => setExpanded(isOpen ? null : r.name)}
                   className="flex items-center gap-2.5 mb-2 w-full text-left"
@@ -157,7 +159,7 @@ export default function Ringkasan() {
                     <p className="text-xs text-muted-foreground tabular-nums truncate">{formatMoney(r.value, cur)} • {share.toFixed(0)}% • {r.count} transaksi</p>
                   </div>
                   {r.prev > 0 && diff !== 0 && (
-                    <span className={`text-[10px] font-medium flex items-center gap-0.5 shrink-0 ${diff < 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    <span className={`text-[11px] font-medium flex items-center gap-0.5 shrink-0 ${diff < 0 ? "text-success" : "text-destructive"}`}>
                       {diff < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}{Math.abs(diffPct).toFixed(0)}%
                     </span>
                   )}
@@ -167,7 +169,7 @@ export default function Ringkasan() {
                   <div className={`h-full rounded-full ${cm.solid}`} style={{ width: `${pct}%` }} />
                 </div>
                 {r.prev > 0 && (
-                  <p className="text-[10px] text-muted-foreground mt-1.5 tabular-nums">Bulan lalu {formatMoneyShort(r.prev, cur)} {diff < 0 ? "(turun)" : diff > 0 ? "(naik)" : ""}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 tabular-nums">Bulan lalu {formatMoneyShort(r.prev, cur)} {diff < 0 ? "(turun)" : diff > 0 ? "(naik)" : ""}</p>
                 )}
                 {isOpen && (
                   <div className="mt-3 pt-3 border-t border-border space-y-2">
@@ -183,7 +185,7 @@ export default function Ringkasan() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium truncate">{t.merchant || t.notes || r.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{formatDate(t.date, "dd MMM, HH:mm")}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatDate(t.date, "dd MMM, HH:mm")}</p>
                           </div>
                           <p className="text-xs font-semibold tabular-nums shrink-0">{formatMoney(t.amount, cur)}</p>
                         </div>

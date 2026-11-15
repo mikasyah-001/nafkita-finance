@@ -50,7 +50,7 @@ export function MfaHeader({ title, description }) {
 
 // Six digits. Like the built-in code box, any change that leaves six digits, a paste over a full code
 // included, and the Enter key both call onComplete with the code as it stands.
-export function CodeField({ id, label = "Enter the 6-digit code", value, onChange, onComplete, hasError = false }) {
+export function CodeField({ id, label = "Masukkan 6 digit kode", value, onChange, onComplete, hasError = false }) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block text-center font-normal text-muted-foreground">{label}</Label>
@@ -72,12 +72,12 @@ export function ResendLine({ cooldown, disabled, onResend, error }) {
   return (
     <div className="space-y-1 text-center">
       <p className="text-sm text-muted-foreground">
-        Didn't receive a code?{" "}
+        Tidak menerima kode?{" "}
         {cooldown > 0 ? (
-          <span>Resend in {cooldown}s</span>
+          <span>Kirim ulang dalam {cooldown} detik</span>
         ) : (
           <button type="button" disabled={disabled} onClick={onResend} className="font-semibold text-foreground hover:underline disabled:opacity-50">
-            Resend
+            Kirim ulang
           </button>
         )}
       </p>
@@ -88,7 +88,7 @@ export function ResendLine({ cooldown, disabled, onResend, error }) {
 
 // ---- Phone number entry: the built-in screen's country picker and checks, without a phone-number library.
 
-export const INVALID_PHONE = "Invalid phone number. Please check the number and try again.";
+export const INVALID_PHONE = "Nomor telepon tidak valid. Periksa kembali nomornya lalu coba lagi.";
 
 // Dial code of every country (iso2 + digits), from country-telephone-data, which the built-in picker lists.
 const COUNTRY_DIAL_CODES = new Map(
@@ -133,7 +133,7 @@ function DialCodePicker({ value, onChange }) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange} modal>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label="Country code"
+        <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label="Kode negara"
           className="h-10 w-[100px] justify-between px-2.5 font-normal shadow-none">
           {value}
           <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
@@ -141,9 +141,9 @@ function DialCodePicker({ value, onChange }) {
       </PopoverTrigger>
       <PopoverContent className="w-[140px] p-0" align="start" side="bottom" avoidCollisions={false}>
         <Command filter={(item, text) => (matchesSearch(item, text) ? 1 : 0)}>
-          <CommandInput placeholder="Search..." className="h-9" onValueChange={(text) => { search.current = text; }} />
+          <CommandInput placeholder="Cari..." className="h-9" onValueChange={(text) => { search.current = text; }} />
           <CommandList>
-            <CommandEmpty>No match</CommandEmpty>
+            <CommandEmpty>Tidak ditemukan</CommandEmpty>
             <CommandGroup>
               {DIAL_CODES.map((code) => (
                 <CommandItem key={code} value={code} onSelect={() => { onChange(`+${code}`); search.current = ""; setOpen(false); }}>
@@ -177,7 +177,7 @@ export function PhoneField({ countryCode, onCountryCodeChange, phoneNumber, onPh
       </div>
       {message
         ? <p className="text-sm text-destructive">{message}</p>
-        : <p className="text-sm text-muted-foreground">Standard message and data rates may apply.</p>}
+        : <p className="text-sm text-muted-foreground">Tarif SMS dan data standar mungkin berlaku.</p>}
     </div>
   );
 }
@@ -193,12 +193,12 @@ export function CopyKeyButton({ text, wide = false }) {
   if (wide) {
     return (
       <Button type="button" variant="outline" className="w-full h-11" onClick={copy}>
-        {copied ? "Copied" : "Copy key"}
+        {copied ? "Tersalin" : "Salin kunci"}
       </Button>
     );
   }
   return (
-    <button type="button" onClick={copy} title="Copy to clipboard" aria-label="Copy to clipboard"
+    <button type="button" onClick={copy} title="Salin ke papan klip" aria-label="Salin ke papan klip"
       className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted">
       {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
     </button>
@@ -215,12 +215,12 @@ export function MfaNotice({ error, signInPath = "/login" }) {
     <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
       {error.mustSignInAgain ? (
         <>
-          Your sign-in expired.{" "}
+          Sesi masuk Anda telah berakhir.{" "}
           <a href={signInPath + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")} className="font-medium underline">
-            Sign in again
+            Masuk lagi
           </a>
         </>
-      ) : (error.message || "Verification failed. Please try again.")}
+      ) : (error.message || "Verifikasi gagal. Silakan coba lagi.")}
     </div>
   );
 }
@@ -229,7 +229,7 @@ export function RememberDevice({ checked, onChange }) {
   return (
     <label className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
       <input type="checkbox" className="h-4 w-4 accent-primary" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      Remember this device for 30 days
+      Ingat perangkat ini selama 30 hari
     </label>
   );
 }

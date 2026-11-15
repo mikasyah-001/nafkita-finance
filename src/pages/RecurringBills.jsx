@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate, colorMap, computeRecurringNextDate } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, X, RefreshCw, Pause, Play, Check, CalendarClock } from "lucide-react";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 const frequencyLabels = {
   daily: "Harian",
@@ -14,7 +16,7 @@ const frequencyLabels = {
 };
 
 export default function RecurringBills() {
-  const { data: bills = [] } = useRecurringBills();
+  const { data: bills = [], isLoading } = useRecurringBills();
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
@@ -42,13 +44,16 @@ export default function RecurringBills() {
   };
 
   return (
-    <div className="px-5 pt-6 pb-24 space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Tagihan Berulang</h1>
-        <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader
+        title="Tagihan Berulang"
+        back
+        actions={<>
+          <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+            <Plus className="w-5 h-5" />
+          </button>
+        </>}
+      />
 
       <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
         <RefreshCw className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -57,7 +62,9 @@ export default function RecurringBills() {
         </p>
       </div>
 
-      {myBills.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : myBills.length === 0 ? (
         <EmptyState icon={RefreshCw} title="Belum ada tagihan berulang" subtitle="Atur tagihan otomatis seperti listrik, internet, atau sewa untuk dicatat tanpa perlu input manual." />
       ) : (
         <div className="space-y-3">
@@ -66,12 +73,12 @@ export default function RecurringBills() {
             const asset = assets.find((a) => a.id === b.linked_asset_id);
             const isOverdue = b.status === "active" && b.next_date && new Date(b.next_date + "T00:00:00.000Z") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
             return (
-              <div key={b.id} className="rounded-2xl border border-border bg-card p-4">
+              <div key={b.id} className="surface p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-medium text-sm truncate">{b.category}</p>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
                         {b.status === "active" ? "Aktif" : "Jeda"}
                       </span>
                     </div>
@@ -83,8 +90,8 @@ export default function RecurringBills() {
                   </button>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-[11px]">
-                  <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-red-500" : "text-muted-foreground"}`} />
-                  <span className={isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                  <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
+                  <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
                     {isOverdue ? "Jatuh tempo — akan diproses" : `Berikutnya: ${formatDate(b.next_date, "dd MMM yyyy")}`}
                   </span>
                 </div>

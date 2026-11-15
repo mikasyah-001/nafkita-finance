@@ -16,7 +16,7 @@ export default function AsistenStruk() {
           </div>
           <div>
             <h1 className="font-semibold text-sm leading-tight">Asisten Struk AI</h1>
-            <p className="text-[10px] text-muted-foreground">Kategorikan transaksi & perbarui aset</p>
+            <p className="text-[11px] text-muted-foreground">Kategorikan transaksi & perbarui aset</p>
           </div>
         </div>
       </header>

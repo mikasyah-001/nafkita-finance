@@ -8,7 +8,7 @@ import {
 } from "@/components/MfaParts";
 
 const SMS_RESEND_SECONDS = 30;
-const FULL_CODE = "Enter the full 6-digit code";
+const FULL_CODE = "Masukkan 6 digit kode secara lengkap";
 
 // Sets up one method: method is "totp" (authenticator app) or "sms" (text messages).
 // onDone receives the server's result once the code is confirmed; onBack leaves the setup.
@@ -74,7 +74,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
       await session.sendPhoneCode(fullPhone);
       setCooldown(SMS_RESEND_SECONDS);
     } catch (err) {
-      setResendError(err.message || "Failed to resend");
+      setResendError(err.message || "Gagal mengirim ulang");
     }
   };
 
@@ -89,7 +89,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
     setError(null);
     const result = await run(
       () => (method === "totp" ? session.confirmAuthenticator(value) : session.confirmPhone(value)),
-      (err) => (err.mustSignInAgain ? setError(err) : setFieldError(err.message || "Invalid code")),
+      (err) => (err.mustSignInAgain ? setError(err) : setFieldError(err.message || "Kode salah")),
     );
     if (result) onDone(result);
   };
@@ -115,15 +115,15 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
   if (method === "totp" && step === "start") {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-center">Set up your authenticator app</h2>
+        <h2 className="text-lg font-semibold text-center">Siapkan aplikasi autentikator</h2>
         <MfaNotice error={error} signInPath={signInPath} />
         {!setup && !error && <Loader2 className="mx-auto w-6 h-6 animate-spin text-muted-foreground" />}
         {setup && (isTouchDevice() ? (
           <div className="space-y-3 text-sm">
             <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-              <li>Copy the key below.</li>
-              <li>In your authenticator app, add an account and paste the key.</li>
-              <li>Come back here and enter the code the app shows.</li>
+              <li>Salin kunci di bawah ini.</li>
+              <li>Di aplikasi autentikator Anda, tambahkan akun lalu tempel kuncinya.</li>
+              <li>Kembali ke sini dan masukkan kode yang muncul di aplikasi.</li>
             </ol>
             <code className="block rounded-lg border border-border px-3 py-3 text-center font-mono font-medium tracking-wider break-all">
               {setup.secret_formatted}
@@ -132,16 +132,16 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-sm">
-            <p className="font-medium">Scan the QR code with your authenticator app</p>
-            <img src={setup.qr_code} alt="QR code for authenticator app setup" className="w-36 h-36 rounded-lg border border-border bg-white p-1" />
-            <p className="text-muted-foreground mt-3">Can't scan the code? Enter it manually:</p>
+            <p className="font-medium">Pindai kode QR dengan aplikasi autentikator Anda</p>
+            <img src={setup.qr_code} alt="Kode QR untuk menyiapkan aplikasi autentikator" className="w-36 h-36 rounded-lg border border-border bg-white p-1" />
+            <p className="text-muted-foreground mt-3">Tidak bisa memindai kode? Masukkan secara manual:</p>
             <div className="flex flex-wrap items-center justify-center gap-1">
               <code className="font-mono font-medium tracking-wider break-all">{setup.secret_formatted}</code>
               <CopyKeyButton text={setup.secret_formatted} />
             </div>
           </div>
         ))}
-        {actions("Cancel", onBack, "Continue", () => setStep("code"), !setup)}
+        {actions("Batal", onBack, "Lanjutkan", () => setStep("code"), !setup)}
       </div>
     );
   }
@@ -150,10 +150,10 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
     const phoneError = fieldError ?? (error && !error.mustSignInAgain ? error.message : null);
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-center">Enter your phone number</h2>
-        <p className="text-sm text-muted-foreground text-center">A verification code will be sent to this number to confirm it's yours.</p>
+        <h2 className="text-lg font-semibold text-center">Masukkan nomor telepon</h2>
+        <p className="text-sm text-muted-foreground text-center">Kode verifikasi akan dikirim ke nomor ini untuk memastikan nomor ini milik Anda.</p>
         <div className="space-y-1.5">
-          <Label htmlFor="mfa-phone">Phone number</Label>
+          <Label htmlFor="mfa-phone">Nomor telepon</Label>
           <PhoneField
             countryCode={countryCode} onCountryCodeChange={setCountryCode}
             phoneNumber={phoneNumber} onPhoneNumberChange={(value) => { setPhoneNumber(value); setFieldError(null); }}
@@ -161,7 +161,7 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
           />
         </div>
         {error?.mustSignInAgain && <MfaNotice error={error} signInPath={signInPath} />}
-        {actions("Cancel", onBack, "Send Code", sendCode, phoneNumber.length < 4)}
+        {actions("Batal", onBack, "Kirim kode", sendCode, phoneNumber.length < 4)}
       </div>
     );
   }
@@ -169,19 +169,19 @@ export default function MfaMethodSetup({ session, method, onDone, onBack, signIn
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-center">
-        {method === "totp" ? "Enter a code from your authenticator app" : "Verify your phone number"}
+        {method === "totp" ? "Masukkan kode dari aplikasi autentikator Anda" : "Verifikasi nomor telepon Anda"}
       </h2>
-      {method === "sms" && <p className="text-sm text-muted-foreground text-center">A 6-digit code sent to {countryCode} {phoneNumber}</p>}
+      {method === "sms" && <p className="text-sm text-muted-foreground text-center">Kode 6 digit telah dikirim ke {countryCode} {phoneNumber}</p>}
       <div className="flex flex-col items-center gap-2">
         <CodeField id="mfa-setup-code" value={code} onChange={(value) => { setCode(value); setFieldError(null); }}
           onComplete={confirm} hasError={Boolean(fieldError)} />
         {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
         {method === "totp"
-          ? <p className="text-xs text-muted-foreground">Codes refresh every 30 seconds.</p>
+          ? <p className="text-xs text-muted-foreground">Kode diperbarui setiap 30 detik.</p>
           : <ResendLine cooldown={cooldown} onResend={resend} error={resendError} />}
       </div>
       <MfaNotice error={error} signInPath={signInPath} />
-      {actions("Back", backToStart, "Verify", () => confirm())}
+      {actions("Kembali", backToStart, "Verifikasi", () => confirm())}
     </div>
   );
 }

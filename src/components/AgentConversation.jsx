@@ -200,7 +200,7 @@ function ToolCallDisplay({ toolCall }) {
       <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1.5 text-muted-foreground">
         {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         <span className="font-medium">{label}</span>
-        <span className={failed ? "text-red-500" : "text-emerald-600"}>
+        <span className={failed ? "text-destructive" : "text-success"}>
           {status === "pending" || status === "running" || status === "in_progress" ? activeLabel : failed ? errorLabel : "Selesai"}
         </span>
       </button>
@@ -208,14 +208,14 @@ function ToolCallDisplay({ toolCall }) {
         <div className="mt-1 space-y-1">
           {parsedArgs && (
             <div>
-              <p className="text-[10px] text-muted-foreground">Parameter:</p>
-              <pre className="bg-muted rounded-lg p-2 overflow-x-auto text-[10px]">{JSON.stringify(parsedArgs, null, 2)}</pre>
+              <p className="text-[11px] text-muted-foreground">Parameter:</p>
+              <pre className="bg-muted rounded-lg p-2 overflow-x-auto text-[11px]">{JSON.stringify(parsedArgs, null, 2)}</pre>
             </div>
           )}
           {parsedResults != null && (
             <div>
-              <p className="text-[10px] text-muted-foreground">Hasil:</p>
-              <pre className="bg-muted rounded-lg p-2 overflow-x-auto text-[10px]">{typeof parsedResults === "string" ? parsedResults : JSON.stringify(parsedResults, null, 2)}</pre>
+              <p className="text-[11px] text-muted-foreground">Hasil:</p>
+              <pre className="bg-muted rounded-lg p-2 overflow-x-auto text-[11px]">{typeof parsedResults === "string" ? parsedResults : JSON.stringify(parsedResults, null, 2)}</pre>
             </div>
           )}
         </div>

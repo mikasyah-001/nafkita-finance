@@ -79,7 +79,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
 
   return (
     <>
-      <MfaHeader title={info && `Welcome to ${info.name || "the app"}`} description="Sign in to continue" />
+      <MfaHeader title={info && `Selamat datang di ${info.name || "aplikasi ini"}`} description="Masuk untuk melanjutkan" />
       <MfaNotice error={error} />
       {!options && !error && <Loader2 className="mx-auto w-6 h-6 animate-spin text-muted-foreground" />}
       {options && (
@@ -87,12 +87,12 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
           {providers.map((provider) => (
             <Button key={provider.id} variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider(provider.id)}>
               {provider.id === "google" && <GoogleIcon className="w-5 h-5 mr-2" />}
-              Continue with {provider.name}
+              Lanjutkan dengan {provider.name}
             </Button>
           ))}
           {(options.enable_sso_login || options.use_workspace_sso) && (
             <Button variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider("sso")}>
-              Continue with SSO
+              Lanjutkan dengan SSO
             </Button>
           )}
           {options.enable_username_password && (
@@ -106,7 +106,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mfa-password">Password</Label>
+                <Label htmlFor="mfa-password">Kata sandi</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input id="mfa-password" type="password" autoComplete="current-password" placeholder="••••••••" value={password}
@@ -115,7 +115,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
               </div>
               <Button type="submit" className="w-full h-12 font-medium" disabled={busy}>
                 {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Continue
+                Lanjutkan
               </Button>
             </form>
           )}

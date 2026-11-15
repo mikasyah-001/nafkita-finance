@@ -2,7 +2,10 @@ import { createContext, useContext, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useMe } from "@/hooks/useFinance";
-import { DEFAULT_PRIMARY, DEFAULT_SCOPE_SHARED, DEFAULT_SCOPE_PRIVATE } from "@/lib/colorPrefs";
+import { DEFAULT_PRIMARY, DEFAULT_SCOPE_SHARED, DEFAULT_SCOPE_PRIVATE, LEGACY_DEFAULTS, LEGACY_PRESET_MAP } from "@/lib/colorPrefs";
+
+// Pilihan user dianggap "kustom" hanya bila diisi & bukan default lama.
+const custom = (v) => (v && !LEGACY_DEFAULTS.includes(v) ? LEGACY_PRESET_MAP[v] || v : null);
 
 const ColorPrefsContext = createContext(null);
 
@@ -13,16 +16,24 @@ export function ColorPrefsProvider({ children }) {
   const { data: me } = useMe();
   const queryClient = useQueryClient();
 
-  const primary = me?.theme_primary || DEFAULT_PRIMARY;
-  const shared = me?.scope_shared_color || DEFAULT_SCOPE_SHARED;
-  const privateColor = me?.scope_private_color || DEFAULT_SCOPE_PRIVATE;
+  const customPrimary = custom(me?.theme_primary);
+  const customShared = custom(me?.scope_shared_color);
+  const customPrivate = custom(me?.scope_private_color);
+  const primary = customPrimary || DEFAULT_PRIMARY;
+  const shared = customShared || DEFAULT_SCOPE_SHARED;
+  const privateColor = customPrivate || DEFAULT_SCOPE_PRIVATE;
 
+  // Hanya override token bila user memilih warna sendiri. Tanpa itu, token
+  // dari index.css dipakai — termasuk varian mode gelap yang lebih terang.
+  // (Sebelumnya selalu di-set inline sehingga mode gelap ikut warna terang.)
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--primary", primary);
-    root.style.setProperty("--scope-shared", shared);
-    root.style.setProperty("--scope-private", privateColor);
-  }, [primary, shared, privateColor]);
+    const apply = (name, v) => (v ? root.style.setProperty(name, v) : root.style.removeProperty(name));
+    apply("--primary", customPrimary);
+    apply("--ring", customPrimary);
+    apply("--scope-shared", customShared);
+    apply("--scope-private", customPrivate);
+  }, [customPrimary, customShared, customPrivate]);
 
   const saveColorPrefs = useCallback(async (prefs) => {
     await base44.auth.updateMe(prefs);

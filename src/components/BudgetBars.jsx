@@ -59,7 +59,7 @@ export default function BudgetBars({ scope = "shared" }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 mb-6">
+    <div className="surface p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm flex items-center gap-2">
           <Target className="w-4 h-4 text-indigo-500" /> Sisa Anggaran
@@ -76,10 +76,10 @@ export default function BudgetBars({ scope = "shared" }) {
             <div key={`${r.name}-${r.currency}`}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium flex items-center gap-1.5">
-                  {r.over && <AlertTriangle className="w-3 h-3 text-red-500" />}
-                  {r.name} <span className="text-[10px] text-muted-foreground">{r.currency}</span>
+                  {r.over && <AlertTriangle className="w-3 h-3 text-destructive" />}
+                  {r.name} <span className="text-[11px] text-muted-foreground">{r.currency}</span>
                 </span>
-                <span className={`text-xs font-medium ${r.over ? "text-red-500" : r.near ? "text-amber-600" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-medium ${r.over ? "text-destructive" : r.near ? "text-amber-600" : "text-muted-foreground"}`}>
                   {r.over ? <>Lebih <Money value={Math.abs(r.remaining)} currency={r.currency} /></> : <>Sisa <Money value={r.remaining} currency={r.currency} /></>}
                 </span>
               </div>
@@ -87,8 +87,8 @@ export default function BudgetBars({ scope = "shared" }) {
                 <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${r.pct}%` }} />
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-muted-foreground"><Money value={r.spent} currency={r.currency} /> terpakai</span>
-                <span className="text-[10px] text-muted-foreground">dari <Money value={r.limit} currency={r.currency} /></span>
+                <span className="text-[11px] text-muted-foreground"><Money value={r.spent} currency={r.currency} /> terpakai</span>
+                <span className="text-[11px] text-muted-foreground">dari <Money value={r.limit} currency={r.currency} /></span>
               </div>
             </div>
           );

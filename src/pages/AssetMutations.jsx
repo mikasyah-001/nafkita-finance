@@ -4,6 +4,7 @@ import { useAssetMutations, useAssets } from "@/hooks/useFinance";
 import { History, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
 
 const changeTypeLabels = {
   manual_edit: "Edit Manual",
@@ -28,11 +29,12 @@ export default function AssetMutations() {
   }, [mutations, changeType]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold font-heading">Riwayat Mutasi Aset</h1>
-        {asset && <p className="text-sm text-muted-foreground mt-1">{asset.name} • {formatMoney(asset.value || 0, asset.currency)}</p>}
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Riwayat Mutasi Aset"
+        subtitle={asset ? `${asset.name} • ${formatMoney(asset.value || 0, asset.currency)}` : undefined}
+        back
+      />
 
       {/* Filter */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar">
@@ -61,7 +63,7 @@ export default function AssetMutations() {
             return (
               <div key={m.id} className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isPositive ? "bg-emerald-100 dark:bg-emerald-950/40" : "bg-rose-100 dark:bg-rose-950/40"}`}>
-                  {isPositive ? <ArrowUp className="w-4 h-4 text-emerald-600" /> : <ArrowDown className="w-4 h-4 text-rose-600" />}
+                  {isPositive ? <ArrowUp className="w-4 h-4 text-success" /> : <ArrowDown className="w-4 h-4 text-rose-600" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -74,7 +76,7 @@ export default function AssetMutations() {
                     <span className="text-sm font-bold">{formatMoney(m.new_value, m.currency)}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs font-semibold ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
+                    <span className={`text-xs font-semibold ${isPositive ? "text-success" : "text-rose-600"}`}>
                       {isPositive ? "+" : ""}{formatMoney(m.delta, m.currency)}
                     </span>
                     {m.actor_name && <span className="text-xs text-muted-foreground">• {m.actor_name}</span>}

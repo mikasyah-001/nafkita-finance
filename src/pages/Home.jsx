@@ -13,13 +13,15 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Users, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
+import { BarChart3, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
+import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 
 const linkColors = {
-  violet: "bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400",
-  indigo: "bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400",
-  amber: "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
-  teal: "bg-teal-100 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400",
+  violet: "bg-scope-private/10 text-scope-private",
+  indigo: "bg-primary/10 text-primary",
+  amber: "bg-warning/10 text-warning",
+  teal: "bg-sedekah/10 text-sedekah",
 };
 
 export default function Home() {
@@ -108,7 +110,7 @@ export default function Home() {
   })();
 
   const quickLinks = [
-    { to: "/laporan", icon: Sparkles, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
+    { to: "/laporan", icon: BarChart3, color: "violet", label: "Laporan", sub: "Bulanan & zakat" },
     { to: "/anggaran", icon: Target, color: "indigo", label: "Anggaran", sub: "Target per kategori" },
     { to: "/aset", icon: Landmark, color: "amber", label: "Aset", sub: "Kekayaan keluarga" },
     { to: "/add?type=sedekah", icon: Heart, color: "teal", label: "Sedekah", sub: `${formatMoneyShort(s.sedekah, cur)} bulan ini` },
@@ -146,7 +148,7 @@ export default function Home() {
       )}
 
       {noTransactionsAtAll && (
-        <div className="rounded-2xl border border-border bg-card p-5 mb-4">
+        <div className="surface p-5 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-sm">Selamat datang di NAFKITA!</h2>
@@ -163,17 +165,10 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="mb-4" />
 
       {hasMultiCurrency && (
-        <div className="rounded-2xl border border-border bg-card p-4 mb-3 flex items-center gap-3">
+        <div className="surface p-4 mb-3 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Globe className="w-5 h-5 text-primary" />
           </div>
@@ -184,7 +179,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="card-gradient-primary rounded-3xl p-5 shadow-lg mb-4">
+      {transactionsLoading ? <CardSkeleton className="h-40 mb-4" /> : <div className="card-gradient-primary rounded-3xl p-5 mb-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs opacity-80">{scope === "private" ? "Saldo pribadi •" : "Saldo bersama •"} {monthLabel}</span>
           {scope === "private" ? <Lock className="w-4 h-4 opacity-80" /> : <Wallet className="w-4 h-4 opacity-80" />}
@@ -193,9 +188,9 @@ export default function Home() {
         {activeCurs.length > 1 && (
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-medium text-white/65">Mata uang yang ditampilkan</p>
+              <p className="text-[11px] font-medium text-white/65">Mata uang yang ditampilkan</p>
               {rateMissing && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-full px-2 py-0.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-full px-2 py-0.5">
                   <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
                 </span>
               )}
@@ -225,13 +220,13 @@ export default function Home() {
             <p className="font-semibold text-sm mt-0.5 tabular-nums">{savings.label ? savings.label : `${savings.rate}%`}</p>
           </div>
         </div>
-      </div>
+      </div>}
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         {quickLinks.map((q) => {
           const Icon = q.icon;
           return (
-            <Link key={q.to} to={q.to} className="rounded-2xl border border-border bg-card p-4 active:scale-[0.98] transition-transform flex items-center gap-3">
+            <Link key={q.to} to={q.to} className="surface p-4 active:scale-[0.98] transition-transform flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${linkColors[q.color]}`}>
                 <Icon className="w-4 h-4" />
               </div>
@@ -255,13 +250,13 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card px-4 mb-4">
+      {transactionsLoading ? <ListSkeleton rows={4} className="mb-4" /> : <div className="surface px-4 mb-4">
         {scopeRecent.length === 0 ? (
           <EmptyState icon={scope === "private" ? Lock : Wallet} title={scope === "private" ? "Belum ada transaksi pribadi" : "Belum ada transaksi"} subtitle="Tekan tombol + untuk mencatat pengeluaran atau pemasukan." />
         ) : (
           scopeRecent.map((t) => <TransactionItem key={t.id} tx={t} categories={categories} />)
         )}
-      </div>
+      </div>}
     </div>
   );
 }

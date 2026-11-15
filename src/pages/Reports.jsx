@@ -9,7 +9,7 @@ import AssetGrowthChart from "@/components/AssetGrowthChart";
 import { fetchGoldPriceStandard } from "@/lib/goldPrice";
 import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, Users, Lock, Loader2, Globe, RefreshCw, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, Loader2, Globe, RefreshCw, ArrowRight } from "lucide-react";
 import ExpenseTrendAnalysis from "@/components/ExpenseTrendAnalysis";
 import ProjectionPanel from "@/components/ProjectionPanel";
 import { Link } from "react-router-dom";
@@ -19,8 +19,10 @@ import { downloadMonthlyReport } from "@/lib/exportReport";
 import ExportMenu from "@/components/ExportMenu";
 import { useRateMap } from "@/hooks/useFinance";
 import { toast } from "sonner";
+import ScopeToggle from "@/components/ScopeToggle";
+import PageHeader from "@/components/PageHeader";
 
-const chartColors = ["#f97316", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6", "#6366f1", "#8b5cf6", "#64748b"];
+const chartColors = ["#5C64D6", "#2E9E98", "#E08A5C", "#D46A86", "#4F8FD1", "#8B67C7", "#C9A545", "#7C869A"];
 
 export default function Reports() {
   const { data: transactions = [] } = useTransactions();
@@ -292,8 +294,8 @@ export default function Reports() {
   const emasPriceNum = Number(emasPrice) || 0;
 
   return (
-    <div className="px-5 pt-8 space-y-5">
-      <h1 className="text-xl font-semibold">Laporan Keuangan</h1>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader title="Laporan Keuangan" back />
 
       <div className="flex gap-1.5 bg-muted p-1 rounded-2xl">
         {[["weekly","Mingguan"],["monthly","Bulanan"],["yearly","Tahunan"],["custom","Rentang"]].map(([val, label]) => (
@@ -302,35 +304,28 @@ export default function Reports() {
       </div>
 
       {periodType === "custom" ? (
-        <div className="rounded-2xl border border-border bg-card p-3 space-y-2">
+        <div className="surface p-3 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-1">Dari</label>
+              <label className="text-[11px] text-muted-foreground block mb-1">Dari</label>
               <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground block mb-1">Sampai</label>
+              <label className="text-[11px] text-muted-foreground block mb-1">Sampai</label>
               <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
-          {!customStart && !customEnd && <p className="text-[10px] text-muted-foreground text-center">Pilih rentang tanggal untuk melihat laporan</p>}
+          {!customStart && !customEnd && <p className="text-[11px] text-muted-foreground text-center">Pilih rentang tanggal untuk melihat laporan</p>}
         </div>
       ) : (
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
+        <div className="flex items-center justify-between surface p-3">
           <button onClick={prevPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
           <p className="font-medium">{periodLabel}</p>
           <button onClick={nextPeriod} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
         </div>
       )}
 
-      <div className="flex gap-2">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="" />
 
       {activeCurs.length > 0 && (
         <div><CurrencyTabs currencies={activeCurs} value={cur} onChange={(c) => { setCurrency(c); setConsolidated(true); }} /></div>
@@ -375,7 +370,7 @@ export default function Reports() {
       <ProjectionPanel scope={scope} />
 
       {(consolidated ? consolidatedByCategory : byCategory).length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="surface p-4">
           <h2 className="font-semibold text-sm mb-3">Pengeluaran per Kategori ({cur}){consolidated ? " • Konsolidasi" : ""}</h2>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -411,13 +406,13 @@ export default function Reports() {
 
       <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 p-4 active:scale-[0.99] transition-transform">
         <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
-          <Coins className="w-5 h-5 text-emerald-600" />
+          <Coins className="w-5 h-5 text-success" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">Kelola Zakat</p>
           <p className="text-xs text-muted-foreground">Kalkulator nisab, pengingat & pembayaran zakat mal</p>
         </div>
-        <ArrowRight className="w-4 h-4 text-emerald-600 shrink-0" />
+        <ArrowRight className="w-4 h-4 text-success shrink-0" />
       </Link>
     </div>
   );
@@ -426,7 +421,7 @@ export default function Reports() {
 function StatCard({ icon: Icon, color, label, value }) {
   const cm = colorMap[color] || colorMap.slate;
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${cm.bg}`}>
         <Icon className={`w-4 h-4 ${cm.text}`} />
       </div>

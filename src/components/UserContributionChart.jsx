@@ -28,7 +28,7 @@ export default function UserContributionChart({ transactions, currency = "IDR" }
     v >= 1000000 ? `${(v / 1000000).toFixed(1).replace(".0", "")}jt` : v >= 1000 ? `${Math.round(v / 1000)}rb` : v;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-sm flex items-center gap-2">
           <Users className="w-4 h-4 text-indigo-500" /> Kontribusi Pasangan

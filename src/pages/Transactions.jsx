@@ -7,6 +7,8 @@ import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
 import { ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { useScope } from "@/lib/ScopeContext";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 const typeFilters = [
   { key: "all", label: "Semua" },
@@ -16,7 +18,7 @@ const typeFilters = [
 ];
 
 export default function Transactions() {
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const [active, setActive] = useState("all");
   const [category, setCategory] = useState("all");
@@ -75,13 +77,15 @@ export default function Transactions() {
   };
 
   return (
-    <div className="px-5 pt-8">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Riwayat Transaksi</h1>
-        <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
-          <Upload className="w-4 h-4 text-muted-foreground" />
-        </Link>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Riwayat Transaksi"
+        actions={<>
+          <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+            <Upload className="w-4 h-4 text-muted-foreground" />
+          </Link>
+        </>}
+      />
 
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -132,7 +136,7 @@ export default function Transactions() {
       </div>
 
       {showFilter && (
-        <div className="rounded-2xl border border-border bg-card p-4 mb-4 space-y-4">
+        <div className="surface p-4 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Filter Lanjutan</p>
             {hasActiveFilter && (
@@ -195,12 +199,14 @@ export default function Transactions() {
           {category !== "all" && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{category}</span>}
           {fromDate && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">dari {formatDate(fromDate, "dd MMM")}</span>}
           {toDate && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">sampai {formatDate(toDate, "dd MMM")}</span>}
-          <button onClick={resetFilter} className="text-red-500 flex items-center gap-0.5"><X className="w-3 h-3" /></button>
+          <button onClick={resetFilter} className="text-destructive flex items-center gap-0.5"><X className="w-3 h-3" /></button>
         </div>
       )}
 
       {view === "calendar" ? (
         <CalendarView transactions={filtered} categories={categories} />
+      ) : isLoading ? (
+        <ListSkeleton rows={6} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Tidak ada transaksi" subtitle="Belum ada catatan yang cocok dengan filter ini." />
       ) : (
@@ -211,10 +217,10 @@ export default function Transactions() {
               <div className="flex items-center justify-between gap-2 mb-1 px-1">
                 <p className="text-xs text-muted-foreground truncate">{formatDate(date, "EEEE, dd MMM")}</p>
                 {Object.entries(nets).filter(([, v]) => v !== 0).map(([c, v]) => (
-                  <span key={c} className={`text-[11px] font-medium tabular-nums shrink-0 ${v > 0 ? "text-emerald-600" : "text-red-500"}`}>{v > 0 ? "+" : ""}{formatMoney(v, c)}</span>
+                  <span key={c} className={`text-[11px] font-medium tabular-nums shrink-0 ${v > 0 ? "text-success" : "text-destructive"}`}>{v > 0 ? "+" : ""}{formatMoney(v, c)}</span>
                 ))}
               </div>
-              <div className="rounded-2xl border border-border bg-card px-4">
+              <div className="surface px-4">
                 {items.map((t) => (
                   <TransactionItem key={t.id} tx={t} categories={categories} />
                 ))}

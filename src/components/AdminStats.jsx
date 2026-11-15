@@ -159,7 +159,7 @@ export default function AdminStats() {
           {user_breakdown.map((ub) => (
             <div
               key={ub.id}
-              className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3"
+              className="surface p-3 flex items-center gap-3"
             >
               <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <UserCircle className="w-5 h-5" />
@@ -168,7 +168,7 @@ export default function AdminStats() {
                 <p className="text-sm font-medium truncate flex items-center gap-1">
                   {ub.name}
                   {ub.role === "admin" && (
-                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-semibold">ADMIN</span>
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[11px] font-semibold">ADMIN</span>
                   )}
                 </p>
                 <p className="text-[11px] text-muted-foreground truncate">{ub.email}</p>
@@ -190,10 +190,10 @@ export default function AdminStats() {
 }
 
 const COLOR_MAP = {
-  emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-success" },
   blue: { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400" },
   violet: { bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400" },
-  green: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400" },
+  green: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-success" },
   red: { bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-600 dark:text-red-400" },
   teal: { bg: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400" },
   amber: { bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400" },
@@ -203,7 +203,7 @@ const COLOR_MAP = {
 function StatCard({ icon: Icon, color, label, value, pulse, compact }) {
   const cm = COLOR_MAP[color] || COLOR_MAP.slate;
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
+    <div className="surface p-3">
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${cm.bg}`}>
           <Icon className={`w-4 h-4 ${cm.text}`} />
@@ -215,7 +215,7 @@ function StatCard({ icon: Icon, color, label, value, pulse, compact }) {
           </span>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+      <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
       <p className={`font-semibold tabular-nums truncate ${compact ? "text-sm" : "text-lg"}`}>
         {typeof value === "number" ? value.toLocaleString("id-ID") : value}
       </p>

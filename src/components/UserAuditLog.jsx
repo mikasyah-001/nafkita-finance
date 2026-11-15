@@ -48,7 +48,7 @@ export default function UserAuditLog({ userId }) {
                 {log.target_label && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{log.target_label}</p>}
                 {log.details && <p className="text-[11px] text-muted-foreground mt-0.5">{log.details}</p>}
               </div>
-              <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+              <p className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
                 {formatDate(log.created_date, "dd MMM, HH:mm")}
               </p>
             </div>

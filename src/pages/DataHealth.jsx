@@ -5,7 +5,8 @@ import { formatDate, colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { ArrowLeft, AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 const STALE_DAYS = 90;
 
@@ -40,18 +41,8 @@ export default function DataHealth() {
   const loading = txLoading || assetLoading;
 
   return (
-    <div className="px-5 pt-8 pb-10 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" /> Kesehatan Data
-          </h1>
-          <p className="text-xs text-muted-foreground">Deteksi masalah data keuangan Anda</p>
-        </div>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Kesehatan Data" subtitle="Deteksi masalah data keuangan Anda" back />
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
@@ -61,7 +52,7 @@ export default function DataHealth() {
           <div className={`rounded-2xl border p-4 mb-4 ${isHealthy ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30"}`}>
             <div className="flex items-center gap-3">
               {isHealthy ? (
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-8 h-8 text-success shrink-0" />
               ) : (
                 <AlertTriangle className="w-8 h-8 text-amber-600 shrink-0" />
               )}
@@ -186,12 +177,12 @@ export default function DataHealth() {
 function SummaryCard({ icon: Icon, count, label, color }) {
   const cm = colorMap[color] || colorMap.slate;
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 text-center">
+    <div className="surface p-3 text-center">
       <div className={`w-9 h-9 rounded-xl ${cm.bg} flex items-center justify-center mx-auto mb-1.5`}>
         <Icon className={`w-4 h-4 ${cm.text}`} />
       </div>
       <p className="text-xl font-bold tabular-nums">{count}</p>
-      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+      <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
     </div>
   );
 }
@@ -199,7 +190,7 @@ function SummaryCard({ icon: Icon, count, label, color }) {
 function IssueSection({ icon: Icon, title, subtitle, color, children }) {
   const cm = colorMap[color] || colorMap.slate;
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+    <div className="surface p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-8 h-8 rounded-lg ${cm.bg} flex items-center justify-center shrink-0`}>
           <Icon className={`w-4 h-4 ${cm.text}`} />

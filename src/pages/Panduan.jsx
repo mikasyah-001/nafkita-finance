@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, BookOpen } from "lucide-react";
+import { Search } from "lucide-react";
 import { panduanCategories } from "@/lib/panduanData";
 import PanduanCard from "@/components/PanduanCard";
+import PageHeader from "@/components/PageHeader";
 
 export default function Panduan() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
   const allItems = useMemo(
@@ -25,18 +24,8 @@ export default function Panduan() {
   }, [query, allItems]);
 
   return (
-    <div className="px-5 pt-8 pb-8 max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" /> Panduan Tools
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Pelajari setiap fitur NAFKITA — fungsi, cara kerja & langkah pemakaian</p>
-        </div>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Panduan Tools" subtitle="Pelajari setiap fitur NAFKITA — fungsi, cara kerja & langkah pemakaian" back />
 
       <div className="relative mb-6">
         <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />

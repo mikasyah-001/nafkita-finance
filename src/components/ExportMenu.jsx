@@ -32,7 +32,7 @@ export default function ExportMenu({ onPdfNoProof, onPdfWithProof, onCsv, onXlsx
       <button
         onClick={() => setOpen(!open)}
         disabled={disabled || busy}
-        className="w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
+        className="w-full surface py-2.5 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-50"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
         Unduh Laporan
@@ -54,7 +54,7 @@ export default function ExportMenu({ onPdfNoProof, onPdfWithProof, onCsv, onXlsx
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{opt.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                  <p className="text-[11px] text-muted-foreground">{opt.desc}</p>
                 </div>
               </button>
             );

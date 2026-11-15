@@ -170,14 +170,14 @@ export default function NotificationBell() {
       >
         <Bell className="w-5 h-5 text-muted-foreground" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed right-3 top-16 w-[24rem] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
+        <div className="fixed right-3 top-16 w-[24rem] max-w-[calc(100vw-1.5rem)] surface shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-sm font-semibold">Notifikasi</p>
             {unreadCount > 0 && (
@@ -208,11 +208,11 @@ export default function NotificationBell() {
                       <div className="flex items-start gap-2">
                         <p className="text-sm font-semibold leading-snug whitespace-normal break-words flex-1">{n.title || n.actor_name || "Notifikasi baru"}</p>
                         {n.currency && n.amount != null && !String(n.body || "").includes("•••") && (
-                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold">{String(n.currency).toUpperCase()}</span>
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">{String(n.currency).toUpperCase()}</span>
                         )}
                       </div>
                       {notifBody(n) && <p className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words mt-1">{notifBody(n)}</p>}
-                      <p className="text-[10px] text-muted-foreground mt-1.5">{fmtTime(n.created_date)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1.5">{fmtTime(n.created_date)}</p>
                     </div>
                     {!n.read && <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-primary" />}
                   </button>

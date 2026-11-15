@@ -1,7 +1,7 @@
 import { NavLink, Link, useLocation } from "react-router-dom";
-import { useState } from "react";
-import { Home, ReceiptText, Plus, Landmark, Grid, X } from "lucide-react";
-import { moreItems, moreColorClasses } from "@/lib/navConfig";
+import { useEffect, useState } from "react";
+import { Home, ReceiptText, Plus, Landmark, LayoutGrid, X } from "lucide-react";
+import { moreGroups, moreItems, moreToneClasses } from "@/lib/navConfig";
 
 const items = [
   { to: "/", icon: Home, label: "Beranda", end: true },
@@ -12,65 +12,106 @@ const items = [
 export default function BottomNav() {
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
+
+  // Tutup sheet saat rute berubah & saat tombol Escape ditekan.
+  useEffect(() => { setShowMore(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!showMore) return;
+    const onKey = (e) => { if (e.key === "Escape") setShowMore(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showMore]);
+
   const hideNav = location.pathname === "/add" || location.pathname === "/impor";
   if (hideNav) return null;
 
+  // Tab "Lainnya" ikut menyala bila halaman aktif berada di dalam menunya.
+  const moreActive = moreItems.some((it) => location.pathname.startsWith(it.to));
+
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border z-50">
+      <nav
+        aria-label="Navigasi utama"
+        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card/90 backdrop-blur-xl border-t border-border z-50 pb-[env(safe-area-inset-bottom)]"
+      >
         <div className="flex items-end justify-around h-16 px-1">
           {items.slice(0, 2).map((it) => (
             <NavItem key={it.to} {...it} />
           ))}
           <Link
             to="/add"
+            aria-label="Tambah transaksi"
             className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
           >
-            <span className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-transform -mt-3">
-              <Plus className="w-6 h-6" />
+            <span className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_8px_20px_-6px_hsl(var(--primary)/0.6)] active:scale-95 transition-transform -mt-4">
+              <Plus className="w-6 h-6" strokeWidth={2.25} />
             </span>
-            <span className="text-[10px] text-muted-foreground -mt-0.5">Tambah</span>
+            <span className="text-[11px] font-medium text-foreground/80 mt-0.5">Catat</span>
           </Link>
           {items.slice(2).map((it) => (
             <NavItem key={it.to} {...it} />
           ))}
           <button
             onClick={() => setShowMore(true)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-muted-foreground"
+            aria-haspopup="dialog"
+            aria-expanded={showMore}
+            className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-full ${moreActive ? "text-primary" : "text-muted-foreground"}`}
           >
-            <Grid className="w-5 h-5" />
-            <span className="text-[10px]">Lainnya</span>
+            {moreActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+            <LayoutGrid className="w-5 h-5" />
+            <span className={`text-[11px] ${moreActive ? "font-semibold" : ""}`}>Lainnya</span>
           </button>
         </div>
       </nav>
 
       {showMore && (
-        <div className="md:hidden fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm" onClick={() => setShowMore(false)}>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background rounded-t-3xl border-t border-border p-5 pb-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Menu Lainnya</h2>
-              <button onClick={() => setShowMore(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+        <div
+          className="md:hidden fixed inset-0 z-[60] bg-foreground/20 backdrop-blur-[2px] animate-in fade-in-0 duration-150"
+          onClick={() => setShowMore(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu lainnya"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md max-h-[85vh] overflow-y-auto bg-card rounded-t-3xl border-t border-border px-5 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-semibold text-base">Menu lainnya</h2>
+              <button
+                onClick={() => setShowMore(false)}
+                aria-label="Tutup menu"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {moreItems.map((it) => {
-                const Icon = it.icon;
-                return (
-                  <NavLink
-                    key={it.to}
-                    to={it.to}
-                    onClick={() => setShowMore(false)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-2xl border border-border hover:bg-muted transition-colors"
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${moreColorClasses[it.color] || moreColorClasses.slate}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] text-center leading-tight">{it.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
+
+            {moreGroups.map((g) => (
+              <section key={g.title} className="mt-4">
+                <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-1">{g.title}</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {g.items.map((it) => {
+                    const Icon = it.icon;
+                    return (
+                      <NavLink
+                        key={it.to}
+                        to={it.to}
+                        className={({ isActive }) =>
+                          `flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl transition-colors ${isActive ? "bg-primary/10" : "active:bg-muted"}`
+                        }
+                      >
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${moreToneClasses[g.tone]}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-center leading-tight text-foreground/85">{it.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
       )}
@@ -83,12 +124,15 @@ function NavItem({ to, icon: Icon, label, end }) {
     <NavLink
       to={to}
       end={end}
-      className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-muted-foreground"
+      className={({ isActive }) =>
+        `relative flex flex-col items-center justify-center gap-1 flex-1 h-full ${isActive ? "text-primary" : "text-muted-foreground"}`
+      }
     >
       {({ isActive }) => (
         <>
-          <Icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
-          <span className={`text-[10px] ${isActive ? "text-primary font-medium" : ""}`}>{label}</span>
+          {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+          <Icon className="w-5 h-5" strokeWidth={isActive ? 2.25 : 2} />
+          <span className={`text-[11px] ${isActive ? "font-semibold" : ""}`}>{label}</span>
         </>
       )}
     </NavLink>

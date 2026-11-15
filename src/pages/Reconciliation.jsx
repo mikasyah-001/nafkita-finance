@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useReconciliations, useRefresh } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Loader2, Check, Scale, History, AlertCircle } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 export default function Reconciliation() {
   const { data: assets = [] } = useAssets();
@@ -71,8 +72,8 @@ export default function Reconciliation() {
   const isMatch = diff != null && Math.abs(diff) <= 0.005;
 
   return (
-    <div className="px-5 pt-6 pb-24 space-y-5">
-      <h1 className="text-xl font-semibold">Rekonsiliasi Saldo</h1>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader title="Rekonsiliasi Saldo" back />
 
       <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
         <Scale className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -96,7 +97,7 @@ export default function Reconciliation() {
           </div>
 
           {selectedAsset && (
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="surface p-4">
               <p className="text-xs text-muted-foreground">Saldo saat ini di aplikasi</p>
               <p className="font-semibold text-lg tabular-nums">{formatMoney(selectedAsset.value, selectedAsset.currency)}</p>
             </div>
@@ -121,13 +122,13 @@ export default function Reconciliation() {
           {reconResult && (
             <div className={`rounded-2xl border p-4 space-y-3 ${isMatch ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50 dark:bg-amber-950/20"}`}>
               <div className="flex items-center gap-2">
-                {isMatch ? <Check className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
+                {isMatch ? <Check className="w-5 h-5 text-success" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
                 <h2 className="font-semibold text-sm">{isMatch ? "Saldo Cocok" : "Ada Selisih"}</h2>
               </div>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo statement</span><span className="font-medium tabular-nums">{formatMoney(reconResult.statement_balance, selectedAsset?.currency)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Saldo terhitung</span><span className="font-medium tabular-nums">{formatMoney(reconResult.computed_balance, selectedAsset?.currency)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-emerald-600" : "text-amber-600"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Selisih</span><span className={`font-bold tabular-nums ${isMatch ? "text-success" : "text-amber-600"}`}>{formatMoney(diff, selectedAsset?.currency)}</span></div>
               </div>
               {!isMatch && reconResult.status !== "reconciled" && (
                 <button onClick={handleAdjust} disabled={adjusting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
@@ -135,7 +136,7 @@ export default function Reconciliation() {
                 </button>
               )}
               {reconResult.status === "reconciled" && (
-                <p className="text-xs text-emerald-600 font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Rekonsiliasi selesai</p>
+                <p className="text-xs text-success font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Rekonsiliasi selesai</p>
               )}
             </div>
           )}
@@ -147,10 +148,10 @@ export default function Reconciliation() {
                 const rMatch = Math.abs(r.difference || 0) <= 0.005;
                 const cm = colorMap[rMatch ? "green" : r.status === "reconciled" ? "blue" : "amber"] || colorMap.slate;
                 return (
-                  <div key={r.id} className="rounded-2xl border border-border bg-card p-3">
+                  <div key={r.id} className="surface p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-muted-foreground">{formatDate(r.as_of_date, "dd MMM yyyy")}</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
                         {r.status === "reconciled" ? "Selesai" : "Terbuka"}
                       </span>
                     </div>

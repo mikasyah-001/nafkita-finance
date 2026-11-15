@@ -4,109 +4,116 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* ── NAFKITA "Mist Indigo" — tema indigo yang sama, dilunakkan ──
+       Latar kabut biru-dingin (bukan putih murni) mengurangi silau; teks
+       tinta navy (bukan hitam) menurunkan kontras keras tanpa kehilangan
+       keterbacaan (AA). Saturasi warna semantik diturunkan agar tenang. */
+    --background: 225 33% 97.5%;
+    --foreground: 226 32% 17%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 226 32% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    /* Brand primer: indigo #6366f1 — menyatu dengan email notifikasi */
-    --primary: 239 84% 67%;
+    --popover-foreground: 226 32% 17%;
+    /* Brand primer: indigo lembut #5C64D6 (turunan #6366f1) */
+    --primary: 236 58% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 240 5% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 239 84% 67%;
-    --chart-1: 239 84% 67%;
-    --chart-2: 173 75% 40%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
-    /* Token semantik data keuangan */
-    --income: 160 84% 39%;
+    --secondary: 228 40% 95%;
+    --secondary-foreground: 236 40% 32%;
+    --muted: 225 27% 94.5%;
+    --muted-foreground: 225 13% 42%;
+    --accent: 232 45% 95%;
+    --accent-foreground: 236 40% 32%;
+    --destructive: 354 62% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 22% 89%;
+    --input: 225 22% 87%;
+    --ring: 236 58% 60%;
+    --chart-1: 236 58% 62%;
+    --chart-2: 176 48% 42%;
+    --chart-3: 199 60% 48%;
+    --chart-4: 38 78% 58%;
+    --chart-5: 268 45% 62%;
+    --radius: 0.875rem;
+    /* Token semantik data keuangan — sage, rose, teal: tenang, tetap jelas */
+    --income: 158 52% 36%;
     --income-foreground: 0 0% 100%;
-    --expense: 350 68% 55%;
+    --expense: 351 58% 54%;
     --expense-foreground: 0 0% 100%;
-    --sedekah: 173 75% 31%;
+    --sedekah: 176 50% 33%;
     --sedekah-foreground: 0 0% 100%;
-    --success: 160 84% 39%;
+    --success: 158 52% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 42%;
+    --warning: 34 80% 42%;
     --warning-foreground: 0 0% 100%;
-    --scope-shared: 239 84% 67%;
+    --scope-shared: 236 58% 60%;
     --scope-shared-foreground: 0 0% 100%;
-    --scope-private: 271 65% 60%;
+    --scope-private: 268 46% 58%;
     --scope-private-foreground: 0 0% 100%;
-    /* Tipografi brand */
+    /* Tipografi: Plus Jakarta Sans (judul & angka besar) + Nunito Sans (teks)
+       Nunito Sans: x-height tinggi, bukaan huruf lebar, terminal lembut —
+       nyaman dibaca lama di layar kecil. */
     --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 226 20% 30%;
+    --sidebar-primary: 236 58% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 95%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 232 45% 95%;
+    --sidebar-accent-foreground: 236 40% 32%;
+    --sidebar-border: 225 22% 90%;
+    --sidebar-ring: 236 58% 60%;
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 0 0% 98%;
-    --card: 222 40% 11%;
-    --card-foreground: 0 0% 98%;
-    --popover: 222 40% 11%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 239 84% 72%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 222 30% 16%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 222 30% 16%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 222 30% 18%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 222 25% 20%;
-    --input: 222 25% 20%;
-    --ring: 239 84% 72%;
-    --chart-1: 239 84% 72%;
-    --chart-2: 173 65% 50%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --income: 160 70% 50%;
-    --income-foreground: 222 47% 11%;
-    --expense: 350 62% 65%;
-    --expense-foreground: 222 47% 11%;
-    --sedekah: 173 65% 50%;
-    --sedekah-foreground: 222 47% 11%;
-    --success: 160 70% 50%;
-    --success-foreground: 222 47% 11%;
-    --warning: 41 96% 56%;
-    --warning-foreground: 222 47% 11%;
-    --scope-shared: 239 84% 72%;
-    --scope-shared-foreground: 222 47% 11%;
-    --scope-private: 271 65% 65%;
-    --scope-private-foreground: 222 47% 11%;
-    --sidebar-background: 222 47% 10%;
-    --sidebar-foreground: 240 5% 90%;
-    --sidebar-primary: 239 84% 72%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 30% 16%;
-    --sidebar-accent-foreground: 240 5% 90%;
-    --sidebar-border: 222 25% 20%;
-    --sidebar-ring: 239 84% 72%;
+    /* Malam: navy dalam (bukan hitam pekat) — lebih ramah mata */
+    --background: 226 30% 10%;
+    --foreground: 225 30% 93%;
+    --card: 226 27% 13.5%;
+    --card-foreground: 225 30% 93%;
+    --popover: 226 27% 14%;
+    --popover-foreground: 225 30% 93%;
+    --primary: 236 72% 74%;
+    --primary-foreground: 226 40% 12%;
+    --secondary: 226 24% 18%;
+    --secondary-foreground: 225 30% 93%;
+    --muted: 226 22% 18%;
+    --muted-foreground: 225 14% 68%;
+    --accent: 230 26% 20%;
+    --accent-foreground: 225 30% 93%;
+    --destructive: 354 62% 64%;
+    --destructive-foreground: 226 40% 12%;
+    --border: 226 20% 21%;
+    --input: 226 20% 24%;
+    --ring: 236 72% 74%;
+    --chart-1: 236 72% 74%;
+    --chart-2: 176 45% 52%;
+    --chart-3: 199 60% 60%;
+    --chart-4: 38 75% 62%;
+    --chart-5: 268 50% 70%;
+    --income: 158 45% 55%;
+    --income-foreground: 226 40% 12%;
+    --expense: 351 62% 68%;
+    --expense-foreground: 226 40% 12%;
+    --sedekah: 176 45% 52%;
+    --sedekah-foreground: 226 40% 12%;
+    --success: 158 45% 55%;
+    --success-foreground: 226 40% 12%;
+    --warning: 38 80% 60%;
+    --warning-foreground: 226 40% 12%;
+    --scope-shared: 236 72% 74%;
+    --scope-shared-foreground: 226 40% 12%;
+    --scope-private: 268 55% 72%;
+    --scope-private-foreground: 226 40% 12%;
+    --sidebar-background: 226 28% 12%;
+    --sidebar-foreground: 225 20% 85%;
+    --sidebar-primary: 236 72% 74%;
+    --sidebar-primary-foreground: 226 40% 12%;
+    --sidebar-accent: 226 24% 18%;
+    --sidebar-accent-foreground: 225 30% 93%;
+    --sidebar-border: 226 20% 20%;
+    --sidebar-ring: 236 72% 74%;
   }
 }
 
@@ -115,12 +122,45 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
+    font-size: 15px;
+    line-height: 1.55;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+  }
+
+  /* Fokus keyboard terlihat jelas, tapi tidak muncul saat tap/klik */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Angka keuangan: lebar digit sama agar kolom nominal rata */
+  .tabular-nums {
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -130,12 +170,31 @@
   }
 
   /* Gradient kartu ringkasan brand — dipakai konsisten lintas halaman */
+  /* Kartu saldo: indigo → biru senja, dengan cahaya lembut di pojok */
   .card-gradient-primary {
-    @apply bg-gradient-to-br from-primary to-primary/85 text-primary-foreground;
+    @apply text-primary-foreground;
+    background:
+      radial-gradient(120% 90% at 100% 0%, hsl(205 80% 75% / 0.28), transparent 55%),
+      linear-gradient(135deg, hsl(var(--primary)), color-mix(in srgb, hsl(var(--primary)) 78%, hsl(212 70% 45%)));
+    box-shadow: 0 10px 30px -12px hsl(var(--primary) / 0.45);
+  }
+  .dark .card-gradient-primary {
+    @apply text-white;
+    background:
+      radial-gradient(120% 90% at 100% 0%, hsl(205 70% 60% / 0.18), transparent 55%),
+      linear-gradient(135deg, color-mix(in srgb, hsl(var(--primary)) 55%, hsl(226 30% 14%)), color-mix(in srgb, hsl(var(--primary)) 35%, hsl(220 35% 16%)));
+    box-shadow: 0 10px 30px -14px hsl(236 60% 5% / 0.8);
   }
 
   .card-gradient-accent {
-    @apply bg-gradient-to-br from-emerald-500 to-teal-600 text-white;
+    @apply text-white;
+    background: linear-gradient(135deg, hsl(170 45% 40%), hsl(186 50% 36%));
+  }
+
+  /* Kartu standar: bayangan tipis berwarna dingin, bukan abu-abu datar */
+  .surface {
+    @apply rounded-2xl border border-border bg-card;
+    box-shadow: 0 1px 2px hsl(226 40% 30% / 0.04), 0 4px 14px -6px hsl(226 40% 30% / 0.06);
   }
 
   .bg-scope-tint-shared {

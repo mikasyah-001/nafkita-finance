@@ -108,7 +108,7 @@ export default function Welcome() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary/5 via-background to-background pb-28">
       {/* ───────── HERO ───────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-primary to-violet-800 text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
         {/* Decorative orbs */}
         <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-amber-300/15 blur-3xl" />
         <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-fuchsia-400/15 blur-3xl" />
@@ -154,8 +154,8 @@ export default function Welcome() {
                 {/* Notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-900 rounded-b-2xl z-10" />
                 {/* Header */}
-                <div className="bg-gradient-to-br from-primary to-violet-700 p-4 pt-6 text-white">
-                  <p className="text-[9px] opacity-80">Saldo bersama • bulan ini</p>
+                <div className="bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] p-4 pt-6 text-white">
+                  <p className="text-[11px] opacity-80">Saldo bersama • bulan ini</p>
                   <p className="text-2xl font-bold tracking-tight tabular-nums">Rp 4,2 jt</p>
                   <div className="flex gap-2 mt-3 text-[8px]">
                     <div className="flex-1 bg-white/15 backdrop-blur rounded-xl p-2">
@@ -177,8 +177,8 @@ export default function Welcome() {
                   ].map((r) => (
                     <div key={r.n} className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm">{r.i}</div>
-                      <p className="text-[10px] font-medium text-slate-700 flex-1">{r.n}</p>
-                      <p className={`text-[10px] font-semibold tabular-nums ${r.c}`}>{r.a}</p>
+                      <p className="text-[11px] font-medium text-slate-700 flex-1">{r.n}</p>
+                      <p className={`text-[11px] font-semibold tabular-nums ${r.c}`}>{r.a}</p>
                     </div>
                   ))}
                 </div>
@@ -204,7 +204,7 @@ export default function Welcome() {
           variants={stagger}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur shadow-lg shadow-primary/5 p-3.5 text-center"
+          className="grid grid-cols-3 gap-2 surface/90 backdrop-blur shadow-lg shadow-primary/5 p-3.5 text-center"
         >
           {[
             { n: `${features.length}+`, l: "Fitur aktif" },
@@ -213,7 +213,7 @@ export default function Welcome() {
           ].map((s) => (
             <motion.div key={s.l} variants={fadeUp}>
               <p className="text-lg font-bold tabular-nums text-primary">{s.n}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{s.l}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{s.l}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -240,13 +240,13 @@ export default function Welcome() {
               <motion.div
                 key={p.title}
                 variants={fadeUp}
-                className="rounded-2xl border border-border bg-card p-3.5 text-center shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+                className="surface p-3.5 text-center shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
                   <Icon className="w-5 h-5 text-primary" />
                 </div>
                 <p className="text-xs font-semibold">{p.title}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{p.desc}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{p.desc}</p>
               </motion.div>
             );
           })}
@@ -260,12 +260,12 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-primary via-violet-600 to-purple-700 text-white p-6 overflow-hidden relative shadow-xl shadow-violet-950/20"
+          className="rounded-3xl bg-gradient-to-br from-primary via-[hsl(226_55%_52%)] to-[hsl(212_55%_46%)] text-white p-6 overflow-hidden relative shadow-xl shadow-primary/20"
         >
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-300/15 blur-3xl" />
           <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />
           <div className="relative">
-            <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-medium mb-3 border border-white/20">
+            <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-medium mb-3 border border-white/20">
               <Sparkles className="w-3 h-3 text-amber-200" /> Unggulan
             </div>
             <h2 className="text-lg font-bold leading-tight">Scan Bon dengan AI</h2>
@@ -311,7 +311,7 @@ export default function Welcome() {
                     <motion.div
                       key={f.title}
                       variants={fadeUp}
-                      className="rounded-2xl border border-border bg-card p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                      className="surface p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                     >
                       <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 ${g.bg}`}>
                         <Icon className={`w-5 h-5 ${g.text}`} />
@@ -344,7 +344,7 @@ export default function Welcome() {
               <motion.div
                 key={p.title}
                 variants={fadeUp}
-                className="flex items-start gap-3.5 rounded-2xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
+                className="flex items-start gap-3.5 surface p-4 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                   <Icon className="w-5 h-5 text-primary" />
@@ -376,7 +376,7 @@ export default function Welcome() {
               const Icon = s.icon;
               return (
                 <motion.div key={i} variants={fadeUp} className="relative flex items-start gap-3.5">
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-700 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
+                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 pt-2">
@@ -397,10 +397,10 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-primary/5 to-violet-50 dark:to-violet-950/10 border border-primary/20 p-5"
+          className="rounded-3xl bg-gradient-to-br from-primary/5 to-sky-50 dark:to-sky-950/10 border border-primary/20 p-5"
         >
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-violet-700 flex items-center justify-center shadow-md shadow-primary/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[hsl(218_55%_48%)] flex items-center justify-center shadow-md shadow-primary/20">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-lg font-bold tracking-tight">Kenapa memilih NAFKITA?</h2>
@@ -425,7 +425,7 @@ export default function Welcome() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-indigo-700 via-primary to-violet-800 text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
+          className="rounded-3xl bg-gradient-to-br from-[hsl(238_45%_44%)] via-primary to-[hsl(214_55%_46%)] text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
         >
           <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-amber-300/15 blur-3xl" />
           <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-fuchsia-400/15 blur-3xl" />
@@ -445,13 +445,13 @@ export default function Welcome() {
       <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2.5">
         <button
           onClick={() => navigate("/register")}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-violet-700 text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-[hsl(218_55%_48%)] text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
         >
           Daftar Sekarang <ArrowRight className="w-5 h-5" />
         </button>
         <button
           onClick={() => navigate("/login")}
-          className="w-full py-3 rounded-2xl border border-border bg-card text-foreground font-medium text-sm active:scale-[0.99] transition-transform"
+          className="w-full py-3 surface text-foreground font-medium text-sm active:scale-[0.99] transition-transform"
         >
           Sudah punya akun? Masuk
         </button>

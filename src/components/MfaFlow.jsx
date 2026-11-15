@@ -29,15 +29,15 @@ function Enroll({ session, onDone }) {
   return (
     <>
       <MfaHeader
-        title={info && `${info.name || "This app"} requires multi-factor authentication`}
-        description={method ? null : "Add a second sign-in step to keep your account secure. Choose how you want to get your codes."}
+        title={info && `${info.name || "Aplikasi ini"} memerlukan autentikasi multifaktor`}
+        description={method ? null : "Tambahkan langkah masuk kedua agar akun Anda tetap aman. Pilih cara Anda menerima kode."}
       />
       {method ? (
         <MfaMethodSetup session={session} method={method} onDone={onDone} onBack={() => setMethod(null)} />
       ) : (
         <div className="space-y-3">
-          <Button className="w-full h-12 font-medium" onClick={() => setMethod("totp")}>Set up your authenticator app</Button>
-          <Button variant="outline" className="w-full h-12 font-medium" onClick={() => setMethod("sms")}>Enter your phone number</Button>
+          <Button className="w-full h-12 font-medium" onClick={() => setMethod("totp")}>Siapkan aplikasi autentikator</Button>
+          <Button variant="outline" className="w-full h-12 font-medium" onClick={() => setMethod("sms")}>Masukkan nomor telepon</Button>
         </div>
       )}
     </>
@@ -54,7 +54,7 @@ function Verify({ session, challenge, returnTo, onDone }) {
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useCooldown();
   const sent = useRef(false);
-  const phone = challenge.phone_hint || "your phone";
+  const phone = challenge.phone_hint || "ponsel Anda";
 
   const sendCode = async () => {
     setError(null);
@@ -92,27 +92,27 @@ function Verify({ session, challenge, returnTo, onDone }) {
   const other = methods.find((value) => value !== method);
   return (
     <>
-      <MfaHeader title="Verify your identity" />
+      <MfaHeader title="Verifikasi identitas Anda" />
       <div className="space-y-4">
         <MfaNotice error={error} />
         <p className="text-sm text-muted-foreground text-center">
-          {method === "totp" ? "Enter the code from your authenticator app"
-            : sending && !cooldown ? `Sending code to ${phone}…` : `Enter the code sent to ${phone}`}
+          {method === "totp" ? "Masukkan kode dari aplikasi autentikator Anda"
+            : sending && !cooldown ? `Mengirim kode ke ${phone}…` : `Masukkan kode yang dikirim ke ${phone}`}
         </p>
         <CodeField id="mfa-code" value={code} onChange={setCode} onComplete={verify} />
         <RememberDevice checked={remember} onChange={setRemember} />
         <Button className="w-full h-12 font-medium" disabled={busy || code.length < 6} onClick={() => verify()}>
           {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          {busy ? "Verifying..." : "Verify"}
+          {busy ? "Memverifikasi..." : "Verifikasi"}
         </Button>
         {method === "sms" && <ResendLine cooldown={cooldown} disabled={sending} onResend={sendCode} />}
         {other && (
           <Button variant="outline" className="w-full" onClick={() => { setMethod(other); setCode(""); setError(null); }}>
-            {other === "sms" ? "Verify via Text Message" : "Verify via Authenticator App"}
+            {other === "sms" ? "Verifikasi lewat SMS" : "Verifikasi lewat aplikasi autentikator"}
           </Button>
         )}
         <div className="text-center">
-          <a href={returnTo && returnTo !== "/" ? "/login?returnTo=" + encodeURIComponent(returnTo) : "/login"} className="text-sm text-muted-foreground hover:underline">Back to Login</a>
+          <a href={returnTo && returnTo !== "/" ? "/login?returnTo=" + encodeURIComponent(returnTo) : "/login"} className="text-sm text-muted-foreground hover:underline">Kembali ke halaman masuk</a>
         </div>
       </div>
     </>

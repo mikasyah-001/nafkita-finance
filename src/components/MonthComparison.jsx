@@ -38,7 +38,7 @@ export default function MonthComparison({ transactions, categories, year, month,
   if (rows.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="surface p-4">
       <h2 className="font-semibold text-sm mb-1 flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-indigo-500" /> Perbandingan vs {prevName}
       </h2>
@@ -57,21 +57,21 @@ export default function MonthComparison({ transactions, categories, year, month,
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cm.solid}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{r.name}</p>
-                <p className="text-[10px] text-muted-foreground">{formatMoney(r.pv, currency)} → {formatMoney(r.tv, currency)}</p>
+                <p className="text-[11px] text-muted-foreground">{formatMoney(r.pv, currency)} → {formatMoney(r.tv, currency)}</p>
               </div>
               <div className="text-right">
                 {isNew ? (
-                  <span className="text-[10px] font-medium text-red-500">Baru</span>
+                  <span className="text-[11px] font-medium text-destructive">Baru</span>
                 ) : gone ? (
-                  <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> 100%</span>
+                  <span className="text-[11px] font-medium text-success flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> 100%</span>
                 ) : same ? (
-                  <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-0.5 justify-end"><Minus className="w-3 h-3" /> 0%</span>
+                  <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-0.5 justify-end"><Minus className="w-3 h-3" /> 0%</span>
                 ) : up ? (
-                  <span className="text-[10px] font-medium text-red-500 flex items-center gap-0.5 justify-end"><TrendingUp className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
+                  <span className="text-[11px] font-medium text-destructive flex items-center gap-0.5 justify-end"><TrendingUp className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
                 ) : (
-                  <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
+                  <span className="text-[11px] font-medium text-success flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
                 )}
-                <p className={`text-[10px] ${up ? "text-red-500" : down ? "text-emerald-600" : "text-muted-foreground"}`}>
+                <p className={`text-[11px] ${up ? "text-destructive" : down ? "text-success" : "text-muted-foreground"}`}>
                   {up ? "+" : down ? "-" : ""}{formatMoney(Math.abs(r.diff), currency)}
                 </p>
               </div>

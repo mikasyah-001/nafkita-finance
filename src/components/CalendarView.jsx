@@ -34,7 +34,7 @@ export default function CalendarView({ transactions, categories }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 mb-3">
+      <div className="flex items-center justify-between surface p-3 mb-3">
         <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -44,10 +44,10 @@ export default function CalendarView({ transactions, categories }) {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-3">
+      <div className="surface p-3">
         <div className="grid grid-cols-7 gap-1 mb-1">
           {WEEK_DAYS.map((d) => (
-            <div key={d} className="text-center text-[10px] font-medium text-muted-foreground py-1">{d}</div>
+            <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -73,7 +73,7 @@ export default function CalendarView({ transactions, categories }) {
               >
                 <span className="text-xs">{d}</span>
                 {dayData && (
-                  <span className={`text-[9px] leading-none mt-0.5 ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>
+                  <span className={`text-[11px] leading-none mt-0.5 ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>
                     {dayData.count}
                   </span>
                 )}
@@ -90,7 +90,7 @@ export default function CalendarView({ transactions, categories }) {
             {selectedItems.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">Tidak ada transaksi pada tanggal ini.</p>
             ) : (
-              <div className="rounded-2xl border border-border bg-card px-4">
+              <div className="surface px-4">
                 {selectedItems.map((t) => (
                   <TransactionItem key={t.id} tx={t} categories={categories} />
                 ))}

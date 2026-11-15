@@ -65,7 +65,7 @@ export default function AssetGrowthTrend({ displayCurrency: propDisplayCur, rate
   const showTabs = activeCurs.length > 1;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 mb-6">
+    <div className="surface p-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> Pertumbuhan Aset Bulanan</h2>
@@ -93,11 +93,11 @@ export default function AssetGrowthTrend({ displayCurrency: propDisplayCur, rate
             <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (hidden ? "" : formatMoney(v, fmtCur).replace(/\.\d+$/, ""))} />
             <Tooltip formatter={(v) => (hidden ? "••••••" : formatMoney(v, fmtCur))} contentStyle={{ borderRadius: 12, border: "none", fontSize: 12 }} />
             {mode === "all" ? (
-              <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} name="Total" />
+              <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} name="Total" />
             ) : (
               <>
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Line type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 2 }} />
                 <Line type="monotone" dataKey="Emas" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
                 <Line type="monotone" dataKey="Investasi" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} />
                 <Line type="monotone" dataKey="Bank" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2 }} />

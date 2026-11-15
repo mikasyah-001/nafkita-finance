@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate, currencySymbol } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
+import { confirmAction } from "@/components/ConfirmHost";
+import PageHeader from "@/components/PageHeader";
 
 export default function InvestmentDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: assets = [] } = useAssets();
   const { data: lots = [], isLoading } = useInvestmentLots(id);
@@ -83,6 +84,7 @@ export default function InvestmentDetail() {
   };
 
   const handleDeleteLot = async (lotId) => {
+    if (!(await confirmAction({ title: "Hapus lot pembelian ini?", description: "Nilai aset akan disesuaikan ulang setelah lot dihapus." }))) return;
     const lotRec = lots.find((l) => l.id === lotId);
     try {
       await base44.entities.InvestmentLot.delete(lotId);
@@ -104,24 +106,16 @@ export default function InvestmentDetail() {
 
   if (!asset) {
     return (
-      <div className="px-5 pt-8">
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-semibold">Investasi</h1>
-        </div>
+      <div className="px-5 pt-6">
+        <PageHeader title="Investasi" back />
         <p className="text-sm text-muted-foreground text-center py-10">Aset tidak ditemukan.</p>
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-8 pb-8">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold truncate">DCA — {asset.name}</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title={`DCA — ${asset.name}`} back />
 
       <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 mb-4 shadow-lg">
         <div className="flex items-center gap-1.5 text-xs opacity-80 mb-1"><Briefcase className="w-3.5 h-3.5" /> Instrumen Investasi</div>
@@ -152,7 +146,7 @@ export default function InvestmentDetail() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-4 mb-4">
+      <div className="surface p-4 mb-4">
         <label className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
         <div className="flex gap-2">
           <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
@@ -173,7 +167,7 @@ export default function InvestmentDetail() {
       {isLoading ? (
         <div className="py-8 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
       ) : sortedLots.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card py-10 text-center">
+        <div className="surface py-10 text-center">
           <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Belum ada catatan DCA</p>
           <p className="text-xs text-muted-foreground mt-1">Mulai catat pembelian rutin tiap bulan.</p>
@@ -181,7 +175,7 @@ export default function InvestmentDetail() {
       ) : (
         <div className="space-y-2">
           {sortedLots.map((l) => (
-            <div key={l.id} className="rounded-2xl border border-border bg-card p-3.5">
+            <div key={l.id} className="surface p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{formatDate(l.date, "dd MMM yyyy")}</p>
@@ -192,7 +186,7 @@ export default function InvestmentDetail() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold tabular-nums">{formatMoney(l.amount, asset.currency)}</p>
-                  <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-red-500 flex items-center gap-1 mt-1 ml-auto">
+                  <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-destructive flex items-center gap-1 mt-1 ml-auto">
                     <Trash2 className="w-3.5 h-3.5" /> Hapus
                   </button>
                 </div>

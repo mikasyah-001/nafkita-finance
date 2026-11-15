@@ -22,12 +22,12 @@ export default function TransactionItem({ tx, categories }) {
           {tx.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
           {tx.merchant || tx.notes || (isSedekah ? "Sedekah & Infaq" : category?.name || "Transaksi")}
           {tx.approval_status === "pending" && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[9px] font-medium shrink-0">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/15 text-warning text-[11px] font-medium shrink-0">
               <Clock className="w-2.5 h-2.5" /> Menunggu
             </span>
           )}
           {tx.approval_status === "rejected" && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-[9px] font-medium shrink-0">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 text-[11px] font-medium shrink-0">
               <X className="w-2.5 h-2.5" /> Ditolak
             </span>
           )}
@@ -38,7 +38,7 @@ export default function TransactionItem({ tx, categories }) {
         {tx.tags?.length > 0 && (
           <div className="flex gap-1 flex-wrap mt-1">
             {tx.tags.map((t) => (
-              <span key={t} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-medium">{t}</span>
+              <span key={t} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-medium">{t}</span>
             ))}
           </div>
         )}

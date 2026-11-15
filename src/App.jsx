@@ -13,6 +13,7 @@ import { PrivacyProvider } from '@/lib/PrivacyContext';
 import { ScopeProvider } from '@/lib/ScopeContext';
 import { ColorPrefsProvider } from '@/lib/ColorPrefsContext';
 import Layout from '@/components/Layout';
+import ConfirmHost from '@/components/ConfirmHost';
 import Home from '@/pages/Home';
 import Transactions from '@/pages/Transactions';
 import AddTransaction from '@/pages/AddTransaction';
@@ -130,6 +131,7 @@ function App() {
                 </Router>
               </ColorPrefsProvider>
               <Toaster />
+              <ConfirmHost />
             </QueryClientProvider>
           </ScopeProvider>
         </PrivacyProvider>

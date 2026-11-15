@@ -6,11 +6,14 @@ import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Users, Lock, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Repeat } from "lucide-react";
+import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading } = useCategories();
   const { data: budgets = [] } = useBudgets();
   const { data: me } = useMe();
   const refresh = useRefresh();
@@ -116,23 +119,16 @@ export default function Budget() {
   const nextMonth = () => setCursor(new Date(year, month + 1, 1));
 
   return (
-    <div className="px-5 pt-8">
-      <h1 className="text-xl font-semibold mb-4">Anggaran Bulanan</h1>
+    <div className="px-5 pt-6">
+      <PageHeader title="Anggaran Bulanan" back />
 
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 mb-4">
+      <div className="flex items-center justify-between surface p-3 mb-4">
         <button onClick={prevMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
         <p className="font-medium">{monthName}</p>
         <button onClick={nextMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setScope("shared")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "shared" ? "bg-scope-shared text-scope-shared-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Users className="w-4 h-4" /> Bersama
-        </button>
-        <button onClick={() => setScope("private")} className={`flex-1 py-2 rounded-2xl text-sm font-medium flex items-center justify-center gap-1.5 transition-all ${scope === "private" ? "bg-scope-private text-scope-private-foreground" : "bg-muted text-muted-foreground"}`}>
-          <Lock className="w-4 h-4" /> Pribadi
-        </button>
-      </div>
+      <ScopeToggle className="mb-4" />
 
       <div className="mb-4"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 
@@ -152,7 +148,9 @@ export default function Budget() {
         )}
       </div>
 
-      {expenseCategories.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={5} />
+      ) : expenseCategories.length === 0 ? (
         <EmptyState icon={Target} title="Belum ada kategori" subtitle="Tambahkan kategori pengeluaran di pengaturan." />
       ) : (
         <div className="space-y-3">
@@ -168,7 +166,7 @@ export default function Budget() {
             const remaining = effectiveLimit - spent;
 
             return (
-              <div key={c.id} className="rounded-2xl border border-border bg-card p-4">
+              <div key={c.id} className="surface p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${cm.bg}`}>
                     <CategoryIcon name={c.icon} className={`w-5 h-5 ${cm.text}`} />
@@ -178,7 +176,7 @@ export default function Budget() {
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
                       {rolloverAmount !== 0 && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"}`}>
+                        <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"}`}>
                           Rollover {rolloverAmount > 0 ? "+" : ""}{formatMoney(rolloverAmount, currency)}
                         </span>
                       )}
@@ -219,7 +217,7 @@ export default function Budget() {
                     <div className="flex items-center justify-between mt-2 text-xs">
                       <span className="text-muted-foreground">{Math.round(pct)}% terpakai</span>
                       {over ? (
-                        <span className="text-red-500 flex items-center gap-1 font-medium">
+                        <span className="text-destructive flex items-center gap-1 font-medium">
                           <AlertTriangle className="w-3 h-3" /> Lebih {formatMoney(Math.abs(remaining), currency)}
                         </span>
                       ) : remaining < effectiveLimit * 0.2 ? (
@@ -227,7 +225,7 @@ export default function Budget() {
                           <AlertTriangle className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>
                       ) : (
-                        <span className="text-emerald-600 flex items-center gap-1 font-medium">
+                        <span className="text-success flex items-center gap-1 font-medium">
                           <CheckCircle2 className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
                         </span>
                       )}

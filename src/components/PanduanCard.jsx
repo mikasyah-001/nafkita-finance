@@ -8,7 +8,7 @@ export default function PanduanCard({ item, accentClass }) {
   const Icon = item.icon;
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden transition-shadow hover:shadow-sm">
+    <div className="surface overflow-hidden transition-shadow hover:shadow-sm">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-3 p-4 text-left"
@@ -42,7 +42,7 @@ export default function PanduanCard({ item, accentClass }) {
             <ol className="space-y-1.5">
               {item.steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                  <span className="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-success text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <span className="leading-relaxed">{step}</span>

@@ -7,7 +7,8 @@ import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
+import { Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 export default function ImportReport() {
   const navigate = useNavigate();
@@ -236,13 +237,8 @@ export default function ImportReport() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-28">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Impor Laporan</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Impor Laporan" back />
 
       <p className="text-sm text-muted-foreground mb-4">Unggah file atau tempel teks laporan pengeluaran lama. AI akan membaca transaksinya, lalu Anda bisa memeriksa dan memilih sebelum disimpan.</p>
 
@@ -301,7 +297,7 @@ export default function ImportReport() {
 
       {error && (
         <div className="flex items-start gap-2 mt-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3">
-          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}
@@ -331,7 +327,7 @@ export default function ImportReport() {
                       <option value="expense">Pengeluaran</option>
                       <option value="income">Pemasukan</option>
                     </select>
-                    <button onClick={() => removeRow(r.id)} className="ml-auto text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => removeRow(r.id)} className="ml-auto text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="date" value={r.date} onChange={(e) => updateRow(r.id, "date", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />

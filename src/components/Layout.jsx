@@ -42,7 +42,7 @@ export default function Layout() {
       <OfflineSyncManager />
       <NotificationToaster />
       <InstallPrompt />
-      <Toaster position="top-center" richColors closeButton />
+      <Toaster position="top-center" richColors closeButton toastOptions={{ style: { fontFamily: "var(--font-body)", borderRadius: "14px" } }} />
     </div>
   );
 }

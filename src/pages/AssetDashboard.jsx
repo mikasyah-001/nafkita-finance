@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType, formatAxis } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType, formatAxis, assetMarketValue, assetCost, assetGain } from "@/lib/finance";
 import { toast } from "sonner";
 import { Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import GoldPriceCompare from "@/components/GoldPriceCompare";
+import GoldPriceCard from "@/components/GoldPriceCard";
+import { useGoldPrice } from "@/hooks/useGoldPrice";
 import CategoryIcon from "@/components/CategoryIcon";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useScope } from "@/lib/ScopeContext";
@@ -25,14 +26,14 @@ export default function AssetDashboard() {
   const displayCurrency = currency === "all" ? defaultCurrency : currency;
   const isConsolidated = currency === "all";
 
-  const [goldPrice, setGoldPrice] = useState("");
   const [goldHistory, setGoldHistory] = useState([]);
   const [fetching, setFetching] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [goldSource, setGoldSource] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const goldPriceNum = Number(goldPrice) || 0;
+  // Harga emas acuan bersama (sama dengan halaman Aset, Laporan, Zakat).
+  const { price: goldPriceNum } = useGoldPrice();
 
   // Aset dalam cakupan (scope). Saat mode konsolidasi, muat semua mata uang;
   // saat mata uang spesifik, hanya aset dengan mata uang tersebut.
@@ -42,13 +43,8 @@ export default function AssetDashboard() {
     return (a.currency || "IDR").toUpperCase() === displayCurrency;
   });
 
-  // Nilai dasar aset (goldPrice override hanya berlaku untuk emas IDR).
-  const baseValue = (a) => {
-    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") {
-      return a.quantity * goldPriceNum;
-    }
-    return a.value || 0;
-  };
+  // Nilai pasar aset (emas = gram × harga acuan, termasuk emas digital non-IDR via kurs).
+  const baseValue = (a) => assetMarketValue(a, goldPriceNum, rateMap);
   // Nilai tampilan: konsolidasi (konversi ke displayCurrency) atau asli (mata uang spesifik).
   const displayValue = (a) => {
     if (isConsolidated) return convertTo(baseValue(a), (a.currency || "IDR").toUpperCase(), displayCurrency, rateMap);
@@ -58,8 +54,6 @@ export default function AssetDashboard() {
   const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const emasValue = emasAssets.reduce((s, a) => s + displayValue(a), 0);
-  const emasPurchaseTotal = emasAssets.reduce((s, a) => s + convertTo(isGoldType(a.type) && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
-  const emasGrowthPct = emasPurchaseTotal > 0 && emasValue > 0 ? ((emasValue - emasPurchaseTotal) / emasPurchaseTotal) * 100 : 0;
 
   const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
   const investasiValue = investasiAssets.reduce((s, a) => s + displayValue(a), 0);
@@ -75,7 +69,7 @@ export default function AssetDashboard() {
   // SEMUA aset (termasuk tabungan bank tanpa harga beli) dibandingkan dengan
   // harga beli sebagian aset, sehingga muncul angka semu seperti +133%.
   const withPurchase = scopedAssets.filter((a) => (a.purchase_price || 0) > 0);
-  const totalPurchase = withPurchase.reduce((s, a) => s + convertTo((isGoldType(a.type) || a.type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
+  const totalPurchase = withPurchase.reduce((s, a) => s + convertTo(assetCost(a), (a.currency || "IDR"), displayCurrency, rateMap), 0);
   const purchasedCurrent = withPurchase.reduce((s, a) => s + displayValue(a), 0);
   const totalGrowth = totalPurchase > 0 ? ((purchasedCurrent - totalPurchase) / totalPurchase) * 100 : 0;
 
@@ -91,8 +85,13 @@ export default function AssetDashboard() {
     .map((type) => {
       const list = scopedAssets.filter((a) => a.type === type);
       const value = list.reduce((s, a) => s + displayValue(a), 0);
-      const purchase = list.reduce((s, a) => s + convertTo((isGoldType(type) || type === "tanah") && a.quantity ? (a.purchase_price || 0) * a.quantity : (a.purchase_price || 0), (a.currency || "IDR"), displayCurrency, rateMap), 0);
-      const growth = purchase > 0 ? ((value - purchase) / purchase) * 100 : 0;
+      // Pertumbuhan hanya dari aset yang untung/ruginya bisa dihitung (ada harga
+      // beli; emas butuh harga acuan) — aset lain tidak ikut dibandingkan.
+      const conv = (v, a) => (isConsolidated ? convertTo(v, (a.currency || "IDR"), displayCurrency, rateMap) : v);
+      const gains = list.map((a) => ({ a, g: assetGain(a, goldPriceNum, rateMap) })).filter((x) => x.g.available);
+      const purchase = gains.reduce((s, x) => s + conv(x.g.cost, x.a), 0);
+      const gained = gains.reduce((s, x) => s + conv(x.g.value, x.a), 0);
+      const growth = purchase > 0 ? ((gained - purchase) / purchase) * 100 : 0;
       return { type, value, purchase, growth, count: list.length };
     })
     .filter((t) => t.count > 0);
@@ -136,7 +135,6 @@ export default function AssetDashboard() {
       } else {
         setGoldHistory(prices);
         setGoldSource(result.source || "");
-        if (prices.length > 0) setGoldPrice(String(Math.round(prices[prices.length - 1].price)));
         toast.success("Riwayat harga emas dimuat", { description: `${prices.length} bulan data${result.source ? ` • ${result.source}` : ""}` });
       }
     } catch {
@@ -317,7 +315,7 @@ export default function AssetDashboard() {
       <ZakatSummaryCard />
 
       <div className="mb-5">
-        <GoldPriceCompare value={goldPrice} onChange={setGoldPrice} grams={emasGrams} />
+        <GoldPriceCard grams={emasGrams} className="" />
       </div>
 
       <div className="surface p-4 mb-5">

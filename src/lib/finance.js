@@ -506,3 +506,40 @@ export function buildAssetPayload(form) {
     },
   };
 }
+
+// ── Nilai pasar & untung/rugi aset (sumber tunggal) ─────────────────────
+// Harga emas acuan disimpan dalam IDR/gram. Untuk emas digital bermata uang
+// lain, harga dikonversi ke mata uang aset lewat kurs (bila tersedia).
+export function goldPriceIn(currency, goldPriceIdr, rateMap = {}) {
+  const c = (currency || "IDR").toUpperCase();
+  if (!(goldPriceIdr > 0)) return 0;
+  if (c === "IDR") return goldPriceIdr;
+  return canConvert("IDR", c, rateMap) ? convertTo(goldPriceIdr, "IDR", c, rateMap) : 0;
+}
+
+// Nilai beli total dalam mata uang aset.
+export function assetCost(a) {
+  const price = Number(a?.purchase_price) || 0;
+  if (!price) return 0;
+  return (isGoldType(a.type) || a.type === "tanah") && a.quantity ? price * Number(a.quantity) : price;
+}
+
+// Nilai saat ini dalam mata uang aset: emas = gram × harga pasar (bila ada).
+export function assetMarketValue(a, goldPriceIdr = 0, rateMap = {}) {
+  if (isGoldType(a?.type) && Number(a.quantity) > 0) {
+    const p = goldPriceIn(a.currency, goldPriceIdr, rateMap);
+    if (p > 0) return Number(a.quantity) * p;
+  }
+  return Number(a?.value) || 0;
+}
+
+// Untung/rugi. available=false bila nilai pasar emas belum bisa dihitung
+// (harga emas/kurs belum ada) atau harga beli kosong — jangan tampilkan 0%.
+export function assetGain(a, goldPriceIdr = 0, rateMap = {}) {
+  const cost = assetCost(a);
+  const value = assetMarketValue(a, goldPriceIdr, rateMap);
+  const goldPriced = !isGoldType(a?.type) || goldPriceIn(a.currency, goldPriceIdr, rateMap) > 0;
+  const available = cost > 0 && goldPriced;
+  const gain = available ? value - cost : 0;
+  return { cost, value, gain, pct: available ? (gain / cost) * 100 : 0, available, needsGoldPrice: isGoldType(a?.type) && !goldPriced };
+}

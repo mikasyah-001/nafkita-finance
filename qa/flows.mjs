@@ -196,10 +196,24 @@ try {
     assert.equal(a.value, 7000000); assert.equal(a.quantity, 0); assert.equal(a.purchase_price, 0); assert.equal(a.unit, "");
   });
 
+  await step("Harga emas acuan: diisi di Aset → untung/rugi emas tampil & harga sama di Zakat", async () => {
+    await nav("/aset");
+    assert.ok(await page.getByText("Isi harga emas acuan di atas").first().isVisible(), "Sebelum ada harga: diminta isi harga");
+    await page.fill("#gold-price-input", "1500000");
+    await page.getByRole("button", { name: "Pakai", exact: true }).click();
+    await page.waitForTimeout(900);
+    const card = page.locator("div.surface", { hasText: "Emas Antam" }).first();
+    const text = (await card.innerText()).replace(/\s+/g, " ");
+    assert.ok(text.includes("Rp 1.500.000"), "Harga pasar/gr tampil");
+    assert.ok(/\+Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
+    await nav("/zakat");
+    assert.ok(await page.getByText("Rp 1.500.000/gram").first().isVisible(), "Harga acuan sama di Zakat");
+  });
+
   await step("Zakat: harta simpanan digabung (IDR+SAR+emas), rumah tidak dihitung, utang dikurangkan", async () => {
     await nav("/zakat");
-    await page.fill("#zakat-gold-price", "1500000");
-    await page.getByRole("button", { name: "Pakai" }).click();
+    await page.fill("#gold-price-input", "1500000");
+    await page.getByRole("button", { name: "Pakai", exact: true }).click();
     await page.waitForTimeout(900);
     const expected = await page.evaluate(() => {
       const rate = { IDR: 1, SAR: 4250 };

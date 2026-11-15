@@ -238,3 +238,34 @@ test("SAR memakai simbol resmi U+20C1 di tampilan, kode 'SAR' untuk ekspor", () 
   assert.equal(formatMoneyPlain(2400, "SAR"), "SAR 2,400.00");
   assert.equal(formatMoneyPlain(150000, "IDR"), formatMoney(150000, "IDR"));
 });
+
+// ── Nilai pasar & untung/rugi aset ───────────────────────────────
+import { goldPriceIn, assetCost, assetMarketValue, assetGain } from "../finance.js";
+test("Emas: nilai pasar = gram × harga acuan; untung = nilai pasar − (gram × harga beli/gr)", () => {
+  const emas = { type: "emas", quantity: 40, purchase_price: 1_250_000, value: 50_000_000, currency: "IDR" };
+  assert.equal(assetCost(emas), 50_000_000);
+  assert.equal(assetMarketValue(emas, 1_500_000), 60_000_000);
+  const g = assetGain(emas, 1_500_000);
+  assert.equal(g.gain, 10_000_000);
+  assert.equal(g.pct, 20);
+  assert.equal(g.available, true);
+});
+test("Emas tanpa harga acuan: untung/rugi tidak tersedia (bukan 0%)", () => {
+  const g = assetGain({ type: "emas", quantity: 40, purchase_price: 1_250_000, value: 50_000_000 }, 0);
+  assert.equal(g.available, false);
+  assert.equal(g.needsGoldPrice, true);
+  assert.equal(g.value, 50_000_000, "pakai nilai tersimpan");
+});
+test("Emas digital SAR: harga acuan IDR dikonversi ke SAR", () => {
+  const rates = { IDR: 1, SAR: 4000 };
+  assert.equal(goldPriceIn("SAR", 1_600_000, rates), 400);
+  const d = { type: "emas_digital", quantity: 10, purchase_price: 350, currency: "SAR" };
+  assert.equal(assetMarketValue(d, 1_600_000, rates), 4000);
+  assert.equal(assetGain(d, 1_600_000, rates).gain, 500);
+  assert.equal(assetGain(d, 1_600_000, { IDR: 1 }).available, false, "tanpa kurs SAR");
+});
+test("Non-emas: untung = nilai − harga beli; tanpa harga beli tidak tersedia", () => {
+  assert.equal(assetGain({ type: "investasi", value: 43_500_000, purchase_price: 38_000_000 }).gain, 5_500_000);
+  assert.equal(assetGain({ type: "bank", value: 1 }).available, false);
+  assert.equal(assetCost({ type: "tanah", quantity: 100, purchase_price: 2_000_000 }), 200_000_000);
+});

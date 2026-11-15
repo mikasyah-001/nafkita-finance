@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh } from "@/hooks/useFinance";
-import { useZakat, isPlausibleGoldPrice, GOLD_PRICE_MIN, GOLD_PRICE_MAX } from "@/hooks/useZakat";
+import { useZakat } from "@/hooks/useZakat";
+import GoldPriceCard from "@/components/GoldPriceCard";
 import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain } from "@/lib/finance";
 import { ZAKAT_GROUP_LABEL, NISAB_GOLD_GRAM, formatHijri, HAUL_DAYS } from "@/lib/zakat";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
@@ -18,7 +19,6 @@ export default function Zakat() {
   const z = useZakat();
   const refresh = useRefresh();
   const [payOpen, setPayOpen] = useState(false);
-  const [priceDraft, setPriceDraft] = useState("");
   const [haulDraft, setHaulDraft] = useState(null);
   const [savingPref, setSavingPref] = useState(false);
   const [sending, setSending] = useState(false);
@@ -36,11 +36,7 @@ export default function Zakat() {
     setSavingPref(false);
   };
 
-  const saveGoldPrice = () => {
-    const v = Number(priceDraft);
-    if (!isPlausibleGoldPrice(v)) return toast.error("Harga emas tidak wajar", { description: `Masukkan antara ${formatMoney(GOLD_PRICE_MIN, "IDR")} dan ${formatMoney(GOLD_PRICE_MAX, "IDR")} per gram.` });
-    savePrefs({ zakat_gold_price: v, zakat_gold_price_date: new Date().toISOString().slice(0, 10) }, "Harga emas disimpan").then(() => setPriceDraft(""));
-  };
+
 
   const status = z.needsGoldPrice ? "price" : z.isPaidOff ? "paid" : z.reachesNisab ? "due" : "below";
   const statusMeta = {
@@ -194,25 +190,8 @@ export default function Zakat() {
             </section>
           )}
 
-          {/* Harga emas */}
-          <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="harga-emas">
-            <h2 id="harga-emas" className="font-semibold text-[17px] leading-tight">Harga emas untuk nisab</h2>
-            <p className="text-xs text-muted-foreground mb-3">
-              {z.goldPrice > 0
-                ? <>{formatMoney(z.goldPrice, cur)}/gram · {z.goldSource?.label}{z.goldSource?.date ? `, ${z.goldSource.date}` : ""}</>
-                : z.goldLoading ? "Mencari harga emas terkini…" : "Harga otomatis belum tersedia. Isi manual dari Antam/Pegadaian."}
-            </p>
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center rounded-2xl border border-border bg-card px-3 focus-within:ring-2 ring-primary/30">
-                <span className="text-xs text-muted-foreground mr-1">Rp</span>
-                <input id="zakat-gold-price" aria-label="Harga emas per gram (Rp)" type="number" inputMode="numeric" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} placeholder={z.goldPrice ? String(z.goldPrice) : "Mis. 1.500.000"} className="flex-1 py-2.5 text-sm bg-transparent outline-none tabular-nums" />
-              </div>
-              <button onClick={saveGoldPrice} disabled={!priceDraft || savingPref} className="btn-primary btn-sm">Pakai</button>
-            </div>
-            {z.goldSource?.kind === "manual" && (
-              <button onClick={() => savePrefs({ zakat_gold_price: null, zakat_gold_price_date: null }, "Kembali ke harga otomatis")} className="text-xs font-semibold text-primary mt-2">Pakai harga otomatis</button>
-            )}
-          </section>
+          {/* Harga emas: kartu bersama, berlaku untuk seluruh aplikasi */}
+          <GoldPriceCard title="Harga emas untuk nisab" grams={z.goldGrams + z.goldGramsPending} />
 
           {/* Haul */}
           <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="haul">

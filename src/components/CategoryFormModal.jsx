@@ -4,12 +4,18 @@ import { colorMap, colorOptions } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { Loader2, Check } from "lucide-react";
+import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 
 const iconOptions = [
   "Wallet", "ShoppingCart", "Car", "ReceiptText", "HeartPulse", "GraduationCap",
   "Gamepad2", "Gift", "PiggyBank", "Landmark", "Coins", "Briefcase", "Utensils",
   "Bus", "Lightbulb", "Package", "Sparkles", "Home", "Heart",
 ];
+
+const colorNames = {
+  orange: "oranye", blue: "biru", pink: "merah muda", red: "merah", teal: "toska", indigo: "nila",
+  violet: "ungu", green: "hijau", amber: "kuning", cyan: "sian", rose: "mawar", slate: "abu-abu",
+};
 
 export default function CategoryFormModal({ open, onClose, onSaved, initial, categories }) {
   const [name, setName] = useState("");
@@ -58,76 +64,98 @@ export default function CategoryFormModal({ open, onClose, onSaved, initial, cat
     setSaving(false);
   };
 
+  const cm = colorMap[color] || colorMap.slate;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-lg">{isEdit ? "Edit Kategori" : "Kategori Baru"}</h2>
-          <button onClick={onClose} className="text-sm btn-icon btn-icon-sm">✕</button>
-        </div>
-
-        {!isEdit && (
-          <div className="flex gap-2 bg-muted p-1 rounded-2xl mb-4">
-            {[
-              { k: "expense", l: "Pengeluaran" },
-              { k: "income", l: "Pemasukan" },
-            ].map((t) => (
-              <button
-                key={t.k}
-                onClick={() => setType(t.k)}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${type === t.k ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-              >
-                {t.l}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <label htmlFor="category-name" className="text-xs text-muted-foreground mb-1.5 block">Nama Kategori</label>
-        <input
-          id="category-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Mis. Kopi, Hewan Peliharaan..."
-          className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 mb-4"
-        />
-
-        <label className="text-xs text-muted-foreground mb-2 block">Warna</label>
-        <div className="flex gap-2 flex-wrap mb-4">
-          {colorOptions.map((c) => (
-            <button
-              key={c}
-              onClick={() => setColor(c)}
-              className={`w-9 h-9 rounded-full ${colorMap[c].solid} ${color === c ? "ring-2 ring-offset-2 ring-foreground" : ""}`}
-            />
-          ))}
-        </div>
-
-        <label className="text-xs text-muted-foreground mb-2 block">Ikon</label>
-        <div className="grid grid-cols-6 gap-2 mb-5">
-          {iconOptions.map((ic) => (
-            <button
-              key={ic}
-              onClick={() => setIcon(ic)}
-              className={`aspect-square rounded-xl flex items-center justify-center border transition-all ${icon === ic ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <CategoryIcon name={ic} className="w-4 h-4" />
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full btn-primary"
-        >
+    <FormSheet
+      title={isEdit ? "Edit kategori" : "Kategori baru"}
+      subtitle="Atur nama, warna, dan ikon agar mudah dikenali."
+      onClose={onClose}
+      footer={
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Menyimpan..." : "Simpan"}
         </button>
-      </div>
-    </div>
+      }
+    >
+      {!isEdit && (
+        <div role="tablist" aria-label="Jenis kategori" className="flex gap-1 p-1 rounded-2xl bg-muted">
+          {[
+            { k: "expense", l: "Pengeluaran" },
+            { k: "income", l: "Pemasukan" },
+          ].map((t) => (
+            <button
+              key={t.k}
+              type="button"
+              role="tab"
+              aria-selected={type === t.k}
+              onClick={() => setType(t.k)}
+              className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-colors ${type === t.k ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <FieldGroup label="Identitas">
+        <FieldRow
+          label="Nama kategori"
+          htmlFor="category-name"
+          trailing={
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 self-center ${cm.bg}`} aria-hidden="true">
+              <CategoryIcon name={icon} className={`w-5 h-5 ${cm.text}`} />
+            </span>
+          }
+        >
+          <input
+            id="category-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Mis. Kopi, Hewan peliharaan..."
+            className={fieldInput}
+          />
+        </FieldRow>
+      </FieldGroup>
+
+      <section>
+        <p className="text-xs font-semibold text-muted-foreground mb-2">Warna</p>
+        <div role="radiogroup" aria-label="Warna" className="surface rounded-3xl p-4 flex gap-2.5 flex-wrap">
+          {colorOptions.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={color === c}
+              aria-label={`Warna ${colorNames[c] || c}`}
+              onClick={() => setColor(c)}
+              className={`w-9 h-9 rounded-full ${colorMap[c].solid} ${color === c ? "ring-2 ring-offset-2 ring-offset-card ring-foreground" : ""}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <p className="text-xs font-semibold text-muted-foreground mb-2">Ikon</p>
+        <div role="radiogroup" aria-label="Ikon" className="grid grid-cols-6 gap-2">
+          {iconOptions.map((ic) => {
+            const on = icon === ic;
+            return (
+              <button
+                key={ic}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={`Ikon ${ic}`}
+                onClick={() => setIcon(ic)}
+                className={`aspect-square rounded-2xl flex items-center justify-center border transition-all ${on ? "border-primary bg-primary text-primary-foreground ring-1 ring-primary" : "border-border bg-card text-muted-foreground"}`}
+              >
+                <CategoryIcon name={ic} className="w-4 h-4" />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </FormSheet>
   );
 }

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useDebts, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance";
+import { formatMoney, currencySymbol, formatDate } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { Plus, Loader2, X, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check } from "lucide-react";
+import { Plus, Loader2, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check, UserRound, CalendarDays, NotebookPen, Landmark } from "lucide-react";
+import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 
@@ -50,86 +51,119 @@ export default function Debts() {
     return { label: formatDate(d.due_date, "dd MMM yyyy"), color: "green", icon: CalendarClock };
   };
 
+  const totalBox = (label, Icon, map) => (
+    <div className="min-w-0">
+      <p className="text-[11px] opacity-75 flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</p>
+      {Object.entries(map).map(([c, v]) => (
+        <p key={c} className="font-heading font-bold text-[17px] leading-tight tabular-nums truncate">{formatMoney(v, c)}</p>
+      ))}
+      {Object.keys(map).length === 0 && <p className="font-heading font-bold text-[17px] leading-tight opacity-60">—</p>}
+    </div>
+  );
+
   return (
-    <div className="px-5 pt-6 space-y-5">
+    <div className="px-5 pt-6 pb-6 space-y-5">
       <PageHeader
-        title="Utang & Piutang"
+        title="Utang & piutang"
+        subtitle="Catat pinjaman dan pelunasannya"
         back
         actions={<>
-          <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+          <button onClick={() => setShowForm(true)} aria-label="Catat utang/piutang" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
             <Plus className="w-5 h-5" />
           </button>
         </>}
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center mb-2">
-            <TrendingDown className="w-4 h-4 text-destructive" />
-          </div>
-          <p className="text-xs text-muted-foreground">Total Utang</p>
-          {Object.entries(totals.utang).map(([c, v]) => (
-            <p key={c} className="font-semibold text-sm mt-0.5 tabular-nums">{formatMoney(v, c)}</p>
-          ))}
-          {Object.keys(totals.utang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
+      <section aria-label="Ringkasan utang piutang" className="card-gradient-primary rounded-[24px] p-5">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/10 rounded-full px-2.5 py-1 mb-3">
+          <HandCoins className="w-3 h-3" /> Belum lunas
+        </span>
+        <div className="grid grid-cols-2 gap-4">
+          {totalBox("Total Utang", TrendingDown, totals.utang)}
+          {totalBox("Total Piutang", TrendingUp, totals.piutang)}
         </div>
-        <div className="surface p-4">
-          <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center mb-2">
-            <TrendingUp className="w-4 h-4 text-success" />
-          </div>
-          <p className="text-xs text-muted-foreground">Total Piutang</p>
-          {Object.entries(totals.piutang).map(([c, v]) => (
-            <p key={c} className="font-semibold text-sm mt-0.5 tabular-nums">{formatMoney(v, c)}</p>
-          ))}
-          {Object.keys(totals.piutang).length === 0 && <p className="font-semibold text-sm mt-0.5 text-muted-foreground">—</p>}
-        </div>
-      </div>
+      </section>
 
-      {isLoading ? (
-        <ListSkeleton rows={3} />
-      ) : myDebts.length === 0 ? (
-        <EmptyState icon={HandCoins} title="Belum ada utang/piutang" subtitle="Catat utang atau piutang dengan jatuh tempo untuk mengingatkan pelunasan." />
-      ) : (
-        <div className="space-y-3">
-          {myDebts.map((d) => {
-            const ds = dueStatus(d);
-            const cm = colorMap[ds.color] || colorMap.slate;
-            const outstanding = (d.amount || 0) - (d.paid_amount || 0);
-            return (
-              <div key={d.id} className="surface p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.type === "utang" ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
-                        {d.type === "utang" ? "Utang" : "Piutang"}
-                      </span>
-                      {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Sebagian</span>}
+      <section>
+        <div className="mb-2.5">
+          <h2 className="font-semibold text-[17px] leading-tight">Daftar catatan</h2>
+          <p className="text-xs text-muted-foreground">Jatuh tempo terdekat perlu perhatian</p>
+        </div>
+
+        {isLoading ? (
+          <ListSkeleton rows={3} />
+        ) : myDebts.length === 0 ? (
+          <EmptyState icon={HandCoins} title="Belum ada utang/piutang" subtitle="Catat utang atau piutang dengan jatuh tempo untuk mengingatkan pelunasan." />
+        ) : (
+          <div className="space-y-3">
+            {myDebts.map((d) => {
+              const ds = dueStatus(d);
+              const outstanding = (d.amount || 0) - (d.paid_amount || 0);
+              const isUtang = d.type === "utang";
+              const paidPct = d.amount > 0 ? Math.min(100, ((d.paid_amount || 0) / d.amount) * 100) : 0;
+              return (
+                <div key={d.id} className="surface rounded-3xl p-4">
+                  <div className="flex items-start gap-3">
+                    <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isUtang ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
+                      {isUtang ? <TrendingDown className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isUtang ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
+                          {isUtang ? "Utang" : "Piutang"}
+                        </span>
+                        {d.status === "partial" && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">Sebagian</span>}
+                      </div>
+                      <p className="font-semibold text-sm truncate">{d.counterparty_name}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{formatMoney(d.amount, d.currency)}</p>
                     </div>
-                    <p className="font-medium text-sm truncate">{d.counterparty_name}</p>
-                    <p className="text-xs text-muted-foreground">{formatMoney(d.amount, d.currency)}</p>
-                    {d.paid_amount > 0 && d.status !== "paid" && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Sisa: {formatMoney(outstanding, d.currency)}</p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full ${cm.bg} ${cm.text}`}>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full shrink-0 ${STATUS_TONE[ds.color] || STATUS_TONE.slate}`}>
                       <ds.icon className="w-3 h-3" /> {ds.label}
                     </span>
                   </div>
+                  {d.paid_amount > 0 && d.status !== "paid" && (
+                    <div className="mt-3">
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden" aria-hidden="true">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">Sisa: {formatMoney(outstanding, d.currency)}</p>
+                    </div>
+                  )}
+                  {d.status !== "paid" && (
+                    <button onClick={() => setPayingDebt(d)} className="w-full mt-3 btn-secondary btn-sm">
+                      Catat Pelunasan
+                    </button>
+                  )}
                 </div>
-                {d.status !== "paid" && (
-                  <button onClick={() => setPayingDebt(d)} className="w-full mt-3 py-2 rounded-xl border border-border text-xs font-medium hover:bg-muted transition-colors">
-                    Catat Pelunasan
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {showForm && <DebtForm user={user} userCurrencies={userCurrencies} onClose={() => setShowForm(false)} onSaved={() => { refresh(); setShowForm(false); }} />}
       {payingDebt && <PaymentForm debt={payingDebt} assets={assets} onClose={() => setPayingDebt(null)} onSaved={() => { refresh(); setPayingDebt(null); }} />}
+    </div>
+  );
+}
+
+const STATUS_TONE = {
+  green: "bg-success/15 text-success",
+  red: "bg-destructive/15 text-destructive",
+  amber: "bg-warning/15 text-warning",
+  slate: "bg-muted text-muted-foreground",
+};
+
+const heroAmountInput = "flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]";
+
+function HeroCurrency({ currencies, value, onChange }) {
+  if (!currencies.length) return null;
+  return (
+    <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
+      {currencies.map((c) => (
+        <button key={c.code} type="button" role="radio" aria-checked={value === c.code} onClick={() => onChange(c.code)}
+          className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${value === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
+      ))}
     </div>
   );
 }
@@ -172,61 +206,57 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end md:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background">
-          <h2 className="font-semibold">Catat Utang/Piutang</h2>
-          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
-        </div>
-        <div className="px-5 py-5 space-y-4">
-          <div className="flex gap-2 bg-muted p-1 rounded-2xl">
-            {["utang", "piutang"].map((t) => (
-              <button key={t} onClick={() => setType(t)} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${type === t ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
-                {t === "utang" ? "Utang" : "Piutang"}
-              </button>
-            ))}
-          </div>
-          <div>
-            <label htmlFor="debt-counterparty" className="text-xs text-muted-foreground mb-1.5 block">{type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"}</label>
-            <input id="debt-counterparty" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
-            <div className="flex flex-wrap gap-2">
-              {userCurrencies.map((c) => (
-                <button key={c.code} onClick={() => setCurrency(c.code)} className={`px-4 py-2 rounded-2xl border text-sm font-medium transition-all ${currency === c.code ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>{c.code}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label htmlFor="debt-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
-            <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <span className="text-lg text-muted-foreground mr-1">{currencySymbol(currency)}</span>
-              <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="debt-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal</label>
-              <input id="debt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-            </div>
-            <div>
-              <label htmlFor="debt-due-date" className="text-xs text-muted-foreground mb-1.5 block">Jatuh Tempo</label>
-              <input id="debt-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="debt-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-            <textarea id="debt-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
-          </div>
-        </div>
-        <div className="px-5 py-4 border-t border-border sticky bottom-0 bg-background">
-          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
+    <FormSheet
+      title="Catat utang/piutang"
+      subtitle="Simpan pinjaman beserta jatuh temponya."
+      onClose={onClose}
+      footer={
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan
+        </button>
+      }
+    >
+      <div role="tablist" aria-label="Jenis catatan" className="flex gap-1 p-1 rounded-2xl bg-muted">
+        {["utang", "piutang"].map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={type === t} onClick={() => setType(t)}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-colors ${type === t ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            {t === "utang" ? "Utang" : "Piutang"}
           </button>
-        </div>
+        ))}
       </div>
-    </div>
+
+      <section className="card-gradient-primary rounded-[24px] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="debt-amount" className="text-xs opacity-80">Nominal</label>
+          <HeroCurrency currencies={userCurrencies} value={currency} onChange={setCurrency} />
+        </div>
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
+          <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
+        </div>
+      </section>
+
+      <FieldGroup label="Pihak">
+        <FieldRow icon={UserRound} label={type === "utang" ? "Kita berhutang ke" : "Siapa yang berhutang ke kita"} htmlFor="debt-counterparty">
+          <input id="debt-counterparty" value={counterpartyName} onChange={(e) => setCounterpartyName(e.target.value)} placeholder="Nama pihak lawan" className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+
+      <FieldGroup label="Waktu">
+        <FieldRow icon={CalendarDays} label="Tanggal" htmlFor="debt-date">
+          <input id="debt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fieldInput} />
+        </FieldRow>
+        <FieldRow icon={CalendarClock} label="Jatuh tempo" htmlFor="debt-due-date">
+          <input id="debt-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+
+      <FieldGroup label="Lainnya">
+        <FieldRow icon={NotebookPen} label="Catatan (opsional)" htmlFor="debt-notes">
+          <textarea id="debt-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Opsional" className={`${fieldInput} resize-none`} />
+        </FieldRow>
+      </FieldGroup>
+    </FormSheet>
   );
 }
 
@@ -260,49 +290,47 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end md:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-md bg-background rounded-t-3xl md:rounded-3xl border border-border" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="font-semibold">Pelunasan</h2>
-          <button onClick={onClose} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
+    <FormSheet
+      title="Pelunasan"
+      subtitle={`${debt.type === "piutang" ? "Piutang dari" : "Utang ke"} ${debt.counterparty_name}`}
+      onClose={onClose}
+      footer={
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Catat Pelunasan
+        </button>
+      }
+    >
+      <section className="card-gradient-primary rounded-[24px] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="debt-payment-amount" className="text-xs opacity-80">Nominal pelunasan</label>
+          <span className="text-[11px] font-semibold bg-white/10 border border-white/10 rounded-full px-2.5 py-1 tabular-nums">Sisa: {formatMoney(outstanding, debt.currency)}</span>
         </div>
-        <div className="px-5 py-5 space-y-4">
-          <div className="rounded-2xl bg-muted p-3 text-sm">
-            <p className="text-muted-foreground text-xs">{debt.counterparty_name}</p>
-            <p className="font-medium">Sisa: {formatMoney(outstanding, debt.currency)}</p>
-          </div>
-          <div>
-            <label htmlFor="debt-payment-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal Pelunasan</label>
-            <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <span className="text-lg text-muted-foreground mr-1">{currencySymbol(debt.currency)}</span>
-              <input id="debt-payment-amount" type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
-            </div>
-            {outstanding > 0 && (
-              <button onClick={() => setPaymentAmount(String(outstanding))} className="mt-1.5 text-[11px] text-primary font-medium">Lunasi penuh ({formatMoney(outstanding, debt.currency)})</button>
-            )}
-          </div>
-          {bankAssets.length > 0 && (
-            <div>
-              <label htmlFor="debt-payment-asset" className="text-xs text-muted-foreground mb-1.5 block">Bayar dari Rekening (opsional)</label>
-              <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background">
-                <option value="">Tidak ada — tanpa transaksi</option>
-                {bankAssets.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div>
-            <label htmlFor="debt-payment-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Bayar</label>
-            <input id="debt-payment-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="text-lg font-semibold opacity-70">{currencySymbol(debt.currency)}</span>
+          <input id="debt-payment-amount" type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
         </div>
-        <div className="px-5 py-4 border-t border-border">
-          <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Catat Pelunasan
+        {outstanding > 0 && (
+          <button type="button" onClick={() => setPaymentAmount(String(outstanding))} className="mt-3 h-7 px-2.5 rounded-full text-[11px] font-bold bg-gold text-gold-foreground">
+            Lunasi penuh ({formatMoney(outstanding, debt.currency)})
           </button>
-        </div>
-      </div>
-    </div>
+        )}
+      </section>
+
+      <FieldGroup label="Detail pembayaran">
+        {bankAssets.length > 0 && (
+          <FieldRow icon={Landmark} label="Bayar dari rekening (opsional)" htmlFor="debt-payment-asset">
+            <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
+              <option value="">Tidak ada — tanpa transaksi</option>
+              {bankAssets.map((a) => (
+                <option key={a.id} value={a.id}>{a.name} ({formatMoney(a.value, a.currency)})</option>
+              ))}
+            </select>
+          </FieldRow>
+        )}
+        <FieldRow icon={CalendarDays} label="Tanggal bayar" htmlFor="debt-payment-date">
+          <input id="debt-payment-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={fieldInput} />
+        </FieldRow>
+      </FieldGroup>
+    </FormSheet>
   );
 }

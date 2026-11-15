@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Tag } from "lucide-react";
 import { confirmAction } from "@/components/ConfirmHost";
 import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 
 const tabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -62,60 +63,69 @@ export default function Categories() {
     }
   };
 
-  return (
-    <div className="px-5 pt-6">
-      <PageHeader title="Kelola Kategori" back />
+  const customCount = list.filter((c) => !c.is_default).length;
 
-      <div className="flex gap-2 bg-muted p-1 rounded-2xl mb-5">
+  return (
+    <div className="px-5 pt-6 pb-6">
+      <PageHeader title="Kelola kategori" subtitle="Kelompokkan transaksi agar laporan lebih rapi" back />
+
+      <div role="tablist" aria-label="Jenis kategori" className="flex gap-1 p-1 rounded-2xl bg-muted mb-5">
         {tabs.map((t) => (
           <button
             key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-colors ${tab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2 mb-4">
-        {list.map((c) => {
-          const cm = colorMap[c.color] || colorMap.slate;
-          const count = usage[c.name] || 0;
-          return (
-            <div key={c.id} className="flex items-center gap-3 surface p-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cm.bg}`}>
-                <CategoryIcon name={c.icon} className={`w-5 h-5 ${cm.text}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{c.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {c.is_default ? "Bawaan" : "Kustom"}
-                  {count > 0 && ` • ${count} transaksi`}
-                </p>
-              </div>
-              {c.is_default ? (
-                <span className="text-[11px] font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
-              ) : (
-                <>
-                  <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="btn-icon btn-icon-sm">
-                    <Pencil className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                  <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="btn-icon btn-icon-sm">
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
-                </>
-              )}
-            </div>
-          );
-        })}
-        {list.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Tag className="w-10 h-10 text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">Belum ada kategori {tab === "expense" ? "pengeluaran" : "pemasukan"}.</p>
-          </div>
-        )}
+      <div className="flex items-end justify-between mb-2.5">
+        <div>
+          <h2 className="font-semibold text-[17px] leading-tight">Kategori {tab === "expense" ? "pengeluaran" : "pemasukan"}</h2>
+          <p className="text-xs text-muted-foreground">{list.length} kategori · {customCount} kustom</p>
+        </div>
       </div>
+
+      {list.length === 0 ? (
+        <EmptyState icon={Tag} title={`Belum ada kategori ${tab === "expense" ? "pengeluaran" : "pemasukan"}.`} />
+      ) : (
+        <div className="surface rounded-3xl divide-y divide-border mb-5">
+          {list.map((c) => {
+            const cm = colorMap[c.color] || colorMap.slate;
+            const count = usage[c.name] || 0;
+            return (
+              <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cm.bg}`}>
+                  <CategoryIcon name={c.icon} className={`w-5 h-5 ${cm.text}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{c.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.is_default ? "Bawaan" : "Kustom"}
+                    {count > 0 && ` • ${count} transaksi`}
+                  </p>
+                </div>
+                {c.is_default ? (
+                  <span className="text-[11px] font-semibold text-primary bg-primary/10 rounded-full px-2.5 py-1">Tetap</span>
+                ) : (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button onClick={() => openEdit(c)} aria-label={`Edit kategori ${c.name}`} className="btn-icon btn-icon-sm">
+                      <Pencil className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <button onClick={() => handleDelete(c)} aria-label={`Hapus kategori ${c.name}`} className="btn-icon btn-icon-sm">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <button
         onClick={openAdd}

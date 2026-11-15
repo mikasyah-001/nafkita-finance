@@ -1,14 +1,11 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
-import { fetchGoldPricesBackend, computeZakatPerCurrency } from "../../shared/zakat.ts";
+import { fetchGoldPricesBackend, computeZakatMal, isPlausibleGoldPriceIdr } from "../../shared/zakat.ts";
 
-// Mengembalikan status zakat mal per mata uang untuk user yang login.
-// Aset yang dihitung: milik sendiri (semua) + aset shared milik pasangan.
-// Gold prices diambil real-time per mata uang (IDR, SAR, USD).
-//
-// Dipakai oleh halaman Zakat.jsx — menggantikan computeZakat lama yang
-// hanya menghitung IDR dan mengabaikan aset non-IDR.
+// Status zakat mal (gabungan, IDR) untuk user yang login — aturan sama dengan
+// src/lib/zakat.js. Aset: milik sendiri + bersama pasangan; utang/piutang milik sendiri.
+// Halaman Zakat di aplikasi menghitung di frontend; fungsi ini untuk integrasi lain.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -37,11 +34,15 @@ export default async function (req) {
     // Ambil harga emas per mata uang.
     const goldPrices = await fetchGoldPricesBackend(base44);
 
-    const result = computeZakatPerCurrency(assets, goldPrices, rateMap);
+    const debts = await fetchAll(base44.asServiceRole.entities.Debt, { created_by_id: me.id });
+    const goldPrice = isPlausibleGoldPriceIdr(me.zakat_gold_price) ? Number(me.zakat_gold_price)
+      : isPlausibleGoldPriceIdr(goldPrices.IDR) ? goldPrices.IDR : 0;
+    const result = computeZakatMal({ assets, debts, goldPrice, rateMap, includeReceivables: me.zakat_include_receivables !== false });
 
     return Response.json({
       ...result,
-      goldPrices,
+      currency: "IDR",
+      goldPrice,
       partner_id: partnerId,
     });
   } catch (error) {

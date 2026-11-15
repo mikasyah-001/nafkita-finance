@@ -56,6 +56,23 @@
       "default": [],
       "description": "Mata uang kustom yang dibuat pengguna di luar katalog bawaan"
     },
+    "zakat_haul_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal harta pertama kali mencapai nisab (awal haul zakat mal)"
+    },
+    "zakat_gold_price": {
+      "type": "number",
+      "description": "Harga emas Rp/gram isian manual untuk nisab zakat"
+    },
+    "zakat_gold_price_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "zakat_include_receivables": {
+      "type": "boolean",
+      "default": true
+    },
     "onboarding_completed": {
       "type": "boolean",
       "default": false,

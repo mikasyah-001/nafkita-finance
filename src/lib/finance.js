@@ -266,23 +266,9 @@ export const isMoneyAsset = (a) => a?.type === "bank" || a?.type === "tunai";
 export const EXTRAORDINARY_TAG = "luar-biasa";
 export const isExtraordinary = (t) => Array.isArray(t?.tags) && t.tags.includes(EXTRAORDINARY_TAG);
 
-// Kalkulasi zakat mal yang seragam (dipakai Reports & ZakatStatus).
-// Emas dan simpanan diperlakukan terpisah: emas nisab 85 gr, simpanan nisab = 85 gr emas.
+// Konstanta & logika zakat ada di src/lib/zakat.js (sumber tunggal).
 export const NISAB_GRAM = 85;
 export const isGoldType = (type) => type === "emas" || type === "emas_digital";
-
-export function computeZakat({ emasGrams = 0, emasValue = 0, nonEmasValue = 0, goldPrice = 0 }) {
-  const nisab = goldPrice > 0 ? goldPrice * NISAB_GRAM : 0;
-  const emasReached = emasGrams >= NISAB_GRAM;
-  const simpananReached = goldPrice > 0 && nonEmasValue >= nisab;
-  return {
-    nisab,
-    emasReached,
-    simpananReached,
-    zakatEmas: emasReached ? emasValue * 0.025 : 0,
-    zakatSimpanan: simpananReached ? nonEmasValue * 0.025 : 0,
-  };
-}
 
 export function formatNumber(n) {
   return new Intl.NumberFormat("id-ID").format(n || 0);

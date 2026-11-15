@@ -196,6 +196,39 @@ try {
     assert.equal(a.value, 7000000); assert.equal(a.quantity, 0); assert.equal(a.purchase_price, 0); assert.equal(a.unit, "");
   });
 
+  await step("Zakat: harta simpanan digabung (IDR+SAR+emas), rumah tidak dihitung, utang dikurangkan", async () => {
+    await nav("/zakat");
+    await page.fill("#zakat-gold-price", "1500000");
+    await page.getByRole("button", { name: "Pakai" }).click();
+    await page.waitForTimeout(900);
+    const expected = await page.evaluate(() => {
+      const rate = { IDR: 1, SAR: 4250 };
+      let net = 0;
+      for (const a of window.__qa.assets) {
+        if (a.type === "emas" || a.type === "emas_digital") net += (a.quantity || 0) * 1500000;
+        else if (["bank", "tunai", "investasi"].includes(a.type)) net += a.value * (rate[a.currency || "IDR"] || 0);
+      }
+      net -= 5000000; // utang aktif jatuh tempo < 12 bulan (data contoh)
+      return Math.round(net * 0.025);
+    });
+    const hero = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(hero, expected, "Zakat = 2,5% × harta bersih gabungan");
+    assert.ok(await page.getByText("Wajib zakat").isVisible());
+  });
+
+  await step("Zakat: catat pembayaran sebagian → sisa berkurang & tercatat sebagai transaksi Zakat", async () => {
+    const before = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    await page.getByRole("button", { name: /Catat pembayaran zakat/ }).click();
+    await page.fill("#zakat-pay-amount", "1000000");
+    await page.fill("#zakat-pay-recipient", "BAZNAS");
+    await page.getByRole("button", { name: /Simpan pembayaran/ }).click();
+    await page.waitForTimeout(900);
+    const after = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(before - after, 1000000, "Sisa berkurang");
+    const tx = await page.evaluate(() => window.__qa.tx.find((t) => t.category === "Zakat"));
+    assert.ok(tx && tx.type === "sedekah" && tx.amount === 1000000, "Transaksi zakat tercatat");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

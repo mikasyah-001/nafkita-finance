@@ -59,7 +59,7 @@ const FN = {
     { id: "b3", category: "Transportasi", limit_amount: 500000, currency: "IDR", period: ym, visibility: "shared" },
   ] }),
   listVisibleDebts: () => ({ debts: [
-    { id: "d1", created_by_id: "u1", type: "utang", counterparty: "Pak Hasan", amount: 5000000, remaining: 3000000, currency: "IDR", due_date: later(30), status: "active" },
+    { id: "d1", created_by_id: "u1", type: "utang", counterparty_name: "Pak Hasan", amount: 5000000, remaining: 3000000, currency: "IDR", due_date: later(30), status: "active" },
   ] }),
   listVisibleRecurringBills: () => ({ bills: [
     { id: "r1", created_by_id: "u1", name: "Listrik PLN", amount: 750000, currency: "IDR", frequency: "monthly", next_date: later(-1), start_date: later(-1), status: "active", category: "Tagihan", type: "expense" },

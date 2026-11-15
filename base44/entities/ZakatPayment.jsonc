@@ -9,9 +9,11 @@
       "type": "string",
       "enum": [
         "emas",
-        "simpanan"
+        "simpanan",
+        "mal"
       ],
-      "default": "emas"
+      "default": "mal",
+      "description": "mal = zakat mal gabungan (dipakai sejak perbaikan perhitungan); emas/simpanan = data lama"
     },
     "amount": {
       "type": "number"
@@ -23,6 +25,21 @@
         "paid"
       ],
       "default": "unpaid"
+    },
+    "currency": {
+      "type": "string",
+      "default": "IDR"
+    },
+    "period_key": {
+      "type": "string",
+      "description": "Kunci periode haul, mis. haul-2026-01-01 atau H1448"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Transaksi sedekah/zakat yang tercatat saat pembayaran"
+    },
+    "notes": {
+      "type": "string"
     },
     "paid_date": {
       "type": "string",

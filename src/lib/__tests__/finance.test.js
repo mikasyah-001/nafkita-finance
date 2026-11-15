@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   convertTo, canConvert, hasRate, buildRateMap,
   summarizeConsolidated, summarizeByCurrency, monthlyExpenseBreakdown,
-  filterReportableTx, computeSavingsRate, computeZakat, NISAB_GRAM,
+  filterReportableTx, computeSavingsRate,
   computeRecurringNextDate, formatUnconverted,
 } from "../finance.js";
 
@@ -123,22 +123,6 @@ test("computeSavingsRate: normal, negatif, tanpa pemasukan", () => {
   assert.deepEqual(computeSavingsRate(10_000, 6_000, 1_000), { rate: 30, label: null });
   assert.deepEqual(computeSavingsRate(10_000, 12_000, 0), { rate: 0, label: "<0%" });
   assert.deepEqual(computeSavingsRate(0, 100, 0), { rate: 0, label: "n/a" });
-});
-
-// ── Zakat mal ────────────────────────────────────────────────────
-test("computeZakat: nisab 85 gr emas, tarif 2,5%", () => {
-  const goldPrice = 1_500_000;
-  const nisab = goldPrice * NISAB_GRAM;
-  const below = computeZakat({ emasGrams: 50, emasValue: 75_000_000, nonEmasValue: nisab - 1, goldPrice });
-  assert.equal(below.emasReached, false);
-  assert.equal(below.simpananReached, false);
-  assert.equal(below.zakatEmas + below.zakatSimpanan, 0);
-  const above = computeZakat({ emasGrams: 100, emasValue: 150_000_000, nonEmasValue: nisab, goldPrice });
-  assert.equal(above.zakatEmas, 3_750_000);
-  assert.equal(above.zakatSimpanan, nisab * 0.025);
-});
-test("computeZakat: tanpa harga emas, simpanan tidak dianggap mencapai nisab", () => {
-  assert.equal(computeZakat({ nonEmasValue: 1e12, goldPrice: 0 }).simpananReached, false);
 });
 
 // ── Tagihan berulang ─────────────────────────────────────────────

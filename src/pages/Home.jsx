@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals } from "@/hooks/useFinance";
 import { formatMoneyShort, formatDate, summarizeConsolidated, computeSavingsRate, hasRate } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { BarChart3, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
+import { BarChart3, CheckCheck, Settings, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Sparkles, Bell, Target, Lock, Landmark, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 
@@ -34,6 +34,8 @@ export default function Home() {
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
+  const { data: approvals } = usePendingApprovals();
+  const pendingApprovals = approvals?.pending_approvals?.length || 0;
 
   const defaultCur = user?.default_currency || "IDR";
   const [currency, setCurrency] = useState(defaultCur);
@@ -133,6 +135,19 @@ export default function Home() {
           </Link>
         </div>
       </header>
+
+      {pendingApprovals > 0 && (
+        <Link to="/persetujuan" className="flex items-center gap-3 surface p-3.5 mb-3 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <CheckCheck className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">{pendingApprovals} transaksi menunggu persetujuan Anda</p>
+            <p className="text-xs text-muted-foreground">Belum dihitung di saldo sampai Anda setujui.</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        </Link>
+      )}
 
       {!transactionsLoading && !hasTodayTx && !noTransactionsAtAll && (
         <Link to="/add" className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-3.5 mb-4 active:scale-[0.98] transition-transform">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useTransactions, useCategories, useMe } from "@/hooks/useFinance";
-import { formatMoney, formatMoneyShort, formatDate, colorMap, summarizeByCurrency, activeCurrencies } from "@/lib/finance";
+import { useTransactions, useCategories, useMe, useRateMap } from "@/hooks/useFinance";
+import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, hasRate } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
@@ -17,6 +17,7 @@ export default function Ringkasan() {
   const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
+  const { map: rateMap } = useRateMap();
   const [cursor, setCursor] = useState(new Date());
   const [expanded, setExpanded] = useState(null);
   const { scope, setScope } = useScope();
@@ -28,37 +29,18 @@ export default function Ringkasan() {
   const monthName = formatDate(new Date(year, month, 1), "MMMM yyyy");
 
   const { rows, total, prevTotal, count, txList, activeCurs, cur } = useMemo(() => {
-    // Saring cakupan dulu (tanpa mata uang), lalu tentukan mata uang aktif bulan ini,
-    // baru saring berdasarkan mata uang yang dipilih/aktif. Mencegah ketidaksesuaian
-    // antara label mata uang dan angka yang sudah dihitung (bug state IDR vs data SAR).
-    const scopedAll = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
-    const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
-    const monthAll = scopedAll.filter((t) => inMonth(t, year, month));
-    const activeCurs = activeCurrencies(summarizeByCurrency(monthAll));
-    const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
-    const scoped = scopedAll.filter((t) => (t.currency || "IDR") === cur);
-    const py = month === 0 ? year - 1 : year;
-    const pm = month === 0 ? 11 : month - 1;
-    const curExp = scoped.filter((t) => t.type === "expense" && inMonth(t, year, month));
-    const prev = scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm));
-    const map = {};
-    curExp.forEach((t) => {
-      if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
-      map[t.category].value += t.amount;
-      map[t.category].count += 1;
-    });
-    const prevMap = {};
-    prev.forEach((t) => { prevMap[t.category] = (prevMap[t.category] || 0) + t.amount; });
-    const total = curExp.reduce((s, t) => s + t.amount, 0);
-    const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
-    const rows = Object.entries(map)
-      .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
-      .sort((a, b) => b.value - a.value);
-    const txList = scoped
-      .filter((t) => inMonth(t, year, month))
+    // Logika sama persis dengan kartu "Ringkasan Belanja" di Beranda
+    // (monthlyExpenseBreakdown): tanpa transfer & transaksi pending/ditolak,
+    // semua mata uang dikonversi ke mata uang tampilan.
+    const monthCurs = monthlyExpenseBreakdown(transactions, { year, month, scope, currency: "IDR", rateMap }).currencies;
+    const activeCurs = [...new Set([...monthCurs, (me?.default_currency || "IDR").toUpperCase()])];
+    const cur = activeCurs.includes(currency) ? currency : activeCurs[0];
+    const r = monthlyExpenseBreakdown(transactions, { year, month, scope, currency: cur, rateMap });
+    const txList = transactions
+      .filter((t) => inScope(t, scope) && isInMonth(t, year, month) && filterReportableTx(t))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return { rows, total, prevTotal, count: curExp.length, txList, activeCurs, cur };
-  }, [transactions, scope, year, month, currency]);
+    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, count: r.count, txList, activeCurs, cur };
+  }, [transactions, scope, year, month, currency, rateMap, me?.default_currency]);
 
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
@@ -102,8 +84,9 @@ export default function Ringkasan() {
         <Download className="w-4 h-4" /> Unduh Laporan (CSV)
       </button>
 
-      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5 mb-4">
-        <p className="text-xs opacity-80">Total pengeluaran ({cur})</p>
+      <div className="card-gradient-primary rounded-3xl p-5 mb-4">
+        <p className="text-xs opacity-80">Total pengeluaran{activeCurs.length > 1 ? ` (semua mata uang → ${cur})` : ` (${cur})`}</p>
+        {activeCurs.length > 1 && activeCurs.some((c) => !hasRate(c, rateMap)) && <p className="text-[11px] mt-1 opacity-90">⚠ Kurs belum tersedia — nominal mata uang lain dijumlahkan apa adanya.</p>}
         <p className="text-2xl sm:text-3xl font-bold tabular-nums break-words">{formatMoney(total, cur)}</p>
         <div className="flex gap-4 mt-3 text-xs">
           <div className="min-w-0">
@@ -187,7 +170,7 @@ export default function Ringkasan() {
                             <p className="text-xs font-medium truncate">{t.merchant || t.notes || r.name}</p>
                             <p className="text-[11px] text-muted-foreground">{formatDate(t.date, "dd MMM, HH:mm")}</p>
                           </div>
-                          <p className="text-xs font-semibold tabular-nums shrink-0">{formatMoney(t.amount, cur)}</p>
+                          <p className="text-xs font-semibold tabular-nums shrink-0">{formatMoney(t.amount, t.currency || "IDR")}</p>
                         </div>
                       ))
                     )}

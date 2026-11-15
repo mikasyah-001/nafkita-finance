@@ -97,3 +97,31 @@ Halaman yang butuh login tidak bisa saya screenshot dari lingkungan ini. Mohon c
 - **Skeleton loading.** Beranda, Riwayat, Aset, Ringkasan, Anggaran, Utang, dan Tagihan Berulang tidak lagi sempat menampilkan "Belum ada data" atau Rp 0 saat data sedang dimuat.
 - **PageHeader seragam.** 25 halaman memakai satu komponen header (judul, subjudul, tombol kembali, aksi kanan) dengan padding halaman yang sama (`px-5 pt-6`). Semua halaman turunan kini punya tombol kembali; tab utama (Riwayat, Aset) tidak.
 - **Transfer & Edit Transaksi** tidak lagi memakai layout layar penuh sendiri, sehingga konsisten dengan halaman lain.
+
+## 8. Tahap 3: konsistensi angka & performa
+
+### Bug hitung yang ditemukan dan diperbaiki
+Transfer antar-rekening disimpan sebagai **pasangan transaksi pengeluaran + pemasukan** (`saveTransfer`). Tiga tampilan tidak menyaringnya, dan juga ikut menghitung transaksi yang masih *pending* atau *ditolak*:
+
+| Tampilan | Sebelum | Sesudah |
+|---|---|---|
+| Kartu saldo Beranda | ✅ sudah benar | tetap |
+| Kartu "Ringkasan Belanja" (Beranda) | ❌ transfer & pending ikut dihitung sebagai belanja | ✅ |
+| Halaman Ringkasan | ❌ transfer & pending ikut dihitung; hanya satu mata uang | ✅ dikonversi seperti Beranda |
+| Bar anggaran di Beranda | ❌ transfer & pending ikut dihitung (berbeda dari halaman Anggaran) | ✅ sama dengan halaman Anggaran |
+
+Contoh dampak sebelumnya: transfer Rp 5 jt dari BCA ke Mandiri membuat "Total pengeluaran" di Ringkasan naik Rp 5 jt dan anggaran kategori terkait terlihat jebol, padahal tidak ada uang yang keluar dari keluarga.
+
+Kedua tampilan kini memakai satu fungsi, `monthlyExpenseBreakdown()` di `lib/finance.js`.
+
+**Sisa risiko:** `convertTo()` menjumlahkan nominal apa adanya bila kurs belum tersedia. Kedua tampilan sekarang menampilkan peringatan "Kurs belum tersedia". Sebaiknya nominal tanpa kurs nantinya dipisahkan dari total, bukan ikut dijumlahkan.
+
+### Performa
+- Halaman selain Beranda & auth dimuat saat dibuka (`React.lazy`). Bundle awal turun dari **2,32 MB → 756 KB** (gzip 688 KB → 237 KB).
+
+### Alur
+- Kartu "N transaksi menunggu persetujuan Anda" muncul di Beranda bila ada.
+
+### Masih menunggu keputusan
+- Gabung Ringkasan + Laporan menjadi satu halaman bertab.
+- Ganti 4 quick link Beranda dengan tombol aksi.

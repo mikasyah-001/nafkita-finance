@@ -5,9 +5,11 @@ import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, X, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check } from "lucide-react";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 export default function Debts() {
-  const { data: debts = [] } = useDebts();
+  const { data: debts = [], isLoading } = useDebts();
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
@@ -49,13 +51,16 @@ export default function Debts() {
   };
 
   return (
-    <div className="px-5 pt-6 pb-24 space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Utang & Piutang</h1>
-        <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader
+        title="Utang & Piutang"
+        back
+        actions={<>
+          <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+            <Plus className="w-5 h-5" />
+          </button>
+        </>}
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <div className="surface p-4">
@@ -80,7 +85,9 @@ export default function Debts() {
         </div>
       </div>
 
-      {myDebts.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : myDebts.length === 0 ? (
         <EmptyState icon={HandCoins} title="Belum ada utang/piutang" subtitle="Catat utang atau piutang dengan jatuh tempo untuk mengingatkan pelunasan." />
       ) : (
         <div className="space-y-3">

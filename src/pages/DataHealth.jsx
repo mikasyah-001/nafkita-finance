@@ -5,7 +5,8 @@ import { formatDate, colorMap } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { ArrowLeft, AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 const STALE_DAYS = 90;
 
@@ -40,18 +41,8 @@ export default function DataHealth() {
   const loading = txLoading || assetLoading;
 
   return (
-    <div className="px-5 pt-8 pb-10 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" /> Kesehatan Data
-          </h1>
-          <p className="text-xs text-muted-foreground">Deteksi masalah data keuangan Anda</p>
-        </div>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Kesehatan Data" subtitle="Deteksi masalah data keuangan Anda" back />
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>

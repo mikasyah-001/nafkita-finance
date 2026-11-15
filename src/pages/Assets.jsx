@@ -15,6 +15,9 @@ import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
 import { Landmark, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import { confirmAction } from "@/components/ConfirmHost";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -32,7 +35,7 @@ const rankBadgeClass = (rank) => {
 };
 
 export default function Assets() {
-  const { data: assets = [] } = useAssets();
+  const { data: assets = [], isLoading } = useAssets();
   const refresh = useRefresh();
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
@@ -93,6 +96,12 @@ export default function Assets() {
   const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
 
   const handleDelete = async (id) => {
+    const a = assets.find((x) => x.id === id);
+    const ok = await confirmAction({
+      title: `Hapus aset${a?.name ? ` "${a.name}"` : ""}?`,
+      description: "Aset beserta seluruh riwayat lot/DCA-nya akan dihapus permanen dan tidak bisa dikembalikan.",
+    });
+    if (!ok) return;
     try {
       await base44.functions.invoke("deleteAssetWithLots", { asset_id: id });
       refresh();
@@ -114,10 +123,10 @@ export default function Assets() {
   };
 
   return (
-    <div className="px-5 pt-8">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Aset Keluarga</h1>
-        <div className="flex items-center gap-2">
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Aset Keluarga"
+        actions={<>
           <button onClick={toggle} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
@@ -128,8 +137,8 @@ export default function Assets() {
             <Landmark className="w-4 h-4" />
             <span className="text-xs font-medium">Tambah Aset</span>
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       <ScopeToggle className="mb-4" />
 
@@ -190,7 +199,9 @@ export default function Assets() {
         </div>
       )}
 
-      {scopedAssets.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={4} />
+      ) : scopedAssets.length === 0 ? (
         <EmptyState icon={scope === "private" ? Lock : Landmark} title={scope === "private" ? "Belum ada aset pribadi" : "Belum ada aset"} subtitle="Catat tabungan, emas, investasi, dan aset lainnya untuk memantau kekayaan dan kewajiban zakat." />
       ) : filteredAssets.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Tidak ada aset untuk filter ini.</div>

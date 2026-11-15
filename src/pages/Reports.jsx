@@ -20,6 +20,7 @@ import ExportMenu from "@/components/ExportMenu";
 import { useRateMap } from "@/hooks/useFinance";
 import { toast } from "sonner";
 import ScopeToggle from "@/components/ScopeToggle";
+import PageHeader from "@/components/PageHeader";
 
 const chartColors = ["#5C64D6", "#2E9E98", "#E08A5C", "#D46A86", "#4F8FD1", "#8B67C7", "#C9A545", "#7C869A"];
 
@@ -293,8 +294,8 @@ export default function Reports() {
   const emasPriceNum = Number(emasPrice) || 0;
 
   return (
-    <div className="px-5 pt-8 space-y-5">
-      <h1 className="text-xl font-semibold">Laporan Keuangan</h1>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader title="Laporan Keuangan" back />
 
       <div className="flex gap-1.5 bg-muted p-1 rounded-2xl">
         {[["weekly","Mingguan"],["monthly","Bulanan"],["yearly","Tahunan"],["custom","Rentang"]].map(([val, label]) => (

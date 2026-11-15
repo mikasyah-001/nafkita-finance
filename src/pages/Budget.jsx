@@ -8,10 +8,12 @@ import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Repeat } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading } = useCategories();
   const { data: budgets = [] } = useBudgets();
   const { data: me } = useMe();
   const refresh = useRefresh();
@@ -117,8 +119,8 @@ export default function Budget() {
   const nextMonth = () => setCursor(new Date(year, month + 1, 1));
 
   return (
-    <div className="px-5 pt-8">
-      <h1 className="text-xl font-semibold mb-4">Anggaran Bulanan</h1>
+    <div className="px-5 pt-6">
+      <PageHeader title="Anggaran Bulanan" back />
 
       <div className="flex items-center justify-between surface p-3 mb-4">
         <button onClick={prevMonth} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="w-5 h-5" /></button>
@@ -146,7 +148,9 @@ export default function Budget() {
         )}
       </div>
 
-      {expenseCategories.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={5} />
+      ) : expenseCategories.length === 0 ? (
         <EmptyState icon={Target} title="Belum ada kategori" subtitle="Tambahkan kategori pengeluaran di pengaturan." />
       ) : (
         <div className="space-y-3">

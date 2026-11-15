@@ -4,7 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { formatMoney, currencySymbol } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRightLeft, Loader2, Check, Users, Lock } from "lucide-react";
+import { ArrowRightLeft, Loader2, Check, Users, Lock } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 export default function Transfer() {
   const navigate = useNavigate();
@@ -65,16 +66,10 @@ export default function Transfer() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-semibold">Transfer Antar-Rekening</h1>
-        <div className="w-9" />
-      </header>
+    <div className="px-5 pt-6">
+      <PageHeader title="Transfer Antar-Rekening" back />
 
-      <div className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
+      <div className="space-y-5">
         <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
           <ArrowRightLeft className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <p className="text-xs text-muted-foreground">
@@ -152,7 +147,7 @@ export default function Transfer() {
         )}
       </div>
 
-      <div className="px-5 py-4 border-t border-border bg-background">
+      <div className="mt-5">
         <button onClick={handleSave} disabled={saving || bankAssets.length < 2} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform disabled:opacity-60">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? "Memproses..." : "Transfer Sekarang"}

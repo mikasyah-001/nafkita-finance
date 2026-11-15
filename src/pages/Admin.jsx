@@ -2,8 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import {
-  ArrowLeft, ShieldCheck, Users, Link2, Receipt,
+import { ShieldCheck, Users, Link2, Receipt,
   Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
   BarChart3, Landmark, Info,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { formatDate, colorMap, formatMoneyShort } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import AdminStats from "@/components/AdminStats";
 import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
 
 const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
 
@@ -208,22 +208,8 @@ export default function Admin() {
   };
 
   return (
-    <div className="px-4 pt-6 pb-10 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 hover:bg-muted/70 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </span>
-            Panel Admin
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Kelola pengguna, koneksi & transaksi</p>
-        </div>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Panel Admin" subtitle="Kelola pengguna, koneksi & transaksi" back />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full mb-4 h-auto gap-1">

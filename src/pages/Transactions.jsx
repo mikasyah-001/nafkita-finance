@@ -7,6 +7,8 @@ import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
 import { ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { useScope } from "@/lib/ScopeContext";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 const typeFilters = [
   { key: "all", label: "Semua" },
@@ -16,7 +18,7 @@ const typeFilters = [
 ];
 
 export default function Transactions() {
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const [active, setActive] = useState("all");
   const [category, setCategory] = useState("all");
@@ -75,13 +77,15 @@ export default function Transactions() {
   };
 
   return (
-    <div className="px-5 pt-8">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Riwayat Transaksi</h1>
-        <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
-          <Upload className="w-4 h-4 text-muted-foreground" />
-        </Link>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Riwayat Transaksi"
+        actions={<>
+          <Link to="/impor" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform">
+            <Upload className="w-4 h-4 text-muted-foreground" />
+          </Link>
+        </>}
+      />
 
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -201,6 +205,8 @@ export default function Transactions() {
 
       {view === "calendar" ? (
         <CalendarView transactions={filtered} categories={categories} />
+      ) : isLoading ? (
+        <ListSkeleton rows={6} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Tidak ada transaksi" subtitle="Belum ada catatan yang cocok dengan filter ini." />
       ) : (

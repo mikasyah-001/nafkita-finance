@@ -5,6 +5,8 @@ import { formatMoney, currencySymbol, formatDate, colorMap } from "@/lib/finance
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, X, RefreshCw, Pause, Play, Check, CalendarClock } from "lucide-react";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 const frequencyLabels = {
   daily: "Harian",
@@ -14,7 +16,7 @@ const frequencyLabels = {
 };
 
 export default function RecurringBills() {
-  const { data: bills = [] } = useRecurringBills();
+  const { data: bills = [], isLoading } = useRecurringBills();
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
@@ -42,13 +44,16 @@ export default function RecurringBills() {
   };
 
   return (
-    <div className="px-5 pt-6 pb-24 space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Tagihan Berulang</h1>
-        <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader
+        title="Tagihan Berulang"
+        back
+        actions={<>
+          <button onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+            <Plus className="w-5 h-5" />
+          </button>
+        </>}
+      />
 
       <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
         <RefreshCw className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -57,7 +62,9 @@ export default function RecurringBills() {
         </p>
       </div>
 
-      {myBills.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : myBills.length === 0 ? (
         <EmptyState icon={RefreshCw} title="Belum ada tagihan berulang" subtitle="Atur tagihan otomatis seperti listrik, internet, atau sewa untuk dicatat tanpa perlu input manual." />
       ) : (
         <div className="space-y-3">

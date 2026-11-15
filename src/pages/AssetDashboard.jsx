@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
+import { Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import GoldPriceCompare from "@/components/GoldPriceCompare";
 import CategoryIcon from "@/components/CategoryIcon";
 import ZakatStatus from "@/components/ZakatStatus";
 import { useScope } from "@/lib/ScopeContext";
 import ScopeToggle from "@/components/ScopeToggle";
+import PageHeader from "@/components/PageHeader";
 
 export default function AssetDashboard() {
-  const navigate = useNavigate();
   const { data: allAssets = [] } = useAssets();
   const { data: snapshots = [], refetch } = useAssetSnapshots();
   const { scope, setScope } = useScope();
@@ -180,13 +179,8 @@ export default function AssetDashboard() {
   const currencyOptions = ["all", ...userCurrencies.map((c) => c.code)];
 
   return (
-    <div className="px-5 pt-8 pb-8">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Dashboard Aset</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Dashboard Aset" back />
 
       <ScopeToggle className="mb-3" />
 

@@ -7,6 +7,7 @@ import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import UserAuditLog from "@/components/UserAuditLog";
 import { deriveRefCode } from "@/lib/refCode";
+import PageHeader from "@/components/PageHeader";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -70,13 +71,8 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-5 pt-8">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Profil</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Profil" back />
 
       <div className="flex flex-col items-center mb-6">
         <button

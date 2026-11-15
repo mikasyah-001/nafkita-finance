@@ -7,7 +7,8 @@ import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
+import { Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 export default function ImportReport() {
   const navigate = useNavigate();
@@ -236,13 +237,8 @@ export default function ImportReport() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-28">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Impor Laporan</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Impor Laporan" back />
 
       <p className="text-sm text-muted-foreground mb-4">Unggah file atau tempel teks laporan pengeluaran lama. AI akan membaca transaksinya, lalu Anda bisa memeriksa dan memilih sebelum disimpan.</p>
 

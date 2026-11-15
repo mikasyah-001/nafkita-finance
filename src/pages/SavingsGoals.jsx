@@ -5,6 +5,8 @@ import { Target, Plus } from "lucide-react";
 import SavingsGoalCard from "@/components/SavingsGoalCard";
 import SavingsGoalForm from "@/components/SavingsGoalForm";
 import EmptyState from "@/components/EmptyState";
+import { confirmAction } from "@/components/ConfirmHost";
+import PageHeader from "@/components/PageHeader";
 
 export default function SavingsGoals() {
   const { data: goals = [], isLoading } = useSavingsGoals();
@@ -17,7 +19,7 @@ export default function SavingsGoals() {
   const filtered = goals.filter(g => filter === "all" ? true : (g.status || "active") === filter);
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus target tabungan ini?")) return;
+    if (!(await confirmAction({ title: "Hapus target tabungan ini?", description: "Progres yang sudah tercatat di target ini ikut terhapus." }))) return;
     await base44.entities.SavingsGoal.delete(id);
     refresh();
   };
@@ -28,16 +30,17 @@ export default function SavingsGoals() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 pb-24 md:pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Target Tabungan</h1>
-          <p className="text-sm text-muted-foreground mt-1">Capai target finansial keluarga</p>
-        </div>
-        <button onClick={() => { setEditingGoal(null); setShowForm(true); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
-          <Plus className="w-4 h-4" /> Tambah
-        </button>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Target Tabungan"
+        subtitle="Capai target finansial keluarga"
+        back
+        actions={<>
+          <button onClick={() => { setEditingGoal(null); setShowForm(true); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
+            <Plus className="w-4 h-4" /> Tambah
+          </button>
+        </>}
+      />
 
       <div className="flex gap-2 mb-6">
         {[

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import {
-  ArrowLeft, Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
+import { Bug, Lightbulb, MessageSquare, MoreHorizontal, Send,
   Loader2, CheckCircle2, Heart,
 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 const types = [
   { key: "bug", label: "Laporan Error", icon: Bug, bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-600 dark:text-rose-400", desc: "Aplikasi error/ngebug" },
@@ -47,13 +47,8 @@ export default function Feedback() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-10">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Umpan Balik</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Umpan Balik" back />
 
       {sent ? (
         <div className="flex flex-col items-center text-center pt-10">

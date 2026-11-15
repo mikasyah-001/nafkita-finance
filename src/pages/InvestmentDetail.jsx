@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate, currencySymbol } from "@/lib/finance";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
+import { confirmAction } from "@/components/ConfirmHost";
+import PageHeader from "@/components/PageHeader";
 
 export default function InvestmentDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: assets = [] } = useAssets();
   const { data: lots = [], isLoading } = useInvestmentLots(id);
@@ -83,6 +84,7 @@ export default function InvestmentDetail() {
   };
 
   const handleDeleteLot = async (lotId) => {
+    if (!(await confirmAction({ title: "Hapus lot pembelian ini?", description: "Nilai aset akan disesuaikan ulang setelah lot dihapus." }))) return;
     const lotRec = lots.find((l) => l.id === lotId);
     try {
       await base44.entities.InvestmentLot.delete(lotId);
@@ -104,24 +106,16 @@ export default function InvestmentDetail() {
 
   if (!asset) {
     return (
-      <div className="px-5 pt-8">
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-semibold">Investasi</h1>
-        </div>
+      <div className="px-5 pt-6">
+        <PageHeader title="Investasi" back />
         <p className="text-sm text-muted-foreground text-center py-10">Aset tidak ditemukan.</p>
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-8 pb-8">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold truncate">DCA — {asset.name}</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title={`DCA — ${asset.name}`} back />
 
       <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 mb-4 shadow-lg">
         <div className="flex items-center gap-1.5 text-xs opacity-80 mb-1"><Briefcase className="w-3.5 h-3.5" /> Instrumen Investasi</div>

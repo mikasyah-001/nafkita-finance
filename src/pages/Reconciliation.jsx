@@ -5,6 +5,7 @@ import { formatMoney, formatDate, colorMap } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Loader2, Check, Scale, History, AlertCircle } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 export default function Reconciliation() {
   const { data: assets = [] } = useAssets();
@@ -71,8 +72,8 @@ export default function Reconciliation() {
   const isMatch = diff != null && Math.abs(diff) <= 0.005;
 
   return (
-    <div className="px-5 pt-6 pb-24 space-y-5">
-      <h1 className="text-xl font-semibold">Rekonsiliasi Saldo</h1>
+    <div className="px-5 pt-6 space-y-5">
+      <PageHeader title="Rekonsiliasi Saldo" back />
 
       <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
         <Scale className="w-5 h-5 text-primary shrink-0 mt-0.5" />

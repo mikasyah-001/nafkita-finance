@@ -90,3 +90,10 @@ Halaman yang butuh login tidak bisa saya screenshot dari lingkungan ini. Mohon c
 3. Mode gelap: kartu saldo dan warna primer (seharusnya lebih terang daripada sebelumnya).
 4. Pengaturan → Warna: preset baru terlihat lebih lembut.
 5. Grafik di Laporan, Aset, dan Proyeksi: warna garis mengikuti warna primer.
+
+## 7. Tahap 2 — sudah dikerjakan
+
+- **Konfirmasi hapus.** Sebelumnya, hapus aset (beserta lot investasinya), transaksi, lot DCA, dan template langsung terjadi tanpa konfirmasi, cukup satu ketukan. Sekarang semua aksi hapus memakai dialog `confirmAction()` yang seragam (`ConfirmHost`), menggantikan `window.confirm` bawaan browser.
+- **Skeleton loading.** Beranda, Riwayat, Aset, Ringkasan, Anggaran, Utang, dan Tagihan Berulang tidak lagi sempat menampilkan "Belum ada data" atau Rp 0 saat data sedang dimuat.
+- **PageHeader seragam.** 25 halaman memakai satu komponen header (judul, subjudul, tombol kembali, aksi kanan) dengan padding halaman yang sama (`px-5 pt-6`). Semua halaman turunan kini punya tombol kembali; tab utama (Riwayat, Aset) tidak.
+- **Transfer & Edit Transaksi** tidak lagi memakai layout layar penuh sendiri, sehingga konsisten dengan halaman lain.

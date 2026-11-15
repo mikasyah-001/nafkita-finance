@@ -10,9 +10,11 @@ import { useScope } from "@/lib/ScopeContext";
 import { Image } from "@/components/ui/image";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText, PieChart, Download, ChevronDown } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import { ListSkeleton } from "@/components/LoadingSkeleton";
+import PageHeader from "@/components/PageHeader";
 
 export default function Ringkasan() {
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
   const [cursor, setCursor] = useState(new Date());
@@ -77,8 +79,8 @@ export default function Ringkasan() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-4">
-      <h1 className="text-xl font-semibold mb-4">Ringkasan Bulanan</h1>
+    <div className="px-5 pt-6">
+      <PageHeader title="Ringkasan Bulanan" back />
 
       <div className="flex items-center justify-between surface p-3 mb-3">
         <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"><ChevronLeft className="w-5 h-5" /></button>
@@ -125,7 +127,9 @@ export default function Ringkasan() {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={5} />
+      ) : rows.length === 0 ? (
         <EmptyState icon={ReceiptText} title="Belum ada pengeluaran" subtitle={`Tidak ada catatan pengeluaran ${scope === "private" ? "pribadi" : "bersama"} ${cur} di ${monthName}.`} />
       ) : (
         <div className="space-y-3">

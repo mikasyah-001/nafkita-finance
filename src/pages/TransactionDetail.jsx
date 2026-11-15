@@ -12,7 +12,9 @@ import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { usePartnership } from "@/hooks/usePartnership";
-import { ArrowLeft, Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff, Clock } from "lucide-react";
+import { Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff, Clock } from "lucide-react";
+import { confirmAction } from "@/components/ConfirmHost";
+import PageHeader from "@/components/PageHeader";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -88,13 +90,8 @@ export default function TransactionDetail() {
       );
     }
     return (
-      <div className="px-5 pt-8">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl font-semibold">Detail Transaksi</h1>
-        </div>
+      <div className="px-5 pt-6">
+        <PageHeader title="Detail Transaksi" back />
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <AlertCircle className="w-10 h-10 text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground">Transaksi tidak ditemukan.</p>
@@ -184,6 +181,7 @@ export default function TransactionDetail() {
 
   const handleDelete = async () => {
     if (isPending) return;
+    if (!(await confirmAction({ title: "Hapus transaksi ini?", description: "Transaksi dihapus permanen. Bila terhubung ke aset, saldo aset ikut disesuaikan." }))) return;
     try {
       await deleteTransactionWithAsset(id);
       refresh();
@@ -227,18 +225,20 @@ export default function TransactionDetail() {
     const availableCategories = categories.filter((c) => c.type === form.type);
     const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === (form.currency || "IDR") && a.created_by_id === user?.id);
     return (
-      <div className="min-h-screen flex flex-col">
-        <header className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <button onClick={() => { setEdit(false); setForm(null); }} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-            <X className="w-5 h-5" />
-          </button>
-          <h1 className="font-semibold">Edit Transaksi</h1>
-          <button onClick={handleSave} disabled={saving} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-60">
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          </button>
-        </header>
+      <div className="px-5 pt-6">
+        <PageHeader
+          title="Edit Transaksi"
+          actions={<>
+            <button onClick={() => { setEdit(false); setForm(null); }} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+              <X className="w-5 h-5" />
+            </button>
+            <button onClick={handleSave} disabled={saving} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-60">
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+            </button>
+          </>}
+        />
 
-        <div className="flex-1 px-5 py-5 space-y-5 overflow-y-auto">
+        <div className="space-y-5">
           <div className="flex gap-2 bg-muted p-1 rounded-2xl">
             {Object.entries(typeLabels).map(([key, label]) => (
               <button key={key} onClick={() => setForm({ ...form, type: key, category: key === "sedekah" ? "" : form.category })} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${form.type === key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
@@ -373,13 +373,11 @@ export default function TransactionDetail() {
   }
 
   return (
-    <div className="px-5 pt-8 pb-10">
-      <div className="flex items-center justify-between mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Detail Transaksi</h1>
-        <div className="flex items-center gap-2">
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Detail Transaksi"
+        back
+        actions={<>
           {isOwner ? (
             <button
               onClick={handleToggleVisibility}
@@ -410,8 +408,8 @@ export default function TransactionDetail() {
               <EyeOff className="w-4 h-4 text-muted-foreground" />
             </span>
           ) : null}
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="card-gradient-primary rounded-3xl p-5 shadow-lg mb-4">
         <div className="flex items-center gap-2 mb-1">

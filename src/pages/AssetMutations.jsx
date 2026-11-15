@@ -4,6 +4,7 @@ import { useAssetMutations, useAssets } from "@/hooks/useFinance";
 import { History, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
 
 const changeTypeLabels = {
   manual_edit: "Edit Manual",
@@ -28,11 +29,12 @@ export default function AssetMutations() {
   }, [mutations, changeType]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold font-heading">Riwayat Mutasi Aset</h1>
-        {asset && <p className="text-sm text-muted-foreground mt-1">{asset.name} • {formatMoney(asset.value || 0, asset.currency)}</p>}
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader
+        title="Riwayat Mutasi Aset"
+        subtitle={asset ? `${asset.name} • ${formatMoney(asset.value || 0, asset.currency)}` : undefined}
+        back
+      />
 
       {/* Filter */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar">

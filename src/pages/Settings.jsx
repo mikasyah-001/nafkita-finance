@@ -1,7 +1,7 @@
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { ArrowLeft, ArrowRight, LogOut, User, BookOpen, Tag, Upload, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowRight, LogOut, User, BookOpen, Tag, Upload, Sparkles, ShieldCheck } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import CurrencyManager from "@/components/CurrencyManager";
@@ -14,9 +14,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ColorPreferenceManager from "@/components/ColorPreferenceManager";
 import SettingsAccordion from "@/components/SettingsAccordion";
 import { usePartnership } from "@/hooks/usePartnership";
+import PageHeader from "@/components/PageHeader";
 
 export default function Settings() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { hasPartner } = usePartnership();
@@ -26,13 +26,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-lg font-semibold">Pengaturan</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Pengaturan" back />
 
       {/* Pintasan */}
       <Link to="/profil" className="surface p-4 mb-3 flex items-center gap-3 active:scale-[0.99] transition-transform">

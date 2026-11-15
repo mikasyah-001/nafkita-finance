@@ -2,6 +2,7 @@ import { usePendingApprovals, useRefresh } from "@/hooks/useFinance";
 import { CheckCheck, Clock } from "lucide-react";
 import ApprovalCard from "@/components/ApprovalCard";
 import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
 
 export default function Approvals() {
   const { data, isLoading } = usePendingApprovals();
@@ -10,11 +11,8 @@ export default function Approvals() {
   const myRequests = data?.my_requests || [];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold font-heading">Persetujuan</h1>
-        <p className="text-sm text-muted-foreground mt-1">Kelola persetujuan transaksi besar</p>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Persetujuan" subtitle="Kelola persetujuan transaksi besar" back />
 
       {/* Pending approvals (user is approver) */}
       <div className="mb-8">

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useZakatPayments, useRefresh } from "@/hooks/useFinance";
 import { formatRupiah, formatNumber, NISAB_GRAM } from "@/lib/finance";
@@ -9,11 +8,11 @@ import Money from "@/components/Money";
 import ZakatMethodNotice from "@/components/ZakatMethodNotice";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { ArrowLeft, Coins, Wallet, CheckCircle2, AlertCircle, Loader2, Mail, Scale, Globe } from "lucide-react";
+import { Coins, Wallet, CheckCircle2, AlertCircle, Loader2, Mail, Scale, Globe } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import PageHeader from "@/components/PageHeader";
 
 export default function Zakat() {
-  const navigate = useNavigate();
   const { scope, setScope } = useScope();
   const { data: zakatPayments = [] } = useZakatPayments();
   const refresh = useRefresh();
@@ -94,22 +93,8 @@ export default function Zakat() {
   };
 
   return (
-    <div className="px-4 pt-6 pb-10 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 hover:bg-muted/70 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <Scale className="w-4 h-4" />
-            </span>
-            Zakat Mal
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Nisab per mata uang • 85 gr emas</p>
-        </div>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Zakat Mal" subtitle="Nisab per mata uang • 85 gr emas" back />
 
       <ZakatMethodNotice />
 

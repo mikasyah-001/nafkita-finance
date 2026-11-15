@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useMe } from "@/hooks/useFinance";
 import { colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CategoryFormModal from "@/components/CategoryFormModal";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { confirmAction } from "@/components/ConfirmHost";
+import PageHeader from "@/components/PageHeader";
 
 const tabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -14,7 +15,6 @@ const tabs = [
 ];
 
 export default function Categories() {
-  const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: categories = [] } = useCategories();
   const { data: transactions = [] } = useTransactions();
@@ -50,9 +50,9 @@ export default function Categories() {
     if (c.is_default) return toast.info("Kategori bawaan tidak dapat dihapus", { description: "Kategori ini tersedia untuk setiap akun." });
     const count = usage[c.name] || 0;
     const msg = count > 0
-      ? `Kategori "${c.name}" dipakai ${count} transaksi. Transaksi lama tetap tersimpan, tapi tidak akan punya kategori aktif. Lanjut hapus?`
-      : `Hapus kategori "${c.name}"?`;
-    if (!window.confirm(msg)) return;
+      ? `Dipakai ${count} transaksi. Transaksi lama tetap tersimpan, tapi tidak akan punya kategori aktif.`
+      : undefined;
+    if (!(await confirmAction({ title: `Hapus kategori "${c.name}"?`, description: msg }))) return;
     try {
       await base44.entities.Category.delete(c.id);
       refresh();
@@ -63,13 +63,8 @@ export default function Categories() {
   };
 
   return (
-    <div className="px-5 pt-8 pb-8 min-h-screen">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-semibold">Kelola Kategori</h1>
-      </div>
+    <div className="px-5 pt-6">
+      <PageHeader title="Kelola Kategori" back />
 
       <div className="flex gap-2 bg-muted p-1 rounded-2xl mb-5">
         {tabs.map((t) => (

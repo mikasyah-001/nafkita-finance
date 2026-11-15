@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap, currencySymbol, formatMoneyPlain } from "@/lib/finance";
-import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
+import { useCategories, useRefresh, useTransactions } from "@/hooks/useFinance";
+import { formatMoney, formatDate, colorMap } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
-import TagInput from "@/components/TagInput";
 import ProofViewer from "@/components/ProofViewer";
-import { scanReceipt } from "@/lib/scanReceipt";
-import { ensureCategories } from "@/lib/categoryAuto";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { usePartnership } from "@/hooks/usePartnership";
-import { Pencil, Check, X, Loader2, Trash2, Calendar, User, Receipt, ScanLine, AlertCircle, Lock, Users, Eye, EyeOff, Clock } from "lucide-react";
-import { confirmAction } from "@/components/ConfirmHost";
+import { Pencil, X, Loader2, Calendar, User, Receipt, AlertCircle, Lock, Users, Eye, EyeOff, Clock } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
@@ -24,26 +19,20 @@ export default function TransactionDetail() {
   const refresh = useRefresh();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
-  const { data: assets = [] } = useAssets();
-  const userCurrencies = useUserCurrencies();
   const { user } = useAuth();
   const { partners } = usePartnership();
-  const fileRef = useRef(null);
 
   const [adminTx, setAdminTx] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const tx = transactions.find((t) => t.id === id) || adminTx;
+  const inList = transactions.some((t) => t.id === id);
   const isOwner = !!tx && !!user && tx.created_by_id === user.id;
   const isAdmin = !!user && user.role === "admin";
   const canManage = isOwner || isAdmin;
   const isPending = !!tx && tx.approval_status === "pending";
   const partnerName = partners[0]?.full_name || "pasangan";
 
-  const [edit, setEdit] = useState(false);
   const [viewPhoto, setViewPhoto] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(null);
-  const [scanning, setScanning] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
@@ -61,26 +50,6 @@ export default function TransactionDetail() {
       setAdminLoading(false);
     }
   }, [transactions, user, id]);
-
-  useEffect(() => {
-    if (tx && !form) {
-      const d = new Date(tx.date);
-      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-      setForm({
-        type: tx.type,
-        amount: String(tx.amount),
-        category: tx.category || "",
-        date: d.toISOString().slice(0, 16),
-        merchant: tx.merchant || "",
-        notes: tx.notes || "",
-        photo_url: tx.photo_url || "",
-        tags: tx.tags || [],
-        visibility: tx.visibility || "shared",
-        currency: tx.currency || "IDR",
-        linked_asset_id: tx.linked_asset_id || "",
-      });
-    }
-  }, [tx, form]);
 
   if (!tx) {
     if (adminLoading) {
@@ -106,92 +75,6 @@ export default function TransactionDetail() {
   const icon = tx.type === "sedekah" ? "Heart" : category?.icon || "Wallet";
   const cm = colorMap[color] || colorMap.slate;
   const isIncome = tx.type === "income";
-
-  const handleScan = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScanning(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setForm((f) => ({ ...f, photo_url: file_url }));
-      const { transactions } = await scanReceipt(file_url, categories);
-      const p = transactions[0] || {};
-      setForm((f) => {
-        const next = {
-          ...f,
-          amount: p.amount ? String(p.amount) : f.amount,
-          merchant: p.merchant || f.merchant,
-          category: p.category || f.category,
-          notes: p.notes || f.notes,
-        };
-        if (p.date) {
-          const now = new Date();
-          let d;
-          if (p.time) {
-            d = new Date(`${p.date}T${p.time}`);
-          } else {
-            d = new Date(p.date);
-            if (!isNaN(d)) d.setHours(now.getHours(), now.getMinutes(), 0, 0);
-          }
-          if (!isNaN(d)) {
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            next.date = d.toISOString().slice(0, 16);
-          }
-        }
-        return next;
-      });
-      if (p.category && p.category_new) {
-        await ensureCategories([{ name: p.category, icon: p.category_icon, color: p.category_color }], categories, "expense");
-        refresh();
-      }
-      toast.success("Bon dibaca ulang", { description: p.category ? `Kategori: ${p.category}${p.category_new ? " (kategori baru)" : ""}` : "Periksa data sebelum simpan." });
-    } catch {
-      toast.error("Gagal membaca bon");
-    }
-    setScanning(false);
-  };
-
-  const handleSave = async () => {
-    const amt = Number(form.amount);
-    if (!amt || amt <= 0) return toast.error("Masukkan nominal");
-    if (form.type !== "sedekah" && !form.category) return toast.error("Pilih kategori");
-    setSaving(true);
-    try {
-      await saveTransactionWithAsset({
-        type: form.type,
-        amount: amt,
-        currency: form.currency || "IDR",
-        category: form.type === "sedekah" ? "Sedekah & Infaq" : form.category,
-        date: new Date(form.date).toISOString(),
-        merchant: form.merchant || "",
-        notes: form.notes || "",
-        photo_url: form.photo_url || "",
-        tags: form.tags || [],
-        visibility: form.visibility || "shared",
-        linked_asset_id: form.linked_asset_id || undefined,
-      }, id);
-      refresh();
-      toast.success("Transaksi diperbarui");
-      setEdit(false);
-      setForm(null);
-    } catch {
-      toast.error("Gagal memperbarui");
-    }
-    setSaving(false);
-  };
-
-  const handleDelete = async () => {
-    if (isPending) return;
-    if (!(await confirmAction({ title: "Hapus transaksi ini?", description: "Transaksi dihapus permanen. Bila terhubung ke aset, saldo aset ikut disesuaikan." }))) return;
-    try {
-      await deleteTransactionWithAsset(id);
-      refresh();
-      toast.success("Transaksi dihapus");
-      navigate(-1);
-    } catch {
-      toast.error("Gagal menghapus");
-    }
-  };
 
   const handleCancelApproval = async () => {
     if (cancelling || !tx?.approval_id) return;
@@ -222,158 +105,6 @@ export default function TransactionDetail() {
     }
   };
 
-  if (edit && form) {
-    const availableCategories = categories.filter((c) => c.type === form.type);
-    const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === (form.currency || "IDR") && a.created_by_id === user?.id);
-    return (
-      <div className="px-5 pt-6">
-        <PageHeader
-          title="Edit Transaksi"
-          actions={<>
-            <button onClick={() => { setEdit(false); setForm(null); }} className="btn-icon btn-icon-sm">
-              <X className="w-5 h-5" />
-            </button>
-            <button onClick={handleSave} disabled={saving} className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-60">
-              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-            </button>
-          </>}
-        />
-
-        <div className="space-y-5">
-          <div className="flex gap-2 bg-muted p-1 rounded-2xl">
-            {Object.entries(typeLabels).map(([key, label]) => (
-              <button key={key} onClick={() => setForm({ ...form, type: key, category: key === "sedekah" ? "" : form.category })} className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${form.type === key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {isOwner && (
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Jangkauan</label>
-              <div className="flex gap-2">
-                <button onClick={() => setForm({ ...form, visibility: "shared" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility !== "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                  <Users className="w-4 h-4" /> Bersama
-                </button>
-                <button onClick={() => setForm({ ...form, visibility: "private" })} className={`flex-1 py-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-sm font-medium transition-all ${form.visibility === "private" ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"}`}>
-                  <Lock className="w-4 h-4" /> Pribadi
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Mata Uang</label>
-            <div className="flex gap-2">
-              {[...new Set([...userCurrencies.map((c) => c.code), tx?.currency].filter(Boolean))].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setForm({ ...form, currency: c, linked_asset_id: "" })}
-                  className={`flex-1 py-2 rounded-2xl border text-sm font-medium transition-all ${
-                    form.currency === c ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {bankAssets.length > 0 && (
-            <div>
-              <label htmlFor="tx-detail-linked-asset" className="text-xs text-muted-foreground mb-1.5 block">Aset terkait (opsional)</label>
-              <select
-                id="tx-detail-linked-asset"
-                value={form.linked_asset_id || ""}
-                onChange={(e) => setForm({ ...form, linked_asset_id: e.target.value })}
-                className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 bg-background"
-              >
-                <option value="">Tidak ada — saldo tidak diubah</option>
-                {bankAssets.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
-                ))}
-              </select>
-              <p className="text-[11px] text-muted-foreground mt-1.5">Saldo aset disesuaikan otomatis sesuai jenis transaksi.</p>
-            </div>
-          )}
-
-          <button onClick={() => fileRef.current?.click()} disabled={scanning} className="w-full rounded-2xl border-2 border-dashed border-border py-6 flex flex-col items-center gap-2 text-muted-foreground active:scale-[0.99] transition-transform disabled:opacity-60">
-            {scanning ? (
-              <>
-                <Loader2 className="w-7 h-7 animate-spin text-primary" />
-                <p className="text-sm font-medium text-primary">Membaca bon...</p>
-              </>
-            ) : form.photo_url ? (
-              <>
-                <img src={form.photo_url} alt="bon" className="max-h-32 rounded-xl" />
-                <p className="text-xs text-success flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Bon terpasang</p>
-              </>
-            ) : (
-              <>
-                <ScanLine className="w-7 h-7" />
-                <p className="text-sm font-medium">Scan / Ganti Bon</p>
-              </>
-            )}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleScan} />
-          {form.photo_url && !scanning && (
-            <button onClick={() => setForm({ ...form, photo_url: "" })} className="text-xs text-destructive flex items-center gap-1"><X className="w-3 h-3" /> Hapus bon</button>
-          )}
-
-          <div>
-            <label htmlFor="tx-detail-amount" className="text-xs text-muted-foreground mb-1.5 block">Nominal</label>
-            <div className="flex items-center rounded-2xl border border-border px-4 focus-within:ring-2 ring-primary/30">
-              <span className="text-lg text-muted-foreground mr-1">{currencySymbol(form.currency || "IDR")}</span>
-              <input id="tx-detail-amount" type="number" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" className="flex-1 py-3 text-2xl font-bold outline-none bg-transparent" />
-            </div>
-          </div>
-
-          {form.type !== "sedekah" && (
-            <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Kategori</label>
-              <div className="grid grid-cols-4 gap-2">
-                {availableCategories.map((c) => {
-                  const ccm = colorMap[c.color] || colorMap.slate;
-                  const selected = form.category === c.name;
-                  return (
-                    <button key={c.id} onClick={() => setForm({ ...form, category: c.name })} className={`flex flex-col items-center gap-1.5 py-2.5 rounded-2xl border transition-all ${selected ? "border-primary bg-primary/5" : "border-border"}`}>
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${ccm.bg}`}><CategoryIcon name={c.icon} className={`w-4 h-4 ${ccm.text}`} /></div>
-                      <span className="text-[11px] leading-tight text-center">{c.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="tx-detail-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal & Jam</label>
-            <input id="tx-detail-date" type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
-
-          <div>
-            <label htmlFor="tx-detail-merchant" className="text-xs text-muted-foreground mb-1.5 block">{form.type === "sedekah" ? "Penerima / Tujuan" : "Merchant / Tempat"}</label>
-            <input id="tx-detail-merchant" value={form.merchant} onChange={(e) => setForm({ ...form, merchant: e.target.value })} placeholder="Mis. Indomaret, Masjid..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30" />
-          </div>
-
-          <div>
-            <label htmlFor="tx-detail-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan</label>
-            <textarea id="tx-detail-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Tambah catatan..." className="w-full rounded-2xl border border-border px-4 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
-          </div>
-
-          <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">Tag</label>
-            <TagInput tags={form.tags || []} onChange={(t) => setForm({ ...form, tags: t })} />
-          </div>
-
-          <button onClick={handleDelete} className="w-full py-3 rounded-2xl border border-destructive/30 text-destructive font-medium text-sm flex items-center justify-center gap-2 mt-2">
-            <Trash2 className="w-4 h-4" /> Hapus Transaksi
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="px-5 pt-6">
       <PageHeader
@@ -398,8 +129,8 @@ export default function TransactionDetail() {
           ) : null}
           {canManage ? (
             <button
-              onClick={() => setEdit(true)}
-              disabled={isPending}
+              onClick={() => navigate(`/transaksi/${id}/edit`)}
+              disabled={isPending || !inList}
               aria-label="Edit transaksi"
               title={isPending ? "Menunggu persetujuan pasangan" : "Edit"}
               className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ${isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground"}`}

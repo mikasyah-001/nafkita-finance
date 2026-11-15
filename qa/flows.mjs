@@ -91,16 +91,38 @@ try {
     start.saldo = after.saldo; start.belanja = after.belanja;
   });
 
+  await step("Edit transaksi: layar sama dengan Catat, isian terisi, simpan memperbarui (bukan membuat baru)", async () => {
+    const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
+    const countBefore = await page.evaluate(() => window.__qa.tx.length);
+    await nav(`/transaksi/${t0.id}`);
+    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.waitForTimeout(500);
+    assert.ok(await page.getByRole("heading", { name: "Edit transaksi" }).isVisible(), "Judul Edit transaksi");
+    assert.equal(await page.locator("nav a[href='/add']").count(), 0, "Navigasi bawah disembunyikan (tidak menutupi isian)");
+    assert.equal(await page.inputValue("#add-tx-merchant"), "QA Warung", "Merchant terisi");
+    assert.equal(await page.getByRole("tab", { name: "Pengeluaran" }).getAttribute("aria-selected"), "true");
+    assert.equal(await page.getByText("Pakai template").count(), 0, "Template tidak tampil saat edit");
+    await page.fill("#add-tx-merchant", "QA Warung Baru");
+    await page.getByRole("button", { name: /Simpan Perubahan/ }).click();
+    await page.waitForTimeout(900);
+    const t1 = await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i), t0.id);
+    assert.equal(t1.merchant, "QA Warung Baru", "Tersimpan ke transaksi yang sama");
+    assert.equal(t1.amount, t0.amount); assert.equal(t1.currency, t0.currency);
+    assert.equal(await page.evaluate(() => window.__qa.tx.length), countBefore, "Tidak membuat transaksi baru");
+    assert.ok(page.url().endsWith(`/transaksi/${t0.id}`), "Kembali ke detail");
+    await page.evaluate((i) => { window.__qa.tx.find((t) => t.id === i).merchant = "QA Warung"; }, t0.id);
+  });
+
   await step("Hapus transaksi: dialog konfirmasi muncul, Batal tidak menghapus, Hapus menghapus", async () => {
     const txId = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung").id);
     await nav(`/transaksi/${txId}`);
     await page.getByRole("button", { name: "Edit transaksi" }).click();
-    await page.getByRole("button", { name: /Hapus Transaksi/ }).click();
+    await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     const dialog = page.getByRole("alertdialog");
     await dialog.waitFor({ timeout: 3000 });
     await dialog.getByRole("button", { name: "Batal" }).click();
     assert.ok(await page.evaluate((i) => window.__qa.tx.some((t) => t.id === i), txId), "Batal tidak menghapus");
-    await page.getByRole("button", { name: /Hapus Transaksi/ }).click();
+    await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Hapus" }).click();
     await page.waitForTimeout(800);
     assert.ok(!(await page.evaluate((i) => window.__qa.tx.some((t) => t.id === i), txId)), "Terhapus");

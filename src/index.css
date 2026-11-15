@@ -299,3 +299,8 @@
     @apply w-9 h-9;
   }
 }
+
+/* Input angka tanpa panah spinner (mengganggu di layar sentuh, tak berguna untuk nominal). */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }

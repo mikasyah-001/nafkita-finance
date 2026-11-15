@@ -171,3 +171,25 @@ test("isMoneyAsset: rekening bank & dompet tunai saja", () => {
   assert.equal(isMoneyAsset({ type: "tunai" }), true);
   assert.equal(isMoneyAsset({ type: "emas" }), false);
 });
+
+// ── Rencana bulanan ──────────────────────────────────────────────
+import { monthlyPlan, planProgress, isExpenseBudget } from "../finance.js";
+test("monthlyPlan: ambil target sesuai periode, cakupan, mata uang", () => {
+  const budgets = [
+    { kind: "income_plan", period: "2026-11", visibility: "shared", currency: "IDR", limit_amount: 15_000_000 },
+    { kind: "savings_plan", period: "2026-11", visibility: "shared", currency: "IDR", limit_amount: 5_000_000 },
+    { kind: "savings_plan", period: "2026-11", visibility: "private", currency: "IDR", limit_amount: 999 },
+    { category: "Makanan", period: "2026-11", limit_amount: 1_500_000 },
+  ];
+  const p = monthlyPlan(budgets, { period: "2026-11", scope: "shared", currency: "IDR" });
+  assert.equal(p.income, 15_000_000);
+  assert.equal(p.savings, 5_000_000);
+  assert.equal(isExpenseBudget(budgets[3]), true, "anggaran lama tanpa kind = pengeluaran");
+  assert.equal(isExpenseBudget(budgets[0]), false);
+});
+test("planProgress: persen dijepit, status tercapai, sisa", () => {
+  assert.deepEqual(planProgress(2_500_000, 5_000_000), { pct: 50, reached: false, remaining: 2_500_000 });
+  assert.equal(planProgress(6_000_000, 5_000_000).pct, 100);
+  assert.equal(planProgress(-1_000, 5_000_000).pct, 0);
+  assert.equal(planProgress(100, 0).reached, false);
+});

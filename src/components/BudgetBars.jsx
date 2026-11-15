@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useBudgets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, filterReportableTx } from "@/lib/finance";
+import { colorMap, filterReportableTx, isExpenseBudget } from "@/lib/finance";
 import Money from "@/components/Money";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 
@@ -29,14 +29,14 @@ export default function BudgetBars({ scope = "shared" }) {
       spent[key] = (spent[key] || 0) + t.amount;
     });
     const budgetMap = {};
-    budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).forEach((b) => {
+    budgets.filter((b) => isExpenseBudget(b) && b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).forEach((b) => {
       budgetMap[`${b.category}||${b.currency || "IDR"}`] = b;
     });
     return categories
       .filter((c) => c.type === "expense")
       .flatMap((c) => {
         const result = [];
-        const allCurs = [...new Set([...userCurrencies.map((c) => c.code), ...budgets.filter((b) => b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).map((b) => b.currency || "IDR")])];
+        const allCurs = [...new Set([...userCurrencies.map((c) => c.code), ...budgets.filter((b) => isExpenseBudget(b) && b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0).map((b) => b.currency || "IDR")])];
         allCurs.forEach((cur) => {
           const key = `${c.name}||${cur}`;
           const b = budgetMap[key];

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills } from "@/hooks/useFinance";
-import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate } from "@/lib/finance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets } from "@/hooks/useFinance";
+import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress } from "@/lib/finance";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
@@ -34,6 +34,7 @@ export default function Home() {
   const { map: rateMap } = useRateMap();
   const { data: approvals } = usePendingApprovals();
   const { data: bills = [] } = useRecurringBills();
+  const { data: budgets = [] } = useBudgets();
   const pendingApprovals = approvals?.pending_approvals?.length || 0;
   const { partners } = usePartnership();
 
@@ -63,6 +64,8 @@ export default function Home() {
     [scopeMonth, cur, rateMap, configuredCodes]
   );
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
+  const plan = monthlyPlan(budgets, { period: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`, scope, currency: cur });
+  const savingsPlan = planProgress(s.balance, plan.savings);
   // Mata uang yang transaksinya tidak ikut dijumlahkan karena kurs belum ada.
   const excludedCurs = Object.keys(s.unconverted || {});
   const rateMissing = excludedCurs.length > 0 || !hasRate(cur, rateMap);
@@ -250,6 +253,19 @@ export default function Home() {
             </div>
           ))}
         </div>
+        {plan.savings > 0 ? (
+          <Link to="/anggaran" className="mt-3 block rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="opacity-80">Rencana menabung <Money value={plan.savings} format="short" currency={cur} /></span>
+              <span className="font-semibold">{savingsPlan.reached ? "Tercapai ✓" : `${Math.round(savingsPlan.pct)}%`}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+              <div className="h-full rounded-full bg-gold" style={{ width: `${savingsPlan.pct}%` }} />
+            </div>
+          </Link>
+        ) : (
+          <Link to="/anggaran" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gold">Atur rencana menabung bulan ini <ArrowRight className="w-3 h-3" /></Link>
+        )}
       </div>}
 
       <GoalsCarousel />

@@ -53,7 +53,7 @@ const later = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(
 const FN = {
   listVisibleTransactions: () => ({ transactions: [...db.tx].sort((a, b) => new Date(b.date) - new Date(a.date)) }),
   listVisibleAssets: () => ({ assets: db.assets }),
-  listVisibleBudgets: () => ({ budgets: [
+  listVisibleBudgets: () => ({ budgets: [...(DATA.Budget || []),
     { id: "b1", category: "Belanja", limit_amount: 2000000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b2", category: "Makanan", limit_amount: 1500000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b3", category: "Transportasi", limit_amount: 500000, currency: "IDR", period: ym, visibility: "shared" },
@@ -114,7 +114,9 @@ const FN = {
 const entity = (name) => ({
   list: async () => DATA[name] || [], filter: async () => DATA[name] || [], get: async () => (DATA[name] || [])[0] || null,
   create: async (o) => { const r = { id: id(), ...o }; (DATA[name] ||= []).push(r); return r; },
-  bulkCreate: async (a) => a, update: async (i, o) => ({ id: i, ...o }), updateMany: async () => ({}),
+  bulkCreate: async (a) => a,
+  update: async (i, o) => { const r = (DATA[name] || []).find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
+  updateMany: async () => ({}),
   delete: async (i) => { DATA[name] = (DATA[name] || []).filter((r) => r.id !== i); return {}; },
   subscribe: () => () => {},
 });

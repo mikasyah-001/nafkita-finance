@@ -146,6 +146,26 @@ try {
     assert.ok(await page.getByText(/Termasuk pengeluaran luar biasa/).first().isVisible(), "Catatan luar biasa tampil");
   });
 
+  await step("Anggaran: toggle Pribadi benar-benar mengganti cakupan data", async () => {
+    await nav("/anggaran");
+    assert.ok(await page.getByText(/Anggaran Bersama Keluarga/).isVisible(), "Awal: Bersama");
+    await page.getByRole("radio", { name: /Pribadi/ }).click();
+    await page.waitForTimeout(400);
+    assert.ok(await page.getByText(/Anggaran Pribadi/).isVisible(), "Setelah toggle: Pribadi");
+    await page.getByRole("radio", { name: /Bersama/ }).click();
+  });
+
+  await step("Rencana menabung: diatur di Anggaran, progresnya tampil di Beranda", async () => {
+    await nav("/anggaran");
+    await page.fill("#plan-savings", "5000000");
+    await page.locator("#plan-savings").blur();
+    await page.waitForTimeout(800);
+    const home = await homeNumbers();
+    const text = await page.getByText(/Rencana menabung/).locator("xpath=..").innerText();
+    const expectedPct = Math.min(100, Math.round((home.saldo / 5000000) * 100));
+    assert.ok(text.includes(expectedPct >= 100 ? "Tercapai" : `${expectedPct}%`), `Progres tampil (${text.replace(/\s+/g, " ")})`);
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

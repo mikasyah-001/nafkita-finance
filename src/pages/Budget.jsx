@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useBudgets, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap, currencySymbol } from "@/lib/finance";
+import { formatMoney, formatDate, colorMap, currencySymbol, isExpenseBudget } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Target, AlertTriangle, CheckCircle2, Repeat } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
+import { useScope } from "@/lib/ScopeContext";
+import MonthlyPlanCard from "@/components/MonthlyPlanCard";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 
@@ -19,7 +21,9 @@ export default function Budget() {
   const refresh = useRefresh();
   const [cursor, setCursor] = useState(new Date());
   const [limits, setLimits] = useState({});
-  const [scope, setScope] = useState("shared");
+  // Cakupan global (sama dengan ScopeToggle & halaman lain). Sebelumnya state
+  // lokal sehingga tombol Bersama/Pribadi di halaman ini tidak berpengaruh.
+  const { scope } = useScope();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   const userCurrencies = useUserCurrencies();
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
@@ -51,7 +55,7 @@ export default function Budget() {
   }, [monthTx]);
 
   const periodBudgets = budgets.filter(
-    (b) => b.period === period && (b.visibility || "shared") === scope && (b.currency || "IDR") === currency
+    (b) => isExpenseBudget(b) && b.period === period && (b.visibility || "shared") === scope && (b.currency || "IDR") === currency
   );
   const budgetMap = useMemo(() => {
     const map = {};
@@ -138,6 +142,8 @@ export default function Budget() {
       </div>
 
       <ScopeToggle className="mb-4" />
+
+      <MonthlyPlanCard period={period} year={year} month={month} scope={scope} currency={currency} />
 
       <div className="mb-4"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Sprout, TriangleAlert, Target, PencilLine } from "lucide-react";
 import { useBudgets } from "@/hooks/useFinance";
+import { isExpenseBudget } from "@/lib/finance";
 
 // Pengingat kontekstual berbasis aturan sederhana (bukan AI): satu pesan
 // paling relevan saja, agar Beranda tidak ramai.
@@ -8,7 +9,7 @@ export default function HomeNudges({ scope, income, expense, sedekah, hasExpense
   const { data: budgets = [] } = useBudgets();
   const now = new Date();
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const hasBudget = budgets.some((b) => b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0);
+  const hasBudget = budgets.some((b) => isExpenseBudget(b) && b.period === period && (b.visibility || "shared") === scope && b.limit_amount > 0);
 
   let nudge = null;
   if (income > 0 && expense + sedekah > income) {

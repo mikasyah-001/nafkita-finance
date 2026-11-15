@@ -418,3 +418,29 @@ export function formatAxis(v) {
   if (a >= 1e3) return `${fmt(n / 1e3)} rb`;
   return fmt(n);
 }
+
+// ── Rencana bulanan (pemasukan & menabung) ──────────────────────────────
+// Disimpan sebagai Budget dengan kind "income_plan"/"savings_plan".
+// Anggaran kategori lama tidak punya kind → dianggap "expense".
+export const PLAN_KINDS = { income: "income_plan", savings: "savings_plan" };
+export const PLAN_CATEGORY = { income_plan: "Rencana Pemasukan", savings_plan: "Rencana Menabung" };
+export const isExpenseBudget = (b) => (b?.kind || "expense") === "expense";
+
+export function monthlyPlan(budgets, { period, scope = "shared", currency = "IDR" }) {
+  const match = (b, kind) => b.kind === kind && b.period === period && (b.visibility || "shared") === scope && (b.currency || "IDR") === currency;
+  const inc = (budgets || []).find((b) => match(b, PLAN_KINDS.income));
+  const sav = (budgets || []).find((b) => match(b, PLAN_KINDS.savings));
+  return {
+    income: inc ? Number(inc.limit_amount) || 0 : 0,
+    savings: sav ? Number(sav.limit_amount) || 0 : 0,
+    incomeRecord: inc || null,
+    savingsRecord: sav || null,
+  };
+}
+
+// Progres rencana: capaian vs target, dijepit 0–100 untuk bar.
+export function planProgress(actual, target) {
+  if (!target || target <= 0) return { pct: 0, reached: false, remaining: 0 };
+  const pct = Math.max(0, Math.min(100, (actual / target) * 100));
+  return { pct, reached: actual >= target, remaining: Math.max(0, target - actual) };
+}

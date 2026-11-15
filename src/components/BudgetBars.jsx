@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useBudgets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap } from "@/lib/finance";
+import { colorMap, filterReportableTx } from "@/lib/finance";
 import Money from "@/components/Money";
 import { Target, ArrowRight, AlertTriangle } from "lucide-react";
 
@@ -18,7 +18,8 @@ export default function BudgetBars({ scope = "shared" }) {
     const monthTx = transactions.filter((t) => {
       const d = new Date(t.date);
       const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === "expense" && inScope;
+      // Sama dengan halaman Anggaran: transfer & transaksi pending/ditolak tidak dihitung.
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && t.type === "expense" && inScope && filterReportableTx(t);
     });
     // spent per (category, currency)
     const spent = {};

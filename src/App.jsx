@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -15,37 +16,47 @@ import { ColorPrefsProvider } from '@/lib/ColorPrefsContext';
 import Layout from '@/components/Layout';
 import ConfirmHost from '@/components/ConfirmHost';
 import Home from '@/pages/Home';
-import Transactions from '@/pages/Transactions';
-import AddTransaction from '@/pages/AddTransaction';
-import Assets from '@/pages/Assets';
-import Reports from '@/pages/Reports';
-import Settings from '@/pages/Settings';
-import Budget from '@/pages/Budget';
-import AssetDashboard from '@/pages/AssetDashboard';
-import ImportReport from '@/pages/ImportReport';
-import TransactionDetail from '@/pages/TransactionDetail';
-import Profile from '@/pages/Profile';
-import Categories from '@/pages/Categories';
-import Ringkasan from '@/pages/Ringkasan';
-import InvestmentDetail from '@/pages/InvestmentDetail';
-import Feedback from '@/pages/Feedback';
+const Transactions = lazy(() => import('@/pages/Transactions'));
+const AddTransaction = lazy(() => import('@/pages/AddTransaction'));
+const Assets = lazy(() => import('@/pages/Assets'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const Budget = lazy(() => import('@/pages/Budget'));
+const AssetDashboard = lazy(() => import('@/pages/AssetDashboard'));
+const ImportReport = lazy(() => import('@/pages/ImportReport'));
+const TransactionDetail = lazy(() => import('@/pages/TransactionDetail'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const Categories = lazy(() => import('@/pages/Categories'));
+const Ringkasan = lazy(() => import('@/pages/Ringkasan'));
+const InvestmentDetail = lazy(() => import('@/pages/InvestmentDetail'));
+const Feedback = lazy(() => import('@/pages/Feedback'));
 import Welcome from '@/pages/Welcome';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-import PartnerOnboarding from '@/pages/PartnerOnboarding';
-import Admin from '@/pages/Admin';
-import Transfer from '@/pages/Transfer';
-import Debts from '@/pages/Debts';
-import RecurringBills from '@/pages/RecurringBills';
-import Reconciliation from '@/pages/Reconciliation';
-import SavingsGoals from '@/pages/SavingsGoals';
-import Approvals from '@/pages/Approvals';
-import AssetMutations from '@/pages/AssetMutations';
-import DataHealth from '@/pages/DataHealth';
-import Zakat from '@/pages/Zakat';
-import Panduan from '@/pages/Panduan';
+const PartnerOnboarding = lazy(() => import('@/pages/PartnerOnboarding'));
+const Admin = lazy(() => import('@/pages/Admin'));
+const Transfer = lazy(() => import('@/pages/Transfer'));
+const Debts = lazy(() => import('@/pages/Debts'));
+const RecurringBills = lazy(() => import('@/pages/RecurringBills'));
+const Reconciliation = lazy(() => import('@/pages/Reconciliation'));
+const SavingsGoals = lazy(() => import('@/pages/SavingsGoals'));
+const Approvals = lazy(() => import('@/pages/Approvals'));
+const AssetMutations = lazy(() => import('@/pages/AssetMutations'));
+const DataHealth = lazy(() => import('@/pages/DataHealth'));
+const Zakat = lazy(() => import('@/pages/Zakat'));
+const Panduan = lazy(() => import('@/pages/Panduan'));
+
+// Halaman selain Beranda & auth dimuat saat dibuka (code-splitting), sehingga
+// pembukaan pertama aplikasi jauh lebih ringan di jaringan lemah.
+const RouteFallback = () => (
+  <div className="px-5 pt-6 space-y-4" aria-busy="true" aria-label="Memuat halaman">
+    <div className="h-7 w-40 rounded-lg bg-muted animate-pulse" />
+    <div className="h-36 rounded-3xl bg-muted animate-pulse" />
+    <div className="h-48 rounded-2xl bg-muted animate-pulse" />
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,7 +65,7 @@ const AuthenticatedApp = () => {
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" aria-label="Memuat"></div>
       </div>
     );
   }
@@ -72,6 +83,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/selamat-datang" element={<Welcome />} />
       <Route path="/login" element={<Login />} />
@@ -112,6 +124,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

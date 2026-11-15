@@ -318,3 +318,46 @@ export const assetTypeLabels = {
   tanah: { label: "Tanah", icon: "Map", color: "cyan" },
   lainnya: { label: "Lainnya", icon: "Package", color: "slate" },
 };
+// ── Sumber tunggal ringkasan pengeluaran bulanan ─────────────────────────
+// Dipakai Beranda (MonthlySummary) dan halaman Ringkasan agar angka selalu
+// sama. Aturan: hanya transaksi "reportable" (bukan transfer antar-rekening,
+// bukan pending/ditolak), sesuai cakupan, dan dikonversi ke mata uang tampilan.
+
+export function inScope(t, scope) {
+  return scope === "private" ? t.visibility === "private" : t.visibility !== "private";
+}
+
+export function isInMonth(t, year, month) {
+  const d = new Date(t.date);
+  return d.getFullYear() === year && d.getMonth() === month;
+}
+
+export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", currency = "IDR", rateMap = {} }) {
+  const py = month === 0 ? year - 1 : year;
+  const pm = month === 0 ? 11 : month - 1;
+  const base = (txs || []).filter((t) => t.type === "expense" && filterReportableTx(t) && inScope(t, scope));
+  const cur = (currency || "IDR").toUpperCase();
+  const map = {};
+  const prevMap = {};
+  const currencies = new Set();
+  let count = 0;
+  base.forEach((t) => {
+    const from = (t.currency || "IDR").toUpperCase();
+    const v = convertTo(Number(t.amount) || 0, from, cur, rateMap);
+    if (isInMonth(t, year, month)) {
+      currencies.add(from);
+      if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
+      map[t.category].value += v;
+      map[t.category].count += 1;
+      count += 1;
+    } else if (isInMonth(t, py, pm)) {
+      prevMap[t.category] = (prevMap[t.category] || 0) + v;
+    }
+  });
+  const total = Object.values(map).reduce((a, b) => a + b.value, 0);
+  const prevTotal = Object.values(prevMap).reduce((a, b) => a + b, 0);
+  const rows = Object.entries(map)
+    .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
+    .sort((a, b) => b.value - a.value);
+  return { rows, total, prevTotal, count, currencies: [...currencies] };
+}

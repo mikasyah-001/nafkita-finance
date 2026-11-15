@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatDate, colorMap, convertTo, hasRate } from "@/lib/finance";
+import { formatDate, colorMap, hasRate, monthlyExpenseBreakdown } from "@/lib/finance";
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -18,30 +18,13 @@ export default function MonthlySummary({ scope = "shared" }) {
 
   const now = new Date();
   const { rows, total, prevTotal, activeCurs, cur } = useMemo(() => {
-    const scoped = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private"));
-    const inMonth = (t, y, m) => { const d = new Date(t.date); return d.getFullYear() === y && d.getMonth() === m; };
-    const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    // Mata uang unik dari transaksi bulan berjalan + default user.
-    const monthCurs = [...new Set(scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).map((t) => (t.currency || "IDR").toUpperCase()))];
+    const y = now.getFullYear(), m = now.getMonth();
+    // Mata uang aktif = mata uang pengeluaran bulan ini + default user.
+    const monthCurs = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: "IDR", rateMap }).currencies;
     const activeCurs = [...new Set([...monthCurs, (me?.default_currency || "IDR").toUpperCase()])];
     const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
-    // Agregasi per kategori dengan konversi ke mata uang tampilan.
-    const map = {}, prevMap = {};
-    scoped.filter((t) => t.type === "expense" && inMonth(t, now.getFullYear(), now.getMonth())).forEach((t) => {
-      const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
-      map[t.category] = (map[t.category] || 0) + v;
-    });
-    scoped.filter((t) => t.type === "expense" && inMonth(t, py, pm)).forEach((t) => {
-      const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
-      prevMap[t.category] = (prevMap[t.category] || 0) + v;
-    });
-    const total = Object.values(map).reduce((a, b) => a + b, 0);
-    const prevTotal = Object.values(prevMap).reduce((a, b) => a + b, 0);
-    const rows = Object.entries(map)
-      .map(([name, value]) => ({ name, value, prev: prevMap[name] || 0 }))
-      .sort((a, b) => b.value - a.value);
-    return { rows, total, prevTotal, activeCurs, cur };
+    const r = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: cur, rateMap });
+    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, activeCurs, cur };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, scope, currency, rateMap, me?.default_currency]);
 

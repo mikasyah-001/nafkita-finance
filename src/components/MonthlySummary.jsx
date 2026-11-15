@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatDate, colorMap, hasRate, monthlyExpenseBreakdown } from "@/lib/finance";
+import { formatDate, colorMap, hasRate, monthlyExpenseBreakdown, formatUnconverted } from "@/lib/finance";
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -17,20 +17,21 @@ export default function MonthlySummary({ scope = "shared" }) {
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
 
   const now = new Date();
-  const { rows, total, prevTotal, activeCurs, cur } = useMemo(() => {
+  const { rows, total, prevTotal, activeCurs, cur, unconverted } = useMemo(() => {
     const y = now.getFullYear(), m = now.getMonth();
     // Mata uang aktif = mata uang pengeluaran bulan ini + default user.
     const monthCurs = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: "IDR", rateMap }).currencies;
     const activeCurs = [...new Set([...monthCurs, (me?.default_currency || "IDR").toUpperCase()])];
     const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
     const r = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: cur, rateMap });
-    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, activeCurs, cur };
+    return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, activeCurs, cur, unconverted: r.unconverted };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, scope, currency, rateMap, me?.default_currency]);
 
   if (total === 0 && activeCurs.length === 0) return null;
 
-  const rateMissing = !hasRate(cur, rateMap);
+  const excludedText = formatUnconverted(unconverted);
+  const rateMissing = !!excludedText || !hasRate(cur, rateMap);
   const monthLabel = formatDate(now, "MMMM yyyy");
   const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
@@ -61,6 +62,7 @@ export default function MonthlySummary({ scope = "shared" }) {
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Total pengeluaran</p>
           <p className="text-xl font-bold tabular-nums break-words"><Money value={total} currency={cur} /></p>
+          {excludedText && <p className="text-[11px] text-warning mt-0.5">Belum termasuk {excludedText} (kurs belum tersedia)</p>}
         </div>
         {prevTotal > 0 && (
           <span className={`text-xs font-medium flex items-center gap-1 shrink-0 ${total <= prevTotal ? "text-success" : "text-destructive"}`}>

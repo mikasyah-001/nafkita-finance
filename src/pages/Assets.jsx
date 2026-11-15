@@ -159,7 +159,7 @@ export default function Assets() {
       {missingRates.length > 0 && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 mb-4 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum dimuat untuk: {missingRates.join(", ")}. Nilai mungkin tidak akurat.</p>
+          <p className="text-xs text-amber-700 dark:text-amber-400">Kurs belum tersedia untuk {missingRates.join(", ")}. Aset dalam mata uang ini belum termasuk dalam total.</p>
         </div>
       )}
 

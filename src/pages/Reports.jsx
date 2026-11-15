@@ -350,6 +350,9 @@ export default function Reports() {
           {fetchingRates ? "Mengambil kurs..." : `Muat Kurs (${missingRates.join(", ")})`}
         </button>
       )}
+      {consolidated && missingRates.length > 0 && !fetchingRates && (
+        <p className="text-xs text-warning -mt-2">Transaksi {missingRates.join(", ")} belum termasuk dalam total sampai kursnya dimuat.</p>
+      )}
 
       <ExportMenu
         onPdfNoProof={() => handleExportPdf(false)}

@@ -109,9 +109,24 @@ export function hasRate(currency, rateMap = {}) {
   return rateMap[c] != null && rateMap[c] > 0;
 }
 
+// Apakah konversi from → to bisa dilakukan dengan rateMap saat ini.
+export function canConvert(fromCurrency, toCurrency, rateMap = {}) {
+  const from = (fromCurrency || "IDR").toUpperCase();
+  const to = (toCurrency || "IDR").toUpperCase();
+  return from === to || (hasRate(from, rateMap) && hasRate(to, rateMap));
+}
+
+// Format daftar nominal yang tidak terkonversi: { SAR: 500 } → "SAR 500".
+export function formatUnconverted(map = {}) {
+  return Object.entries(map)
+    .filter(([, v]) => v)
+    .map(([c, v]) => formatMoney(v, c))
+    .join(", ");
+}
+
 // Konversi amount dari fromCurrency ke toCurrency via jembatan IDR.
 // rateMap: output buildRateMap (nilai 1 unit mata uang dalam IDR).
-// Bila kurs tidak tersedia, kembalikan amount asli (fallback aman).
+// Bila kurs tidak tersedia, kembalikan 0 — lihat canConvert().
 export function convertTo(amount, fromCurrency, toCurrency, rateMap = {}) {
   const from = (fromCurrency || "IDR").toUpperCase();
   const to = (toCurrency || "IDR").toUpperCase();
@@ -119,7 +134,11 @@ export function convertTo(amount, fromCurrency, toCurrency, rateMap = {}) {
   if (from === to) return amt;
   const fromRate = rateMap[from] ?? (from === "IDR" ? 1 : null);
   const toRate = rateMap[to] ?? (to === "IDR" ? 1 : null);
-  if (!fromRate || !toRate) return amt; // kurs tidak tersedia, kembalikan asli
+  // Kurs tidak tersedia → 0 (dikeluarkan dari total). Sebelumnya nominal
+  // mentah dijumlahkan apa adanya (mis. 500 SAR terhitung Rp 500), yang
+  // diam-diam membuat total salah. Tampilan wajib memberi tahu nominal yang
+  // dikecualikan lewat canConvert()/hasRate().
+  if (!fromRate || !toRate) return 0;
   const inIdr = amt * fromRate;
   return inIdr / toRate;
 }
@@ -154,13 +173,19 @@ export function summarizeByCurrency(txs, currencyList = []) {
 // Saldo = pemasukan − pengeluaran − sedekah.
 export function summarizeConsolidated(txs, displayCurrency = "IDR", rateMap = {}, currencyList = []) {
   const to = (displayCurrency || "IDR").toUpperCase();
-  const out = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0, currencies: new Set() };
+  const out = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0, currencies: new Set(), unconverted: {} };
   (currencyList || []).forEach((c) => out.currencies.add((c || "IDR").toUpperCase()));
   (txs || []).forEach((t) => {
     if (t.transfer_pair_id) return;
     if (t.approval_status && t.approval_status !== "approved") return;
     const from = (t.currency || "IDR").toUpperCase();
     out.currencies.add(from);
+    if (!canConvert(from, to, rateMap)) {
+      // Tidak dijumlahkan; dicatat agar UI bisa menyebut "belum termasuk".
+      const sign = t.type === "income" ? 1 : -1;
+      out.unconverted[from] = (out.unconverted[from] || 0) + sign * (Number(t.amount) || 0);
+      return;
+    }
     const amt = convertTo(Number(t.amount) || 0, from, to, rateMap);
     if (t.type === "income") out.income += amt;
     else if (t.type === "expense") out.expense += amt;
@@ -340,12 +365,15 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const map = {};
   const prevMap = {};
   const currencies = new Set();
+  const unconverted = {};
   let count = 0;
   base.forEach((t) => {
     const from = (t.currency || "IDR").toUpperCase();
+    const ok = canConvert(from, cur, rateMap);
     const v = convertTo(Number(t.amount) || 0, from, cur, rateMap);
     if (isInMonth(t, year, month)) {
       currencies.add(from);
+      if (!ok) { unconverted[from] = (unconverted[from] || 0) + (Number(t.amount) || 0); return; }
       if (!map[t.category]) map[t.category] = { value: 0, count: 0 };
       map[t.category].value += v;
       map[t.category].count += 1;
@@ -359,5 +387,5 @@ export function monthlyExpenseBreakdown(txs, { year, month, scope = "shared", cu
   const rows = Object.entries(map)
     .map(([name, v]) => ({ name, value: v.value, count: v.count, prev: prevMap[name] || 0 }))
     .sort((a, b) => b.value - a.value);
-  return { rows, total, prevTotal, count, currencies: [...currencies] };
+  return { rows, total, prevTotal, count, currencies: [...currencies], unconverted };
 }

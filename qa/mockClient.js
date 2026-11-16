@@ -5,6 +5,7 @@
 import { defaultCategories } from "@/lib/finance";
 
 const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
+try { const c = localStorage.getItem("qaDefaultCur"); if (c) ME.default_currency = c; } catch { /* abaikan */ }
 const now = new Date();
 const Y = now.getUTCFullYear(), M = now.getUTCMonth();
 const d = (dd, mOff = 0, h = 10) => new Date(Date.UTC(Y, M + mOff, dd, h)).toISOString();
@@ -57,6 +58,8 @@ const DATA = {
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
 };
 // Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.
+// Simulasi jaringan lambat untuk QA: localStorage.qaLag = "400" (ms).
+const lag = (label = "") => { try { if (localStorage.getItem("qaTrace")) console.log("REQ", Math.round(performance.now()), label); } catch { /* abaikan */ } let ms = 0; try { ms = Number(localStorage.getItem("qaLag")) || 0; } catch { /* abaikan */ } return ms ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve(); };
 const ago = (m) => new Date(Date.now() - m * 60000).toISOString();
 const ADMIN_USERS = [
   { id: "u1", full_name: "Ahmad Fauzi", email: "keluarga@contoh.id", role: "admin", last_active_at: ago(1), created_date: d(1, -6) },
@@ -160,11 +163,11 @@ const entity = (name) => ({
 });
 export const base44 = {
   auth: {
-    me: async () => ({ ...ME }), updateMe: async (o) => ({ ...Object.assign(ME, o) }), isAuthenticated: async () => true,
+    me: async () => { await lag("auth.me"); return { ...ME }; }, updateMe: async (o) => ({ ...Object.assign(ME, o) }), isAuthenticated: async () => true,
     logout: () => {}, redirectToLogin: () => {}, setToken: () => {}, loginWithProvider: () => {},
   },
   entities: new Proxy({}, { get: (_, k) => entity(k) }),
-  functions: { invoke: async (name, args = {}) => ({ data: FN[name] ? FN[name](args) : {} }) },
+  functions: { invoke: async (name, args = {}) => { await lag("fn:" + name); return { data: FN[name] ? FN[name](args) : {} }; } },
   integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadFile")
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })

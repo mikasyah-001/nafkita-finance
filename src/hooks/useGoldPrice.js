@@ -23,11 +23,12 @@ export function useGoldSources(enabled = true) {
 export function useGoldPrice() {
   const { data: me } = useMe();
   const qc = useQueryClient();
-  const { data: sources = [], isLoading, refetch, isFetching } = useGoldSources(true);
-  const auto = pickAntamSource(sources);
-
   const manual = Number(me?.zakat_gold_price) || 0; // field profil dipakai sebagai harga acuan global
   const hasManual = isPlausibleGoldPrice(manual);
+  // Pencarian otomatis (AI) hanya bila belum ada harga isian; "Bandingkan sumber"
+  // tetap bisa memicunya lewat refresh(). Hemat kuota & tidak menahan tampilan.
+  const { data: sources = [], isLoading, refetch, isFetching } = useGoldSources(!!me && !hasManual);
+  const auto = pickAntamSource(sources);
   const price = hasManual ? manual : auto ? Math.round(auto.price_per_gram) : 0;
   const source = hasManual
     ? { kind: "manual", label: "Isian Anda", date: me?.zakat_gold_price_date }
@@ -40,5 +41,5 @@ export function useGoldPrice() {
     qc.invalidateQueries({ queryKey: ["me"] });
   };
 
-  return { price, source, sources, loading: isLoading, refreshing: isFetching, refresh: refetch, hasManual, save };
+  return { price, source, sources, loading: !hasManual && isLoading, refreshing: isFetching, refresh: refetch, hasManual, save };
 }

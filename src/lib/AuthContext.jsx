@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { queryClientInstance } from '@/lib/query-client';
 
 const AuthContext = createContext();
 
@@ -94,6 +95,9 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+      // Pakai ulang profil ini untuk useMe() (queryKey ["me"]) agar halaman tidak
+      // mengambilnya lagi — dulu nama/mata uang sempat tampil bawaan lalu berganti.
+      queryClientInstance.setQueryData(["me"], currentUser);
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);

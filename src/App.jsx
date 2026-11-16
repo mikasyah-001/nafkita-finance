@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import { lazyPage } from '@/lib/pagePrefetch';
 import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -18,37 +19,37 @@ import { ColorPrefsProvider } from '@/lib/ColorPrefsContext';
 import Layout from '@/components/Layout';
 import ConfirmHost from '@/components/ConfirmHost';
 import Home from '@/pages/Home';
-const Transactions = lazy(() => import('@/pages/Transactions'));
-const AddTransaction = lazy(() => import('@/pages/AddTransaction'));
-const Assets = lazy(() => import('@/pages/Assets'));
-const Reports = lazy(() => import('@/pages/Reports'));
-const Settings = lazy(() => import('@/pages/Settings'));
-const Budget = lazy(() => import('@/pages/Budget'));
-const AssetDashboard = lazy(() => import('@/pages/AssetDashboard'));
-const ImportReport = lazy(() => import('@/pages/ImportReport'));
-const TransactionDetail = lazy(() => import('@/pages/TransactionDetail'));
-const Profile = lazy(() => import('@/pages/Profile'));
-const Categories = lazy(() => import('@/pages/Categories'));
-const InvestmentDetail = lazy(() => import('@/pages/InvestmentDetail'));
-const Feedback = lazy(() => import('@/pages/Feedback'));
+const Transactions = lazyPage(() => import('@/pages/Transactions'));
+const AddTransaction = lazyPage(() => import('@/pages/AddTransaction'));
+const Assets = lazyPage(() => import('@/pages/Assets'));
+const Reports = lazyPage(() => import('@/pages/Reports'));
+const Settings = lazyPage(() => import('@/pages/Settings'));
+const Budget = lazyPage(() => import('@/pages/Budget'));
+const AssetDashboard = lazyPage(() => import('@/pages/AssetDashboard'));
+const ImportReport = lazyPage(() => import('@/pages/ImportReport'));
+const TransactionDetail = lazyPage(() => import('@/pages/TransactionDetail'));
+const Profile = lazyPage(() => import('@/pages/Profile'));
+const Categories = lazyPage(() => import('@/pages/Categories'));
+const InvestmentDetail = lazyPage(() => import('@/pages/InvestmentDetail'));
+const Feedback = lazyPage(() => import('@/pages/Feedback'));
 import Welcome from '@/pages/Welcome';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-const PartnerOnboarding = lazy(() => import('@/pages/PartnerOnboarding'));
-const Admin = lazy(() => import('@/pages/Admin'));
-const Transfer = lazy(() => import('@/pages/Transfer'));
-const Debts = lazy(() => import('@/pages/Debts'));
-const RecurringBills = lazy(() => import('@/pages/RecurringBills'));
-const Reconciliation = lazy(() => import('@/pages/Reconciliation'));
-const SavingsGoals = lazy(() => import('@/pages/SavingsGoals'));
-const Approvals = lazy(() => import('@/pages/Approvals'));
-const AssetMutations = lazy(() => import('@/pages/AssetMutations'));
-const DataHealth = lazy(() => import('@/pages/DataHealth'));
-const Zakat = lazy(() => import('@/pages/Zakat'));
-const Panduan = lazy(() => import('@/pages/Panduan'));
-const AuditKas = lazy(() => import('@/pages/AuditKas'));
+const PartnerOnboarding = lazyPage(() => import('@/pages/PartnerOnboarding'));
+const Admin = lazyPage(() => import('@/pages/Admin'));
+const Transfer = lazyPage(() => import('@/pages/Transfer'));
+const Debts = lazyPage(() => import('@/pages/Debts'));
+const RecurringBills = lazyPage(() => import('@/pages/RecurringBills'));
+const Reconciliation = lazyPage(() => import('@/pages/Reconciliation'));
+const SavingsGoals = lazyPage(() => import('@/pages/SavingsGoals'));
+const Approvals = lazyPage(() => import('@/pages/Approvals'));
+const AssetMutations = lazyPage(() => import('@/pages/AssetMutations'));
+const DataHealth = lazyPage(() => import('@/pages/DataHealth'));
+const Zakat = lazyPage(() => import('@/pages/Zakat'));
+const Panduan = lazyPage(() => import('@/pages/Panduan'));
+const AuditKas = lazyPage(() => import('@/pages/AuditKas'));
 
 // Halaman selain Beranda & auth dimuat saat dibuka (code-splitting), sehingga
 // pembukaan pertama aplikasi jauh lebih ringan di jaringan lemah.
@@ -154,7 +155,7 @@ function App() {
           <ScopeProvider>
             <QueryClientProvider client={queryClientInstance}>
               <ColorPrefsProvider>
-                <Router>
+                <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <ScrollToTop />
                   <AuthenticatedApp />
                 </Router>

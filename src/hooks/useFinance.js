@@ -1,15 +1,18 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { setCustomCurrencies, findCurrency } from "@/lib/finance";
+import { usePartnership } from "@/hooks/usePartnership";
 
 export function useCategories() {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: ["categories"],
     // Selalu batasi ke kategori milik akun aktif. Admin tetap dapat melihat
     // seluruh kategori hanya dari Admin Panel, bukan dari halaman pengguna.
     queryFn: async () => {
-      const me = await base44.auth.me();
+      // Profil dari cache (diisi saat login) — tidak menunggu permintaan baru.
+      const me = await qc.ensureQueryData({ queryKey: ["me"], queryFn: () => base44.auth.me() });
       if (!me?.id) return [];
       return base44.entities.Category.filter({ created_by_id: me.id }, "type", 5000);
     },
@@ -181,14 +184,14 @@ export function useExchangeRates(baseCurrency) {
 // Sumber utama: kurs tengah Bank Indonesia. Dimuat saat aplikasi siap.
 // Mengembalikan { map, date, source } — date/source dari kurs terbaru tersedia.
 export function useRateMap() {
-  const { data: idrRates = [] } = useQuery({
+  const { data: idrRates = [], isLoading: idrLoading } = useQuery({
     queryKey: ["exchangeRates", "idrMap"],
     queryFn: async () => {
       const res = await base44.functions.invoke("listExchangeRates", { quote_currency: "IDR" });
       return res.data.rates || [];
     },
   });
-  const { data: usdRates = [] } = useQuery({
+  const { data: usdRates = [], isLoading: usdLoading } = useQuery({
     queryKey: ["exchangeRates", "usdBridge"],
     queryFn: async () => {
       const res = await base44.functions.invoke("listExchangeRates", { base_currency: "USD" });
@@ -220,8 +223,33 @@ export function useRateMap() {
         if (!latest || (r.date || "") > (latest.date || "")) latest = r;
       });
     }
-    return { map, date: latest?.date || null, source: latest?.source || null };
-  }, [idrRates, usdRates]);
+    return { map, date: latest?.date || null, source: latest?.source || null, loading: idrLoading || usdLoading };
+  }, [idrRates, usdRates, idrLoading, usdLoading]);
+}
+
+/**
+ * true setelah data inti (profil, transaksi, aset, kurs) termuat SEKALI.
+ * Dipakai Layout untuk menampilkan satu layar muat, bukan halaman yang
+ * tampil bertahap (Rp 0 → angka → angka berubah lagi saat kurs datang).
+ * Setelah siap tetap true; pembaruan berikutnya terjadi di latar belakang.
+ */
+export function useCoreDataReady() {
+  const me = useMe();
+  const tx = useTransactions();
+  const assets = useAssets();
+  const rates = useRateMap();
+  // Data yang membentuk tata letak Beranda & Catat ikut dimuat paralel di awal,
+  // agar kartu tidak "menyusul" muncul dan menggeser tampilan.
+  const budgets = useBudgets();
+  const goals = useSavingsGoals();
+  const approvals = usePendingApprovals();
+  const bills = useRecurringBills();
+  const templates = useTemplates();
+  const partnership = usePartnership();
+  const once = useRef(false);
+  const all = [me, tx, assets, budgets, goals, approvals, bills, templates];
+  if (!rates.loading && !partnership.loading && all.every((q) => !q.isLoading)) once.current = true;
+  return once.current;
 }
 
 export function useRefresh() {
@@ -247,4 +275,17 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["notificationRules"] }),
     qc.invalidateQueries({ queryKey: ["exchangeRates"] }),
   ]);
+}
+/**
+ * Dipasang Layout SETELAH data inti siap: menghangatkan cache data sekunder
+ * di latar (tidak menahan tampilan pertama), sehingga membuka Utang, Zakat,
+ * Pengaturan, Dashboard Aset, dll. langsung berisi tanpa skeleton sesaat.
+ */
+export function WarmSecondaryData() {
+  useDebts();
+  useZakatPayments();
+  useNotificationRules();
+  useAssetSnapshots();
+  useCategories();
+  return null;
 }

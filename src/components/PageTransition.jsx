@@ -13,15 +13,15 @@ export default function PageTransition({ children, className }) {
   const navType = useNavigationType();
   const reduce = useReducedMotion();
   const dir = navType === "POP" ? -1 : 1;
-  const offset = reduce ? 0 : 28;
+  const offset = reduce ? 0 : 20;
 
+  // Hanya geser (transform), TANPA opacity: memudarkan halaman membuat layar
+  // tampak berkedip dua kali (keluar-pudar → kosong → masuk-pudar).
   return (
     <motion.div
       className={className}
-      custom={dir}
-      initial={{ opacity: 0, x: offset * dir }}
-      animate={{ opacity: 1, x: 0, transition: { duration: 0.24, ease: EASE } }}
-      exit={{ opacity: 0, x: -offset * dir * 0.5, transition: { duration: 0.12, ease: "easeIn" } }}
+      initial={offset ? { x: offset * dir } : false}
+      animate={{ x: 0, transition: { duration: 0.2, ease: EASE } }}
     >
       {children}
     </motion.div>

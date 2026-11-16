@@ -9,9 +9,9 @@ export { isPlausibleGoldPrice, GOLD_PRICE_MIN, GOLD_PRICE_MAX } from "@/hooks/us
 export function useZakat() {
   const { data: me } = useMe();
   const { data: assets = [], isLoading: assetsLoading } = useAssets();
-  const { data: debts = [] } = useDebts();
+  const { data: debts = [], isLoading: debtsLoading } = useDebts();
   const { map: rateMap } = useRateMap();
-  const { data: payments = [] } = useZakatPayments();
+  const { data: payments = [], isLoading: paymentsLoading } = useZakatPayments();
   const { price: goldPrice, source: goldSource, loading: goldLoading } = useGoldPrice();
 
   const includeReceivables = me?.zakat_include_receivables !== false;
@@ -30,6 +30,7 @@ export function useZakat() {
     ...result, me, goldSource, goldLoading, includeReceivables, period,
     payments: myPayments, paid, paidTotal, remaining, rateMap,
     isPaidOff: result.zakat > 0 && remaining <= 0,
-    loading: assetsLoading,
+    // Tunggu semua sumber: tanpa utang/pembayaran, angka sempat tampil lalu berubah.
+    loading: assetsLoading || debtsLoading || paymentsLoading || goldLoading,
   };
 }

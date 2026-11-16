@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, currencySymbol, isMoneyAsset, formatMoneyPlain } from "@/lib/finance";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
@@ -13,7 +13,7 @@ export default function Transfer() {
   const refresh = useRefresh();
   const { data: assets = [] } = useAssets();
   const userCurrencies = useUserCurrencies();
-  const [user, setUser] = useState(null);
+  const { data: user = null } = useMe();
   const qs = new URLSearchParams(window.location.search);
   const [fromAsset, setFromAsset] = useState(qs.get("from") || "");
   const [toAsset, setToAsset] = useState(qs.get("to") || "");
@@ -29,11 +29,8 @@ export default function Transfer() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setUser(u);
-      if (u?.default_currency) setCurrency(u.default_currency);
-    }).catch(() => {});
-  }, []);
+    if (user?.default_currency) setCurrency(user.default_currency);
+  }, [user?.default_currency]);
 
   // Rekening bank & dompet tunai (tarik tunai = transfer bank → dompet tunai).
   const bankAssets = assets.filter(

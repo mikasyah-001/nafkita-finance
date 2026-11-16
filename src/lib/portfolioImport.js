@@ -63,6 +63,7 @@ export function normalizeHolding(raw, defaults = {}) {
     platform: String(raw.platform || defaults.platform || "").trim(),
     as_of: String(raw.as_of || defaults.as_of || "").slice(0, 10),
   };
+  h.lots = mergeLots((raw.lots || []).map(normalizeLot));
   // Angka yang benar-benar tertera (bukan hasil hitung) — dipakai saat menggabung.
   h.given = NUMS.filter((k) => h[k] != null);
   return reconcileHolding(h);
@@ -115,6 +116,7 @@ export function mergeHoldings(list) {
       if (!hit[k] || (k === "name" && h[k] && h[k].length > hit[k].length && !/\.{2,}|…/.test(h[k]))) hit[k] = h[k] || hit[k];
     }
     if (hit.instrument === "lainnya" && h.instrument !== "lainnya") hit.instrument = h.instrument;
+    hit.lots = mergeLots(hit.lots || [], h.lots || []);
     const hg = new Set(hit.given || []), bg = new Set(h.given || []);
     for (const k of NUMS) {
       const a = hit[k], b = h[k];
@@ -184,7 +186,10 @@ export function holdingToAsset(h, { visibility = "shared", existing = null, toda
     price_date: priceDate,
     import_source: src,
   };
-  if (existing) return base; // pembaruan: nama, visibilitas, tanggal beli & catatan dipertahankan
+  // Tanggal beli = lot beli paling awal (untuk emas, dipakai menghitung haul zakat).
+  const firstBuy = lotSummary(h.lots || []).firstDate;
+  if (firstBuy && (!existing?.purchase_date || firstBuy < String(existing.purchase_date).slice(0, 10))) base.purchase_date = firstBuy;
+  if (existing) return base; // pembaruan: nama, visibilitas & catatan dipertahankan
   return { ...base, visibility, notes: `Diimpor dari ${h.platform || "aplikasi investasi"} per ${priceDate}.` };
 }
 const round4 = (n) => Math.round(n * 10000) / 10000;
@@ -221,6 +226,8 @@ Untuk tiap holding isi:
 - platform: nama aplikasi/broker bila terlihat (mis. "Al Rajhi Capital", "Bibit", "Derayah"); kosongkan bila tidak jelas
 - as_of: tanggal data bila tertera (yyyy-mm-dd), mis. "Data per 04 Nov 2026" → 2026-11-04
 
+- lots: bila layar menampilkan riwayat pembelian per lot (Lots Breakdown / riwayat transaksi beli-jual / riwayat dompet emas), isi SETIAP baris: date (yyyy-mm-dd), side ("buy"/"sell"), quantity, price (harga per unit/gram). Tempelkan lot pada holding yang judulnya tampil di layar itu (mis. ALRAJHI 1120). Layar rincian lot boleh hanya berisi name/ticker/last_price + lots tanpa angka lain.
+
 Angka: tulis sebagai number murni (titik desimal), tanpa simbol mata uang/pemisah ribuan. Jangan menebak angka yang tidak terlihat — kosongkan.
 Jawab HANYA JSON sesuai skema.`;
 
@@ -237,8 +244,77 @@ export const HOLDINGS_SCHEMA = {
           quantity: { type: "number" }, avg_cost: { type: "number" }, total_cost: { type: "number" },
           last_price: { type: "number" }, market_value: { type: "number" }, gain: { type: "number" },
           platform: { type: "string" }, as_of: { type: "string" },
+          lots: {
+            type: "array",
+            items: { type: "object", properties: { date: { type: "string" }, side: { type: "string" }, quantity: { type: "number" }, price: { type: "number" } } },
+          },
         },
       },
     },
   },
 };
+
+// ─── LOT / TANGGAL PEMBELIAN ──────────────────────────────────────────────
+// Prinsip (agar tidak tumpang tindih):
+//  1. Total aset (jumlah, modal, nilai) = sumber kebenaran (rincian broker/isian).
+//  2. Lot = riwayat tanggal & harga beli. Lot TIDAK menimpa total aset.
+//  3. Selisih lot vs total ditampilkan apa adanya (screenshot lot belum lengkap,
+//     saham bonus/pemecahan, atau sudah ada penjualan).
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, mei: 5, jun: 6, jul: 7, aug: 8, agu: 8, agt: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12, des: 12 };
+
+export function normalizeLotDate(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = s.match(/^(\d{1,2})[\s-]+([A-Za-z]{3,})\.?[\s-]+(\d{4})/); // 13 May 2026 / 13-Mei-2026
+  if (m && MONTHS[m[2].slice(0, 3).toLowerCase()]) return `${m[3]}-${String(MONTHS[m[2].slice(0, 3).toLowerCase()]).padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); // 13/05/2026 (dd/mm/yyyy)
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return "";
+}
+
+export function normalizeLot(raw) {
+  const side = /sell|jual|بيع/i.test(String(raw.side || raw.type || "")) ? "sell" : "buy";
+  const quantity = Math.abs(num(raw.quantity) || 0);
+  const price = num(raw.price ?? raw.price_per_unit) || 0;
+  const date = normalizeLotDate(raw.date);
+  if (!date || !(quantity > 0)) return null;
+  return { date, side, quantity, price, amount: round2(quantity * price) };
+}
+
+export const lotKey = (l) => `${l.date}|${l.side || "buy"}|${Number(l.quantity)}|${Number(l.price ?? l.price_per_unit)}`;
+
+/** Gabung lot dari beberapa screenshot (list bisa tumpang tindih saat digulir). */
+export function mergeLots(...lists) {
+  const seen = new Map();
+  lists.flat().filter(Boolean).forEach((l) => { if (!seen.has(lotKey(l))) seen.set(lotKey(l), l); });
+  return [...seen.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** Cocokkan riwayat lot dengan total kepemilikan. */
+export function lotSummary(lots = [], holdingQty = null) {
+  const buys = lots.filter((l) => l.side !== "sell");
+  const sells = lots.filter((l) => l.side === "sell");
+  const buyQty = buys.reduce((s, l) => s + Number(l.quantity || 0), 0);
+  const sellQty = sells.reduce((s, l) => s + Number(l.quantity || 0), 0);
+  const netQty = round4(buyQty - sellQty);
+  const buyCost = round2(buys.reduce((s, l) => s + Number(l.amount ?? l.quantity * (l.price ?? l.price_per_unit) ?? 0), 0));
+  const dates = buys.map((l) => l.date).sort();
+  const total = Number(holdingQty) || 0;
+  const diff = total ? round4(total - netQty) : 0;
+  let status = "none", message = "";
+  if (lots.length && total) {
+    if (Math.abs(diff) < 1e-6) { status = "complete"; message = `Riwayat lot lengkap: ${fmtQty(netQty)} dari ${fmtQty(total)}.`; }
+    else if (diff > 0) { status = "partial"; message = `Riwayat lot mencakup ${fmtQty(netQty)} dari ${fmtQty(total)} (kurang ${fmtQty(diff)}). Tambahkan screenshot lot yang belum terlihat, atau selisih berasal dari saham bonus/pemecahan.`; }
+    else { status = "over"; message = `Lot terbaca ${fmtQty(netQty)}, melebihi total ${fmtQty(total)}. Mungkin ada penjualan yang belum terbaca — periksa lot.`; }
+  }
+  return { count: lots.length, buyQty, sellQty, netQty, buyCost, firstDate: dates[0] || "", lastDate: dates.at(-1) || "", diff, status, message };
+}
+const fmtQty = (n) => String(Number(n.toFixed(4)));
+
+/** Lot yang perlu dibuat: buang yang sudah ada (impor sebelumnya atau DCA manual yang sama). */
+export function lotsToCreate(lots = [], existingLots = []) {
+  const have = new Set(existingLots.map((l) => lotKey({ date: String(l.date || "").slice(0, 10), side: l.side || "buy", quantity: l.quantity, price: l.price_per_unit })));
+  return lots.filter((l) => !have.has(lotKey(l)));
+}

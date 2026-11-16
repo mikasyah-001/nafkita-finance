@@ -467,6 +467,61 @@ try {
     assert.ok(page.url().endsWith("/aset"), "Kembali ke Aset");
   });
 
+  await step("Lot pembelian: 2 screenshot Lots Breakdown (tumpang tindih) → 9 lot, total 88 tetap, tanggal beli terisi; impor ulang tanpa duplikat", async () => {
+    const S1 = [["13 May 2026", 11, 65.95], ["21 Apr 2026", 3, 71.75], ["04 Apr 2026", 2, 106.4], ["05 Mar 2026", 7, 101], ["04 Feb 2026", 5, 107.8]];
+    const S2 = [["07 Oct 2026", 4, 63.75], ["06 Aug 2026", 10, 65], ["08 Jul 2026", 17, 65.55], ["05 Jun 2026", 13, 66.5], ["13 May 2026", 11, 65.95]];
+    const shot = (rows) => ({ holdings: [{ name: "ALRAJHI", ticker: "1120", exchange: "TASI", instrument: "saham", currency: "SAR", last_price: 63.35, lots: rows.map(([date, quantity, price]) => ({ date, side: "Buy", quantity, price })) }] });
+    await page.evaluate((r) => { window.__qaLLM = r; }, [shot(S2), shot(S1)]);
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "lot-atas.png", mimeType: "image/png", buffer: png }, { name: "lot-bawah.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1500);
+    assert.ok(await page.getByText("Tinjau 1 kepemilikan").isVisible(), "Dua screenshot lot → satu kepemilikan");
+    assert.ok(await page.getByText(/Tambah riwayat lot ke "ALRAJHI \(1120\)" — total tidak diubah/).isVisible(), "Mode hanya lot untuk aset lama");
+    assert.ok(await page.getByText(/9 lot pembelian · sejak 4 Feb 2026/).isVisible(), "13 May tidak dobel");
+    assert.ok(await page.getByText(/mencakup 72 dari 88 \(kurang 16\)/).isVisible(), "Selisih dengan total lembar ditampilkan");
+    await page.getByRole("button", { name: /Simpan 1 aset/ }).click();
+    await page.waitForTimeout(1500);
+    const st = await page.evaluate(() => ({ a: window.__qa.assets.find((x) => x.ticker === "1120"), lots: (window.__qaData.InvestmentLot || []) }));
+    assert.equal(st.a.quantity, 88, "Total lembar tidak ditimpa lot");
+    assert.equal(st.a.value, 5412, "Nilai pasar tidak berubah");
+    assert.equal(st.a.purchase_date, "2026-02-04", "Tanggal beli = lot paling awal");
+    const mine = st.lots.filter((l) => l.asset_id === st.a.id);
+    assert.equal(mine.length, 9);
+    assert.ok(mine.every((l) => l.source === "import" && l.side === "buy"));
+
+    // Impor ulang screenshot yang sama → tidak ada lot baru.
+    await page.evaluate((r) => { window.__qaLLM = r; }, [shot(S2)]);
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "lot-atas.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: /Simpan 1 aset/ }).click();
+    await page.waitForTimeout(1200);
+    const n2 = await page.evaluate((id) => (window.__qaData.InvestmentLot || []).filter((l) => l.asset_id === id).length, st.a.id);
+    assert.equal(n2, 9, "Tidak ada lot duplikat");
+  });
+
+  await step("Halaman investasi: ringkasan dari total aset; DCA manual menambah selisih; hapus lot impor tidak mengubah total", async () => {
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "1120"));
+    await nav(`/investasi/${a.id}`);
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText(/72 dari 88/).isVisible(), "Status kecocokan lot tampil");
+    assert.ok(await page.getByText("88 lembar").first().isVisible(), "Jumlah dari total aset, bukan dari lot");
+    await page.getByRole("button", { name: /Catat pembelian/ }).click();
+    await page.fill("#investment-lot-quantity", "2");
+    await page.fill("#investment-lot-price", "63");
+    await page.getByRole("button", { name: /Simpan pembelian/ }).click();
+    await page.waitForTimeout(900);
+    let x = await page.evaluate((id) => window.__qa.assets.find((y) => y.id === id), a.id);
+    assert.equal(x.quantity, 90, "88 + 2");
+    assert.equal(x.purchase_price, Math.round((a.purchase_price + 126) * 100) / 100, "Modal + 2 × 63");
+    await page.getByRole("button", { name: "Hapus lot 7 Okt 2026" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Hapus" }).click();
+    await page.waitForTimeout(900);
+    x = await page.evaluate((id) => window.__qa.assets.find((y) => y.id === id), a.id);
+    assert.equal(x.quantity, 90, "Lot impor dihapus → total tetap");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

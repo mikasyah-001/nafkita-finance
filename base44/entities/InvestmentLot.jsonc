@@ -20,6 +20,18 @@
     },
     "notes": {
       "type": "string"
+    },
+    "side": {
+      "type": "string",
+      "enum": ["buy", "sell"],
+      "default": "buy",
+      "description": "Beli atau jual"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["manual", "import"],
+      "default": "manual",
+      "description": "manual = dicatat di halaman DCA; import = dari screenshot/PDF broker"
     }
   },
   "required": [

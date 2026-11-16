@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots, useSavingsGoals } from "@/hooks/useFinance";
+import { investmentCategory, CATEGORY_LABEL, categoryBreakdown, emergencyAssetIds } from "@/lib/investmentCategory";
 import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
@@ -12,7 +13,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2, Calendar, Layers } from "lucide-react";
+import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2, Calendar, Layers, ShieldCheck } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
@@ -35,9 +36,10 @@ const sortOptions = [
 const ts = (d) => (d ? new Date(d).getTime() || 0 : 0);
 
 const rankBadgeClass = (rank) => {
-  if (rank === 1) return "bg-warning text-warning";
+  // Teks harus kontras dengan latar (dulu "bg-warning text-warning" → angka tak terlihat).
+  if (rank === 1) return "bg-warning text-warning-foreground";
   if (rank === 2) return "bg-muted text-foreground";
-  if (rank === 3) return "bg-warning text-warning";
+  if (rank === 3) return "bg-warning/25 text-foreground";
   return "bg-muted text-muted-foreground";
 };
 
@@ -56,6 +58,10 @@ export default function Assets() {
   const [livePricing, setLivePricing] = useState(false);
   const [showGold, setShowGold] = useState(false);
   const { data: allLots = [] } = useAllInvestmentLots();
+  // Aset yang ditautkan ke target "Dana darurat" — label dari data, bukan tebakan.
+  const { data: goals = [] } = useSavingsGoals();
+  const emergencyIds = useMemo(() => emergencyAssetIds(goals), [goals]);
+  const [invCat, setInvCat] = useState("all");
   const lotsByAsset = useMemo(() => {
     const m = {};
     allLots.forEach((l) => { (m[l.asset_id] ||= []).push(l); });
@@ -97,10 +103,19 @@ export default function Assets() {
   }, [scopedAssets, goldPriceNum, displayCurrency, rateMap]);
 
   // Reset paginasi saat filter/sort/scope berubah.
-  useEffect(() => { setVisibleCount(10); }, [sortBy, typeFilter, scope]);
+  useEffect(() => { setVisibleCount(10); }, [sortBy, typeFilter, scope, invCat]);
+  useEffect(() => { if (typeFilter !== "investasi") setInvCat("all"); }, [typeFilter]);
 
   const typeOptions = ["all", "bank", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
-  const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
+  const typeFiltered = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
+  // Kategori investasi otomatis (ETF, saham, pasar uang, …) + porsinya.
+  const invBreakdown = useMemo(
+    () => categoryBreakdown(scopedAssets.filter((a) => a.type === "investasi"), convertedValue),
+    [scopedAssets, goldPriceNum, displayCurrency, rateMap], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const filteredAssets = typeFilter === "investasi" && invCat !== "all"
+    ? typeFiltered.filter((a) => investmentCategory(a) === invCat)
+    : typeFiltered;
 
   const sortedAssets = [...filteredAssets].sort((a, b) => {
     const tie = String(a.name || "").localeCompare(String(b.name || ""), "id");
@@ -200,6 +215,25 @@ export default function Assets() {
             ))}
           </div>
 
+          {/* Investasi: kategori otomatis dengan porsi nilai */}
+          {typeFilter === "investasi" && invBreakdown.length > 1 && (
+            <div role="group" aria-label="Kategori investasi" className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-5 px-5 pt-2 pb-1">
+              <button aria-pressed={invCat === "all"} onClick={() => setInvCat("all")}
+                className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-semibold border transition-colors ${invCat === "all" ? "bg-foreground text-background border-foreground" : "bg-card border-border text-muted-foreground"}`}>
+                Semua jenis
+              </button>
+              {invBreakdown.map((c) => (
+                <button key={c.key} aria-pressed={invCat === c.key} onClick={() => setInvCat(c.key)}
+                  className={`shrink-0 h-7 px-2.5 rounded-full text-[11px] font-semibold border transition-colors tabular-nums ${invCat === c.key ? "bg-foreground text-background border-foreground" : "bg-card border-border text-muted-foreground"}`}>
+                  {c.label} <span className="opacity-70">{Math.round(c.pct)}%</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {typeFilter === "investasi" && invCat === "pasar_uang" && (
+            <p className="text-[11px] text-muted-foreground mt-1.5 px-1 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Likuid & stabil — lazim dipakai untuk dana darurat.</p>
+          )}
+
           {/* Konteks per jenis: harga emas acuan untuk emas; harga online untuk investasi */}
           {isGoldType(typeFilter) && <GoldPriceCard grams={goldGramsIdr} className="mt-3" />}
           {/* Perbarui nilai investasi: utamakan data broker tempat membeli; online hanya perkiraan */}
@@ -286,7 +320,7 @@ export default function Assets() {
                       {dn.name}
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                      {meta.label}{dn.ticker ? ` · ${dn.ticker}` : ""}{a.owner ? ` · ${a.owner}` : ""}
+                      {a.type === "investasi" ? CATEGORY_LABEL[investmentCategory(a)] : meta.label}{dn.ticker ? ` · ${dn.ticker}` : ""}{a.owner ? ` · ${a.owner}` : ""}
                       {gold && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
                       {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}
@@ -313,12 +347,13 @@ export default function Assets() {
                   </div>
                 )}
 
-                {/* Investasi: asal nilai & ringkasan DCA dalam satu baris */}
-                {vs && (
-                  <p className="mt-2.5 text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 ${vs.kind === "online" ? "text-warning" : ""}`}>
+                {/* Satu baris bawah: dana darurat, asal nilai & ringkasan DCA */}
+                {(vs || emergencyIds.has(a.id)) && (
+                  <p className="mt-2.5 text-[11px] text-muted-foreground flex items-center gap-x-2.5 gap-y-1 flex-wrap">
+                    {emergencyIds.has(a.id) && <span className="inline-flex items-center gap-1 font-semibold text-income"><ShieldCheck className="w-3 h-3" /> Dana darurat</span>}
+                    {vs && <span className={`inline-flex items-center gap-1 ${vs.kind === "online" ? "text-warning" : ""}`}>
                       {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}{vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
-                    </span>
+                    </span>}
                     {lotsN > 0 && <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" /> {lotsN} lot DCA</span>}
                   </p>
                 )}

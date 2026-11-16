@@ -14,13 +14,14 @@ import InvestmentDca from "@/components/InvestmentDca";
 import CategoryIcon from "@/components/CategoryIcon";
 import Money from "@/components/Money";
 import { confirmAction } from "@/components/ConfirmHost";
-import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots } from "@/hooks/useFinance";
+import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots, useSavingsGoals } from "@/hooks/useFinance";
+import { investmentCategory, CATEGORY_LABEL, emergencyAssetIds } from "@/lib/investmentCategory";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 import {
   assetTypeLabels, colorMap, formatDate, formatDuration, formatMoney, formatNumber, isGoldType,
   assetMarketValue, assetGain, goldPriceIn, conversionPreview, assetDisplayName,
 } from "@/lib/finance";
-import { valueSourceInfo, INSTRUMENTS } from "@/lib/portfolioImport";
+import { valueSourceInfo } from "@/lib/portfolioImport";
 import { ZAKAT_EXCLUDED_TYPES } from "@/lib/zakat";
 
 const UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
@@ -33,6 +34,7 @@ export default function AssetDetail() {
   const refresh = useRefresh();
   const { data: assets = [], isLoading } = useAssets();
   const { data: lots = [] } = useInvestmentLots(id); // sama dengan Riwayat DCA (cache bersama)
+  const { data: goals = [] } = useSavingsGoals();
   const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
   const { price: goldPrice } = useGoldPrice();
@@ -63,6 +65,9 @@ export default function AssetDetail() {
   const perUnitMarket = gold ? goldPriceIn(cur, gp, rateMap) : Number(a.last_price) || (qty ? value / qty : 0);
   const isOwner = !a.created_by_id || a.created_by_id === me?.id;
   const vs = a.type === "investasi" || a.import_source ? valueSourceInfo(a) : null;
+  // Kategori investasi otomatis (ETF, saham, pasar uang, …) — sumber yang sama dengan daftar aset.
+  const catLabel = a.type === "investasi" ? `Investasi · ${CATEGORY_LABEL[investmentCategory(a)]}` : "";
+  const isEmergency = emergencyAssetIds(goals).has(a.id);
   const zakatCounted = !ZAKAT_EXCLUDED_TYPES.includes(a.type);
   const duration = formatDuration(a.purchase_date);
   const buyDates = a.type === "investasi"
@@ -102,7 +107,7 @@ export default function AssetDetail() {
     g.cost > 0 && { icon: Receipt, label: gold || a.type === "tanah" ? "Total harga beli" : "Modal", value: formatMoney(g.cost, cur) },
     a.type === "investasi" && qty > 0 && g.cost > 0 && { icon: Coins, label: "Rata-rata beli", value: `${formatMoney(g.cost / qty, cur)}/${unit}` },
     perUnitMarket > 0 && (gold || a.type === "investasi") && { icon: TrendingUp, label: gold ? "Harga pasar /gram" : `Harga terakhir /${unit}`, value: formatMoney(perUnitMarket, cur) },
-    (a.ticker || a.exchange) && { icon: Hash, label: "Kode", value: [a.ticker, a.exchange, a.instrument && INSTRUMENTS[a.instrument]].filter(Boolean).join(" · ") },
+    (a.ticker || a.exchange) && { icon: Hash, label: "Kode", value: [a.ticker, a.exchange].filter(Boolean).join(" · ") },
     a.broker && { icon: Building2, label: a.type === "investasi" ? "Broker / aplikasi" : "Tempat", value: a.broker },
     // Dibeli bertahap (DCA): tampilkan pertama & terakhir beli dari Riwayat DCA.
     ...(buyDates.length > 1
@@ -117,7 +122,7 @@ export default function AssetDetail() {
 
   return (
     <div className="px-5 pt-6 pb-28">
-      <PageHeader title={assetDisplayName(a).name} subtitle={[meta.label, assetDisplayName(a).ticker, a.broker].filter(Boolean).join(" · ")} back
+      <PageHeader title={assetDisplayName(a).name} subtitle={[catLabel || meta.label, assetDisplayName(a).ticker, a.broker].filter(Boolean).join(" · ")} back
         actions={<button onClick={() => setEditing(true)} aria-label="Ubah aset" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"><Pencil className="w-4 h-4" /></button>} />
 
       {/* Nilai */}
@@ -126,22 +131,24 @@ export default function AssetDetail() {
         <div className="relative">
           <div className="flex items-center gap-2">
             <span className="w-9 h-9 rounded-xl bg-white/90 flex items-center justify-center"><CategoryIcon name={meta.icon} className={`w-4 h-4 ${cm.text}`} /></span>
-            <span className="text-xs opacity-85">{meta.label}</span>
+            <span className="text-xs opacity-85">{catLabel || meta.label}</span>
+            {isEmergency && <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 text-[11px] font-semibold"><ShieldCheck className="w-3 h-3" /> Dana darurat</span>}
             {a.visibility === "private" && <span className="ml-auto inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/15 text-[11px] font-semibold"><Lock className="w-3 h-3" /> Pribadi</span>}
           </div>
           <p className="text-xs opacity-80 mt-4">Nilai saat ini</p>
           <p className="font-heading text-[34px] leading-none font-extrabold tracking-tight tabular-nums mt-1 break-all"><Money value={value} currency={cur} /></p>
           {cur !== mainCur && conversionPreview(value, cur, mainCur, rateMap) && <p className="text-sm opacity-80 mt-1 tabular-nums">{conversionPreview(value, cur, mainCur, rateMap)}</p>}
           {g.available && (
-            <p className="text-sm font-semibold mt-2 inline-flex items-center gap-1 tabular-nums">
+            <p className="text-sm font-semibold mt-2 flex items-center gap-1 tabular-nums">
               {g.gain >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {g.gain >= 0 ? "+" : ""}{formatMoney(g.gain, cur)} ({g.gain >= 0 ? "+" : ""}{g.pct.toFixed(2)}%)
             </p>
           )}
+          {/* Asal nilai: baris sendiri di pojok kanan bawah, tidak menempel ke perubahan */}
           {vs && (
-            <p className="text-[11px] opacity-85 mt-3 inline-flex items-center gap-1">
-              {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}
-              {vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
+            <p className="text-[11px] opacity-80 mt-3 flex items-center justify-end gap-1 text-right">
+              {vs.kind === "online" ? <Globe className="w-3 h-3 shrink-0" /> : <Upload className="w-3 h-3 shrink-0" />}
+              <span>{vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}</span>
             </p>
           )}
         </div>

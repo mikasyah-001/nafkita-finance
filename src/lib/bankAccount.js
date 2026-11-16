@@ -37,13 +37,17 @@ export function defaultBankName(bank, account) {
 
 /**
  * Label aset untuk daftar pilihan (catat transaksi, transfer, dll.):
- * nama + ••1234 agar dua rekening di bank yang sama tidak tertukar.
+ * nama + nomor rekening lengkap, agar rekening di bank yang sama jelas
+ * terbedakan. Akhiran "••1234" di nama (nama otomatis) tidak diulang.
  */
 export function assetLabel(a = {}) {
-  const name = String(a.name || "").trim();
+  const full = formatAccountNumber(a.account_number);
+  let name = String(a.name || "").trim();
+  if (!full) return name;
   const last4 = accountLast4(a.account_number);
-  if (!last4 || name.includes(last4)) return name;
-  return `${name} ••${last4}`;
+  name = name.replace(new RegExp(`\\s*••${last4}$`), "").trim();
+  if (normalizeAccountNumber(name).includes(normalizeAccountNumber(full))) return name;
+  return `${name || "Rekening"} · ${full}`;
 }
 
 /** Rekening yang sama sudah tercatat (abaikan aset yang sedang diubah). */

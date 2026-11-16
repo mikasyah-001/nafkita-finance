@@ -17,8 +17,9 @@ test("tampilan tersamar, lengkap, nama otomatis & label pilihan", () => {
   assert.equal(maskAccount(""), "");
   assert.equal(formatAccountNumber("SA0380000000608010167519"), "SA03 8000 0000 6080 1016 7519");
   assert.equal(defaultBankName("BCA", "1234567890"), "BCA ••7890");
-  assert.equal(assetLabel({ name: "Tabungan BCA", account_number: "1234567890" }), "Tabungan BCA ••7890");
-  assert.equal(assetLabel({ name: "BCA ••7890", account_number: "1234567890" }), "BCA ••7890");
+  assert.equal(assetLabel({ name: "Tabungan BCA", account_number: "1234567890" }), "Tabungan BCA · 1234 5678 90");
+  assert.equal(assetLabel({ name: "BCA ••7890", account_number: "1234567890" }), "BCA · 1234 5678 90");
+  assert.equal(assetLabel({ name: "BCA 1234567890", account_number: "1234567890" }), "BCA 1234567890");
   assert.equal(assetLabel({ name: "Dompet" }), "Dompet");
 });
 

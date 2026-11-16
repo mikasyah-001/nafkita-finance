@@ -925,13 +925,22 @@ try {
     // Pilihan rekening di Catat transaksi menampilkan ••4 digit
     await nav("/add");
     const opts = await page.locator("option").allInnerTexts();
-    assert.ok(opts.some((o) => /BCA ••7890/.test(o)) && opts.some((o) => /BCA ••6677/.test(o)), `Pilihan rekening terbedakan: ${opts.filter((o) => /BCA/.test(o))}`);
-    // Detail: tersamar dulu, bisa ditampilkan
+    assert.ok(opts.some((o) => /BCA · 1234 5678 90/.test(o)) && opts.some((o) => /BCA · 5555 6666 77/.test(o)), `Pilihan rekening menampilkan nomor lengkap: ${opts.filter((o) => /BCA/.test(o))}`);
+    // Daftar aset: nomor lengkap di kartu; rekening lama tanpa nomor diberi tanda
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Tabungan/Bank" }).click();
+    const card = (await page.locator("a.surface", { hasText: "BCA ••7890" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/No\. rek 1234 5678 90/.test(card), `Kartu menampilkan nomor lengkap: ${card}`);
+    assert.ok(/No\. rekening belum diisi/.test(await page.locator("a.surface", { hasText: "Rekening Mandiri" }).first().innerText()), "Rekening lama tanpa nomor ditandai");
+    // Detail: nomor lengkap & bisa disalin; rekening lama → ajakan melengkapi
     const id = await page.evaluate(() => window.__qa.assets.find((x) => x.account_number === "1234567890").id);
     await nav("/riwayat"); await nav(`/aset/${id}`);
-    assert.ok(await page.getByText("••7890").first().isVisible());
-    await page.getByRole("button", { name: "Tampilkan no. rekening" }).click();
-    assert.ok(await page.getByText("1234 5678 90").isVisible(), "Nomor lengkap setelah ditampilkan");
+    assert.ok(await page.getByText("1234 5678 90").first().isVisible(), "Nomor lengkap tampil jelas");
+    assert.ok(await page.getByRole("button", { name: "Salin no. rekening" }).isVisible());
+    await nav("/riwayat"); await nav("/aset/a5");
+    await page.getByRole("button", { name: "+ Tambahkan no. rekening" }).click();
+    assert.ok(await page.locator("#asset-account").isVisible(), "Langsung ke form untuk melengkapi");
+    await page.keyboard.press("Escape");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

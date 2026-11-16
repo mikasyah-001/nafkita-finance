@@ -855,6 +855,38 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await step("Perkiraan online: hasil ringkas; nilai broker hari ini bukan error; tombol tahu jika semua sudah terbaru", async () => {
+    await page.evaluate(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      for (const a of window.__qa.assets) {
+        if (a.type !== "investasi" || a.created_by_id !== "u1") continue;
+        if (!(Number(a.quantity) > 0)) a.quantity = 1;
+        Object.assign(a, a.id === "qa-long2" ? { value_source: "manual", price_date: "2026-11-05" } : { value_source: "broker", price_date: today });
+      }
+      // Harga online yang ditemukan sudah lama → ditolak
+      window.__qaLLM = [({ prompt }) => ({ prices: prompt.split("\n").map((l) => l.match(/^(\d+)\. /)).filter(Boolean).map(([, i]) => ({ index: i, price: "1450", currency: "IDR", as_of: "2026-10-01", source: "Bareksa" })) })];
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    const sheet = page.getByRole("dialog", { name: "Perbarui nilai investasi" });
+    await sheet.getByRole("button", { name: "Perkiraan online (1)" }).click();
+    await page.waitForTimeout(1200);
+    const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: "Belum ada harga online terbaru" }).first();
+    assert.ok(await toastEl.isVisible(), "Peringatan ringkas, bukan error");
+    const txt = (await toastEl.innerText()).replace(/\s+/g, " ");
+    assert.ok(/sudah terbaru dari broker hari ini/.test(txt) && /Mandiri Pasar Uang Syariah Ekstra belum terbaru/.test(txt), txt);
+    assert.equal(await page.getByText("Belum ada harga yang bisa dipakai").count(), 0);
+    assert.ok(txt.length < 220, `Tidak panjang (${txt.length})`);
+    await page.keyboard.press("Escape");
+    // Semua sudah dari broker hari ini → tombol nonaktif & jelas
+    await page.evaluate(() => { const a = window.__qa.assets.find((x) => x.id === "qa-long2"); Object.assign(a, { value_source: "broker", price_date: new Date().toISOString().slice(0, 10) }); });
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    const btn = page.getByRole("dialog", { name: "Perbarui nilai investasi" }).getByRole("button", { name: "Semua sudah terbaru" });
+    assert.ok(await btn.isDisabled(), "Tombol nonaktif bila semua sudah terbaru");
+    await page.keyboard.press("Escape");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

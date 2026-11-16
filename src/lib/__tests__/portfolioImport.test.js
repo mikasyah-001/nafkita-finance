@@ -200,7 +200,7 @@ test("Harga online divalidasi: mata uang, selisih wajar, kebaruan", () => {
   assert.equal(validateLivePrice({ price: "63.45", currency: "SAR", as_of: "2026-11-16" }, it, now).ok, true);
   assert.equal(validateLivePrice({ price: "16.9", currency: "USD", as_of: "2026-11-16" }, it, now).ok, false, "Mata uang beda");
   assert.match(validateLivePrice({ price: "126.6", currency: "SAR", as_of: "2026-11-16" }, it, now).reason, /Selisih 100%/);
-  assert.match(validateLivePrice({ price: "63", currency: "SAR", as_of: "2026-10-01" }, it, now).reason, /Data lama/);
+  assert.match(validateLivePrice({ price: "63", currency: "SAR", as_of: "2026-10-01" }, it, now).reason, /Data lama: harga online terakhir 2026-10-01/);
   assert.equal(validateLivePrice({ price: "", currency: "SAR" }, it, now).ok, false);
 });
 

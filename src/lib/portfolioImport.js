@@ -375,7 +375,7 @@ export function validateLivePrice(p, it, today = new Date()) {
   }
   if (base.as_of) {
     const age = (today - new Date(base.as_of)) / 864e5;
-    if (age > 10) return { ...base, ok: false, reason: `Data lama (${base.as_of})` };
+    if (age > 10) return { ...base, ok: false, reason: `Data lama: harga online terakhir ${base.as_of}` };
   }
   return { ...base, ok: true, reason: "" };
 }

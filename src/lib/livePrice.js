@@ -4,6 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { base44 } from "@/api/base44Client";
 import { num, validateLivePrice, brokerPriceSource } from "./portfolioImport.js";
+import { liveTargets } from "./liveSummary.js";
+export { liveTargets, summarizeLiveResult } from "./liveSummary.js";
 
 
 const keyOf = (it) => (it.ticker ? `${it.ticker}|${(it.exchange || "").toUpperCase()}` : (it.name || "").toLowerCase());
@@ -53,11 +55,7 @@ export const liveKey = keyOf;
  * Mengembalikan { updated: [{asset, price}], skipped: [{asset, reason}] }.
  */
 export async function refreshAssetPrices(assets, updateAsset) {
-  const today = new Date().toISOString().slice(0, 10);
-  const all = assets.filter((a) => a.type === "investasi" && (a.ticker || a.name) && Number(a.quantity) > 0);
-  // Nilai dari broker hari ini lebih tepat daripada perkiraan online → tidak ditimpa.
-  const fresh = all.filter((a) => a.value_source === "broker" && String(a.price_date || "").slice(0, 10) >= today);
-  const targets = all.filter((a) => !fresh.includes(a));
+  const { fresh, targets } = liveTargets(assets);
   const items = targets.map((a) => ({
     key: a.id, name: String(a.name || "").replace(/\s*\(.*?\)\s*$/, ""), ticker: a.ticker, exchange: a.exchange || "",
     broker: a.broker || "", instrument: a.instrument || "",
@@ -66,7 +64,8 @@ export async function refreshAssetPrices(assets, updateAsset) {
     ref_price: Number(a.last_price) || (Number(a.value) && Number(a.quantity) ? Number(a.value) / Number(a.quantity) : 0) || (Number(a.purchase_price) && Number(a.quantity) ? Number(a.purchase_price) / Number(a.quantity) : 0),
   }));
   const found = targets.length ? await fetchLivePrices(items) : new Map();
-  const updated = [], skipped = fresh.map((a) => ({ asset: a, reason: `nilai dari ${a.broker || "broker"} hari ini sudah terbaru` }));
+  // `fresh` dilaporkan terpisah: itu bukan kegagalan.
+  const updated = [], skipped = [];
   for (const a of targets) {
     const lp = found.get(a.id);
     if (!lp || !lp.ok) { skipped.push({ asset: a, reason: lp?.reason || "Tidak ditemukan" }); continue; }
@@ -80,5 +79,5 @@ export async function refreshAssetPrices(assets, updateAsset) {
     });
     updated.push({ asset: a, price: lp.price });
   }
-  return { updated, skipped };
+  return { updated, skipped, fresh };
 }

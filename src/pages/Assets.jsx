@@ -14,11 +14,12 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/errorMessage";
 import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Calendar, Layers, ShieldCheck, RefreshCw } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
-import { refreshAssetPrices } from "@/lib/livePrice";
+import { refreshAssetPrices, summarizeLiveResult, liveTargets } from "@/lib/livePrice";
 import { valueSourceInfo } from "@/lib/portfolioImport";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
@@ -75,12 +76,13 @@ export default function Assets() {
   const handleLivePrices = async () => {
     setLivePricing(true);
     try {
-      const { updated, skipped } = await refreshAssetPrices(priceable, (id, patch) => base44.entities.Asset.update(id, patch));
+      const res = await refreshAssetPrices(priceable, (id, patch) => base44.entities.Asset.update(id, patch));
       refresh();
-      if (updated.length) toast.success(`${updated.length} nilai diperbarui (perkiraan online)`, { description: `Untuk angka persis, perbarui dari broker.${skipped.length ? ` Dilewati: ${skipped.map((x) => `${x.asset.name} (${x.reason})`).join(", ")}` : ""}` });
-      else toast.error("Belum ada harga yang bisa dipakai", { description: skipped.map((x) => `${x.asset.name}: ${x.reason}`).join(" · ") });
+      // Ringkas: "sudah terbaru dari broker" bukan kegagalan → bukan toast error.
+      const sum = summarizeLiveResult(res);
+      (sum.tone === "success" ? toast.success : sum.tone === "info" ? toast.info : toast.warning)(sum.title, sum.description ? { description: sum.description } : undefined);
     } catch (e) {
-      toast.error("Gagal mencari harga online", { description: e?.message });
+      toast.error("Gagal mencari harga online", { description: errorMessage(e) });
     }
     setLivePricing(false);
   };
@@ -373,7 +375,7 @@ export default function Assets() {
 
       {valueSheet && (
         <InvestmentValueSheet assets={ownInvestments} onClose={() => setValueSheet(false)} onSaved={refresh}
-          onLive={handleLivePrices} livePricing={livePricing} />
+          onLive={handleLivePrices} livePricing={livePricing} liveCount={liveTargets(priceable).targets.length} />
       )}
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 

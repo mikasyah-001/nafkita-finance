@@ -14,10 +14,24 @@ export default async function (req) {
     if (me.role !== "admin")
       return Response.json({ error: "forbidden" }, { status: 403 });
 
-    const [users, partnerships] = await Promise.all([
+    // Pengguna & partnership dimuat terpisah: satu gagal tidak mengosongkan panel.
+    const [ru, rp] = await Promise.allSettled([
       fetchAll(base44.asServiceRole.entities.User),
       fetchAll(base44.asServiceRole.entities.Partnership),
     ]);
+    const errors = [];
+    const pick = (r, source) => {
+      if (r.status === "fulfilled") return r.value || [];
+      const message = r.reason?.message || String(r.reason);
+      console.error(`adminListUsers: gagal memuat ${source}:`, message);
+      errors.push({ source, message });
+      return [];
+    };
+    const users = pick(ru, "pengguna");
+    const partnerships = pick(rp, "pasangan");
+    if (errors.length === 2) {
+      return Response.json({ error: `Gagal memuat pengguna & pasangan: ${errors.map((e) => e.message).join("; ")}`, errors }, { status: 500 });
+    }
 
     await logAdminAction(base44, {
       actor_id: me.id,
@@ -31,8 +45,10 @@ export default async function (req) {
     return Response.json({
       users: users || [],
       partnerships: partnerships || [],
+      errors,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("adminListUsers:", error);
+    return Response.json({ error: error?.message || String(error) }, { status: 500 });
   }
 }

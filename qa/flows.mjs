@@ -817,6 +817,22 @@ try {
     assert.equal(a.instrument, "pasar_uang"); assert.equal(a.instrument_manual, false);
   });
 
+  await step("Panel admin: kegagalan backend menampilkan pesan asli; gagal sebagian tidak mengosongkan panel", async () => {
+    await page.evaluate(() => { window.__qaFnFail = { adminStats: { status: 500, error: "Batas permintaan entitas User terlampaui" } }; });
+    await nav("/riwayat"); await nav("/admin");
+    await page.waitForTimeout(900);
+    assert.ok(await page.getByText("Batas permintaan entitas User terlampaui (kode 500)").first().isVisible(), "Pesan asli server tampil");
+    assert.equal(await page.getByText("Request failed with status code 500").count(), 0);
+    // Gagal sebagian → statistik lain tetap tampil + peringatan sumber yang gagal
+    await page.evaluate(() => { window.__qaFnFail = {}; window.__qaFnPartial = { adminStats: [{ source: "transaksi", message: "waktu habis" }] }; });
+    await nav("/riwayat"); await nav("/admin");
+    await page.waitForTimeout(900);
+    assert.ok(await page.getByText("Sebagian statistik gagal dimuat").first().isVisible());
+    assert.ok(await page.getByText("transaksi: waktu habis").first().isVisible());
+    assert.ok(await page.getByText("Aktivitas pengguna").isVisible(), "Panel statistik tetap tampil");
+    await page.evaluate(() => { window.__qaFnPartial = {}; });
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

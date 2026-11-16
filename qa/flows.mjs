@@ -616,6 +616,8 @@ try {
     assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible(), "Riwayat DCA langsung di detail aset");
     assert.ok(await page.getByText(/2 lot · sejak 12 Jan 2026/).isVisible(), "Ringkasan lot");
     assert.ok(await page.getByText("Modal").first().isVisible(), "Rincian aset di halaman yang sama");
+    const det = (await page.locator('section[aria-label="Rincian"]').innerText()).replace(/\s+/g, " ");
+    assert.ok(/Pertama beli 12 Jan 2026/.test(det) && /Terakhir beli 10 Mar 2026/.test(det), `Tanggal pertama & terakhir dari Riwayat DCA: ${det}`);
     await page.getByRole("button", { name: /Catat pembelian/ }).click();
     await page.fill("#investment-lot-quantity", "5");
     await page.fill("#investment-lot-price", "9.5");

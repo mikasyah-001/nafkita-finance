@@ -14,7 +14,7 @@ import InvestmentDca from "@/components/InvestmentDca";
 import CategoryIcon from "@/components/CategoryIcon";
 import Money from "@/components/Money";
 import { confirmAction } from "@/components/ConfirmHost";
-import { useAssets, useMe, useRateMap, useRefresh } from "@/hooks/useFinance";
+import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots } from "@/hooks/useFinance";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 import {
   assetTypeLabels, colorMap, formatDate, formatDuration, formatMoney, formatNumber, isGoldType,
@@ -32,6 +32,7 @@ export default function AssetDetail() {
   const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: assets = [], isLoading } = useAssets();
+  const { data: lots = [] } = useInvestmentLots(id); // sama dengan Riwayat DCA (cache bersama)
   const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
   const { price: goldPrice } = useGoldPrice();
@@ -64,6 +65,9 @@ export default function AssetDetail() {
   const vs = a.type === "investasi" || a.import_source ? valueSourceInfo(a) : null;
   const zakatCounted = !ZAKAT_EXCLUDED_TYPES.includes(a.type);
   const duration = formatDuration(a.purchase_date);
+  const buyDates = a.type === "investasi"
+    ? lots.filter((l) => (l.side || "buy") !== "sell").map((l) => String(l.date).slice(0, 10)).filter(Boolean).sort()
+    : [];
 
   const setVisibility = async (next) => {
     if (busy || next === (a.visibility || "shared")) return;
@@ -100,7 +104,13 @@ export default function AssetDetail() {
     perUnitMarket > 0 && (gold || a.type === "investasi") && { icon: TrendingUp, label: gold ? "Harga pasar /gram" : `Harga terakhir /${unit}`, value: formatMoney(perUnitMarket, cur) },
     (a.ticker || a.exchange) && { icon: Hash, label: "Kode", value: [a.ticker, a.exchange, a.instrument && INSTRUMENTS[a.instrument]].filter(Boolean).join(" · ") },
     a.broker && { icon: Building2, label: a.type === "investasi" ? "Broker / aplikasi" : "Tempat", value: a.broker },
-    a.purchase_date && { icon: CalendarDays, label: "Tanggal beli", value: `${formatDate(a.purchase_date, "d MMM yyyy")}${duration ? ` · ${duration}` : ""}` },
+    // Dibeli bertahap (DCA): tampilkan pertama & terakhir beli dari Riwayat DCA.
+    ...(buyDates.length > 1
+      ? [
+          { icon: CalendarDays, label: "Pertama beli", value: `${formatDate(buyDates[0], "d MMM yyyy")}${formatDuration(buyDates[0]) ? ` · ${formatDuration(buyDates[0])}` : ""}` },
+          { icon: CalendarDays, label: "Terakhir beli", value: formatDate(buyDates.at(-1), "d MMM yyyy") },
+        ]
+      : [a.purchase_date && { icon: CalendarDays, label: "Tanggal beli", value: `${formatDate(a.purchase_date, "d MMM yyyy")}${duration ? ` · ${duration}` : ""}` }]),
     a.owner && { icon: UserRound, label: "Pemilik", value: a.owner },
     a.notes && { icon: NotebookPen, label: "Catatan", value: a.notes, wide: true },
   ].filter(Boolean);

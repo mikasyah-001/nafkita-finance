@@ -52,7 +52,7 @@ const DATA = {
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
 };
 const FN = {
-  listVisibleTransactions: () => ({ transactions: [...db.tx].sort((a, b) => new Date(b.date) - new Date(a.date)) }),
+  listVisibleTransactions: () => ({ transactions: db.tx.map((t) => ({ ...t })).sort((a, b) => new Date(b.date) - new Date(a.date)) }),
   listVisibleAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }), // salinan, seperti respons server
   listVisibleBudgets: () => ({ budgets: [...(DATA.Budget || []),
     { id: "b1", category: "Belanja", limit_amount: 2000000, currency: "IDR", period: ym, visibility: "shared" },
@@ -120,7 +120,7 @@ const entity = (name) => ({
     return r;
   },
   bulkCreate: async (a) => a,
-  update: async (i, o) => { const list = name === "Asset" ? db.assets : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
+  update: async (i, o) => { const list = name === "Asset" ? db.assets : name === "Transaction" ? db.tx : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
   updateMany: async () => ({}),
   delete: async (i) => { DATA[name] = (DATA[name] || []).filter((r) => r.id !== i); return {}; },
   subscribe: () => () => {},
@@ -132,7 +132,10 @@ export const base44 = {
   },
   entities: new Proxy({}, { get: (_, k) => entity(k) }),
   functions: { invoke: async (name, args = {}) => ({ data: FN[name] ? FN[name](args) : {} }) },
-  integrations: new Proxy({}, { get: () => new Proxy({}, { get: () => async () => ({}) }) }),
+  integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadFile")
+    // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
+    ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
+    : async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.
 if (typeof window !== "undefined") { window.__qa = db; window.__qaData = DATA; }

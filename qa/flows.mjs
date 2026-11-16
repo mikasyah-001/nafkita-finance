@@ -113,6 +113,28 @@ try {
     await page.evaluate((i) => { window.__qa.tx.find((t) => t.id === i).merchant = "QA Warung"; }, t0.id);
   });
 
+  await step("Bukti transaksi: tambah dari Detail, tampil, buka layar penuh, hapus", async () => {
+    const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
+    await nav(`/transaksi/${t0.id}`);
+    assert.ok(await page.getByText("Tambah foto bukti").isVisible(), "Ajakan tambah bukti tampil saat belum ada");
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==", "base64");
+    await page.locator('section[aria-label="Bukti transaksi"] input[type=file]').setInputFiles({ name: "bon.png", mimeType: "image/png", buffer: png });
+    await page.waitForTimeout(900);
+    const saved = await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id);
+    assert.ok(saved && saved.startsWith("data:image/png"), "photo_url tersimpan");
+    const img = page.locator('section[aria-label="Bukti transaksi"] img');
+    const box = await img.boundingBox();
+    assert.ok(box && box.height > 50, `Bukti terlihat (tinggi ${box?.height})`);
+    await page.getByRole("button", { name: "Lihat bukti layar penuh" }).click();
+    assert.ok(await page.getByRole("dialog", { name: "Bukti transaksi" }).isVisible(), "Pratinjau layar penuh");
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    await page.locator('section[aria-label="Bukti transaksi"]').getByRole("button", { name: "Hapus", exact: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: /Hapus|Ya/ }).click();
+    await page.waitForTimeout(700);
+    assert.equal(await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id), "", "Bukti dihapus, transaksi tetap");
+    assert.ok(await page.getByText("Tambah foto bukti").isVisible());
+  });
+
   await step("Hapus transaksi: dialog konfirmasi muncul, Batal tidak menghapus, Hapus menghapus", async () => {
     const txId = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung").id);
     await nav(`/transaksi/${txId}`);

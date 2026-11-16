@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useAssets, useRateMap } from "@/hooks/useFinance";
@@ -8,8 +8,11 @@ import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { usePartnership } from "@/hooks/usePartnership";
-import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
+import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ImagePlus, ImageOff, FileText, Maximize2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { confirmAction } from "@/components/ConfirmHost";
+
+const isPdfUrl = (u) => /\.pdf($|\?)/i.test(u || "");
 
 const typeLabels = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -36,6 +39,9 @@ export default function TransactionDetail() {
 
   const [viewPhoto, setViewPhoto] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imgFailed, setImgFailed] = useState(null);
+  const proofRef = useRef(null);
   const [cancelling, setCancelling] = useState(false);
 
   // Admin fallback: bila transaksi tidak ada di daftar terlihat (milik user lain
@@ -90,6 +96,36 @@ export default function TransactionDetail() {
       toast.error("Gagal membatalkan permintaan");
     }
     setCancelling(false);
+  };
+
+  // Bukti bisa ditambah/diganti tanpa membuka form edit (hanya kolom photo_url,
+  // tidak memengaruhi saldo). Tidak untuk transaksi yang menunggu persetujuan.
+  const canEditProof = canManage && inList && !isPending;
+  const uploadProof = async (e) => {
+    const file = e.target.files?.[0];
+    if (proofRef.current) proofRef.current.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) return toast.error("File terlalu besar", { description: "Maksimal 10 MB." });
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Transaction.update(id, { photo_url: file_url });
+      refresh();
+      toast.success("Bukti transaksi disimpan");
+    } catch {
+      toast.error("Gagal mengunggah bukti");
+    }
+    setUploading(false);
+  };
+  const removeProof = async () => {
+    if (!(await confirmAction({ title: "Hapus bukti transaksi?", description: "Hanya lampiran yang dihapus, transaksinya tetap." }))) return;
+    try {
+      await base44.entities.Transaction.update(id, { photo_url: "" });
+      refresh();
+      toast.success("Bukti dihapus");
+    } catch {
+      toast.error("Gagal menghapus bukti");
+    }
   };
 
   const setVisibility = async (next) => {
@@ -207,19 +243,46 @@ export default function TransactionDetail() {
         </div>
       </section>
 
-      {/* Bon / struk */}
-      {tx.photo_url && (
-        <section aria-label="Bon / struk" className="surface rounded-3xl p-3 mb-4">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <p className="text-sm font-semibold flex items-center gap-1.5"><Receipt className="w-4 h-4 text-muted-foreground" /> Bon / struk</p>
-            <button onClick={() => setViewPhoto(true)} className="text-xs font-semibold text-primary">Lihat penuh</button>
+      {/* Bukti transaksi (foto bon/struk/transfer, atau PDF) */}
+      <section aria-label="Bukti transaksi" className="surface rounded-3xl p-3 mb-4">
+        <div className="flex items-center justify-between gap-2 px-1 mb-2">
+          <p className="text-sm font-semibold flex items-center gap-1.5"><Receipt className="w-4 h-4 text-muted-foreground" /> Bukti transaksi</p>
+          {tx.photo_url && canEditProof && (
+            <div className="flex items-center gap-3">
+              <button onClick={() => proofRef.current?.click()} disabled={uploading} className="text-xs font-semibold text-primary disabled:opacity-60">Ganti</button>
+              <button onClick={removeProof} disabled={uploading} className="text-xs font-semibold text-destructive disabled:opacity-60">Hapus</button>
+            </div>
+          )}
+        </div>
+        {uploading ? (
+          <div className="h-40 rounded-2xl bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-6 h-6 animate-spin" /><span className="text-xs">Mengunggah bukti…</span>
           </div>
-          <button type="button" onClick={() => setViewPhoto(true)} aria-label="Lihat bon layar penuh" className="block w-full rounded-2xl overflow-hidden bg-muted">
-            <img src={tx.photo_url} alt="Bon transaksi" className="w-full max-h-72 object-contain" />
+        ) : tx.photo_url ? (
+          <button type="button" onClick={() => setViewPhoto(true)} aria-label="Lihat bukti layar penuh" className="relative block w-full rounded-2xl overflow-hidden bg-muted">
+            {isPdfUrl(tx.photo_url) ? (
+              <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><FileText className="w-8 h-8" /><span className="text-xs font-medium">Dokumen PDF · ketuk untuk membuka</span></span>
+            ) : (
+              imgFailed === tx.photo_url ? (
+              <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><ImageOff className="w-7 h-7" /><span className="text-xs font-medium">Pratinjau tidak bisa dimuat · ketuk untuk membuka</span></span>
+            ) : (
+              <img src={tx.photo_url} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
+            )
+            )}
+            <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>
           </button>
-        </section>
-      )}
-      {viewPhoto && tx.photo_url && <ProofViewer url={tx.photo_url} title="Bon / struk" onClose={() => setViewPhoto(false)} />}
+        ) : canEditProof ? (
+          <button onClick={() => proofRef.current?.click()} className="w-full h-28 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground active:scale-[0.99] transition-transform">
+            <ImagePlus className="w-6 h-6" />
+            <span className="text-sm font-medium">Tambah foto bukti</span>
+            <span className="text-[11px]">Bon, struk, atau bukti transfer (gambar/PDF)</span>
+          </button>
+        ) : (
+          <p className="text-xs text-muted-foreground px-1 pb-1">Belum ada bukti terlampir.</p>
+        )}
+        <input ref={proofRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={uploadProof} />
+      </section>
+      {viewPhoto && tx.photo_url && <ProofViewer url={tx.photo_url} title="Bukti transaksi" onClose={() => setViewPhoto(false)} />}
 
       {!isOwner && !isAdmin && (
         <p className="text-xs text-muted-foreground text-center px-6 leading-snug">Transaksi ini dicatat oleh {tx.input_by_name || "pasangan"}. Anda hanya dapat melihatnya.</p>

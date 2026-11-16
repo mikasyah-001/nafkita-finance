@@ -284,56 +284,76 @@ function Stat({ label, value, strong }) {
   );
 }
 
-const FIELDS = [
-  ["quantity", "Jumlah unit / gram"],
-  ["avg_cost", "Harga rata-rata per unit"],
-  ["total_cost", "Modal total"],
-  ["last_price", "Harga terakhir per unit"],
-  ["market_value", "Nilai pasar"],
-];
-
 function EditSheet({ row, onClose, onChange, currencies }) {
   if (!row) return null;
+  const cur = row.currency;
+  const isGold = row.instrument === "emas";
+  const unitLabel = isGold ? "gram" : row.instrument === "saham" ? "lembar" : "unit";
+  const gain = row.market_value != null && row.total_cost != null ? row.market_value - row.total_cost : null;
+  const setNum = (k) => (v) => onChange({ [k]: v === "" ? null : Number(v) });
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-foreground/30 backdrop-blur-[2px]" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Ubah kepemilikan" onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-background rounded-t-[28px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-h-[88vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
+        className="w-full max-w-md bg-background rounded-t-[28px] max-h-[92vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 className="font-heading font-bold text-lg">Ubah kepemilikan</h2>
           <button onClick={onClose} aria-label="Tutup" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
         </div>
-        <div className="space-y-3">
+
+        <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-3">
+          {/* Identitas: nama lebar, kode & mata uang sebaris */}
           <Field label="Nama" value={row.name} onChange={(v) => onChange({ name: v })} text />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[1fr_6.5rem] gap-2.5">
             <Field label="Kode / ticker" value={row.ticker} onChange={(v) => onChange({ ticker: v.toUpperCase() })} text />
             <label className="block">
               <span className="text-[11px] text-muted-foreground">Mata uang</span>
-              <select value={row.currency} onChange={(e) => onChange({ currency: e.target.value })} className="w-full h-11 rounded-2xl border border-border bg-card px-3 text-sm mt-1">
+              <select value={cur} onChange={(e) => onChange({ currency: e.target.value })} className="w-full h-10 rounded-xl border border-border bg-card px-2.5 text-sm mt-0.5">
                 {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </label>
           </div>
-          <div>
-            <span className="text-[11px] text-muted-foreground">Jenis</span>
-            <div className="mt-1"><ChipChoice size="sm" ariaLabel="Jenis instrumen" value={row.instrument} onChange={(v) => onChange({ instrument: v })}
-              options={Object.entries(INSTRUMENTS).map(([value, label]) => ({ value, label }))} /></div>
+
+          {/* Jenis: satu baris geser */}
+          <div role="radiogroup" aria-label="Jenis instrumen" className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-5 px-5">
+            {Object.entries(INSTRUMENTS).map(([value, label]) => {
+              const on = row.instrument === value;
+              return (
+                <button key={value} type="button" role="radio" aria-checked={on} onClick={() => onChange({ instrument: value })}
+                  className={`shrink-0 h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/80"}`}>{label}</button>
+              );
+            })}
           </div>
-          {FIELDS.map(([k, label]) => (
-            <Field key={k} label={k === "quantity" ? label : `${label} (${row.currency})`} value={row[k] ?? ""} onChange={(v) => onChange({ [k]: v === "" ? null : Number(v) })} />
-          ))}
+
+          {/* Angka: kartu ringkas 2 kolom, mata uang sebagai akhiran */}
+          <div className="surface rounded-2xl p-3 grid grid-cols-2 gap-x-2.5 gap-y-2.5">
+            <Field label="Jumlah" suffix={unitLabel} value={row.quantity} onChange={setNum("quantity")} />
+            <Field label={isGold ? "Harga beli /gr" : "Rata-rata /unit"} suffix={cur} value={row.avg_cost} onChange={setNum("avg_cost")} />
+            <Field label="Modal total" suffix={cur} value={row.total_cost} onChange={setNum("total_cost")} />
+            <Field label="Nilai pasar" suffix={cur} value={row.market_value} onChange={setNum("market_value")} strong />
+            <p className="col-span-2 text-[11px] text-muted-foreground leading-snug tabular-nums">
+              {row.last_price ? `Harga terakhir ${formatMoney(row.last_price, cur)}/${unitLabel}` : "Harga terakhir dihitung otomatis"}
+              {gain != null && <span className={`font-semibold ${gain >= 0 ? "text-income" : "text-expense"}`}> · {gain >= 0 ? "untung +" : "rugi "}{formatMoney(gain, cur)}</span>}
+            </p>
+          </div>
         </div>
-        <button onClick={onClose} className="w-full btn-primary mt-5"><Check className="w-5 h-5" /> Selesai</button>
+
+        <div className="px-5 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
+          <button onClick={onClose} className="w-full btn-primary"><Check className="w-5 h-5" /> Selesai</button>
+        </div>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, text }) {
+function Field({ label, value, onChange, text, suffix, strong }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="text-[11px] text-muted-foreground">{label}</span>
-      <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} type={text ? "text" : "number"} inputMode={text ? "text" : "decimal"}
-        className="w-full h-11 rounded-2xl border border-border bg-card px-3 text-sm mt-1 tabular-nums outline-none focus:ring-2 ring-primary/30" />
+      <span className="mt-0.5 flex items-center h-10 rounded-xl border border-border bg-card px-3 focus-within:ring-2 ring-primary/30">
+        <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} type={text ? "text" : "number"} inputMode={text ? "text" : "decimal"}
+          className={`flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums ${strong ? "font-bold" : ""}`} />
+        {suffix && <span className="text-[11px] text-muted-foreground ml-1.5 shrink-0">{suffix}</span>}
+      </span>
     </label>
   );
 }

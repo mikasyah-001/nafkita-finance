@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -230,6 +230,7 @@ export default function Assets() {
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = currentValue(a);
             const rank = rankMap[a.id];
+            const dn = assetDisplayName(a);
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
             const g = assetGain(a, goldPriceNum, rateMap);
             const gain = g.gain;
@@ -260,7 +261,7 @@ export default function Assets() {
               cells.push(["Perubahan", showChange ? (
                 <span key="c" className={`inline-flex items-center gap-1 ${isGain ? "text-income" : "text-expense"}`}>
                   {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                  <span>{isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)</span>
                 </span>
               ) : <span key="c" className="text-warning">{g.currencySuspect ? "Mata uang tampak keliru" : g.needsGoldPrice ? "Atur harga emas acuan" : "—"}</span>]);
             }
@@ -269,21 +270,23 @@ export default function Assets() {
               <Link key={a.id} to={`/aset/${a.id}`} aria-label={`Detail aset ${a.name}`}
                 className="surface p-4 block active:scale-[0.99] transition-transform">
                 <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0 self-start">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
                       <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
                     </div>
-                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
-                      {rank}
-                    </span>
+                    {rank <= 3 && (
+                      <span title={`Nilai terbesar ke-${rank}`} className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
+                        {rank}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate flex items-center gap-1">
-                      {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
-                      {a.name}
+                    <p className="text-sm font-semibold leading-snug line-clamp-2 break-words" title={a.name}>
+                      {a.visibility === "private" && <Lock className="inline w-3 h-3 mr-1 -mt-0.5 text-muted-foreground" aria-label="Pribadi" />}
+                      {dn.name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {meta.label}{a.owner ? ` · ${a.owner}` : ""}
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {meta.label}{dn.ticker ? ` · ${dn.ticker}` : ""}{a.owner ? ` · ${a.owner}` : ""}
                       {gold && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
                       {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}

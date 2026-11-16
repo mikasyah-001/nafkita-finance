@@ -608,7 +608,7 @@ try {
     // Kartu Aset menampilkan Riwayat DCA dari data lot yang sama
     await nav("/aset");
     await page.waitForTimeout(600);
-    const card = page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first();
+    const card = page.locator("a.surface[aria-label=\"Detail aset KINGDOM (4280)\"]").first();
     assert.ok(/2 lot DCA/.test((await card.innerText()).replace(/\s+/g, " ")), "Jumlah lot di kartu aset");
     await card.click();
     await page.waitForTimeout(500);
@@ -625,7 +625,7 @@ try {
     await page.waitForTimeout(900);
     await nav("/aset");
     await page.waitForTimeout(600);
-    const t = (await page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
+    const t = (await page.locator("a.surface[aria-label=\"Detail aset KINGDOM (4280)\"]").first().innerText()).replace(/\s+/g, " ");
     assert.ok(/3 lot DCA/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
     const a2 = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "4280"));
     assert.equal(a2.quantity, 105, "100 + 5 lembar");
@@ -653,6 +653,136 @@ try {
     assert.ok(/Harga Beli \/gr/.test(goldCard) && /Harga Pasar \/gr/.test(goldCard) && /Total Beli/.test(goldCard) && /Perubahan/.test(goldCard), `Rincian di kartu: ${goldCard}`);
     const anak = (await page.locator("a.surface", { hasText: "Emas tabungan anak" }).first().innerText()).replace(/\s+/g, " ");
     assert.ok(/Disimpan .*sejak/.test(anak), `Lama disimpan tampil bila ada tanggal beli: ${anak}`);
+  });
+
+  await step("Pasangan melihat Riwayat DCA aset bersama (hanya-baca); impor tidak menimpa aset pasangan", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push({ id: "qa-siti-inv", name: "SABIC Siti (2010)", ticker: "2010", type: "investasi", instrument: "saham", unit: "lembar", currency: "SAR", quantity: 30, value: 2100, purchase_price: 2000, broker: "Al Rajhi Capital", visibility: "shared", created_by_id: "u2", created_date: now, updated_date: now });
+      (window.__qaData.InvestmentLot ||= []).push(
+        { id: "ls1", asset_id: "qa-siti-inv", date: "2026-03-01", quantity: 20, price_per_unit: 66, amount: 1320, side: "buy", source: "manual", created_by_id: "u2" },
+        { id: "ls2", asset_id: "qa-siti-inv", date: "2026-06-01", quantity: 10, price_per_unit: 68, amount: 680, side: "buy", source: "manual", created_by_id: "u2" },
+      );
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(600);
+    const card = (await page.locator("a.surface", { hasText: "SABIC Siti" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/2 lot DCA/.test(card), `Kartu aset pasangan menampilkan lot: ${card}`);
+    await page.getByRole("link", { name: "Detail aset SABIC Siti (2010)" }).click();
+    await page.waitForTimeout(700);
+    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
+    assert.ok(await page.getByText("2 lot · sejak 1 Mar 2026").isVisible(), "Lot pasangan tampil");
+    assert.ok(await page.getByText(/riwayat hanya bisa dilihat/).isVisible(), "Mode hanya-baca");
+    assert.equal(await page.getByRole("button", { name: /Catat pembelian/ }).count(), 0, "Tidak bisa mencatat di aset pasangan");
+    assert.equal(await page.getByRole("button", { name: /^Hapus lot/ }).count(), 0, "Tidak bisa menghapus lot pasangan");
+    // Impor dengan kode sama (2010) → aset BARU milik sendiri, bukan memperbarui aset Siti
+    await page.evaluate(() => { window.__qaLLM = [{ holdings: [{ name: "SABIC", ticker: "2010", currency: "SAR", quantity: "5", market_value: "⃁ 350.00", total_cost: "⃁ 340.00" }] }]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "s.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1200);
+    const row = (await page.locator("li.surface", { hasText: "SABIC" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(!/Perbarui "SABIC Siti/.test(row), `Tidak mencocokkan aset pasangan: ${row}`);
+  });
+
+  await step("Kartu aset: nama panjang tidak terpotong, ticker dipisah, peringkat hanya 3 teratas", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push(
+        { id: "qa-long1", name: "SP FUNDS S&P 500 SHARIA (SPUS)", ticker: "SPUS", type: "investasi", unit: "unit", currency: "IDR", quantity: 65, value: 3694600, purchase_price: 3627000, broker: "Al Rajhi Capital", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+        { id: "qa-long2", name: "Mandiri Pasar Uang Syariah Ekstra", type: "investasi", unit: "unit", currency: "IDR", quantity: 15390.581, value: 22315881, purchase_price: 21750000, broker: "Livin Mandiri", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+      );
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(600);
+    const spus = page.locator("a.surface", { hasText: "SP FUNDS" }).first();
+    const name = spus.locator("p.line-clamp-2").first();
+    assert.equal((await name.innerText()).trim(), "SP FUNDS S&P 500 SHARIA", "Ticker dipisah dari nama");
+    const fits = await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    assert.ok(fits, "Nama tidak terpotong ke samping");
+    assert.ok(/· SPUS ·/.test(await spus.innerText()), "Ticker tampil di baris info");
+    const mandiri = (await page.locator("a.surface", { hasText: "Mandiri Pasar Uang Syariah Ekstra" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/\+Rp\s?565\.881 \(\+2\.6%\)/.test(mandiri), `Perubahan rapat tanpa jeda aneh: ${mandiri}`);
+    const badges = await page.locator("a.surface span[title^='Nilai terbesar ke-']").allInnerTexts();
+    assert.ok(badges.length <= 3 && badges.every((b) => Number(b) <= 3), `Lencana peringkat hanya 1–3: ${badges}`);
+    await spus.screenshot({ path: process.env.QA_SHOT_DIR ? `${process.env.QA_SHOT_DIR}/kartu-spus.png` : "/dev/null" }).catch(() => {});
+  });
+
+  await step("Broker tersimpan: dipilih tanpa mengetik ulang; ketikan diseragamkan ke ejaan tersimpan", async () => {
+    await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Investasi", exact: true }).click();
+    const chips = page.getByRole("radiogroup", { name: "Broker tersimpan" });
+    assert.ok(await chips.getByRole("radio", { name: "Al Rajhi Capital" }).isVisible(), "Broker yang pernah dipakai muncul sebagai pilihan");
+    await page.fill("#asset-name", "QA Saham Broker");
+    await page.fill("#asset-value", "1000000");
+    await page.fill("#asset-broker", "al rajhi");
+    assert.ok(await page.getByText("Disimpan sebagai").isVisible(), "Petunjuk penyeragaman tampil");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Saham Broker"));
+    assert.equal(a?.broker, "Al Rajhi Capital");
+    // Impor portofolio juga menawarkan broker tersimpan
+    await nav("/impor-portofolio");
+    await page.evaluate(() => { window.__qaLLM = [{ holdings: [{ platform: "AL RAJHI CAPITAL", name: "QA Broker Impor", ticker: "QBI", currency: "SAR", quantity: "1", market_value: "100", total_cost: "90" }] }]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "b.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1200);
+    assert.equal(await page.inputValue("#pi-platform"), "Al Rajhi Capital", "Hasil baca AI diseragamkan");
+    assert.ok(await page.getByRole("radiogroup", { name: "Broker tersimpan" }).getByRole("radio", { name: "Al Rajhi Capital" }).isVisible());
+  });
+
+  await step("Bug mata uang: ganti chip langsung mengonversi dengan kurs, berpatokan pada angka asli", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push({ id: "qa-cur", name: "QA Growin", type: "investasi", currency: "IDR", value: 1008000, purchase_price: 1872000, broker: "Growin' Mandiri", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now });
+    });
+    await nav("/riwayat"); await nav("/aset/qa-cur");
+    await page.getByRole("button", { name: "Ubah aset" }).click();
+    const curs = page.getByRole("radiogroup", { name: "Mata uang" });
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    assert.equal(await page.inputValue("#asset-value"), "237.18", "Langsung dikonversi (kurs 4.250)");
+    assert.equal(await page.getByRole("alert", { name: "Periksa mata uang" }).count(), 0, "Tanpa kotak penjelasan");
+    assert.ok(await page.getByText("Dikonversi dari Rp 1.008.000").isVisible(), "Satu baris asal konversi");
+    if (process.env.QA_SHOT_DIR) { const sec = page.locator("section.card-gradient-primary").first(); await page.getByText(/Dikonversi dari/).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); void sec; await page.screenshot({ path: `${process.env.QA_SHOT_DIR}/ganti-mata-uang.png` }); }
+    // Kembali ke IDR → tepat angka semula
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#asset-value"), "1008000");
+    assert.equal(await page.getByText(/Dikonversi dari/).count(), 0);
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-cur"));
+    assert.equal(a.currency, "SAR"); assert.equal(Number(a.value), 237.18); assert.equal(Number(a.purchase_price), 440.47);
+  });
+
+  await step("Transaksi baru: ganti mata uang setelah mengetik → nominal ikut dikonversi", async () => {
+    await nav("/add");
+    await page.fill("#add-tx-amount", "100000");
+    const curs = page.getByRole("radiogroup", { name: "Mata uang" });
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "23.53");
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "100.000", "Kembali tepat ke angka asli");
+    // Ketik ulang dalam SAR → patokan baru
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    await page.fill("#add-tx-amount", "50");
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "212.500");
+  });
+
+  await step("Kesehatan Data menandai aset non-emas yang tampak Rupiah berlabel asing", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push({ id: "qa-cur2", name: "QA Salah Label", type: "bank", currency: "SAR", value: 2000000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now });
+    });
+    await nav("/riwayat"); await nav("/kesehatan-data");
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("QA Salah Label").first().isVisible(), "Aset ditandai");
+    await page.locator("div.px-4.py-3", { hasText: "QA Salah Label" }).getByRole("button", { name: "Jadikan IDR" }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-cur2"));
+    assert.equal(a.currency, "IDR");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

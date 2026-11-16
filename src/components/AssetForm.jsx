@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview } from "@/lib/finance";
+import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
+import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, knownBrokers, canonicalBroker, canonicalBrokerFor } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
@@ -44,6 +46,7 @@ export default function AssetForm({ asset, onClose }) {
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
+  const { data: allAssets = [] } = useAssets();
   useEffect(() => {
     // Form baru mengikuti mata uang utama; "" = belum diisi (dulu default "IDR"
     // membuat mata uang utama tak pernah terpakai).
@@ -51,6 +54,13 @@ export default function AssetForm({ asset, onClose }) {
   }, [me, isEdit]);
   const cur = (form.currency || "IDR").toUpperCase();
   const sym = currencySymbol(cur);
+  // Ganti mata uang ≠ ganti label diam-diam: tawarkan konversi / tetap / kembali.
+  const moneyFields = { value: form.value, purchase_price: form.purchase_price };
+  const curGuard = useCurrencySwitch({
+    currency: form.currency, amounts: moneyFields, rateMap,
+    setCurrency: (c) => setForm((f) => ({ ...f, currency: c })),
+    setAmounts: (a) => setForm((f) => ({ ...f, ...a })),
+  });
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -67,7 +77,8 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const handleSave = async () => {
-    const { error, payload } = buildAssetPayload(form);
+    // Broker diseragamkan ke ejaan yang sudah tersimpan (tanpa ganda/salah ketik).
+    const { error, payload } = buildAssetPayload({ ...form, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
     if (error) return toast.error(error);
     // Nilai yang diubah sendiri di form → asal nilai "manual" (tidak lagi "dari broker").
     if (payload.type === "investasi" && (!isEdit || Number(payload.value) !== Number(asset.value))) {
@@ -92,9 +103,18 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const showCurrency = true;
-  const brokerSuggestions = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
+  // Saran: broker yang pernah dipakai untuk jenis ini lebih dulu, lalu saran umum.
+  const savedBrokers = knownBrokers(allAssets, { type: form.type });
+  const defaultBrokers = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
+  const brokerSuggestions = [...savedBrokers, ...defaultBrokers.filter((d) => canonicalBroker(d, savedBrokers) === d && !savedBrokers.includes(d))].slice(0, 8);
+  const brokerTyped = (form.broker || "").trim();
+  const brokerCanon = brokerTyped ? canonicalBrokerFor(brokerTyped, allAssets, form.type) : "";
+  const brokerFix = brokerCanon && brokerCanon !== brokerTyped.replace(/\s+/g, " ") ? brokerCanon : "";
   const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
   const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
+  // Nominal besar dalam mata uang asing yang tampak seperti Rupiah (mis. $1.008.000).
+  const valueHint = !isGoldType(form.type) && userCurrencies.some((c) => c.code === "IDR")
+    ? (amountCurrencyHint(form.value, cur, rateMap) || (form.type !== "tanah" && amountCurrencyHint(form.purchase_price, cur, rateMap))) : null;
   const goldHint = isGoldType(form.type) ? goldPriceCurrencyHint(form.purchase_price, cur, userCurrencies.map((c) => c.code), rateMap) : null;
   const goldTotal = isGoldType(form.type) && form.quantity && form.purchase_price ? Number(form.quantity) * Number(form.purchase_price) : 0;
 
@@ -149,9 +169,12 @@ export default function AssetForm({ asset, onClose }) {
         </FieldRow>
         {showBroker && (
           <FieldRow icon={Building2} label={brokerLabel} htmlFor="asset-broker">
-            <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Opsional" className={fieldInput} />
+            <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder={brokerSuggestions.length ? "Pilih di bawah atau ketik baru" : "Opsional"} className={fieldInput} />
+            {brokerFix && (
+              <p className="text-[11px] text-muted-foreground mt-1">Disimpan sebagai <button type="button" onClick={() => setForm({ ...form, broker: brokerFix })} className="font-semibold text-primary">{brokerFix}</button> (sudah tersimpan)</p>
+            )}
             {brokerSuggestions.length > 0 && (
-              <div className="mt-2"><ChipChoice size="sm" ariaLabel="Saran" options={brokerSuggestions} value={form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
+              <div className="mt-2"><ChipChoice size="sm" ariaLabel={savedBrokers.length ? "Broker tersimpan" : "Saran"} options={brokerSuggestions} value={brokerCanon || form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
             )}
           </FieldRow>
         )}
@@ -169,7 +192,7 @@ export default function AssetForm({ asset, onClose }) {
           {showCurrency && userCurrencies.length > 1 && (
             <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
               {userCurrencies.map((c) => (
-                <button key={c.code} type="button" role="radio" aria-checked={form.currency === c.code} onClick={() => setForm({ ...form, currency: c.code })}
+                <button key={c.code} type="button" role="radio" aria-checked={form.currency === c.code} onClick={() => curGuard.change(c.code)}
                   className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${form.currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
               ))}
             </div>
@@ -192,8 +215,17 @@ export default function AssetForm({ asset, onClose }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
           </div>
         )}
-        {!isGoldType(form.type) && form.type !== "tanah" && cur !== "IDR" && conversionPreview(form.value, cur, "IDR", rateMap) && (
+        {!curGuard.origin && !isGoldType(form.type) && form.type !== "tanah" && cur !== "IDR" && conversionPreview(form.value, cur, "IDR", rateMap) && (
           <p className="text-xs opacity-80 mt-1 tabular-nums">{conversionPreview(form.value, cur, "IDR", rateMap)}</p>
+        )}
+        <CurrencySwitchNotice guard={curGuard} />
+        {valueHint && (
+          <div role="alert" className="mt-3 rounded-2xl bg-white/12 border border-white/25 p-3 text-xs">
+            <p className="font-semibold">Periksa mata uang</p>
+            <p className="opacity-85 mt-0.5">{valueHint.message}</p>
+            <button type="button" onClick={() => setForm({ ...form, currency: "IDR" })}
+              className="mt-2 h-8 px-3 rounded-full bg-white text-[hsl(var(--hero-from))] text-xs font-bold">Angka ini Rupiah (IDR)</button>
+          </div>
         )}
         {goldHint && (
           <div role="alert" className="mt-3 rounded-2xl bg-white/12 border border-white/25 p-3 text-xs">

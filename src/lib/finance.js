@@ -345,6 +345,77 @@ export function formatDuration(fromDate) {
   return `${days} hari`;
 }
 
+// ── Broker / aplikasi tersimpan ─────────────────────────────────────────────
+// Satu sumber: diambil dari aset yang sudah ada, agar tidak mengetik ulang &
+// tidak muncul ejaan ganda ("Al Rajhi Capital" vs "al rajhi capital").
+const brokerKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+const tidyBroker = (s) => String(s || "").replace(/\s+/g, " ").trim();
+
+// Daftar broker yang pernah dipakai, paling sering dulu. `type` → jenis aset itu
+// diutamakan; jenis lain hanya bila `includeOtherTypes`.
+export function knownBrokers(assets = [], { type, includeOtherTypes = false } = {}) {
+  const by = new Map();
+  for (const a of assets || []) {
+    const name = tidyBroker(a?.broker);
+    const k = brokerKey(name);
+    if (!k) continue;
+    const same = !type || a.type === type;
+    if (!same && !includeOtherTypes) continue;
+    const e = by.get(k) || { name, count: 0, sameType: 0, spellings: new Map() };
+    e.count += 1;
+    if (same) e.sameType += 1;
+    e.spellings.set(name, (e.spellings.get(name) || 0) + 1);
+    by.set(k, e);
+  }
+  return [...by.values()]
+    .map((e) => ({ name: [...e.spellings.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0], count: e.count, sameType: e.sameType }))
+    .sort((x, y) => y.sameType - x.sameType || y.count - x.count || x.name.localeCompare(y.name, "id"))
+    .map((e) => e.name);
+}
+
+// Seragamkan ketikan ke ejaan yang sudah tersimpan: sama persis tanpa
+// memperhatikan huruf besar/spasi/tanda baca, atau awalan unik ≥ 4 huruf
+// ("Al Rajhi" → "Al Rajhi Capital"). Selain itu ketikan dipakai apa adanya.
+// `prefix: false` → hanya pencocokan persis (dipakai untuk daftar lintas jenis,
+// agar "Mandiri" untuk bank tidak tertarik ke "Mandiri Sekuritas").
+export function canonicalBrokerFor(input, assets = [], type) {
+  const sameType = knownBrokers(assets, { type });
+  const viaType = canonicalBroker(input, sameType);
+  if (viaType !== tidyBroker(input)) return viaType;
+  return canonicalBroker(input, knownBrokers(assets), { prefix: false });
+}
+
+export function canonicalBroker(input, known = [], { prefix = true } = {}) {
+  const name = tidyBroker(input);
+  const k = brokerKey(name);
+  if (!k) return "";
+  const exact = known.find((b) => brokerKey(b) === k);
+  if (exact) return exact;
+  if (prefix && k.length >= 4) {
+    const pre = known.filter((b) => brokerKey(b).startsWith(k));
+    if (pre.length === 1) return pre[0];
+  }
+  return name;
+}
+
+// Nama aset untuk tampilan: spasi dirapikan, dan kode ticker di akhir nama
+// ("SP FUNDS S&P 500 SHARIA (SPUS)") dipisah agar nama tidak terpotong —
+// ticker ditampilkan terpisah. Data tersimpan tidak diubah.
+export function assetDisplayName(a) {
+  const raw = String(a?.name || "").replace(/\s+/g, " ").trim();
+  let ticker = String(a?.ticker || "").trim().toUpperCase();
+  let name = raw;
+  const m = raw.match(/^(.*\S)\s*\(([A-Za-z0-9.\-]{1,12})\)$/);
+  // Tanpa ticker tersimpan, hanya kode huruf besar/angka ("(SPUS)", "(2010)") yang
+  // dianggap ticker — "(Syariah)" tetap bagian nama.
+  if (m && (ticker ? m[2].toUpperCase() === ticker : /^[A-Z0-9.\-]+$/.test(m[2]))) {
+    name = m[1];
+    ticker = m[2].toUpperCase();
+  }
+  if (ticker && name.toUpperCase() === ticker) ticker = "";
+  return { name: name || raw || "Tanpa nama", ticker };
+}
+
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
   tunai: { label: "Uang Tunai", icon: "Wallet", color: "green" },
@@ -498,8 +569,20 @@ export function goldPriceLooksWrong(asset, rateMap = {}) {
 
 /** Aset emas yang harga beli per gram-nya tampak salah mata uang. */
 export function assetCurrencyIssue(asset, candidates = [], rateMap = {}) {
-  if (!isGoldType(asset?.type)) return null;
-  return goldPriceCurrencyHint(asset.purchase_price, asset.currency, candidates, rateMap);
+  if (isGoldType(asset?.type)) return goldPriceCurrencyHint(asset.purchase_price, asset.currency, candidates, rateMap);
+  // Aset non-emas: nominal Rupiah yang terlanjur berlabel mata uang asing
+  // (mis. Rp1.008.000 tersimpan sebagai $1.008.000 ≈ Rp17,8 M). Ambang lebih
+  // ketat dari petunjuk saat mengetik, agar aset asing yang memang besar tidak
+  // ditandai: ≥ 500.000 unit DAN setara ≥ Rp5 miliar.
+  const c = (asset?.currency || "IDR").toUpperCase();
+  if (c === "IDR") return null;
+  const r = idrPerUnit(c, rateMap);
+  const v = Math.max(Number(asset?.value) || 0, Number(asset?.purchase_price) || 0);
+  if (!r || v < 500_000 || v * r < 5_000_000_000) return null;
+  return {
+    suggest: "IDR",
+    message: `${formatMoneyPlain(v, c)} setara ±${formatMoneyPlain(Math.round(v * r), "IDR")}. Sepertinya angka ini Rupiah yang terlanjur berlabel ${c} (mis. chip mata uang tersentuh).`,
+  };
 }
 
 /**
@@ -514,6 +597,51 @@ export function amountCurrencyHint(amount, currency, rateMap = {}) {
   const r = idrPerUnit(c, rateMap);
   if (!r || a * r < 100_000_000) return null;
   return { suggest: "IDR", message: `${formatMoneyPlain(a, c)} setara ±${formatMoneyPlain(Math.round(a * r), "IDR")}. Yakin bukan Rupiah?` };
+}
+
+/** Pembulatan nominal sesuai mata uang: Rupiah bulat, lainnya 2 desimal. */
+export function roundMoney(n, currency = "IDR") {
+  const x = Number(n) || 0;
+  return (currency || "IDR").toUpperCase() === "IDR" ? Math.round(x) : Math.round(x * 100) / 100;
+}
+
+/**
+ * Konversi sekumpulan isian nominal saat mata uang form diganti.
+ * Mengembalikan null bila kurs tidak tersedia. Isian kosong/0 dibiarkan.
+ * Dipakai bersama oleh semua form (lihat hooks/useCurrencySwitch) agar
+ * mengganti mata uang TIDAK diam-diam menafsirkan ulang angka.
+ */
+export function convertAmounts(amounts = {}, from, to, rateMap = {}) {
+  const f = (from || "IDR").toUpperCase();
+  const t = (to || "IDR").toUpperCase();
+  if (f === t) return { ...amounts };
+  if (!canConvert(f, t, rateMap)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(amounts)) {
+    const n = Number(v);
+    out[k] = n > 0 ? String(roundMoney(convertTo(n, f, t, rateMap), t)) : v;
+  }
+  return out;
+}
+
+/**
+ * Ganti mata uang form = konversi langsung dengan kurs, berpatokan pada angka
+ * ASLI yang diketik. `origin` mengingat angka asli selama angka belum diketik
+ * ulang, sehingga IDR → SAR → USD → IDR kembali tepat ke angka semula (tanpa
+ * pembulatan berantai). Mengembalikan { ok:false } bila kurs tidak tersedia —
+ * mata uang TIDAK boleh diganti tanpa konversi (itu sumber bug salah tafsir).
+ */
+export function switchCurrencyAmounts({ origin = null, currency, amounts = {}, to, rateMap = {} }) {
+  const cur = (currency || "IDR").toUpperCase();
+  const target = (to || "IDR").toUpperCase();
+  const sig = JSON.stringify(amounts);
+  const src = origin && origin.sig === sig ? origin : { currency: cur, amounts };
+  const hasAmount = Object.values(src.amounts).some((v) => Number(v) > 0);
+  if (!hasAmount) return { ok: true, amounts, origin: null };
+  if (target === src.currency) return { ok: true, amounts: { ...src.amounts }, origin: null };
+  const conv = convertAmounts(src.amounts, src.currency, target, rateMap);
+  if (!conv) return { ok: false };
+  return { ok: true, amounts: conv, origin: { currency: src.currency, amounts: src.amounts, sig: JSON.stringify(conv) } };
 }
 
 /** Pratinjau konversi "≈ Rp 1.075.000" untuk input bermata uang asing. */

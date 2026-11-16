@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useDebts, useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
+import { useDebts, useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -174,6 +176,8 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
   const [notes, setNotes] = useState("");
   const [visibility, setVisibility] = useState("shared");
   const [saving, setSaving] = useState(false);
+  const { map: rateMap } = useRateMap();
+  const curGuard = useCurrencySwitch({ currency, amounts: { amount }, rateMap, setCurrency, setAmounts: (a) => setAmount(a.amount) });
 
   const handleSave = async () => {
     const amt = Number(amount);
@@ -224,12 +228,13 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
       <section className="card-gradient-primary rounded-[24px] p-4">
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="debt-amount" className="text-xs opacity-80">Nominal</label>
-          <HeroCurrency currencies={userCurrencies} value={currency} onChange={setCurrency} />
+          <HeroCurrency currencies={userCurrencies} value={currency} onChange={curGuard.change} />
         </div>
         <div className="flex items-baseline gap-2 mt-2">
           <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
           <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
         </div>
+        <CurrencySwitchNotice guard={curGuard} />
       </section>
 
       <FieldGroup label="Pihak">

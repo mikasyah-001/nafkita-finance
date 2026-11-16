@@ -57,6 +57,8 @@ export default [
       "react-hooks/rules-of-hooks": "error",
       // Komponen JSX yang belum diimpor = crash saat runtime (pernah lolos: <Upload>).
       "react/jsx-no-undef": "error",
+      // Variabel/fungsi yang tidak terdefinisi (mis. impor terhapus) = crash saat runtime.
+      "no-undef": "error",
     },
   },
 ];

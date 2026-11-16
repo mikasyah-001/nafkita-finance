@@ -631,6 +631,30 @@ try {
     assert.equal(a2.quantity, 105, "100 + 5 lembar");
   });
 
+  await step("Bug urutan: pindah ke Pribadi lalu kembali ke Bersama tidak mengubah urutan 'Terbaru'; kartu menampilkan rincian", async () => {
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    const order = async () => (await page.locator('a[aria-label^="Detail aset "]').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))));
+    const before = await order();
+    const target = before[Math.min(3, before.length - 1)].replace("Detail aset ", "");
+    await page.getByRole("link", { name: `Detail aset ${target}` }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole("radiogroup", { name: "Jangkauan" }).getByRole("radio", { name: "Pribadi" }).click();
+    await page.waitForTimeout(500);
+    await page.getByRole("radiogroup", { name: "Jangkauan" }).getByRole("radio", { name: "Bersama" }).click();
+    await page.waitForTimeout(500);
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    assert.deepEqual(await order(), before, `Urutan tetap setelah ubah jangkauan (${target})`);
+    // Kartu emas menampilkan rincian seperti sebelumnya
+    await page.getByRole("button", { name: "Emas", exact: true }).click();
+    await page.waitForTimeout(400);
+    const goldCard = (await page.locator("a.surface", { hasText: "Emas Antam" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/Harga Beli \/gr/.test(goldCard) && /Harga Pasar \/gr/.test(goldCard) && /Total Beli/.test(goldCard) && /Perubahan/.test(goldCard), `Rincian di kartu: ${goldCard}`);
+    const anak = (await page.locator("a.surface", { hasText: "Emas tabungan anak" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/Disimpan .*sejak/.test(anak), `Lama disimpan tampil bila ada tanggal beli: ${anak}`);
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -12,22 +12,27 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2, Calendar, Layers } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { refreshAssetPrices } from "@/lib/livePrice";
+import { valueSourceInfo } from "@/lib/portfolioImport";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 
+// "Terbaru" = tanggal aset DITAMBAHKAN (created_date), bukan terakhir diubah:
+// dulu memindah jangkauan / memperbarui harga membuat aset loncat ke atas.
 const sortOptions = [
-  { key: "updated", label: "Terbaru" },
+  { key: "created", label: "Terbaru" },
   { key: "value_desc", label: "Nilai ↓" },
   { key: "value_asc", label: "Nilai ↑" },
-  { key: "date_desc", label: "Beli ↓" },
-  { key: "date_asc", label: "Beli ↑" },
+  { key: "date_desc", label: "Tgl beli ↓" },
+  { key: "date_asc", label: "Tgl beli ↑" },
+  { key: "updated", label: "Baru diubah" },
 ];
+const ts = (d) => (d ? new Date(d).getTime() || 0 : 0);
 
 const rankBadgeClass = (rank) => {
   if (rank === 1) return "bg-warning text-warning";
@@ -47,7 +52,7 @@ export default function Assets() {
   const [displayCurrency, setDisplayCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setDisplayCurrency(me.default_currency); }, [me?.default_currency]);
   const { scope, setScope } = useScope();
-  const [sortBy, setSortBy] = useState("updated");
+  const [sortBy, setSortBy] = useState("created");
   const [livePricing, setLivePricing] = useState(false);
   const [showGold, setShowGold] = useState(false);
   const { data: allLots = [] } = useAllInvestmentLots();
@@ -98,12 +103,14 @@ export default function Assets() {
   const filteredAssets = typeFilter === "all" ? scopedAssets : scopedAssets.filter((a) => a.type === typeFilter);
 
   const sortedAssets = [...filteredAssets].sort((a, b) => {
+    const tie = String(a.name || "").localeCompare(String(b.name || ""), "id");
     switch (sortBy) {
-      case "value_desc": return convertedValue(b) - convertedValue(a);
-      case "value_asc": return convertedValue(a) - convertedValue(b);
-      case "date_desc": return new Date(b.purchase_date || 0) - new Date(a.purchase_date || 0);
-      case "date_asc": return new Date(a.purchase_date || 0) - new Date(b.purchase_date || 0);
-      default: return new Date(b.updated_date || 0) - new Date(a.updated_date || 0);
+      case "value_desc": return convertedValue(b) - convertedValue(a) || tie;
+      case "value_asc": return convertedValue(a) - convertedValue(b) || tie;
+      case "date_desc": return ts(b.purchase_date || b.created_date) - ts(a.purchase_date || a.created_date) || tie;
+      case "date_asc": return ts(a.purchase_date || a.created_date) - ts(b.purchase_date || b.created_date) || tie;
+      case "updated": return ts(b.updated_date) - ts(a.updated_date) || tie;
+      default: return ts(b.created_date) - ts(a.created_date) || tie;
     }
   });
 
@@ -230,46 +237,88 @@ export default function Assets() {
             const isGain = gain >= 0;
             const showChange = g.available;
 
+            // Rincian di kartu (seperti sebelumnya) — tanpa ikon aksi kecil yang mudah
+            // tersentuh tak sengaja; aksi (jangkauan, ubah, hapus) ada di halaman detail.
+            const gold = isGoldType(a.type);
+            const marketPerGram = gold ? goldPriceIn(a.currency, goldPriceNum, rateMap) : 0;
+            const duration = formatDuration(a.purchase_date);
+            const lotsN = lotsByAsset[a.id]?.length || 0;
+            const vs = a.type === "investasi" ? valueSourceInfo(a) : null;
+            const cells = [];
+            if (gold && hasPurchase) {
+              cells.push(["Harga Beli /gr", <Money key="b" value={a.purchase_price} currency={a.currency} />]);
+              cells.push(["Harga Pasar /gr", marketPerGram > 0 ? <Money key="p" value={marketPerGram} currency={a.currency} /> : <span key="p" className="text-warning">{a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Belum diatur"}</span>]);
+              cells.push(["Total Beli", <Money key="t" value={g.cost} currency={a.currency} />]);
+            } else if (a.type === "tanah" && hasPurchase) {
+              cells.push(["Harga Beli /m²", <Money key="b" value={a.purchase_price} currency={a.currency} />]);
+              cells.push(["Luas", `${formatNumber(a.quantity)} m²`]);
+            } else if (hasPurchase) {
+              cells.push([a.type === "investasi" ? "Modal" : "Harga Beli", <Money key="b" value={g.cost} currency={a.currency} />]);
+              if (a.type === "investasi" && Number(a.last_price) > 0) cells.push(["Harga terakhir", <Money key="l" value={a.last_price} currency={a.currency} />]);
+            }
+            if (hasPurchase) {
+              cells.push(["Perubahan", showChange ? (
+                <span key="c" className={`inline-flex items-center gap-1 ${isGain ? "text-income" : "text-expense"}`}>
+                  {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                </span>
+              ) : <span key="c" className="text-warning">{g.currencySuspect ? "Mata uang tampak keliru" : g.needsGoldPrice ? "Atur harga emas acuan" : "—"}</span>]);
+            }
+
             return (
               <Link key={a.id} to={`/aset/${a.id}`} aria-label={`Detail aset ${a.name}`}
-                className="surface p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
-                <div className="relative shrink-0">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
-                    <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
+                className="surface p-4 block active:scale-[0.99] transition-transform">
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
+                      <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
+                    </div>
+                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
+                      {rank}
+                    </span>
                   </div>
-                  <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
-                    {rank}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate flex items-center gap-1">
-                    {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
-                    {a.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {meta.label}
-                    {isGoldType(a.type) && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
-                    {a.type === "tanah" && a.quantity ? ` · ${formatNumber(a.quantity)} m²` : ""}
-                    {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
-                    {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}
-                  </p>
-                  {/* Satu baris status: untung/rugi, atau apa yang perlu dilengkapi */}
-                  {showChange ? (
-                    <p className={`text-[11px] font-semibold mt-0.5 inline-flex items-center gap-1 tabular-nums ${isGain ? "text-income" : "text-expense"}`}>
-                      {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate flex items-center gap-1">
+                      {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                      {a.name}
                     </p>
-                  ) : g.currencySuspect ? (
-                    <p className="text-[11px] text-warning mt-0.5">Mata uang tampak keliru</p>
-                  ) : g.needsGoldPrice && hasPurchase ? (
-                    <p className="text-[11px] text-warning mt-0.5">{a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Harga emas acuan belum diatur"}</p>
-                  ) : null}
+                    <p className="text-xs text-muted-foreground truncate">
+                      {meta.label}{a.owner ? ` · ${a.owner}` : ""}
+                      {gold && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
+                      {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
+                      {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold tabular-nums shrink-0"><Money value={curVal} currency={a.currency} /></p>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 -mr-1" />
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
-                  {a.type === "investasi" && (lotsByAsset[a.id]?.length > 0) && <p className="text-[11px] text-muted-foreground mt-0.5">{lotsByAsset[a.id].length} lot DCA</p>}
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 -mr-1" />
+
+                {(cells.length > 0 || duration) && (
+                  <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    {cells.map(([label, val]) => (
+                      <div key={label} className="min-w-0">
+                        <p className="text-muted-foreground">{label}</p>
+                        <p className="font-medium tabular-nums truncate">{val}</p>
+                      </div>
+                    ))}
+                    {duration && (
+                      <div className={`min-w-0 ${cells.length % 2 === 0 ? "col-span-2" : ""}`}>
+                        <p className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Disimpan</p>
+                        <p className="font-medium">{duration} (sejak {formatDate(a.purchase_date, "d MMM yyyy")})</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Investasi: asal nilai & ringkasan DCA dalam satu baris */}
+                {vs && (
+                  <p className="mt-2.5 text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                    <span className={`inline-flex items-center gap-1 ${vs.kind === "online" ? "text-warning" : ""}`}>
+                      {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}{vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
+                    </span>
+                    {lotsN > 0 && <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" /> {lotsN} lot DCA</span>}
+                  </p>
+                )}
               </Link>
             );
           })}

@@ -161,6 +161,18 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* WebView native: matikan pantulan overscroll (iOS bounce / glow Android)
+     agar header & nav tidak ikut tertarik; pull-to-refresh ditangani
+     sendiri oleh usePullToRefresh di halaman yang membutuhkannya. */
+  html, body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Hilangkan kilatan abu-abu saat tap di WebView Android/iOS. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
     font-size: 15px;
@@ -298,6 +310,28 @@
   .btn-icon.btn-icon-sm {
     @apply w-9 h-9;
   }
+}
+
+/* Tombol & ikon navigasi: tahan-lama (long-press) tidak memilih teks atau
+   memunculkan menu salin/callout bawaan — perilaku aplikasi native.
+   Isian teks (input/textarea) tidak tersentuh, tetap bisa diseleksi. */
+.btn-primary, .btn-secondary, .btn-gold, .btn-icon,
+nav[aria-label="Navigasi utama"], nav[aria-label="Navigasi utama"] *,
+nav[aria-label="Aksi cepat"] a,
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+button, [role="button"], [role="tab"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Safe area: area di bawah notch / status bar perangkat. */
+@layer utilities {
+  .pt-safe { padding-top: env(safe-area-inset-top); }
 }
 
 /* Input angka tanpa panah spinner (mengganggu di layar sentuh, tak berguna untuk nominal). */

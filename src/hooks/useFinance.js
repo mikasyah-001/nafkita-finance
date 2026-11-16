@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { setCustomCurrencies, findCurrency } from "@/lib/finance";
+import { usePartnership } from "@/hooks/usePartnership";
 
 export function useCategories() {
   const qc = useQueryClient();
@@ -244,31 +245,34 @@ export function useCoreDataReady() {
   const approvals = usePendingApprovals();
   const bills = useRecurringBills();
   const templates = useTemplates();
+  const partnership = usePartnership();
   const once = useRef(false);
   const all = [me, tx, assets, budgets, goals, approvals, bills, templates];
-  if (!rates.loading && all.every((q) => !q.isLoading)) once.current = true;
+  if (!rates.loading && !partnership.loading && all.every((q) => !q.isLoading)) once.current = true;
   return once.current;
 }
 
 export function useRefresh() {
   const qc = useQueryClient();
-  return () => {
-    qc.invalidateQueries({ queryKey: ["transactions"] });
-    qc.invalidateQueries({ queryKey: ["categories"] });
-    qc.invalidateQueries({ queryKey: ["assets"] });
-    qc.invalidateQueries({ queryKey: ["budgets"] });
-    qc.invalidateQueries({ queryKey: ["templates"] });
-    qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
-    qc.invalidateQueries({ queryKey: ["zakatPayments"] });
-    qc.invalidateQueries({ queryKey: ["investmentLots"] });
-    qc.invalidateQueries({ queryKey: ["me"] });
-    qc.invalidateQueries({ queryKey: ["debts"] });
-    qc.invalidateQueries({ queryKey: ["recurringBills"] });
-    qc.invalidateQueries({ queryKey: ["reconciliations"] });
-    qc.invalidateQueries({ queryKey: ["savingsGoals"] });
-    qc.invalidateQueries({ queryKey: ["pendingApprovals"] });
-    qc.invalidateQueries({ queryKey: ["assetMutations"] });
-    qc.invalidateQueries({ queryKey: ["notificationRules"] });
-    qc.invalidateQueries({ queryKey: ["exchangeRates"] });
-  };
+  // Mengembalikan Promise yang selesai setelah data aktif dimuat ulang
+  // (dipakai pull-to-refresh); pemanggil lama yang mengabaikannya tetap aman.
+  return () => Promise.all([
+    qc.invalidateQueries({ queryKey: ["transactions"] }),
+    qc.invalidateQueries({ queryKey: ["categories"] }),
+    qc.invalidateQueries({ queryKey: ["assets"] }),
+    qc.invalidateQueries({ queryKey: ["budgets"] }),
+    qc.invalidateQueries({ queryKey: ["templates"] }),
+    qc.invalidateQueries({ queryKey: ["assetSnapshots"] }),
+    qc.invalidateQueries({ queryKey: ["zakatPayments"] }),
+    qc.invalidateQueries({ queryKey: ["investmentLots"] }),
+    qc.invalidateQueries({ queryKey: ["me"] }),
+    qc.invalidateQueries({ queryKey: ["debts"] }),
+    qc.invalidateQueries({ queryKey: ["recurringBills"] }),
+    qc.invalidateQueries({ queryKey: ["reconciliations"] }),
+    qc.invalidateQueries({ queryKey: ["savingsGoals"] }),
+    qc.invalidateQueries({ queryKey: ["pendingApprovals"] }),
+    qc.invalidateQueries({ queryKey: ["assetMutations"] }),
+    qc.invalidateQueries({ queryKey: ["notificationRules"] }),
+    qc.invalidateQueries({ queryKey: ["exchangeRates"] }),
+  ]);
 }

@@ -1,5 +1,7 @@
-import { Outlet } from "react-router-dom";
+import { useLocation, useOutlet } from "react-router-dom";
 import { Suspense, useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "./PageTransition";
 import { base44 } from "@/api/base44Client";
 import BottomNav from "./BottomNav";
 import Sidebar from "./Sidebar";
@@ -41,21 +43,31 @@ export default function Layout() {
     };
   }, []);
 
+  const location = useLocation();
+  const outlet = useOutlet();
+
   return (
     <div className={`min-h-screen flex ${scope === "private" ? "bg-scope-tint-private" : "bg-scope-tint-shared"}`}>
       <Sidebar />
       <main className="flex-1 pb-28 md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0">
-        {/* Halaman tetap dirender (kode & state disiapkan paralel) tetapi baru
-            ditampilkan setelah data inti siap — satu layar muat, tanpa kedip. */}
-        {!ready && <AppLoading />}
-        <div className={ready ? "contents" : "hidden"} aria-hidden={!ready}>
-          {/* Suspense di sini (bukan di App) agar menu & kerangka tidak ikut
-              hilang saat kode halaman sedang dimuat. */}
-          {me && (
-            <Suspense fallback={ready ? <AppLoading /> : null}>
-              <Outlet />
-            </Suspense>
-          )}
+        {/* pt-safe: konten tidak tertutup notch / status bar saat dibuka di
+            WebView native (viewport-fit=cover). Di desktop nilainya 0. */}
+        <div className="pt-safe">
+          {/* Satu layar muat sampai data inti siap (paralel). Halaman sudah
+              dirender tersembunyi agar kode & state siap — tampil sekali,
+              tanpa "Rp 0 → angka → angka berubah lagi". */}
+          {!ready && <PageFallback />}
+          <div className={ready ? "contents" : "hidden"} aria-hidden={!ready}>
+            {/* Kunci per pathname → tiap layar beranimasi saat berpindah; query
+                string (mis. ?tab=) tidak memicu animasi ulang. */}
+            {me && (
+              <AnimatePresence mode="wait" initial={false}>
+                <PageTransition key={location.pathname}>
+                  <Suspense fallback={<PageFallback />}>{outlet}</Suspense>
+                </PageTransition>
+              </AnimatePresence>
+            )}
+          </div>
         </div>
       </main>
       <BottomNav />
@@ -65,9 +77,12 @@ export default function Layout() {
     </div>
   );
 }
-function AppLoading() {
+
+// Kerangka sementara saat data inti atau kode halaman sedang dimuat —
+// dirender di dalam Layout sehingga sidebar & nav bawah tidak ikut hilang.
+function PageFallback() {
   return (
-    <div className="px-5 pt-6 space-y-4" aria-busy="true" aria-label="Memuat data">
+    <div className="px-5 pt-6 space-y-4" aria-busy="true" aria-label="Memuat halaman">
       <div className="flex items-center gap-3">
         <img src="/brand/mark.png" alt="" className="w-10 h-10 animate-pulse" />
         <div className="space-y-2 flex-1">

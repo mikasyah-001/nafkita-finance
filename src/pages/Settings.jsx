@@ -14,6 +14,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import SettingsAccordion from "@/components/SettingsAccordion";
 import { usePartnership } from "@/hooks/usePartnership";
 import PageHeader from "@/components/PageHeader";
+import DeleteAccountSection from "@/components/DeleteAccountSection";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -99,6 +100,10 @@ export default function Settings() {
       <button onClick={handleLogout} className="w-full btn-secondary text-destructive border-destructive/25 hover:bg-destructive/5 mt-6 mb-4">
         <LogOut className="w-4 h-4" /> Keluar
       </button>
+
+      <div className="mb-6">
+        <DeleteAccountSection />
+      </div>
     </div>
   );
 }

@@ -10,6 +10,9 @@ const server = await startServer();
 const browser = await chromium.launch();
 let bad = 0;
 try {
+  // Pemanasan: server dev (Vite) mengompilasi modul saat pertama dibuka —
+  // kondisi yang tidak ada di build produksi. Buka sekali sebelum mengukur.
+  { const warm = await browser.newPage(); for (const r of routes) await warm.goto(BASE + r, { waitUntil: "networkidle" }).catch(() => {}); await warm.close(); }
   for (const r of routes.filter((x) => x !== "/selamat-datang")) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await ctx.addInitScript(() => { localStorage.setItem("qaLag", "400"); localStorage.setItem("qaDefaultCur", "SAR"); });

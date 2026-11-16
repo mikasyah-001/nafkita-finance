@@ -180,6 +180,7 @@ export function usePartnership() {
   };
 
   return {
+    loading: meQ.isLoading || partnershipsQ.isLoading || partnerQ.isLoading,
     me,
     users,
     partnerships,

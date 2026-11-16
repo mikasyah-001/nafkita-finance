@@ -105,3 +105,67 @@ test("Untung dari aplikasi lebih presisi daripada rata-rata yang dibulatkan", ()
   const h = normalizeHolding({ name: "ALRAJHI", ticker: "1120", currency: "SAR", quantity: 88, avg_cost: 65.14, market_value: 5412, gain: -319.91 });
   assert.equal(h.total_cost, 5731.91);
 });
+
+// ── Lot / tanggal pembelian (contoh: Lots Breakdown ALRAJHI, 2 screenshot tumpang tindih) ──
+import { normalizeLotDate, mergeLots, lotSummary, lotsToCreate, normalizeLot } from "../portfolioImport.js";
+const SHOT1 = [ // gulir bawah
+  { date: "13 May 2026", side: "Buy", quantity: 11, price: 65.95 },
+  { date: "21 Apr 2026", side: "Buy", quantity: 3, price: 71.75 },
+  { date: "04 Apr 2026", side: "Buy", quantity: 2, price: 106.4 },
+  { date: "05 Mar 2026", side: "Buy", quantity: 7, price: 101 },
+  { date: "04 Feb 2026", side: "Buy", quantity: 5, price: 107.8 },
+];
+const SHOT2 = [ // gulir atas
+  { date: "07 Oct 2026", side: "Buy", quantity: 4, price: 63.75 },
+  { date: "06 Aug 2026", side: "Buy", quantity: 10, price: 65 },
+  { date: "08 Jul 2026", side: "Buy", quantity: 17, price: 65.55 },
+  { date: "05 Jun 2026", side: "Buy", quantity: 13, price: 66.5 },
+  { date: "13 May 2026", side: "Buy", quantity: 11, price: 65.95 },
+];
+
+test("Tanggal lot dari berbagai format", () => {
+  assert.equal(normalizeLotDate("13 May 2026"), "2026-05-13");
+  assert.equal(normalizeLotDate("04 Agt 2026"), "2026-08-04");
+  assert.equal(normalizeLotDate("2026-10-06"), "2026-10-06");
+  assert.equal(normalizeLotDate("06/10/2026"), "2026-10-06");
+  assert.equal(normalizeLotDate("kemarin"), "");
+});
+
+test("Dua screenshot lot yang tumpang tindih digabung tanpa duplikat", () => {
+  const lots = mergeLots(SHOT1.map(normalizeLot), SHOT2.map(normalizeLot));
+  assert.equal(lots.length, 9, "13 May muncul di kedua screenshot → sekali");
+  assert.equal(lots[0].date, "2026-10-07");
+  assert.equal(lots.at(-1).date, "2026-02-04");
+});
+
+test("Lot dicocokkan dengan total lembar: 72 dari 88 → kurang 16", () => {
+  const lots = mergeLots(SHOT1.map(normalizeLot), SHOT2.map(normalizeLot));
+  const s = lotSummary(lots, 88);
+  assert.equal(s.netQty, 72);
+  assert.equal(s.diff, 16);
+  assert.equal(s.status, "partial");
+  assert.equal(s.firstDate, "2026-02-04");
+  assert.match(s.message, /72 dari 88/);
+  assert.equal(lotSummary(lots, 72).status, "complete");
+  assert.equal(lotSummary([...lots, normalizeLot({ date: "2026-11-01", side: "sell", quantity: 2, price: 63 })], 72).status, "partial");
+});
+
+test("Holding gabungan membawa lot & tanggal beli paling awal", () => {
+  const [h] = mergeHoldings([
+    normalizeHolding({ name: "ALRAJHI", ticker: "1120", currency: "SAR", quantity: 88, total_cost: 5731.91, market_value: 5574.8, lots: SHOT2 }),
+    normalizeHolding({ name: "ALRAJHI", ticker: "1120", currency: "SAR", last_price: 63.35, lots: SHOT1 }),
+  ]);
+  assert.equal(h.lots.length, 9);
+  assert.equal(h.quantity, 88, "Total tetap dari rincian, bukan dari lot");
+  const a = holdingToAsset(h);
+  assert.equal(a.purchase_date, "2026-02-04");
+  assert.equal(a.quantity, 88);
+  assert.equal(a.purchase_price, 5731.91);
+});
+
+test("Impor ulang hanya membuat lot yang belum ada (termasuk DCA manual yang sama)", () => {
+  const lots = mergeLots(SHOT2.map(normalizeLot));
+  const existing = [{ date: "2026-10-07", quantity: 4, price_per_unit: 63.75 }, { date: "2026-08-06T00:00:00Z", quantity: 10, price_per_unit: 65 }];
+  const todo = lotsToCreate(lots, existing);
+  assert.deepEqual(todo.map((l) => l.date), ["2026-07-08", "2026-06-05", "2026-05-13"]);
+});

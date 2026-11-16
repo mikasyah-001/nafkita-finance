@@ -149,7 +149,9 @@ const FN = {
   deleteAssetWithLots: ({ asset_id }) => { db.assets = db.assets.filter((a) => a.id !== asset_id); return { ok: true }; },
 };
 const entity = (name) => ({
-  list: async () => DATA[name] || [], filter: async () => DATA[name] || [], get: async () => (DATA[name] || [])[0] || null,
+  list: async () => DATA[name] || [],
+  // Filter sederhana: kecocokan nilai persis per kunci (cukup untuk asset_id, created_by_id).
+  filter: async (q = {}) => (DATA[name] || []).filter((r) => Object.entries(q || {}).every(([k, v]) => r[k] === v)).map((r) => ({ ...r })), get: async () => (DATA[name] || [])[0] || null,
   create: async (o) => {
     const r = { id: id(), created_by_id: "u1", ...o };
     if (name === "Asset") db.assets.push(r); else (DATA[name] ||= []).push(r);

@@ -1,12 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, currencySymbol } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, assetGain } from "@/lib/finance";
+import { lotSummary } from "@/lib/portfolioImport";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Briefcase, Calendar, X, Building2, Layers, Check } from "lucide-react";
+import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Building2, Layers, Check, Upload, Calendar, X } from "lucide-react";
 import { confirmAction } from "@/components/ConfirmHost";
 import PageHeader from "@/components/PageHeader";
+
+// ─────────────────────────────────────────────────────────────────────────
+// Investasi & riwayat lot (DCA).
+// Sumber kebenaran: TOTAL ASET (jumlah, modal, nilai) — dari rincian broker
+// (impor) atau isian. Lot = riwayat tanggal & harga beli. Menambah/menghapus
+// lot mengubah total SEBESAR SELISIHNYA, tidak menghitung ulang dari daftar
+// lot (riwayat lot bisa belum lengkap, mis. 72 dari 88 lembar).
+// ─────────────────────────────────────────────────────────────────────────
+const r2 = (n) => Math.round(n * 100) / 100;
+const r4 = (n) => Math.round(n * 10000) / 10000;
 
 export default function InvestmentDetail() {
   const { id } = useParams();
@@ -15,94 +26,12 @@ export default function InvestmentDetail() {
   const { data: lots = [], isLoading } = useInvestmentLots(id);
   const asset = assets.find((a) => a.id === id);
 
-  const [currentPrice, setCurrentPrice] = useState("");
+  const [priceDraft, setPriceDraft] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lot, setLot] = useState({ date: new Date().toISOString().slice(0, 10), price_per_unit: "", quantity: "", notes: "" });
 
-  useEffect(() => {
-    if (!asset) return;
-    if (currentPrice) return;
-    const last = [...lots].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    const seed = asset.value && asset.quantity ? Math.round(asset.value / (asset.quantity || 1)) : last?.price_per_unit || "";
-    setCurrentPrice(String(seed || ""));
-  }, [asset, lots]);
-
-  const sortedLots = useMemo(() => [...lots].sort((a, b) => new Date(b.date) - new Date(a.date)), [lots]);
-  const totalUnits = lots.reduce((s, l) => s + (l.quantity || 0), 0);
-  const totalInvested = lots.reduce((s, l) => s + (l.amount || 0), 0);
-  const avgPrice = totalUnits > 0 ? totalInvested / totalUnits : 0;
-  const cp = Number(currentPrice) || 0;
-  const currentValue = cp * totalUnits;
-  const pl = currentValue - totalInvested;
-  const plPct = totalInvested > 0 ? (pl / totalInvested) * 100 : 0;
-  const isGain = pl >= 0;
-
-  const computeUpdate = (lotsArr) => {
-    const units = lotsArr.reduce((s, l) => s + (l.quantity || 0), 0);
-    const invested = lotsArr.reduce((s, l) => s + (l.amount || 0), 0);
-    return {
-      value: Math.round(cp > 0 ? cp * units : invested),
-      purchase_price: Math.round(invested),
-      quantity: Number(units.toFixed(4)),
-    };
-  };
-
-  const handleAddLot = async () => {
-    const price = Number(lot.price_per_unit);
-    const qty = Number(lot.quantity);
-    if (!lot.date) return toast.error("Pilih tanggal");
-    if (!price || price <= 0) return toast.error("Isi harga per unit");
-    if (!qty || qty <= 0) return toast.error("Isi jumlah unit");
-    setSaving(true);
-    try {
-      const newLot = { quantity: qty, amount: Math.round(price * qty) };
-      let createdLot = null;
-      try {
-        createdLot = await base44.entities.InvestmentLot.create({
-          asset_id: id,
-          date: lot.date,
-          price_per_unit: price,
-          quantity: qty,
-          amount: Math.round(price * qty),
-          notes: lot.notes || "",
-        });
-        if (asset) await base44.entities.Asset.update(asset.id, computeUpdate([...lots, newLot]));
-      } catch (e) {
-        // Rollback: hapus lot bila update aset gagal agar riwayat & total tetap sinkron.
-        if (createdLot?.id) { try { await base44.entities.InvestmentLot.delete(createdLot.id); } catch {} }
-        throw e;
-      }
-      refresh();
-      setLot({ date: new Date().toISOString().slice(0, 10), price_per_unit: "", quantity: "", notes: "" });
-      setShowForm(false);
-      toast.success("DCA bulanan dicatat");
-    } catch {
-      toast.error("Gagal mencatat DCA");
-    }
-    setSaving(false);
-  };
-
-  const handleDeleteLot = async (lotId) => {
-    if (!(await confirmAction({ title: "Hapus lot pembelian ini?", description: "Nilai aset akan disesuaikan ulang setelah lot dihapus." }))) return;
-    const lotRec = lots.find((l) => l.id === lotId);
-    try {
-      await base44.entities.InvestmentLot.delete(lotId);
-      if (asset) {
-        try {
-          await base44.entities.Asset.update(asset.id, computeUpdate(lots.filter((l) => l.id !== lotId)));
-        } catch (e) {
-          // Rollback: buat ulang lot bila update aset gagal.
-          if (lotRec) { try { await base44.entities.InvestmentLot.create({ asset_id: id, date: lotRec.date, price_per_unit: lotRec.price_per_unit, quantity: lotRec.quantity, amount: lotRec.amount, notes: lotRec.notes || "" }); } catch {} }
-          throw e;
-        }
-      }
-      refresh();
-      toast.success("Catatan DCA dihapus");
-    } catch {
-      toast.error("Gagal menghapus");
-    }
-  };
+  const sortedLots = useMemo(() => [...lots].sort((a, b) => String(b.date).localeCompare(String(a.date))), [lots]);
 
   if (!asset) {
     return (
@@ -113,122 +42,214 @@ export default function InvestmentDetail() {
     );
   }
 
+  const cur = asset.currency || "IDR";
+  const qty = Number(asset.quantity) || 0;
+  const unit = asset.unit || "unit";
+  const g = assetGain(asset);
+  const avg = qty > 0 && g.cost > 0 ? g.cost / qty : 0;
+  const lastPrice = Number(asset.last_price) || (qty > 0 ? (Number(asset.value) || 0) / qty : 0);
+  const info = lotSummary(lots.map((l) => ({ ...l, date: String(l.date).slice(0, 10), side: l.side || "buy", price: l.price_per_unit })), qty);
+
+  // Perubahan total sebesar selisih lot (beli menambah, jual mengurangi).
+  const applyDelta = (l, sign) => {
+    const dir = (l.side === "sell" ? -1 : 1) * sign;
+    const q = Number(l.quantity) || 0;
+    const amt = Number(l.amount) || q * (Number(l.price_per_unit) || 0);
+    const newQty = Math.max(0, r4(qty + dir * q));
+    // Jual mengurangi modal secara proporsional (rata-rata tetap); beli menambah modal sebesar nilai beli.
+    const newCost = Math.max(0, r2(dir > 0 ? g.cost + amt : g.cost - (qty > 0 ? (g.cost / qty) * q : 0)));
+    const price = lastPrice || Number(l.price_per_unit) || 0;
+    return { quantity: newQty, purchase_price: newCost, value: r2(price * newQty) };
+  };
+
+  const handleAddLot = async () => {
+    const price = Number(lot.price_per_unit);
+    const q = Number(lot.quantity);
+    if (!lot.date) return toast.error("Pilih tanggal");
+    if (!price || price <= 0) return toast.error("Isi harga per unit");
+    if (!q || q <= 0) return toast.error("Isi jumlah unit");
+    setSaving(true);
+    const rec = { asset_id: id, date: lot.date, side: "buy", price_per_unit: price, quantity: q, amount: r2(price * q), notes: lot.notes || "", source: "manual" };
+    let created = null;
+    try {
+      created = await base44.entities.InvestmentLot.create(rec);
+      const upd = applyDelta(rec, +1);
+      if (!asset.purchase_date || lot.date < String(asset.purchase_date).slice(0, 10)) upd.purchase_date = lot.date;
+      await base44.entities.Asset.update(asset.id, upd);
+      refresh();
+      setLot({ date: new Date().toISOString().slice(0, 10), price_per_unit: "", quantity: "", notes: "" });
+      setShowForm(false);
+      toast.success("Pembelian dicatat", { description: `Total kini ${formatNumber(upd.quantity)} ${unit}.` });
+    } catch {
+      // Rollback agar riwayat & total tetap sinkron.
+      if (created?.id) { try { await base44.entities.InvestmentLot.delete(created.id); } catch { /* abaikan */ } }
+      toast.error("Gagal mencatat pembelian");
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteLot = async (l) => {
+    const imported = l.source === "import";
+    const ok = await confirmAction({
+      title: "Hapus lot ini?",
+      description: imported
+        ? "Lot ini dari impor broker. Hanya riwayatnya yang dihapus — total aset tidak berubah."
+        : `Total aset ikut dikurangi ${formatNumber(l.quantity)} ${unit}.`,
+    });
+    if (!ok) return;
+    try {
+      await base44.entities.InvestmentLot.delete(l.id);
+      // Lot manual mengubah total saat dibuat → dikembalikan saat dihapus.
+      // Lot impor tidak pernah mengubah total (total dari rincian broker).
+      if (!imported) {
+        try { await base44.entities.Asset.update(asset.id, applyDelta(l, -1)); }
+        catch (e) {
+          try { const { id: _omit, ...rest } = l; await base44.entities.InvestmentLot.create(rest); } catch { /* abaikan */ }
+          throw e;
+        }
+      }
+      refresh();
+      toast.success("Lot dihapus");
+    } catch {
+      toast.error("Gagal menghapus");
+    }
+  };
+
+  const savePrice = async () => {
+    const p = Number(priceDraft);
+    if (!(p > 0)) return;
+    try {
+      await base44.entities.Asset.update(asset.id, { value: r2(p * qty), last_price: p, price_date: new Date().toISOString().slice(0, 10) });
+      refresh();
+      setPriceDraft("");
+      toast.success("Nilai pasar diperbarui");
+    } catch { toast.error("Gagal memperbarui"); }
+  };
+
+  const tone = info.status === "complete" ? "card-pastel-mint" : info.status === "none" ? "card-pastel-sage" : "card-pastel-butter";
+
   return (
-    <div className="px-5 pt-6">
-      <PageHeader title={`DCA — ${asset.name}`} back />
+    <div className="px-5 pt-6 pb-28">
+      <PageHeader title={asset.name} subtitle={[asset.ticker, asset.broker].filter(Boolean).join(" · ") || "Investasi"} back />
 
-      <div className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-5 mb-4 shadow-lg">
-        <div className="flex items-center gap-1.5 text-xs opacity-80 mb-1"><Briefcase className="w-3.5 h-3.5" /> Instrumen Investasi</div>
-        <p className="text-sm font-medium truncate">{asset.name}</p>
-        {asset.broker && <p className="text-xs opacity-80 flex items-center gap-1 mt-0.5"><Building2 className="w-3 h-3" /> {asset.broker}</p>}
-        <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-3 break-words">{formatMoney(currentValue, asset.currency)}</p>
-        <div className="flex gap-3 mt-3 text-xs">
-          <div className="flex-1 min-w-0">
-            <p className="opacity-80">Total Beli</p>
-            <p className="font-semibold tabular-nums truncate">{formatMoney(totalInvested, asset.currency)}</p>
-          </div>
-          <div className="w-px bg-white/20" />
-          <div className="flex-1 min-w-0">
-            <p className="opacity-80">Total Unit</p>
-            <p className="font-semibold tabular-nums truncate">{formatNumber(Number(totalUnits.toFixed(4)))}</p>
-          </div>
-          <div className="w-px bg-white/20" />
-          <div className="flex-1 min-w-0">
-            <p className="opacity-80">Rata-rata</p>
-            <p className="font-semibold tabular-nums truncate">{formatMoney(Math.round(avgPrice), asset.currency)}</p>
+      {/* Ringkasan — dari total aset */}
+      <section className="card-gradient-primary relative rounded-[28px] p-5 overflow-hidden mb-4">
+        <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" aria-hidden="true" />
+        <div className="relative">
+          {asset.broker && <p className="text-[11px] opacity-80 flex items-center gap-1"><Building2 className="w-3 h-3" /> {asset.broker}</p>}
+          <p className="text-xs opacity-80 mt-2">Nilai pasar{asset.price_date ? ` · ${formatDate(asset.price_date, "d MMM yyyy")}` : ""}</p>
+          <p className="font-heading text-[32px] leading-none font-extrabold tracking-tight tabular-nums mt-1 break-all">{formatMoney(asset.value || 0, cur)}</p>
+          {g.available && (
+            <p className="text-sm font-semibold mt-2 inline-flex items-center gap-1 tabular-nums">
+              {g.gain >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              {g.gain >= 0 ? "+" : ""}{formatMoney(g.gain, cur)} ({g.gain >= 0 ? "+" : ""}{g.pct.toFixed(2)}%)
+            </p>
+          )}
+          <div className="grid grid-cols-3 gap-2 mt-4 text-[11px]">
+            {[["Jumlah", `${formatNumber(qty)} ${unit}`], ["Modal", formatMoney(g.cost, cur)], ["Rata-rata", avg ? formatMoney(avg, cur) : "—"]].map(([l, v]) => (
+              <div key={l} className="rounded-2xl bg-white/10 border border-white/10 p-2.5 min-w-0">
+                <p className="opacity-75">{l}</p>
+                <p className="font-bold text-[13px] tabular-nums truncate mt-0.5">{v}</p>
+              </div>
+            ))}
           </div>
         </div>
-        {totalInvested > 0 && (
-          <div className="mt-3 flex items-center gap-1.5 text-sm font-medium">
-            {isGain ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {isGain ? "+" : ""}{formatMoney(pl, asset.currency)} ({isGain ? "+" : ""}{plPct.toFixed(1)}%)
-          </div>
-        )}
-      </div>
+      </section>
 
-      <div className="surface p-4 mb-4">
-        <label htmlFor="investment-current-price" className="text-xs text-muted-foreground mb-1.5 block">Harga Saat Ini / unit ({currencySymbol(asset.currency)})</label>
-        <div className="flex gap-2">
-          <input id="investment-current-price" type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="Mis. 1500" className="input" />
-          <button onClick={async () => { if (asset && cp > 0) { try { await base44.entities.Asset.update(asset.id, { value: Math.round(currentValue) }); refresh(); toast.success("Nilai aset diperbarui"); } catch { toast.error("Gagal memperbarui"); } } }} className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium shrink-0">Simpan</button>
+      {/* Harga terakhir */}
+      <section className="surface rounded-3xl p-4 mb-4">
+        <label htmlFor="investment-current-price" className="text-xs text-muted-foreground">Perbarui harga terakhir per {unit}{lastPrice ? ` (kini ${formatMoney(lastPrice, cur)})` : ""}</label>
+        <div className="flex gap-2 mt-1.5">
+          <span className="flex-1 flex items-center h-11 rounded-full border border-border bg-card px-4">
+            <input id="investment-current-price" type="number" inputMode="decimal" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} placeholder={lastPrice ? String(r4(lastPrice)) : "0"} className="flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums" />
+            <span className="text-[11px] text-muted-foreground">{cur}</span>
+          </span>
+          <button onClick={savePrice} disabled={!(Number(priceDraft) > 0)} className="btn-primary btn-sm shrink-0 disabled:opacity-50">Simpan</button>
         </div>
-        {cp > 0 && totalUnits > 0 && <p className="text-xs text-muted-foreground mt-2">Nilai saat ini: <span className="font-medium text-foreground">{formatMoney(currentValue, asset.currency)}</span></p>}
+        {Number(priceDraft) > 0 && <p className="text-xs text-muted-foreground mt-2 tabular-nums">Nilai pasar baru: <span className="font-semibold text-foreground">{formatMoney(Number(priceDraft) * qty, cur)}</span></p>}
+      </section>
+
+      {/* Riwayat lot */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h2 className="text-sm font-semibold flex items-center gap-1.5"><Layers className="w-4 h-4 text-muted-foreground" /> Riwayat pembelian</h2>
+        <span className="text-xs text-muted-foreground">{lots.length} lot</span>
       </div>
 
-      <button onClick={() => setShowForm(true)} className="w-full mb-4 btn-primary">
-        <Plus className="w-5 h-5" /> Catat DCA Bulanan
-      </button>
+      {info.count > 0 && (
+        <div className={`card-pastel ${tone} rounded-2xl px-3.5 py-2.5 mb-2.5 text-xs leading-snug`}>
+          <p className="font-semibold">{info.firstDate ? `Dibeli sejak ${formatDate(info.firstDate, "d MMM yyyy")}` : "Riwayat lot"}</p>
+          {info.message && <p className="opacity-85 mt-0.5">{info.message}</p>}
+        </div>
+      )}
 
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-muted-foreground" /> Riwayat DCA</h2>
-        <span className="text-xs text-muted-foreground">{sortedLots.length} catatan</span>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Plus className="w-4 h-4" /> Catat pembelian</button>
+        <Link to="/impor-portofolio" className="btn-secondary btn-sm"><Upload className="w-4 h-4" /> Impor dari broker</Link>
       </div>
 
       {isLoading ? (
         <div className="py-8 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
       ) : sortedLots.length === 0 ? (
-        <div className="surface py-10 text-center">
-          <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Belum ada catatan DCA</p>
-          <p className="text-xs text-muted-foreground mt-1">Mulai catat pembelian rutin tiap bulan.</p>
+        <div className="surface rounded-3xl py-8 text-center px-6">
+          <Calendar className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm font-medium">Belum ada riwayat pembelian</p>
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">Catat DCA rutin, atau impor screenshot "Lots Breakdown" dari aplikasi broker.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <ul className="surface rounded-3xl divide-y divide-border">
           {sortedLots.map((l) => (
-            <div key={l.id} className="surface p-3.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{formatDate(l.date, "dd MMM yyyy")}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatNumber(l.quantity)} unit • {formatMoney(Math.round(l.price_per_unit), asset.currency)}/unit
-                  </p>
-                  {l.notes && <p className="text-xs text-muted-foreground mt-1 italic truncate">"{l.notes}"</p>}
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold tabular-nums">{formatMoney(l.amount, asset.currency)}</p>
-                  <button onClick={() => handleDeleteLot(l.id)} className="text-xs text-destructive flex items-center gap-1 mt-1 ml-auto">
-                    <Trash2 className="w-3.5 h-3.5" /> Hapus
-                  </button>
-                </div>
+            <li key={l.id} className="flex items-center gap-3 px-4 py-3">
+              <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${l.side === "sell" ? "bg-expense/10 text-expense" : "bg-income/10 text-income"}`}><Layers className="w-4 h-4" /></span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  {formatDate(l.date, "d MMM yyyy")}
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${l.side === "sell" ? "bg-expense/10 text-expense" : "bg-income/10 text-income"}`}>{l.side === "sell" ? "Jual" : "Beli"}</span>
+                  {l.source === "import" && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">impor</span>}
+                </p>
+                <p className="text-xs text-muted-foreground tabular-nums">{formatNumber(l.quantity)} {unit} × {formatMoney(l.price_per_unit, cur)}</p>
               </div>
-            </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-semibold tabular-nums">{formatMoney(l.amount ?? l.quantity * l.price_per_unit, cur)}</p>
+                <button onClick={() => handleDeleteLot(l)} aria-label={`Hapus lot ${formatDate(l.date, "d MMM yyyy")}`} className="text-[11px] text-destructive inline-flex items-center gap-1 mt-0.5"><Trash2 className="w-3 h-3" /> Hapus</button>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center max-w-md mx-auto">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowForm(false)} />
-          <div className="relative w-full bg-background rounded-t-3xl p-5 max-h-[88vh] overflow-y-auto animate-in slide-in-from-bottom">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-foreground/30 backdrop-blur-[2px]" onClick={() => setShowForm(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Catat pembelian" onClick={(e) => e.stopPropagation()} className="w-full max-w-md bg-background rounded-t-[28px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Catat DCA Bulanan</h2>
-              <button onClick={() => setShowForm(false)} className="btn-icon btn-icon-sm"><X className="w-4 h-4" /></button>
+              <h2 className="font-heading font-bold text-lg">Catat pembelian</h2>
+              <button onClick={() => setShowForm(false)} aria-label="Tutup" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
             </div>
-            <div className="space-y-3">
-              <div>
-                <label htmlFor="investment-lot-date" className="text-xs text-muted-foreground mb-1.5 block">Tanggal Pembelian</label>
-                <input id="investment-lot-date" type="date" value={lot.date} onChange={(e) => setLot({ ...lot, date: e.target.value })} className="input" />
-              </div>
-              <div>
-                <label htmlFor="investment-lot-price" className="text-xs text-muted-foreground mb-1.5 block">Harga Beli / unit ({currencySymbol(asset.currency)})</label>
-                <input id="investment-lot-price" type="number" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} placeholder="Mis. 1500" className="input" />
-              </div>
-              <div>
-                <label htmlFor="investment-lot-quantity" className="text-xs text-muted-foreground mb-1.5 block">Jumlah Unit</label>
-                <input id="investment-lot-quantity" type="number" value={lot.quantity} onChange={(e) => setLot({ ...lot, quantity: e.target.value })} placeholder="Mis. 10" className="input" />
-              </div>
-              {lot.price_per_unit && lot.quantity ? (
-                <p className="text-xs text-muted-foreground -mt-1">Total beli: <span className="font-medium text-foreground">{formatMoney(Number(lot.price_per_unit) * Number(lot.quantity), asset.currency)}</span></p>
-              ) : null}
-              <div>
-                <label htmlFor="investment-lot-notes" className="text-xs text-muted-foreground mb-1.5 block">Catatan (opsional)</label>
-                <input id="investment-lot-notes" value={lot.notes} onChange={(e) => setLot({ ...lot, notes: e.target.value })} placeholder="Mis. DCA rutin bulan ke-3" className="input" />
-              </div>
-              <button onClick={handleAddLot} disabled={saving} className="w-full btn-primary">
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                {saving ? "Menyimpan..." : "Simpan DCA"}
-              </button>
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="col-span-2 block">
+                <span className="text-[11px] text-muted-foreground">Tanggal beli</span>
+                <input id="investment-lot-date" type="date" value={lot.date} onChange={(e) => setLot({ ...lot, date: e.target.value })} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-muted-foreground">Jumlah ({unit})</span>
+                <input id="investment-lot-quantity" type="number" inputMode="decimal" value={lot.quantity} onChange={(e) => setLot({ ...lot, quantity: e.target.value })} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5 tabular-nums" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-muted-foreground">Harga /{unit} ({cur})</span>
+                <input id="investment-lot-price" type="number" inputMode="decimal" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5 tabular-nums" />
+              </label>
+              <label className="col-span-2 block">
+                <span className="text-[11px] text-muted-foreground">Catatan (opsional)</span>
+                <input id="investment-lot-notes" value={lot.notes} onChange={(e) => setLot({ ...lot, notes: e.target.value })} placeholder="Mis. DCA rutin" className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5" />
+              </label>
             </div>
+            {Number(lot.price_per_unit) > 0 && Number(lot.quantity) > 0 && (
+              <p className="text-xs text-muted-foreground mt-2.5 tabular-nums">
+                Total beli <span className="font-semibold text-foreground">{formatMoney(Number(lot.price_per_unit) * Number(lot.quantity), cur)}</span> · jumlah aset jadi {formatNumber(r4(qty + Number(lot.quantity)))} {unit}
+              </p>
+            )}
+            <button onClick={handleAddLot} disabled={saving} className="w-full btn-primary mt-4">
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} {saving ? "Menyimpan…" : "Simpan pembelian"}
+            </button>
           </div>
         </div>
       )}

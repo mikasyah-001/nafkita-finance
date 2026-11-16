@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus } from "lucide-react";
+import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus, Upload, ChevronRight } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
@@ -141,6 +141,15 @@ export default function Assets() {
       />
 
       <ScopeToggle className="mb-4" />
+
+      <Link to="/impor-portofolio" className="card-pastel card-pastel-sage rounded-3xl p-3.5 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0"><Upload className="w-5 h-5" /></span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold">Impor portofolio investasi</span>
+          <span className="block text-xs opacity-80 leading-snug">Saham, reksa dana, ETF & emas dari foto/PDF aplikasi broker</span>
+        </span>
+        <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+      </Link>
 
       <div className="rounded-3xl card-gradient-primary p-5 mb-4 shadow-lg">
         <div className="flex items-center justify-between mb-1">

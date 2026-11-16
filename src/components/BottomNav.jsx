@@ -22,7 +22,7 @@ export default function BottomNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, [showMore]);
 
-  const hideNav = location.pathname === "/add" || location.pathname === "/impor" || /^\/transaksi\/[^/]+\/edit$/.test(location.pathname);
+  const hideNav = location.pathname === "/add" || location.pathname === "/impor" || location.pathname === "/impor-portofolio" || /^\/transaksi\/[^/]+\/edit$/.test(location.pathname);
   if (hideNav) return null;
 
   // Tab "Lainnya" ikut menyala bila halaman aktif berada di dalam menunya.

@@ -27,6 +27,7 @@ const Settings = lazyPage(() => import('@/pages/Settings'));
 const Budget = lazyPage(() => import('@/pages/Budget'));
 const AssetDashboard = lazyPage(() => import('@/pages/AssetDashboard'));
 const ImportReport = lazyPage(() => import('@/pages/ImportReport'));
+const PortfolioImport = lazyPage(() => import('@/pages/PortfolioImport'));
 const TransactionDetail = lazyPage(() => import('@/pages/TransactionDetail'));
 const Profile = lazyPage(() => import('@/pages/Profile'));
 const Categories = lazyPage(() => import('@/pages/Categories'));
@@ -114,6 +115,7 @@ const AuthenticatedApp = () => {
           <Route path="/anggaran" element={<Budget />} />
           <Route path="/aset-dashboard" element={<AssetDashboard />} />
           <Route path="/impor" element={<ImportReport />} />
+          <Route path="/impor-portofolio" element={<PortfolioImport />} />
           <Route path="/transaksi/:id" element={<TransactionDetail />} />
           <Route path="/transaksi/:id/edit" element={<AddTransaction />} />
           <Route path="/pengaturan" element={<Settings />} />

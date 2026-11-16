@@ -171,6 +171,8 @@ export const base44 = {
   integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadFile")
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
+    // AI tiruan: tes mengisi window.__qaLLM = [respons1, respons2, ...] (urut per panggilan).
+    : (ns === "Core" && fn === "InvokeLLM") ? async () => { await lag("llm"); return (window.__qaLLM && window.__qaLLM.shift()) || {}; }
     : async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.

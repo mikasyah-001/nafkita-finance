@@ -425,6 +425,48 @@ try {
     await nav("/");
   });
 
+  await step("Impor portofolio: 2 screenshot (daftar + detail) digabung, aset lama diperbarui, aset baru dibuat", async () => {
+    // Aset lama hasil impor sebelumnya → harus DIPERBARUI, bukan duplikat.
+    await page.evaluate(() => window.__qa.assets.push({ id: "qa-alrajhi", name: "ALRAJHI (1120)", ticker: "1120", type: "investasi", currency: "SAR", value: 5000, quantity: 80, purchase_price: 5200, visibility: "private", notes: "catatan lama", created_by_id: "u1", updated_date: new Date().toISOString() }));
+    await page.evaluate(() => { window.__qaLLM = [
+      { holdings: [
+        { name: "ALRAJHI", ticker: "1120", instrument: "saham", currency: "SAR", quantity: 88, last_price: 61.5, avg_cost: 65.14, market_value: 5412, gain: -319.91, platform: "Al Rajhi Capital" },
+        { name: "SAUDI AR...", ticker: "2222", instrument: "saham", currency: "SAR", quantity: 179, last_price: 26.24, avg_cost: 26.19, market_value: 4696.96, gain: 8.86 },
+      ] },
+      { holdings: [
+        { name: "SAUDI ARAMCO", ticker: "2222", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: 179, avg_cost: 26, total_cost: 4688.1, market_value: 4696.96, gain: 8.86 },
+        { name: "Gold", instrument: "emas", currency: "SAR", quantity: 1, avg_cost: 502.38, last_price: 493.27, market_value: 493.27 },
+      ] },
+    ]; });
+    await nav("/aset");
+    await page.getByRole("link", { name: /Impor portofolio investasi/ }).click();
+    await page.waitForTimeout(500);
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([
+      { name: "daftar.png", mimeType: "image/png", buffer: png },
+      { name: "detail-aramco.png", mimeType: "image/png", buffer: png },
+    ]);
+    await page.waitForTimeout(1500);
+    assert.ok(await page.getByText("Tinjau 3 kepemilikan").isVisible(), "Aramco dari 2 screenshot digabung → 3 kepemilikan");
+    assert.equal(await page.inputValue("#pi-platform"), "Al Rajhi Capital", "Nama broker terisi otomatis");
+    assert.ok(await page.getByText(/Perbarui "ALRAJHI \(1120\)"/).isVisible(), "ALRAJHI dicocokkan dengan aset lama");
+    assert.ok(await page.getByText("SAUDI ARAMCO").isVisible(), "Nama lengkap dari detail dipakai");
+    await page.getByRole("button", { name: /Simpan 3 aset/ }).click();
+    await page.waitForTimeout(1200);
+    const a = await page.evaluate(() => window.__qa.assets);
+    const alr = a.filter((x) => x.ticker === "1120");
+    assert.equal(alr.length, 1, "Tidak ada duplikat ALRAJHI");
+    assert.equal(alr[0].value, 5412); assert.equal(alr[0].quantity, 88);
+    assert.equal(alr[0].purchase_price, 5731.91, "Modal = nilai − untung dari aplikasi");
+    assert.equal(alr[0].visibility, "private", "Jangkauan lama dipertahankan");
+    assert.equal(alr[0].notes, "catatan lama", "Catatan lama dipertahankan");
+    const ar = a.find((x) => x.ticker === "2222");
+    assert.equal(ar.type, "investasi"); assert.equal(ar.currency, "SAR"); assert.equal(ar.purchase_price, 4688.1); assert.equal(ar.unit, "lembar");
+    const gold = a.find((x) => x.type === "emas_digital" && x.import_source);
+    assert.ok(gold && gold.purchase_price === 502.38 && gold.quantity === 1 && gold.unit === "gram", "Emas digital: harga beli per gram");
+    assert.ok(page.url().endsWith("/aset"), "Kembali ke Aset");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

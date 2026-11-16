@@ -53,6 +53,28 @@
     "notes": {
       "type": "string"
     },
+    "ticker": {
+      "type": "string",
+      "description": "Kode efek/instrumen (mis. 1120, 2222, SPUS) — kunci pencocokan saat impor ulang portofolio"
+    },
+    "instrument": {
+      "type": "string",
+      "enum": ["saham", "reksadana", "etf", "sukuk", "lainnya"],
+      "description": "Jenis instrumen untuk aset investasi"
+    },
+    "last_price": {
+      "type": "number",
+      "description": "Harga terakhir per unit (mata uang aset) saat impor/pembaruan"
+    },
+    "price_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal harga/nilai pasar terakhir"
+    },
+    "import_source": {
+      "type": "string",
+      "description": "Asal data bila diimpor, mis. 'Al Rajhi Capital · foto'"
+    },
     "visibility": {
       "type": "string",
       "enum": [

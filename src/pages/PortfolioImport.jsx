@@ -103,6 +103,7 @@ export default function PortfolioImport() {
   const chosen = view.filter((r) => r.include);
   // Ringkasan hanya dari baris yang sudah bernilai (hindari "⃁ 0,00" menyesatkan).
   const totals = summarize(chosen.filter((r) => r.market_value > 0));
+  const missingValue = view.filter((r) => r.include && !r.lotsOnly && !(r.market_value > 0));
   const nNew = chosen.filter((r) => !r.existing).length;
   const nUpd = chosen.length - nNew;
   const inactive = [...new Set(chosen.map((r) => r.currency))].filter((c) => !userCurrencies.some((u) => u.code === c));
@@ -117,11 +118,12 @@ export default function PortfolioImport() {
   // Harga online hari ini (AI + internet), divalidasi sebelum dipakai.
   const [livePending, setLivePending] = useState(null); // null | "all" | rowId
   const applyLive = async (ids) => {
-    const targets = rows.filter((r) => ids.includes(r.id) && (r.ticker || r.name));
+    // Hanya baris tanpa nilai pasar dari layar broker.
+    const targets = rows.filter((r) => ids.includes(r.id) && (r.ticker || r.name) && (!(r.market_value > 0) || r.price_source));
     if (!targets.length) return;
     setLivePending(ids.length === 1 ? ids[0] : "all");
     try {
-      const items = targets.map((r) => ({ key: r.id, name: r.name, ticker: r.ticker, exchange: r.exchange, currency: r.currency, ref_price: r.last_price || (r.quantity && r.market_value ? r.market_value / r.quantity : 0) }));
+      const items = targets.map((r) => ({ key: r.id, name: r.name, ticker: r.ticker, exchange: r.exchange, currency: r.currency, broker: platform || r.platform || "", instrument: r.instrument, ref_price: r.last_price || (r.quantity && r.market_value ? r.market_value / r.quantity : 0) || r.avg_cost || (r.quantity && r.total_cost ? r.total_cost / r.quantity : 0) }));
       const found = await fetchLivePrices(items);
       // Hitung hasil DI LUAR setRows (callback setState berjalan belakangan —
       // dulu alasan penolakan hilang dari pesan dan jumlah berhasil keliru).
@@ -281,10 +283,13 @@ export default function PortfolioImport() {
           {/* Daftar kepemilikan */}
           <div className="flex items-center justify-between gap-2 mb-2 px-1">
             <h2 className="text-sm font-semibold">Tinjau {view.length} kepemilikan</h2>
-            <button onClick={() => applyLive(view.filter((r) => r.include && !r.lotsOnly).map((r) => r.id))} disabled={!!livePending}
-              className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
-              {livePending === "all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Pakai harga online hari ini
-            </button>
+            {/* Nilai dari layar broker tidak pernah ditimpa — harga online hanya untuk yang kosong */}
+            {missingValue.length > 1 && (
+              <button onClick={() => applyLive(missingValue.map((r) => r.id))} disabled={!!livePending}
+                className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
+                {livePending === "all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Lengkapi {missingValue.length} yang kosong
+              </button>
+            )}
           </div>
           <ul className="space-y-2.5">
             {view.map((r) => (
@@ -362,16 +367,16 @@ function HoldingCard({ r, onToggle, onEdit, onLive, liveBusy }) {
           </div>
           {!r.lotsOnly && !(r.market_value > 0) && (
             <div className="mt-2.5 rounded-2xl bg-warning/10 p-2.5">
-              <p className="text-[11px] text-warning font-semibold leading-snug">Nilai pasar belum terbaca dari gambar{r.quantity ? "" : " (jumlah lembar juga belum ada)"}.</p>
+              <p className="text-[11px] text-warning font-semibold leading-snug">Nilai pasar belum terbaca dari gambar{r.quantity ? "" : " (jumlah lembar juga belum ada)"}. Paling tepat: tambahkan screenshot Details dari broker.</p>
               <div className="flex gap-2 mt-2">
                 <button onClick={onLive} disabled={liveBusy} className="h-8 px-3 rounded-full bg-card border border-border text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
-                  {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Cari harga online
+                  {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Perkiraan online
                 </button>
                 <button onClick={onEdit} className="h-8 px-3 rounded-full bg-card border border-border text-xs font-semibold inline-flex items-center gap-1.5"><Pencil className="w-3 h-3" /> Isi manual</button>
               </div>
             </div>
           )}
-          {r.price_source && <p className="text-[11px] text-muted-foreground mt-1.5 inline-flex items-center gap-1"><Globe className="w-3 h-3" /> Harga online · {r.price_source}{r.as_of ? ` · ${formatDate(r.as_of, "d MMM yyyy")}` : ""}</p>}
+          {r.price_source && <p className="text-[11px] text-muted-foreground mt-1.5 inline-flex items-center gap-1"><Globe className="w-3 h-3" /> Perkiraan online · {r.price_source}{r.as_of ? ` · ${formatDate(r.as_of, "d MMM yyyy")}` : ""}</p>}
           {r.lotInfo && <LotBlock info={r.lotInfo} lots={r.lots} currency={r.currency} unit={r.instrument === "emas" ? "gr" : r.instrument === "saham" ? "lembar" : "unit"} />}
           {r.warnings?.length > 0 && (
             <ul className="mt-2 space-y-1">

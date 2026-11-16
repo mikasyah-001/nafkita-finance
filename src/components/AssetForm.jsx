@@ -69,6 +69,11 @@ export default function AssetForm({ asset, onClose }) {
   const handleSave = async () => {
     const { error, payload } = buildAssetPayload(form);
     if (error) return toast.error(error);
+    // Nilai yang diubah sendiri di form → asal nilai "manual" (tidak lagi "dari broker").
+    if (payload.type === "investasi" && (!isEdit || Number(payload.value) !== Number(asset.value))) {
+      payload.value_source = "manual";
+      payload.price_date = new Date().toISOString().slice(0, 10);
+    }
     setSaving(true);
     try {
       if (isEdit) {

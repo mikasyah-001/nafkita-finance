@@ -536,8 +536,9 @@ try {
         .map(([, i, txt]) => { const hit = Object.keys(prices).find((k) => txt.includes(k)); return hit ? { index: i, price: prices[hit], currency: "SAR", as_of: t, source: "Tadawul" } : null; }).filter(Boolean) });
       window.__qaLLM = [
         { holdings: [{ name: "ALRAJHI", ticker: "1120", exchange: "TASI", instrument: "saham", market_value: "⃁ 5,570.40", quantity: "88", avg_cost: "⃁ 65.14", total_cost: "⃁ 5,731.91", gain: "⃁ -161.51", last_price: "⃁ 63.30" }] },
-        { holdings: [{ name: "SABIC", ticker: "2010", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: "10", total_cost: "⃁ 700.00", last_price: "⃁ 70.00" }] },
-        priceBy({ SABIC: "140.00" }), // salah instrumen → harus ditolak
+        // SABIC: layar tanpa harga & nilai pasar (mis. daftar terpotong) → butuh pelengkap
+        { holdings: [{ name: "SABIC", ticker: "2010", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: "10", total_cost: "⃁ 700.00" }] },
+        priceBy({ SABIC: "140.00" }), // salah instrumen (2× harga rata-rata beli) → harus ditolak
         priceBy({ SABIC: "71.20", ALRAJHI: "63.45" }), // wajar → dipakai
       ];
     });
@@ -549,25 +550,28 @@ try {
     const sab = page.locator("li.surface", { hasText: "SABIC" });
     const t1 = (await alr.innerText()).replace(/\s+/g, " ");
     assert.ok(/5,570\.40/.test(t1) && /5,731\.91/.test(t1), `Nilai pasar & modal dari teks ⃁ terbaca: ${t1}`);
-    assert.ok(/700\.00/.test((await sab.innerText()).replace(/\s+/g, " ")), "Nilai = jumlah × harga terakhir di gambar");
-    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    assert.ok(await sab.getByText(/Nilai pasar belum terbaca/).isVisible(), "SABIC ditandai belum bernilai");
+    // Hanya SABIC (tanpa nilai) yang ditawari harga online; ALRAJHI dari broker tidak disentuh.
+    assert.equal(await alr.getByRole("button", { name: /Perkiraan online/ }).count(), 0, "Baris bernilai broker tidak ditawari online");
+    await sab.getByRole("button", { name: /Perkiraan online/ }).click();
     await page.waitForTimeout(900);
     const toasts = (await page.locator("[data-sonner-toast]").allInnerTexts()).join(" | ").replace(/\s+/g, " ");
     assert.ok(/SABIC.*Selisih 100%/.test(toasts), `Harga tidak wajar ditolak, bukan dipakai — toast: ${toasts}`);
-    assert.ok(!/Harga online/.test(await sab.innerText()), "SABIC tidak berubah");
-    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    assert.ok(!/Perkiraan online ·/.test(await sab.innerText()), "SABIC tidak berubah");
+    await sab.getByRole("button", { name: /Perkiraan online/ }).click();
     await page.waitForTimeout(900);
     const t2 = (await sab.innerText()).replace(/\s+/g, " ");
-    assert.ok(/712\.00/.test(t2) && /Harga online · Tadawul/.test(t2), `Harga online wajar dipakai (10 × 71,20): ${t2}`);
+    assert.ok(/712\.00/.test(t2) && /Perkiraan online · Tadawul/.test(t2), `Harga online wajar dipakai (10 × 71,20): ${t2}`);
     const t3 = (await alr.innerText()).replace(/\s+/g, " ");
-    assert.ok(/5,583\.60/.test(t3) && /5,731\.91/.test(t3), `ALRAJHI: 88 × 63,45, modal tetap: ${t3}`);
+    assert.ok(/5,570\.40/.test(t3), `ALRAJHI tetap nilai dari broker: ${t3}`);
     await page.getByRole("button", { name: /Simpan 2 aset/ }).click();
     await page.waitForTimeout(1300);
     const a = await page.evaluate(() => window.__qa.assets);
     const s1 = a.find((x) => x.ticker === "2010");
     assert.equal(s1.value, 712); assert.equal(s1.last_price, 71.2); assert.equal(s1.purchase_price, 700);
     const r1 = a.filter((x) => x.ticker === "1120");
-    assert.equal(r1.length, 1); assert.equal(r1[0].value, 5583.6); assert.equal(r1[0].purchase_price, 5731.91);
+    assert.equal(r1.length, 1); assert.equal(r1[0].value, 5570.4, "Nilai broker dipertahankan"); assert.equal(r1[0].purchase_price, 5731.91);
+    assert.equal(r1[0].value_source, "broker"); assert.equal(s1.value_source, "online");
   });
 
   await step("Lot sebagai daftar datar (aset BARU) → tersimpan, tampil di kartu Aset & Riwayat DCA, sinkron dengan DCA manual", async () => {

@@ -200,10 +200,13 @@ export function holdingToAsset(h, { visibility = "shared", existing = null, toda
     purchase_price: isGold ? round4(h.avg_cost || 0) : round2(h.total_cost || 0),
     broker: h.platform || existing?.broker || "",
     ticker: h.ticker || existing?.ticker || "",
+    exchange: h.exchange || existing?.exchange || undefined,
     instrument: isGold ? undefined : h.instrument,
     last_price: h.last_price ? round4(h.last_price) : undefined,
     price_date: priceDate,
     import_source: src,
+    // Nilai dari layar broker = sumber utama. Bila dilengkapi harga online saat impor → "online".
+    value_source: h.price_source ? "online" : "broker",
   };
   // Tanggal beli = lot beli paling awal (untuk emas, dipakai menghitung haul zakat).
   const firstBuy = lotSummary(h.lots || []).firstDate;
@@ -394,4 +397,33 @@ export function attachLots(data = {}) {
     h.lots.push({ date: l.date, side: l.side, quantity: l.quantity, price: l.price });
   }
   return holdings;
+}
+
+// ─── ASAL NILAI PASAR ───────────────────────────────────────────────────
+// Prioritas: broker (aplikasi tempat beli) > manual > online (perkiraan).
+
+/** Sumber harga resmi yang dipakai broker/aplikasi tempat membeli. */
+export function brokerPriceSource({ broker = "", exchange = "", instrument = "", currency = "" } = {}) {
+  const b = broker.toLowerCase(), x = exchange.toUpperCase();
+  if (/rajhi|derayah|snb|alinma|riyad|albilad|aljazira|sab invest|saudi fransi/.test(b) || x === "TASI" || x === "NOMU") {
+    if (instrument === "reksadana") return `NAV resmi dana di situs pengelola/${broker || "broker Saudi"} (bukan harga bursa)`;
+    if (x && x !== "TASI" && x !== "NOMU") return `harga penutupan bursa ${x} sebagaimana ditampilkan ${broker || "broker"}`;
+    return "harga resmi Saudi Exchange (saudiexchange.sa / Tadawul) — sama dengan yang ditampilkan Al Rajhi Capital";
+  }
+  if (/bibit|bareksa|ajaib|ipot|stockbit|mandiri|bni|bca|bri/.test(b) || currency === "IDR") {
+    if (instrument === "reksadana") return `NAB/unit resmi terbaru (situs manajer investasi, Bibit/Bareksa, atau KSEI)`;
+    return "harga penutupan resmi Bursa Efek Indonesia (idx.co.id)";
+  }
+  if (x === "ARCA" || x === "NYSE" || x === "NASDAQ" || currency === "USD") return `harga penutupan resmi bursa AS (${x || "NYSE/NASDAQ"})`;
+  return "sumber resmi bursa/pengelola instrumen";
+}
+
+/** Label asal nilai untuk ditampilkan di kartu aset & halaman investasi. */
+export function valueSourceInfo(asset = {}) {
+  const date = asset.price_date ? String(asset.price_date).slice(0, 10) : "";
+  const src = asset.value_source || (/^Harga online/.test(asset.import_source || "") ? "online" : asset.import_source ? "broker" : "manual");
+  const broker = asset.broker || String(asset.import_source || "").replace(/\s*·\s*impor$/, "");
+  if (src === "broker") return { kind: "broker", label: `Dari ${broker || "aplikasi broker"}`, date };
+  if (src === "online") return { kind: "online", label: "Perkiraan harga online", date };
+  return { kind: "manual", label: "Diisi manual", date };
 }

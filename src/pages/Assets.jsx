@@ -13,13 +13,13 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Layers, Eye, EyeOff, History, ChevronDown, Globe, X, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Layers, Eye, EyeOff, History, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { refreshAssetPrices } from "@/lib/livePrice";
-import { lotSummary } from "@/lib/portfolioImport";
+import { lotSummary, valueSourceInfo } from "@/lib/portfolioImport";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
@@ -66,7 +66,7 @@ export default function Assets() {
     try {
       const { updated, skipped } = await refreshAssetPrices(priceable, (id, patch) => base44.entities.Asset.update(id, patch));
       refresh();
-      if (updated.length) toast.success(`${updated.length} harga diperbarui`, { description: skipped.length ? `Dilewati: ${skipped.map((x) => `${x.asset.name} (${x.reason})`).join(", ")}` : undefined });
+      if (updated.length) toast.success(`${updated.length} nilai diperbarui (perkiraan online)`, { description: `Untuk angka persis, perbarui dari broker.${skipped.length ? ` Dilewati: ${skipped.map((x) => `${x.asset.name} (${x.reason})`).join(", ")}` : ""}` });
       else toast.error("Belum ada harga yang bisa dipakai", { description: skipped.map((x) => `${x.asset.name}: ${x.reason}`).join(" · ") });
     } catch (e) {
       toast.error("Gagal mencari harga online", { description: e?.message });
@@ -225,12 +225,17 @@ export default function Assets() {
 
           {/* Konteks per jenis: harga emas acuan untuk emas; harga online untuk investasi */}
           {isGoldType(typeFilter) && <GoldPriceCard grams={goldGramsIdr} className="mt-3" />}
+          {/* Perbarui nilai investasi: utamakan data broker tempat membeli; online hanya perkiraan */}
           {(typeFilter === "investasi" || typeFilter === "all") && priceable.length > 0 && (
-            <button onClick={handleLivePrices} disabled={livePricing}
-              className="mt-2.5 w-full h-10 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
-              {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
-              {livePricing ? "Mencari harga terbaru…" : `Perbarui harga online · ${priceable.length} investasi`}
-            </button>
+            <div className="mt-2.5 flex items-center gap-2">
+              <Link to="/impor-portofolio" className="flex-1 h-10 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
+                <Upload className="w-3.5 h-3.5" /> Perbarui nilai dari broker
+              </Link>
+              <button onClick={handleLivePrices} disabled={livePricing} title="Perkiraan dari sumber resmi bursa — bisa berbeda dari broker"
+                className="h-10 px-3.5 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
+                {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {livePricing ? "Mencari…" : "Perkiraan online"}
+              </button>
+            </div>
           )}
         </section>
       )}
@@ -379,6 +384,15 @@ export default function Assets() {
                   </div>
                 )}
                 {/* Riwayat DCA (lot) — selalu dari data lot yang sama dengan halaman investasi */}
+                {(a.type === "investasi" || a.import_source) && (() => {
+                  const vs = valueSourceInfo(a);
+                  return (
+                    <p className={`mt-2.5 text-[11px] inline-flex items-center gap-1 ${vs.kind === "online" ? "text-warning" : "text-muted-foreground"}`}>
+                      {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}
+                      Nilai: {vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
+                    </p>
+                  );
+                })()}
                 {a.type === "investasi" && (() => {
                   const ls = lotsByAsset[a.id] || [];
                   const info = lotSummary(ls.map((l) => ({ ...l, date: String(l.date).slice(0, 10), side: l.side || "buy", price: l.price_per_unit })), Number(a.quantity) || 0);

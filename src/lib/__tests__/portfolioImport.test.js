@@ -216,3 +216,21 @@ test("Lot datar tingkat atas ditempel ke holding (ticker / satu-satunya / stub)"
   assert.equal(h.lots[0].quantity, 11);
   assert.equal(h.lots[0].price, 65.95);
 });
+
+// ── Asal nilai pasar: broker > manual > online ──
+import { brokerPriceSource, valueSourceInfo } from "../portfolioImport.js";
+test("Sumber harga resmi mengikuti broker tempat membeli", () => {
+  assert.match(brokerPriceSource({ broker: "Al Rajhi Capital", exchange: "TASI", instrument: "saham" }), /Saudi Exchange/);
+  assert.match(brokerPriceSource({ broker: "Al Rajhi Capital", instrument: "reksadana", currency: "SAR" }), /NAV resmi/);
+  assert.match(brokerPriceSource({ broker: "Al Rajhi Capital", exchange: "ARCA", currency: "USD" }), /bursa ARCA/);
+  assert.match(brokerPriceSource({ broker: "Bibit", instrument: "reksadana", currency: "IDR" }), /NAB/);
+});
+test("Impor broker → asal nilai 'Dari Al Rajhi Capital'; dilengkapi online → perkiraan", () => {
+  const h = normalizeHolding({ name: "ALRAJHI", ticker: "1120", exchange: "TASI", currency: "SAR", quantity: 88, market_value: "⃁ 5,570.40", platform: "Al Rajhi Capital", as_of: "2026-11-16" });
+  const a = holdingToAsset(h);
+  assert.equal(a.value_source, "broker");
+  assert.equal(a.exchange, "TASI");
+  assert.deepEqual(valueSourceInfo(a), { kind: "broker", label: "Dari Al Rajhi Capital", date: "2026-11-16" });
+  assert.equal(holdingToAsset({ ...h, price_source: "Tadawul" }).value_source, "online");
+  assert.equal(valueSourceInfo({ value_source: "online", price_date: "2026-11-16" }).label, "Perkiraan harga online");
+});

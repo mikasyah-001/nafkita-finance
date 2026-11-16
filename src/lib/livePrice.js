@@ -3,7 +3,7 @@
 // dengan harga emas). Hasil AI TIDAK dipercaya mentah: divalidasi dulu.
 // ─────────────────────────────────────────────────────────────────────────
 import { base44 } from "@/api/base44Client";
-import { num, validateLivePrice } from "./portfolioImport.js";
+import { num, validateLivePrice, brokerPriceSource } from "./portfolioImport.js";
 
 
 const keyOf = (it) => (it.ticker ? `${it.ticker}|${(it.exchange || "").toUpperCase()}` : (it.name || "").toLowerCase());
@@ -15,9 +15,11 @@ const keyOf = (it) => (it.ticker ? `${it.ticker}|${(it.exchange || "").toUpperCa
 export async function fetchLivePrices(items) {
   const list = items.filter((i) => i.ticker || i.name);
   if (!list.length) return new Map();
-  const lines = list.map((i, n) => `${n + 1}. ${[i.name, i.ticker && `kode ${i.ticker}`, i.exchange && `bursa ${i.exchange}`, `mata uang ${i.currency}`].filter(Boolean).join(", ")}`).join("\n");
+  // Tiap instrumen diarahkan ke sumber harga RESMI yang dipakai broker tempat
+  // membelinya (mis. Al Rajhi Capital → Saudi Exchange), bukan situs acak.
+  const lines = list.map((i, n) => `${n + 1}. ${[i.name, i.ticker && `kode ${i.ticker}`, i.exchange && `bursa ${i.exchange}`, `mata uang ${i.currency}`, i.broker && `dibeli via ${i.broker}`].filter(Boolean).join(", ")} → ambil dari: ${brokerPriceSource(i)}`).join("\n");
   const res = await base44.integrations.Core.InvokeLLM({
-    prompt: `Cari harga TERAKHIR (penutupan/terbaru hari ini) untuk instrumen berikut dari sumber publik tepercaya (mis. Tadawul/saudiexchange.sa, Argaam, Google Finance, Yahoo Finance, Bloomberg, IDX, Bibit/Bareksa untuk NAB reksa dana).
+    prompt: `Cari harga TERAKHIR (penutupan resmi terbaru) untuk instrumen berikut. Gunakan sumber yang ditunjuk per baris — itu sumber resmi yang dipakai aplikasi broker tempat instrumen dibeli. Jangan memakai harga dari bursa/kelas/mata uang lain.
 Instrumen:
 ${lines}
 
@@ -51,14 +53,20 @@ export const liveKey = keyOf;
  * Mengembalikan { updated: [{asset, price}], skipped: [{asset, reason}] }.
  */
 export async function refreshAssetPrices(assets, updateAsset) {
-  const targets = assets.filter((a) => a.type === "investasi" && (a.ticker || a.name) && Number(a.quantity) > 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const all = assets.filter((a) => a.type === "investasi" && (a.ticker || a.name) && Number(a.quantity) > 0);
+  // Nilai dari broker hari ini lebih tepat daripada perkiraan online → tidak ditimpa.
+  const fresh = all.filter((a) => a.value_source === "broker" && String(a.price_date || "").slice(0, 10) >= today);
+  const targets = all.filter((a) => !fresh.includes(a));
   const items = targets.map((a) => ({
     key: a.id, name: String(a.name || "").replace(/\s*\(.*?\)\s*$/, ""), ticker: a.ticker, exchange: a.exchange || "",
+    broker: a.broker || "", instrument: a.instrument || "",
     currency: (a.currency || "IDR").toUpperCase(),
-    ref_price: Number(a.last_price) || (Number(a.value) && Number(a.quantity) ? Number(a.value) / Number(a.quantity) : 0),
+    // Pembanding kewajaran: harga terakhir → nilai/jumlah → rata-rata beli.
+    ref_price: Number(a.last_price) || (Number(a.value) && Number(a.quantity) ? Number(a.value) / Number(a.quantity) : 0) || (Number(a.purchase_price) && Number(a.quantity) ? Number(a.purchase_price) / Number(a.quantity) : 0),
   }));
-  const found = await fetchLivePrices(items);
-  const updated = [], skipped = [];
+  const found = targets.length ? await fetchLivePrices(items) : new Map();
+  const updated = [], skipped = fresh.map((a) => ({ asset: a, reason: `nilai dari ${a.broker || "broker"} hari ini sudah terbaru` }));
   for (const a of targets) {
     const lp = found.get(a.id);
     if (!lp || !lp.ok) { skipped.push({ asset: a, reason: lp?.reason || "Tidak ditemukan" }); continue; }
@@ -68,6 +76,7 @@ export async function refreshAssetPrices(assets, updateAsset) {
       value: Math.round(lp.price * qty * 100) / 100,
       price_date: lp.as_of || new Date().toISOString().slice(0, 10),
       import_source: `Harga online · ${lp.source || "internet"}`,
+      value_source: "online",
     });
     updated.push({ asset: a, price: lp.price });
   }

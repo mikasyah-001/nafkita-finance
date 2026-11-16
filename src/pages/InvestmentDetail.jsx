@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate, assetGain } from "@/lib/finance";
-import { lotSummary } from "@/lib/portfolioImport";
+import { lotSummary, valueSourceInfo } from "@/lib/portfolioImport";
 import { fetchLivePrices } from "@/lib/livePrice";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Building2, Layers, Check, Upload, Calendar, X, Globe } from "lucide-react";
@@ -122,7 +122,12 @@ export default function InvestmentDetail() {
     const p = Number(priceDraft);
     if (!(p > 0)) return;
     try {
-      await base44.entities.Asset.update(asset.id, { value: r2(p * qty), last_price: p, price_date: (live?.price === p && live.as_of) || new Date().toISOString().slice(0, 10) });
+      const fromOnline = live?.price === p;
+      await base44.entities.Asset.update(asset.id, {
+        value: r2(p * qty), last_price: p,
+        price_date: (fromOnline && live.as_of) || new Date().toISOString().slice(0, 10),
+        value_source: fromOnline ? "online" : "manual",
+      });
       refresh();
       setPriceDraft("");
       toast.success("Nilai pasar diperbarui");
@@ -133,7 +138,7 @@ export default function InvestmentDetail() {
     setLiveBusy(true);
     setLive(null);
     try {
-      const found = await fetchLivePrices([{ key: asset.id, name: String(asset.name || "").replace(/\s*\(.*?\)\s*$/, ""), ticker: asset.ticker, exchange: asset.exchange || "", currency: cur, ref_price: lastPrice }]);
+      const found = await fetchLivePrices([{ key: asset.id, name: String(asset.name || "").replace(/\s*\(.*?\)\s*$/, ""), ticker: asset.ticker, exchange: asset.exchange || "", broker: asset.broker || "", instrument: asset.instrument || "", currency: cur, ref_price: lastPrice }]);
       const lp = found.get(asset.id);
       if (lp?.ok) { setLive(lp); setPriceDraft(String(lp.price)); }
       else setLive({ error: lp?.reason || "Harga tidak ditemukan" });
@@ -152,7 +157,7 @@ export default function InvestmentDetail() {
         <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" aria-hidden="true" />
         <div className="relative">
           {asset.broker && <p className="text-[11px] opacity-80 flex items-center gap-1"><Building2 className="w-3 h-3" /> {asset.broker}</p>}
-          <p className="text-xs opacity-80 mt-2">Nilai pasar{asset.price_date ? ` · ${formatDate(asset.price_date, "d MMM yyyy")}` : ""}</p>
+          <p className="text-xs opacity-80 mt-2">Nilai pasar · {(() => { const vs = valueSourceInfo(asset); return `${vs.label}${vs.date ? `, ${formatDate(vs.date, "d MMM yyyy")}` : ""}`; })()}</p>
           <p className="font-heading text-[32px] leading-none font-extrabold tracking-tight tabular-nums mt-1 break-all">{formatMoney(asset.value || 0, cur)}</p>
           {g.available && (
             <p className="text-sm font-semibold mt-2 inline-flex items-center gap-1 tabular-nums">
@@ -173,7 +178,11 @@ export default function InvestmentDetail() {
 
       {/* Harga terakhir */}
       <section className="surface rounded-3xl p-4 mb-4">
-        <label htmlFor="investment-current-price" className="text-xs text-muted-foreground">Perbarui harga terakhir per {unit}{lastPrice ? ` (kini ${formatMoney(lastPrice, cur)})` : ""}</label>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-xs font-semibold">Perbarui nilai pasar</p>
+          <Link to="/impor-portofolio" className="text-xs font-semibold text-primary inline-flex items-center gap-1"><Upload className="w-3.5 h-3.5" /> Dari {asset.broker || "broker"} (paling tepat)</Link>
+        </div>
+        <label htmlFor="investment-current-price" className="text-xs text-muted-foreground">Atau isi harga terakhir per {unit}{lastPrice ? ` (kini ${formatMoney(lastPrice, cur)})` : ""}</label>
         <div className="flex gap-2 mt-1.5">
           <span className="flex-1 flex items-center h-11 rounded-full border border-border bg-card px-4">
             <input id="investment-current-price" type="number" inputMode="decimal" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} placeholder={lastPrice ? String(r4(lastPrice)) : "0"} className="flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums" />
@@ -182,9 +191,9 @@ export default function InvestmentDetail() {
           <button onClick={savePrice} disabled={!(Number(priceDraft) > 0)} className="btn-primary btn-sm shrink-0 disabled:opacity-50">Simpan</button>
         </div>
         <button onClick={findOnline} disabled={liveBusy} className="mt-2 text-xs font-semibold text-primary inline-flex items-center gap-1.5 disabled:opacity-60">
-          {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {liveBusy ? "Mencari harga terbaru…" : "Cari harga online"}
+          {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {liveBusy ? "Mencari harga terbaru…" : "Perkiraan harga online"}
         </button>
-        {live?.price && <p className="text-[11px] text-muted-foreground mt-1">Ditemukan {formatMoney(live.price, cur)} · {live.source || "internet"}{live.as_of ? ` · ${formatDate(live.as_of, "d MMM yyyy")}` : ""} — periksa lalu ketuk Simpan.</p>}
+        {live?.price && <p className="text-[11px] text-muted-foreground mt-1">Perkiraan {formatMoney(live.price, cur)} · {live.source || "internet"}{live.as_of ? ` · ${formatDate(live.as_of, "d MMM yyyy")}` : ""} — bisa berbeda dari {asset.broker || "broker"}; periksa lalu ketuk Simpan.</p>}
         {live?.error && <p className="text-[11px] text-warning mt-1">{live.error}. Isi manual dari aplikasi broker.</p>}
         {Number(priceDraft) > 0 && <p className="text-xs text-muted-foreground mt-2 tabular-nums">Nilai pasar baru: <span className="font-semibold text-foreground">{formatMoney(Number(priceDraft) * qty, cur)}</span></p>}
       </section>

@@ -55,6 +55,8 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+      // Komponen JSX yang belum diimpor = crash saat runtime (pernah lolos: <Upload>).
+      "react/jsx-no-undef": "error",
     },
   },
 ];

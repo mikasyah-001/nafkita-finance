@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { formatMoney, colorMap, assetTypeLabels, convertTo, isGoldType, formatAxis } from "@/lib/finance";
+import { formatMoney, colorMap, assetTypeLabels, convertTo, formatAxis, assetMarketValue, assetGain } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
@@ -13,7 +14,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
     const map = {};
     assets.forEach((a) => {
       const t = a.type || "lainnya";
-      const raw = isGoldType(a.type) && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0);
+      const raw = assetMarketValue(a, goldPrice, rateMap);
       map[t] = (map[t] || 0) + conv(raw, (a.currency || "IDR"));
     });
     return Object.entries(map)
@@ -26,13 +27,13 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
     () =>
       assets.map((a) => {
         const aCur = a.currency || "IDR";
-        const purchase = a.purchase_price
-          ? conv((isGoldType(a.type) || a.type === "tanah") && a.quantity ? a.purchase_price * a.quantity : a.purchase_price, aCur)
-          : 0;
-        const current = conv(isGoldType(a.type) && goldPrice > 0 ? (a.quantity || 0) * goldPrice : (a.value || 0), aCur);
-        const gain = purchase > 0 ? current - purchase : 0;
-        const gainPct = purchase > 0 ? (gain / purchase) * 100 : 0;
-        return { ...a, purchase, current, gain, gainPct };
+        // Sumber tunggal: assetGain (emas butuh harga acuan; tanpa harga beli = tidak tersedia).
+        const g = assetGain(a, goldPrice, rateMap);
+        const purchase = g.available ? conv(g.cost, aCur) : 0;
+        const current = conv(g.value, aCur);
+        const gain = g.available ? current - purchase : 0;
+        const gainPct = g.available ? g.pct : 0;
+        return { ...a, purchase, current, gain, gainPct, currencySuspect: g.currencySuspect };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [assets, goldPrice, currency, rateMap]
@@ -86,6 +87,8 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   {hasPurchase ? (
                     <p className="text-xs text-muted-foreground truncate">{formatMoney(a.purchase, currency)} → {formatMoney(a.current, currency)}</p>
+                  ) : a.currencySuspect ? (
+                    <p className="text-xs text-warning truncate"><Link to="/kesehatan-data" className="underline">Mata uang harga beli tampak keliru — periksa</Link></p>
                   ) : (
                     <p className="text-xs text-muted-foreground">Nilai {formatMoney(a.current, currency)}</p>
                   )}

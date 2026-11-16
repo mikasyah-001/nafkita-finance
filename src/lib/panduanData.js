@@ -1,5 +1,5 @@
 import {
-  Home, ReceiptText, Plus, Landmark, BarChart3, PiggyBank, Wallet,
+  Home, ReceiptText, Plus, Landmark, BarChart3, CalendarRange, Wallet,
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, Coins,
   CheckCheck, Upload, Tags, Activity, History, Layers,
   User, Settings, MessageSquare, Sparkles, BookOpen,
@@ -93,7 +93,7 @@ export const panduanCategories = [
       },
       {
         to: "/laporan?tab=bulanan",
-        icon: PiggyBank,
+        icon: CalendarRange,
         name: "Laporan — Bulan ini",
         short: "Rincian pengeluaran per kategori & perbandingan bulan",
         description: "Halaman ringkasan mendalam yang menampilkan breakdown pengeluaran per kategori, perbandingan dengan bulan sebelumnya, dan tren pengeluaran.",

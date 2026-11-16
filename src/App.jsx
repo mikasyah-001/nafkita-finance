@@ -102,6 +102,7 @@ const AuthenticatedApp = () => {
           <Route path="/aset-dashboard" element={<AssetDashboard />} />
           <Route path="/impor" element={<ImportReport />} />
           <Route path="/transaksi/:id" element={<TransactionDetail />} />
+          <Route path="/transaksi/:id/edit" element={<AddTransaction />} />
           <Route path="/pengaturan" element={<Settings />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/sambungkan-pasangan" element={<PartnerOnboarding />} />

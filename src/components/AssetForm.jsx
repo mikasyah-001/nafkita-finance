@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase } from "@/lib/finance";
-import { Image as SmartImage } from "@/components/ui/image";
+import { useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview } from "@/lib/finance";
+import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
@@ -19,7 +19,7 @@ const digitalGoldBrokers = {
 const empty = {
   name: "", type: "bank", value: "", quantity: "", unit: "", broker: "",
   purchase_date: "", purchase_price: "", purchase_proof_url: "",
-  owner: "", notes: "", visibility: "shared", currency: "IDR",
+  owner: "", notes: "", visibility: "shared", currency: "",
 };
 
 export default function AssetForm({ asset, onClose }) {
@@ -38,13 +38,18 @@ export default function AssetForm({ asset, onClose }) {
   );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(false);
   const fileRef = useRef(null);
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
   useEffect(() => {
-    if (!isEdit && me?.default_currency) setForm((f) => (f.currency ? f : { ...f, currency: me.default_currency }));
+    // Form baru mengikuti mata uang utama; "" = belum diisi (dulu default "IDR"
+    // membuat mata uang utama tak pernah terpakai).
+    if (!isEdit && me) setForm((f) => (f.currency ? f : { ...f, currency: (me.default_currency || "IDR").toUpperCase() }));
   }, [me, isEdit]);
-  const sym = currencySymbol(form.currency);
+  const cur = (form.currency || "IDR").toUpperCase();
+  const sym = currencySymbol(cur);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -80,10 +85,11 @@ export default function AssetForm({ asset, onClose }) {
     setSaving(false);
   };
 
-  const showCurrency = (!isGoldType(form.type) && form.type !== "tanah") || form.type === "emas_digital";
+  const showCurrency = true;
   const brokerSuggestions = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
   const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
   const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
+  const goldHint = isGoldType(form.type) ? goldPriceCurrencyHint(form.purchase_price, cur, userCurrencies.map((c) => c.code), rateMap) : null;
   const goldTotal = isGoldType(form.type) && form.quantity && form.purchase_price ? Number(form.quantity) * Number(form.purchase_price) : 0;
 
   return (
@@ -154,11 +160,11 @@ export default function AssetForm({ asset, onClose }) {
         {isGoldType(form.type) || form.type === "tanah" ? (
           <div className="grid grid-cols-2 gap-2 mt-3">
             <HeroInput id={isGoldType(form.type) ? "asset-gold-quantity" : "asset-land-quantity"} label={isGoldType(form.type) ? "Gram" : "Luas (m²)"} value={form.quantity} onChange={(v) => setForm({ ...form, quantity: v })} />
-            <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${isGoldType(form.type) && form.type === "emas_digital" ? sym : "Rp"})`}
+            <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${cur})`}
               value={form.purchase_price}
               onChange={(v) => setForm({ ...form, purchase_price: v })} />
             {form.type === "tanah" && (
-              <div className="col-span-2"><HeroInput id="asset-land-value" label="Perkiraan harga sekarang (Rp, opsional)" value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
+              <div className="col-span-2"><HeroInput id="asset-land-value" label={`Perkiraan harga sekarang (${cur}, opsional)`} value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
             )}
           </div>
         ) : (
@@ -168,8 +174,22 @@ export default function AssetForm({ asset, onClose }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
           </div>
         )}
+        {!isGoldType(form.type) && form.type !== "tanah" && cur !== "IDR" && conversionPreview(form.value, cur, "IDR", rateMap) && (
+          <p className="text-xs opacity-80 mt-1 tabular-nums">{conversionPreview(form.value, cur, "IDR", rateMap)}</p>
+        )}
+        {goldHint && (
+          <div role="alert" className="mt-3 rounded-2xl bg-white/12 border border-white/25 p-3 text-xs">
+            <p className="font-semibold">Periksa mata uang</p>
+            <p className="opacity-85 mt-0.5">{goldHint.message}</p>
+            <button type="button" onClick={() => setForm({ ...form, currency: goldHint.suggest })}
+              className="mt-2 h-8 px-3 rounded-full bg-white text-[hsl(var(--hero-from))] text-xs font-bold">
+              Ganti ke {goldHint.suggest}
+            </button>
+          </div>
+        )}
         {(goldTotal > 0 || (form.type === "tanah" && form.quantity && form.purchase_price)) && (
-          <p className="text-xs opacity-80 mt-2">Total harga beli: <span className="font-semibold">{formatMoney(goldTotal || Number(form.purchase_price) * Number(form.quantity), form.currency || "IDR")}</span></p>
+          <p className="text-xs opacity-80 mt-2">Total harga beli: <span className="font-semibold">{formatMoney(goldTotal || Number(form.purchase_price) * Number(form.quantity), cur)}</span>
+            {cur !== "IDR" && <span className="opacity-75"> {conversionPreview(goldTotal || Number(form.purchase_price) * Number(form.quantity), cur, "IDR", rateMap)}</span>}</p>
         )}
         {isGoldType(form.type) && <p className="text-[11px] opacity-70 mt-1">Nilai pasar dihitung otomatis dari harga emas terkini bila tersedia.</p>}
         {form.type === "tunai" && <p className="text-[11px] opacity-70 mt-1">Isi jumlah uang di dompet saat ini (boleh 0).</p>}
@@ -188,7 +208,9 @@ export default function AssetForm({ asset, onClose }) {
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
           {form.purchase_proof_url ? (
             <div className="relative w-fit mt-1">
-              <SmartImage src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 rounded-xl object-cover" fittingType="fill" />
+              <button type="button" onClick={() => setPreview(true)} aria-label="Lihat bukti pembelian" className="block rounded-xl overflow-hidden active:scale-95 transition-transform">
+                <img src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 object-cover bg-muted" />
+              </button>
               <button onClick={() => setForm({ ...form, purchase_proof_url: "" })} aria-label="Hapus bukti" className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
             </div>
           ) : (
@@ -215,6 +237,7 @@ export default function AssetForm({ asset, onClose }) {
           <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Opsional" className={fieldInput} />
         </FieldRow>
       </FieldGroup>
+      {preview && <ProofViewer url={form.purchase_proof_url} onClose={() => setPreview(false)} />}
     </FormSheet>
   );
 }

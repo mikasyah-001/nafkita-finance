@@ -8,7 +8,7 @@ import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSh
 
 const iconOptions = [
   "Wallet", "ShoppingCart", "Car", "ReceiptText", "HeartPulse", "GraduationCap",
-  "Gamepad2", "Gift", "PiggyBank", "Landmark", "Coins", "Briefcase", "Utensils",
+  "Gamepad2", "Gift", "Vault", "Landmark", "Coins", "Briefcase", "Utensils",
   "Bus", "Lightbulb", "Package", "Sparkles", "Home", "Heart",
 ];
 

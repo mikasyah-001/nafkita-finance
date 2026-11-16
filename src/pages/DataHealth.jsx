@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useTransactions, useAssets, useCategories } from "@/hooks/useFinance";
-import { formatDate } from "@/lib/finance";
+import { useTransactions, useAssets, useCategories, useUserCurrencies, useRateMap, useRefresh } from "@/hooks/useFinance";
+import { formatDate, assetCurrencyIssue } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2, Coins } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const STALE_DAYS = 90;
@@ -15,6 +17,11 @@ export default function DataHealth() {
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
   const { data: assets = [], isLoading: assetLoading } = useAssets();
   const { data: categories = [] } = useCategories();
+  const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
+  const refresh = useRefresh();
+  const [fixing, setFixing] = useState(null);
+  const codes = userCurrencies.map((c) => c.code);
 
   const issues = useMemo(() => {
     // 1. Transaksi tanpa kategori
@@ -33,10 +40,30 @@ export default function DataHealth() {
       return updated < staleThreshold;
     });
 
-    return { noCategory, negativeAssets, staleAssets };
-  }, [transactions, assets]);
+    // 4. Harga emas per gram yang tidak wajar untuk mata uangnya
+    //    (mis. Rupiah diketik saat mata uang aset SAR).
+    const currencyMismatch = assets
+      .map((a) => ({ asset: a, issue: assetCurrencyIssue(a, codes, rateMap) }))
+      .filter((x) => x.issue);
 
-  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length;
+    return { noCategory, negativeAssets, staleAssets, currencyMismatch };
+  }, [transactions, assets, codes.join(","), rateMap]);
+
+  // Perbaikan satu ketuk: hanya label mata uang yang diganti — angka yang
+  // diketik pengguna memang dalam mata uang yang disarankan.
+  const fixCurrency = async (a, to) => {
+    setFixing(a.id);
+    try {
+      await base44.entities.Asset.update(a.id, { currency: to });
+      toast.success(`${a.name} kini tercatat dalam ${to}`);
+      refresh();
+    } catch (e) {
+      toast.error("Gagal memperbaiki", { description: e?.message });
+    }
+    setFixing(null);
+  };
+
+  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length + issues.currencyMismatch.length;
   const isHealthy = totalIssues === 0;
   const loading = txLoading || assetLoading;
 
@@ -65,12 +92,45 @@ export default function DataHealth() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-2 gap-2 mt-4">
               <SummaryCard icon={Tag} count={issues.noCategory.length} label="Tanpa Kategori" />
               <SummaryCard icon={TrendingDown} count={issues.negativeAssets.length} label="Saldo Negatif" />
               <SummaryCard icon={Clock} count={issues.staleAssets.length} label="Aset Stale" />
+              <SummaryCard icon={Coins} count={issues.currencyMismatch.length} label="Salah Mata Uang" />
             </div>
           </section>
+
+          {/* Mata uang salah tafsir */}
+          {issues.currencyMismatch.length > 0 && (
+            <IssueSection
+              icon={Coins}
+              title="Mata Uang Tampak Keliru"
+              subtitle="Harga per gram tidak wajar untuk mata uangnya — laporan & zakat jadi melenceng"
+              tone="destructive"
+            >
+              {issues.currencyMismatch.map(({ asset: a, issue }) => (
+                <div key={a.id} className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
+                      <Coins className="w-4 h-4 text-destructive" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{a.name}</p>
+                      <p className="text-xs text-muted-foreground">{a.quantity} gr · beli <Money value={a.purchase_price} currency={a.currency} />/gr</p>
+                    </div>
+                    <button
+                      onClick={() => fixCurrency(a, issue.suggest)}
+                      disabled={fixing === a.id}
+                      className="h-8 px-3.5 rounded-full border border-primary bg-primary text-primary-foreground text-xs font-semibold shrink-0 active:scale-95 transition-transform disabled:opacity-60"
+                    >
+                      {fixing === a.id ? "Menyimpan..." : `Jadikan ${issue.suggest}`}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{issue.message}</p>
+                </div>
+              ))}
+            </IssueSection>
+          )}
 
           {/* Transaksi tanpa kategori */}
           {issues.noCategory.length > 0 && (
@@ -162,7 +222,7 @@ export default function DataHealth() {
             <EmptyState
               icon={CheckCircle2}
               title="Semua data bersih"
-              subtitle="Tidak ada transaksi tanpa kategori, saldo negatif, atau aset yang belum diperbarui."
+              subtitle="Tidak ada transaksi tanpa kategori, saldo negatif, mata uang keliru, atau aset yang belum diperbarui."
             />
             </div>
           )}

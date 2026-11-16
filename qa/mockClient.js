@@ -4,13 +4,14 @@
 // sehingga alur input bisa diuji end-to-end. Reset saat halaman dimuat ulang.
 import { defaultCategories } from "@/lib/finance";
 
-const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
+const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
 const now = new Date();
 const Y = now.getUTCFullYear(), M = now.getUTCMonth();
 const d = (dd, mOff = 0, h = 10) => new Date(Date.UTC(Y, M + mOff, dd, h)).toISOString();
 let n = 0; const id = () => "id" + (++n);
 const T = (o) => ({ id: id(), created_by_id: "u1", input_by_name: "Ahmad", visibility: "shared", currency: "IDR", tags: [], approval_status: "approved", ...o });
 
+const later = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 const db = {
   tx: [
     T({ type: "income", amount: 15000000, category: "Gaji", date: d(1), merchant: "PT Arrahmah" }),
@@ -34,6 +35,7 @@ const db = {
     { id: "a1", name: "Tabungan BCA", type: "bank", value: 88000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a5", name: "Rekening Mandiri", type: "bank", value: 12000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a2", name: "Emas Antam", type: "emas", quantity: 40, purchase_price: 1250000, value: 64000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
+    { id: "a7", name: "Emas tabungan anak", type: "emas", quantity: 15, purchase_price: 1400000, value: 21000000, currency: "IDR", visibility: "shared", created_by_id: "u1", purchase_date: later(-60) },
     { id: "a3", name: "Reksa Dana Syariah", type: "investasi", value: 43500000, purchase_price: 38000000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
     { id: "a4", name: "Dompet Riyal", type: "tunai", value: 2400, currency: "SAR", visibility: "shared", created_by_id: "u1" },
     { id: "a6", name: "Dompet tunai", type: "tunai", value: 800000, currency: "IDR", visibility: "shared", created_by_id: "u1" },
@@ -49,10 +51,9 @@ const DATA = {
   }),
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
 };
-const later = (days) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 const FN = {
   listVisibleTransactions: () => ({ transactions: [...db.tx].sort((a, b) => new Date(b.date) - new Date(a.date)) }),
-  listVisibleAssets: () => ({ assets: db.assets }),
+  listVisibleAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }), // salinan, seperti respons server
   listVisibleBudgets: () => ({ budgets: [...(DATA.Budget || []),
     { id: "b1", category: "Belanja", limit_amount: 2000000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b2", category: "Makanan", limit_amount: 1500000, currency: "IDR", period: ym, visibility: "shared" },
@@ -65,7 +66,7 @@ const FN = {
     { id: "r1", created_by_id: "u1", name: "Listrik PLN", amount: 750000, currency: "IDR", frequency: "monthly", next_date: later(-1), start_date: later(-1), status: "active", category: "Tagihan", type: "expense" },
     { id: "r2", created_by_id: "u1", name: "Internet", amount: 450000, currency: "IDR", frequency: "monthly", next_date: later(2), start_date: later(2), status: "active", category: "Tagihan", type: "expense" },
   ] }),
-  listSavingsGoals: () => ({ goals: [{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" }] }),
+  listSavingsGoals: () => ({ goals: [...(DATA.SavingsGoal || []),{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" }] }),
   listPendingApprovals: () => ({
     pending_approvals: db.approvals.filter((a) => a.status === "pending").map((a) => ({ ...a, transaction: db.tx.find((t) => t.id === a.transaction_id) })),
     my_requests: [],
@@ -119,14 +120,14 @@ const entity = (name) => ({
     return r;
   },
   bulkCreate: async (a) => a,
-  update: async (i, o) => { const r = (DATA[name] || []).find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
+  update: async (i, o) => { const list = name === "Asset" ? db.assets : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
   updateMany: async () => ({}),
   delete: async (i) => { DATA[name] = (DATA[name] || []).filter((r) => r.id !== i); return {}; },
   subscribe: () => () => {},
 });
 export const base44 = {
   auth: {
-    me: async () => ME, updateMe: async (o) => Object.assign(ME, o), isAuthenticated: async () => true,
+    me: async () => ({ ...ME }), updateMe: async (o) => ({ ...Object.assign(ME, o) }), isAuthenticated: async () => true,
     logout: () => {}, redirectToLogin: () => {}, setToken: () => {}, loginWithProvider: () => {},
   },
   entities: new Proxy({}, { get: (_, k) => entity(k) }),
@@ -134,5 +135,5 @@ export const base44 = {
   integrations: new Proxy({}, { get: () => new Proxy({}, { get: () => async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.
-if (typeof window !== "undefined") window.__qa = db;
+if (typeof window !== "undefined") { window.__qa = db; window.__qaData = DATA; }
 export default base44;

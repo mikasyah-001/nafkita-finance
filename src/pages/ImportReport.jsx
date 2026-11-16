@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTransactions, useUserCurrencies } from "@/hooks/useFinance";
-import { formatRupiah, colorMap } from "@/lib/finance";
+import { formatMoney, colorMap } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -72,7 +72,7 @@ export default function ImportReport() {
   const parseText = async (rawText) => {
     const catNames = categories.map((c) => c.name).join(", ");
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), jam (format HH:mm, jika tersedia di laporan; jika tidak ada kosongkan), merchant/tempat/no transaksi, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok usulkan kategori baru yang singkat dan tepat), category_icon (Wallet, ShoppingCart, Car, ReceiptText, HeartPulse, GraduationCap, Gamepad2, Gift, PiggyBank, Landmark, Coins, Briefcase, Utensils, Bus, Lightbulb, Package, Sparkles, Home, Heart), category_color (orange, blue, pink, red, teal, indigo, violet, green, amber, cyan, rose, slate), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${rawText}`,
+      prompt: `Ekstrak daftar transaksi dari teks laporan keuangan berikut. Untuk setiap transaksi tentukan: tanggal (format yyyy-mm-dd), jam (format HH:mm, jika tersedia di laporan; jika tidak ada kosongkan), merchant/tempat/no transaksi, kategori (pilih dari: ${catNames}; jika tidak ada yang cocok usulkan kategori baru yang singkat dan tepat), category_icon (Wallet, ShoppingCart, Car, ReceiptText, HeartPulse, GraduationCap, Gamepad2, Gift, Vault, Landmark, Coins, Briefcase, Utensils, Bus, Lightbulb, Package, Sparkles, Home, Heart), category_color (orange, blue, pink, red, teal, indigo, violet, green, amber, cyan, rose, slate), nominal (angka tanpa mata uang), dan tipe ("expense" untuk pengeluaran, "income" untuk pemasukan). Teks:\n\n${rawText}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -185,7 +185,13 @@ export default function ImportReport() {
   };
 
   const selectedCount = rows.filter((r) => r.selected).length;
-  const selectedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
+  // Total per mata uang — jangan menjumlahkan SAR + IDR sebagai Rupiah.
+  const selectedTotals = rows.filter((r) => r.selected).reduce((m, r) => {
+    const c = (r.currency || importCurrency || "IDR").toUpperCase();
+    m[c] = (m[c] || 0) + (Number(r.amount) || 0);
+    return m;
+  }, {});
+  const selectedTotalLabel = Object.entries(selectedTotals).map(([c, v]) => formatMoney(v, c)).join(" · ") || formatMoney(0, importCurrency || "IDR");
 
   const handleImport = async () => {
     const selected = rows.filter((r) => r.selected);
@@ -361,7 +367,7 @@ export default function ImportReport() {
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-background/90 backdrop-blur-lg border-t border-border px-5 py-4 z-50">
           <div className="flex items-center justify-between mb-2 text-xs">
             <span className="text-muted-foreground">{selectedCount} transaksi dipilih</span>
-            <span className="font-semibold">{formatRupiah(selectedTotal)}</span>
+            <span className="font-semibold tabular-nums text-right">{selectedTotalLabel}</span>
           </div>
           <button
             onClick={handleImport}

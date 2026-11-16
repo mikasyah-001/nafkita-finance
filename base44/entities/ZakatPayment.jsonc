@@ -41,6 +41,10 @@
     "notes": {
       "type": "string"
     },
+    "amount_idr": {
+      "type": "number",
+      "description": "Nominal setara IDR saat dibayar (zakat dihitung dalam IDR; pembayaran boleh SAR/mata uang lain)"
+    },
     "paid_date": {
       "type": "string",
       "format": "date"

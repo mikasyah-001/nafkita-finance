@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, formatRupiah, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain } from "@/lib/finance";
+import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
 import TagInput from "@/components/TagInput";
 import { toast } from "sonner";
 import { addPending } from "@/lib/offlineQueue";
-import { saveTransactionWithAsset } from "@/lib/linkedAsset";
+import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/linkedAsset";
+import { confirmAction } from "@/components/ConfirmHost";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
-import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock, CalendarDays, Store, Wallet, NotebookPen, Sparkles, ChevronDown } from "lucide-react";
+import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock, CalendarDays, Store, Wallet, NotebookPen, Sparkles, ChevronDown, Trash2, AlertCircle } from "lucide-react";
 
 const typeTabs = [
   { key: "expense", label: "Pengeluaran" },
@@ -23,9 +24,15 @@ const typeTabs = [
 export default function AddTransaction() {
   const navigate = useNavigate();
   const refresh = useRefresh();
+  // Mode edit (/transaksi/:id/edit): layar & logika yang sama dengan catat baru,
+  // sehingga tampilan, validasi, dan sinkron saldo aset tidak bercabang.
+  const { id: editId } = useParams();
+  const isEdit = !!editId;
   const { data: categories = [] } = useCategories();
   const { data: templates = [] } = useTemplates();
-  const { data: transactions = [] } = useTransactions();
+  const { data: transactions = [], isLoading: txLoading } = useTransactions();
+  const editTx = isEdit ? transactions.find((t) => t.id === editId) : null;
+  const [editLoaded, setEditLoaded] = useState(false);
   const { data: assets = [] } = useAssets();
   const [user, setUser] = useState(null);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -52,6 +59,7 @@ export default function AddTransaction() {
   const [currency, setCurrency] = useState("IDR");
   const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
+  const { map: rateMap } = useRateMap();
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -66,9 +74,29 @@ export default function AddTransaction() {
   useEffect(() => {
     base44.auth.me().then((u) => {
       setUser(u);
-      if (u?.default_currency) setCurrency(u.default_currency);
+      if (u?.default_currency && !isEdit) setCurrency(u.default_currency);
     }).catch(() => {});
-  }, []);
+  }, [isEdit]);
+
+  // Isi form dari transaksi yang diedit (sekali saja).
+  useEffect(() => {
+    if (!editTx || editLoaded) return;
+    const d = new Date(editTx.date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    setType(editTx.type || "expense");
+    setAmount(String(editTx.amount ?? ""));
+    setCategory(editTx.type === "sedekah" ? "" : editTx.category || "");
+    setDate(d.toISOString().slice(0, 16));
+    setMerchant(editTx.merchant || "");
+    setNotes(editTx.notes || "");
+    setPhotoUrl(editTx.photo_url || "");
+    setPhotoUrls(editTx.photo_url ? [editTx.photo_url] : []);
+    setTags(editTx.tags || []);
+    setVisibility(editTx.visibility || "shared");
+    setCurrency((editTx.currency || "IDR").toUpperCase());
+    setLinkedAssetId(editTx.linked_asset_id || "");
+    setEditLoaded(true);
+  }, [editTx, editLoaded]);
 
   const availableCategories = categories.filter((c) => c.type === type);
   const bankAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
@@ -106,7 +134,8 @@ export default function AddTransaction() {
         setScanning(false);
         return;
       }
-      if (allTx.length === 1) {
+      // Mode edit: satu transaksi saja → pakai hasil pertama.
+      if (allTx.length === 1 || isEdit) {
         const p = allTx[0];
         if (p.photo_url) { setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
         if (p.amount) setAmount(String(p.amount));
@@ -207,6 +236,30 @@ export default function AddTransaction() {
       return;
     }
     setSaving(true);
+    if (isEdit) {
+      try {
+        await saveTransactionWithAsset({
+          type,
+          amount: amt,
+          currency,
+          category: type === "sedekah" ? "Sedekah & Infaq" : category,
+          date: new Date(date).toISOString(),
+          merchant: type === "income" ? "" : merchant || "",
+          notes: notes || "",
+          photo_url: photoUrl || "",
+          tags,
+          visibility,
+          linked_asset_id: linkedAssetId || undefined,
+        }, editId);
+        refresh();
+        toast.success("Transaksi diperbarui");
+        navigate(`/transaksi/${editId}`, { replace: true });
+      } catch {
+        toast.error("Gagal memperbarui", { description: navigator.onLine ? undefined : "Periksa koneksi internet." });
+      }
+      setSaving(false);
+      return;
+    }
     if (!navigator.onLine) {
       addPending({
         type,
@@ -269,13 +322,14 @@ export default function AddTransaction() {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast.error("Masukkan nominal terlebih dahulu");
     if (type !== "sedekah" && !category) return toast.error("Pilih kategori");
+    if (isEdit) return performSave();
     const dup = findDuplicate(
       { type, amount: amt, currency, date: new Date(date).toISOString(), merchant, visibility },
       transactions
     );
     if (dup) {
       toast("Transaksi serupa sudah tercatat", {
-        description: `${dup.merchant || dup.category || "Transaksi"} • ${formatRupiah(dup.amount)} • ${formatDate(dup.date, "dd MMM yyyy, HH:mm")}`,
+        description: `${dup.merchant || dup.category || "Transaksi"} • ${formatMoneyPlain(dup.amount, dup.currency)} • ${formatDate(dup.date, "dd MMM yyyy, HH:mm")}`,
         action: { label: "Tetap Simpan", onClick: performSave },
       });
       return;
@@ -289,12 +343,43 @@ export default function AddTransaction() {
     sedekah: { active: "bg-sedekah text-sedekah-foreground", soft: "text-sedekah", label: "Sedekah" },
   }[type];
   const amountNum = Number(amount) || 0;
+  const amountHint = amountCurrencyHint(amountNum, currency, rateMap);
   const quickAmounts = currency === "IDR" ? [10000, 25000, 50000, 100000] : [10, 25, 50, 100];
   const linkedAsset = bankAssets.find((a) => a.id === linkedAssetId);
   const chosenCategory = type === "sedekah" ? "Sedekah & Infaq" : category;
   const isExtra = tags.includes(EXTRAORDINARY_TAG);
   const toggleExtra = (on) => setTags(on ? [...tags.filter((t) => t !== EXTRAORDINARY_TAG), EXTRAORDINARY_TAG] : tags.filter((t) => t !== EXTRAORDINARY_TAG));
   const fieldCls = "w-full bg-transparent text-sm outline-none py-1";
+
+  const isOwner = !isEdit || (!!editTx && !!user && editTx.created_by_id === user.id);
+  const canDelete = isEdit && !!editTx && (isOwner || user?.role === "admin") && editTx.approval_status !== "pending";
+  const handleDelete = async () => {
+    if (!(await confirmAction({ title: "Hapus transaksi ini?", description: "Transaksi dihapus permanen. Bila terhubung ke aset, saldo aset ikut disesuaikan." }))) return;
+    try {
+      await deleteTransactionWithAsset(editId);
+      refresh();
+      toast.success("Transaksi dihapus");
+      navigate("/riwayat", { replace: true });
+    } catch {
+      toast.error("Gagal menghapus");
+    }
+  };
+
+  if (isEdit && !editLoaded) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 px-5 text-center">
+        {txLoading || !user ? (
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        ) : (
+          <>
+            <AlertCircle className="w-10 h-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Transaksi tidak ditemukan.</p>
+            <button onClick={() => navigate(-1)} className="btn-secondary btn-sm">Kembali</button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   if (multiTx) {
     return (
@@ -328,7 +413,7 @@ export default function AddTransaction() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold leading-tight">Catat transaksi</h1>
+          <h1 className="text-xl font-bold leading-tight">{isEdit ? "Edit transaksi" : "Catat transaksi"}</h1>
           <p className="text-sm text-muted-foreground">{formatDate(new Date(date), "EEEE, d MMMM")}</p>
         </div>
       </header>
@@ -384,7 +469,14 @@ export default function AddTransaction() {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
-          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? formatMoney(amountNum, currency) : ""}</p>
+          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? `${formatMoney(amountNum, currency)} ${conversionPreview(amountNum, currency, "IDR", rateMap)}`.trim() : ""}</p>
+          {amountHint && userCurrencies.some((c) => c.code === "IDR") && (
+            <div role="alert" className="mt-2 rounded-2xl bg-white/12 border border-white/25 px-3 py-2 text-xs flex items-center gap-2">
+              <span className="flex-1 min-w-0 opacity-90">{amountHint.message}</span>
+              <button type="button" onClick={() => { setCurrency("IDR"); setLinkedAssetId(""); setAmount(String(Math.round(amountNum))); }}
+                className="shrink-0 h-7 px-3 rounded-full bg-white text-[hsl(var(--hero-from))] font-bold">Jadikan IDR</button>
+            </div>
+          )}
           <div className="flex gap-1.5 mt-3 overflow-x-auto no-scrollbar">
             {quickAmounts.map((q) => (
               <button key={q} onClick={() => setAmount(String(amountNum + q))} className="shrink-0 h-8 px-3 rounded-full bg-white/10 border border-white/15 text-xs font-semibold active:scale-95 transition-transform">
@@ -410,10 +502,10 @@ export default function AddTransaction() {
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-sm font-semibold">
-                {scanning ? "AI sedang membaca bon…" : photoUrls.length > 0 ? `${photoUrls.length} bon terunggah` : "Punya struk? Scan dengan AI"}
+                {scanning ? "AI sedang membaca bon…" : photoUrls.length > 0 ? (isEdit ? "Bon terpasang · ketuk untuk ganti" : `${photoUrls.length} bon terunggah`) : isEdit ? "Tambah / scan bon dengan AI" : "Punya struk? Scan dengan AI"}
               </span>
               <span className="block text-xs opacity-75">
-                {scanning ? `${photoUrls.length || 1} foto sedang diproses` : "Hingga 5 foto, tinjau dulu sebelum disimpan"}
+                {scanning ? `${photoUrls.length || 1} foto sedang diproses` : isEdit ? "Isian terbaca otomatis, periksa sebelum simpan" : "Hingga 5 foto, tinjau dulu sebelum disimpan"}
               </span>
             </span>
             {photoUrls.length > 0 && !scanning && (
@@ -422,16 +514,16 @@ export default function AddTransaction() {
               </span>
             )}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleScan} />
+          <input ref={fileRef} type="file" accept="image/*" multiple={!isEdit} className="hidden" onChange={handleScan} />
           {photoUrls.length > 0 && !scanning && (
             <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
-              <X className="w-3 h-3" /> Hapus semua foto
+              <X className="w-3 h-3" /> {isEdit ? "Lepas bon" : "Hapus semua foto"}
             </button>
           )}
         </div>
 
         {/* 4 · Template & kategori */}
-        {templates.length > 0 && (
+        {!isEdit && templates.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2">Pakai template</p>
             <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
@@ -510,7 +602,7 @@ export default function AddTransaction() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 px-4 py-3">
+          {isOwner && <div className="flex items-center gap-3 px-4 py-3">
             {visibility === "private" ? <Lock className="w-4 h-4 text-muted-foreground shrink-0" /> : <Users className="w-4 h-4 text-muted-foreground shrink-0" />}
             <div className="flex-1 min-w-0">
               <p className="text-[11px] text-muted-foreground">Jangkauan</p>
@@ -521,7 +613,7 @@ export default function AddTransaction() {
                 <button key={v} role="radio" aria-checked={visibility === v} onClick={() => setVisibility(v)} className={`h-7 px-3 rounded-full text-xs font-semibold transition-colors ${visibility === v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>{l}</button>
               ))}
             </div>
-          </div>
+          </div>}
 
           <div className="flex items-start gap-3 px-4 py-3">
             <NotebookPen className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
@@ -548,19 +640,25 @@ export default function AddTransaction() {
         <details className="group surface rounded-3xl">
           <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none">
             <span className="text-sm font-semibold">Opsi lanjutan</span>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">Tag & template <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" /></span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">{isEdit ? "Tag" : "Tag & template"} <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" /></span>
           </summary>
           <div className="px-4 pb-4 space-y-3">
             <div>
               <p className="text-[11px] text-muted-foreground mb-1.5">Tag</p>
               <TagInput tags={tags.filter((t) => t !== EXTRAORDINARY_TAG)} onChange={(next) => setTags(isExtra ? [...next, EXTRAORDINARY_TAG] : next)} />
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
+            {!isEdit && <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} className="w-4 h-4 accent-[hsl(var(--primary))]" />
               <span className="text-sm">Simpan sebagai template rutin</span>
-            </label>
+            </label>}
           </div>
         </details>
+
+        {canDelete && (
+          <button onClick={handleDelete} className="w-full h-11 rounded-full border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform">
+            <Trash2 className="w-4 h-4" /> Hapus transaksi
+          </button>
+        )}
       </div>
 
       {/* 7 · Simpan (menempel) */}
@@ -573,7 +671,7 @@ export default function AddTransaction() {
         </p>
         <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          {saving ? "Menyimpan..." : "Simpan Transaksi"}
+          {saving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Transaksi"}
         </button>
       </div>
     </div>

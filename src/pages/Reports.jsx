@@ -6,7 +6,7 @@ import CurrencyTabs from "@/components/CurrencyTabs";
 import MonthComparison from "@/components/MonthComparison";
 import UserContributionChart from "@/components/UserContributionChart";
 import AssetGrowthChart from "@/components/AssetGrowthChart";
-import { fetchGoldPriceStandard } from "@/lib/goldPrice";
+import { useGoldPrice } from "@/hooks/useGoldPrice";
 import { useScope } from "@/lib/ScopeContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Heart, Coins, Sparkles, Loader2, Globe, RefreshCw, ArrowRight } from "lucide-react";
@@ -35,21 +35,14 @@ function ReportsAnalysis() {
   const [periodType, setPeriodType] = useState("monthly");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [emasPrice, setEmasPrice] = useState("");
   const { scope, setScope } = useScope();
-  const [goldLoading, setGoldLoading] = useState(false);
+  // Harga emas acuan bersama — tidak lagi mengambil harga sendiri.
+  const { price: emasPriceNum } = useGoldPrice();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
   const [consolidated, setConsolidated] = useState(false);
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
   const { map: rateMap } = useRateMap();
 
-  useEffect(() => {
-    setGoldLoading(true);
-    fetchGoldPriceStandard()
-      .then((src) => { if (src) setEmasPrice(String(Math.round(src.price_per_gram))); })
-      .catch(() => {})
-      .finally(() => setGoldLoading(false));
-  }, []);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -293,7 +286,6 @@ function ReportsAnalysis() {
   };
 
   // Harga emas dipakai AssetGrowthChart; kalkulator zakat pindah ke halaman /zakat.
-  const emasPriceNum = Number(emasPrice) || 0;
 
   return (
     <div className="space-y-5">

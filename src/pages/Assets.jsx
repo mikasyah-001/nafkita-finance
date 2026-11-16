@@ -2,22 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
+import ProofViewer from "@/components/ProofViewer";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import CurrencyTabs from "@/components/CurrencyTabs";
-import { Image as SmartImage } from "@/components/ui/image";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, X, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ArrowRight, ChevronDown, Globe, AlertTriangle, Plus } from "lucide-react";
+import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import GoldPriceCard from "@/components/GoldPriceCard";
+import ZakatSummaryCard from "@/components/ZakatSummaryCard";
+import { useGoldPrice } from "@/hooks/useGoldPrice";
 
 const sortOptions = [
   { key: "updated", label: "Terbaru" },
@@ -42,7 +45,6 @@ export default function Assets() {
   const { map: rateMap } = useRateMap();
   const [formOpen, setFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
-  const [goldPrice, setGoldPrice] = useState("");
   const [displayCurrency, setDisplayCurrency] = useState(me?.default_currency || "IDR");
   useEffect(() => { if (me?.default_currency) setDisplayCurrency(me.default_currency); }, [me?.default_currency]);
   const { scope, setScope } = useScope();
@@ -52,15 +54,11 @@ export default function Assets() {
   const [visibleCount, setVisibleCount] = useState(10);
   const { hidden, toggle } = usePrivacy();
 
-  const goldPriceNum = Number(goldPrice) || 0;
+  // Harga emas acuan bersama (Aset, Dashboard, Laporan, Zakat).
+  const { price: goldPriceNum } = useGoldPrice();
   const scopedAssets = assets.filter((a) => (scope === "private" ? a.visibility === "private" : a.visibility !== "private"));
 
-  const currentValue = (a) => {
-    // Harga emas pasar dalam Rupiah → hanya untuk aset emas bermata uang IDR
-    // (sama dengan Dashboard Aset). Emas digital SAR/USD memakai nilai tersimpan.
-    if (isGoldType(a.type) && a.quantity && goldPriceNum > 0 && (a.currency || "IDR").toUpperCase() === "IDR") return a.quantity * goldPriceNum;
-    return a.value || 0;
-  };
+  const currentValue = (a) => assetMarketValue(a, goldPriceNum, rateMap);
   const convertedValue = (a) => convertTo(currentValue(a), (a.currency || "IDR"), displayCurrency, rateMap);
   const assetCurrencies = [...new Set(scopedAssets.map((a) => (a.currency || "IDR").toUpperCase()))];
   const missingRates = assetCurrencies.filter((c) => c !== displayCurrency && !hasRate(c, rateMap));
@@ -165,18 +163,11 @@ export default function Assets() {
         </div>
       )}
 
-      {scopedAssets.length > 0 && (
-        <Link to="/zakat" className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/10 p-3.5 mb-4 active:scale-[0.99] transition-transform">
-          <div className="w-9 h-9 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
-            <Coins className="w-4 h-4 text-success" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Kelola Zakat</p>
-            <p className="text-xs text-muted-foreground">Kalkulator nisab, pengingat & pembayaran zakat</p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-success shrink-0" />
-        </Link>
+      {scopedAssets.some((a) => isGoldType(a.type)) && (
+        <GoldPriceCard grams={scopedAssets.filter((a) => isGoldType(a.type) && (a.currency || "IDR") === "IDR").reduce((t, a) => t + (Number(a.quantity) || 0), 0)} className="mb-4" />
       )}
+
+      {scopedAssets.length > 0 && <ZakatSummaryCard className="mb-4" />}
 
       <AssetGrowthTrend />
 
@@ -215,11 +206,13 @@ export default function Assets() {
             const curVal = currentValue(a);
             const rank = rankMap[a.id];
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (isGoldType(a.type) || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
-            const gain = hasPurchase ? curVal - totalPurchase : 0;
-            const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
+            const g = assetGain(a, goldPriceNum, rateMap);
+            const totalPurchase = g.cost;
+            const gain = g.gain;
+            const gainPct = g.pct;
             const isGain = gain >= 0;
-            const showChange = hasPurchase && (!isGoldType(a.type) || goldPriceNum > 0);
+            const showChange = g.available;
+            const marketPerGram = isGoldType(a.type) ? goldPriceIn(a.currency, goldPriceNum, rateMap) : 0;
             const duration = formatDuration(a.purchase_date);
 
             return (
@@ -250,8 +243,8 @@ export default function Assets() {
                     <p className="text-sm font-semibold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
                     <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
                       {a.purchase_proof_url && (
-                        <button onClick={() => setViewProof(a.purchase_proof_url)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
-                          <Receipt className="w-3.5 h-3.5" />
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setViewProof(a.purchase_proof_url); }} aria-label={`Lihat bukti pembelian ${a.name}`} className="-m-2 p-2 text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
+                          <Receipt className="w-4 h-4" />
                         </button>
                       )}
                       <button onClick={() => handleToggleVisibility(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}>
@@ -265,7 +258,7 @@ export default function Assets() {
                       <Link to={`/mutasi-aset?asset_id=${a.id}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Riwayat mutasi aset">
                         <History className="w-3.5 h-3.5" />
                       </Link>
-                      <button onClick={() => openEdit(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
+                      <button onClick={() => openEdit(a)} aria-label={`Edit aset ${a.name}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => handleDelete(a.id)} className="text-xs text-destructive flex items-center gap-1" title="Hapus aset">
@@ -309,6 +302,18 @@ export default function Assets() {
                           <p className="text-muted-foreground">Harga Beli{isGoldType(a.type) ? " /gr" : ""}</p>
                           <p className="font-medium"><Money value={a.purchase_price} currency={a.currency} /></p>
                         </div>
+                        {isGoldType(a.type) && (
+                          <div>
+                            <p className="text-muted-foreground">Harga Pasar /gr</p>
+                            <p className="font-medium">{marketPerGram > 0 ? <Money value={marketPerGram} currency={a.currency} /> : <span className="text-[11px] text-warning">Belum ada</span>}</p>
+                          </div>
+                        )}
+                        {isGoldType(a.type) && (
+                          <div>
+                            <p className="text-muted-foreground">Total Beli</p>
+                            <p className="font-medium"><Money value={totalPurchase} currency={a.currency} /></p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-muted-foreground">Perubahan</p>
                           {showChange ? (
@@ -317,7 +322,7 @@ export default function Assets() {
                               {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>
                           ) : (
-                            <p className="text-muted-foreground text-[11px]">Set harga emas dulu</p>
+                            <p className="text-[11px] text-warning">{g.currencySuspect ? <Link to="/kesehatan-data" className="underline">Mata uang tampak keliru — periksa</Link> : g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Isi harga emas acuan di atas") : "—"}</p>
                           )}
                         </div>
                       </>
@@ -347,16 +352,7 @@ export default function Assets() {
 
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 
-      {viewProof && (
-        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-5" onClick={() => setViewProof(null)}>
-          <button className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center">
-            <X className="w-5 h-5" />
-          </button>
-          <div className="max-w-md w-full max-h-[85vh] rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <SmartImage src={viewProof} alt="Bukti pembelian" className="w-full" fittingType="fit" />
-          </div>
-        </div>
-      )}
+      {viewProof && <ProofViewer url={viewProof} onClose={() => setViewProof(null)} />}
     </div>
   );
 }

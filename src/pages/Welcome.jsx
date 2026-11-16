@@ -1,475 +1,377 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, ScanLine, Wallet, Coins, Users, Target, BarChart3,
-  EyeOff, Cloud, Heart, ShieldCheck, Sparkles, Check,
-  PiggyBank, Landmark, TrendingUp, Zap,
-  Home as HomeIcon, Moon, Plus,
-  Link2, Smartphone, Globe, LineChart, FileText,
-  MailCheck, RefreshCw, BellRing, CheckCheck, History, Repeat, Activity, FileSpreadsheet, ScrollText, Copy,
+  ArrowRight, ScanLine, Wallet, Coins, Users, Target, BarChart3, EyeOff, Cloud, Heart,
+  ShieldCheck, Sparkles, Check, Landmark, Link2, Smartphone, LineChart, MailCheck,
+  RefreshCw, BellRing, CheckCheck, History, Activity, FileSpreadsheet, Copy,
+  CalendarClock, HandCoins, Share2, ClipboardCheck, ArrowLeftRight, Scale, Receipt,
+  CalendarDays, Gem, Vault, Plus, TrendingUp, ChevronRight,
 } from "lucide-react";
+import { SAR_SIGN } from "@/lib/finance";
 
 // ─────────────────────────────────────────────────────────────
-// DATA FITUR — sinkron dengan fungsi aplikasi yang ada.
-// CATATAN: Setiap kali ada fitur baru di aplikasi, tambahkan entri
-// di array di bawah agar halaman sambutan selalu terupdate.
+// HALAMAN SAMBUTAN (sebelum login).
+// Data fitur di bawah HARUS sinkron dengan fitur yang benar-benar ada.
+// Tambah/ubah entri di sini setiap kali fitur aplikasi berubah.
 // ─────────────────────────────────────────────────────────────
 
-const valuePillars = [
-  { icon: Zap, title: "Cepat", desc: "Catat transaksi dalam hitungan detik, atau biarkan AI membaca bon Anda." },
-  { icon: ShieldCheck, title: "Privat", desc: "Mode sembunyi nominal & ruang kas pribadi yang aman dari mata orang." },
-  { icon: Heart, title: "Berkah", desc: "Pelacakan sedekah & kalkulator zakat otomatis berbasis nisab emas." },
+const pillars = [
+  { icon: Sparkles, title: "Rapi", desc: "Catat dalam detik, scan bon dengan AI", tone: "card-pastel-butter" },
+  { icon: Users, title: "Berdua", desc: "Kas bersama & ruang pribadi", tone: "card-pastel-mint" },
+  { icon: Heart, title: "Berkah", desc: "Sedekah & zakat mal sesuai syariat", tone: "card-pastel-peach" },
 ];
 
-const flagshipSteps = [
-  { icon: ScanLine, text: "Foto bon belanja Anda" },
-  { icon: Sparkles, text: "AI membaca nominal, merchant & kategori" },
-  { icon: Check, text: "Tinjau, lalu simpan — selesai!" },
+// Sorotan utama — ditampilkan sebagai kartu besar bergantian.
+const highlights = [
+  {
+    key: "catat",
+    tone: "card-pastel-butter",
+    icon: ScanLine,
+    eyebrow: "Pencatatan",
+    title: "Catat dalam hitungan detik",
+    desc: "Ketik nominal atau foto struk. AI membaca nominal, toko, tanggal, dan kategori, hingga 5 bon sekaligus. Anda tinggal memeriksa, lalu simpan.",
+    points: ["Template transaksi rutin", "Deteksi transaksi ganda", "Tetap bisa mencatat saat offline"],
+  },
+  {
+    key: "berdua",
+    tone: "card-pastel-mint",
+    icon: Users,
+    eyebrow: "Suami & istri",
+    title: "Satu kas keluarga, tetap ada ruang pribadi",
+    desc: "Hubungkan akun dengan pasangan lewat kode unik. Transaksi bersama tersinkron otomatis, sementara catatan pribadi tetap milik Anda.",
+    points: ["Persetujuan pasangan untuk transaksi besar", "Notifikasi saat pasangan mencatat", "Mode sembunyi nominal satu ketuk"],
+  },
+  {
+    key: "zakat",
+    tone: "card-pastel-peach",
+    icon: Coins,
+    eyebrow: "Zakat mal",
+    title: "Zakat dihitung sesuai ketentuan",
+    desc: "Uang, tabungan, emas, investasi, dan piutang lancar digabung lintas mata uang. Nisab 85 gram emas dengan harga terkini, kadar 2,5%, haul 1 tahun hijriah.",
+    points: ["Haul emas dihitung dari tanggal beli tiap aset", "Utang jatuh tempo dikurangkan, rumah tinggal tidak dihitung", "Bayar bisa dicicil, dalam Rupiah atau Riyal"],
+  },
+  {
+    key: "kurs",
+    tone: "card-pastel-sage",
+    icon: ArrowLeftRight,
+    eyebrow: "Rupiah & Riyal",
+    title: "Untuk keluarga Indonesia–Saudi",
+    desc: `Catat dalam IDR, SAR (${SAR_SIGN} simbol resmi), atau mata uang lain tanpa tercampur. Laporan bisa digabung ke satu mata uang dengan kurs otomatis.`,
+    points: ["Pratinjau setara Rupiah saat mengetik", "Peringatan bila nominal tampak salah mata uang", "Target tabungan dalam mata uang mana pun"],
+  },
+  {
+    key: "aset",
+    tone: "card-pastel-lime",
+    icon: Landmark,
+    eyebrow: "Aset & emas",
+    title: "Lihat kekayaan tumbuh, bukan sekadar saldo",
+    desc: "Rekening, uang tunai, emas fisik & digital, investasi, properti, dan tanah dalam satu tempat. Satu harga emas acuan dipakai untuk aset, laporan, dan zakat.",
+    points: ["Untung/rugi emas per gram", "Investasi DCA & riwayat mutasi aset", "Audit kas tunai: cocokkan dompet dengan catatan"],
+  },
 ];
 
-// Setiap fitur punya `group` agar bisa dikelompokkan di halaman sambutan —
-// samakan warna ikon per grup supaya asosiasi kategori terasa konsisten.
+// Daftar lengkap fitur per kelompok.
 const FEATURE_GROUPS = [
-  { key: "catat", label: "Pencatatan & AI", bg: "bg-scope-private/10", text: "text-scope-private" },
-  { key: "pasangan", label: "Kolaborasi Pasangan", bg: "bg-primary/10", text: "text-primary" },
-  { key: "aset", label: "Aset, Zakat & Investasi", bg: "bg-warning/10", text: "text-warning" },
-  { key: "laporan", label: "Anggaran & Laporan", bg: "bg-primary/10", text: "text-primary" },
-  { key: "keamanan", label: "Keamanan & Data", bg: "bg-muted", text: "text-muted-foreground" },
+  {
+    label: "Pencatatan",
+    items: [
+      { icon: ScanLine, title: "Scan bon AI", desc: "Hingga 5 foto sekaligus, ditinjau sebelum disimpan." },
+      { icon: Copy, title: "Deteksi duplikat", desc: "Transaksi ganda ditandai saat catat, scan, dan impor." },
+      { icon: FileSpreadsheet, title: "Impor mutasi", desc: "Tempel teks mutasi bank, AI menyusun transaksinya." },
+      { icon: ArrowLeftRight, title: "Transfer antar rekening", desc: "Saldo berpindah tanpa dihitung sebagai belanja." },
+      { icon: CalendarClock, title: "Tagihan rutin", desc: "Listrik, sekolah, cicilan tercatat otomatis tiap periode." },
+      { icon: Sparkles, title: "Pengeluaran luar biasa", desc: "Tandai belanja besar tak rutin agar rata-rata harian tetap jujur." },
+    ],
+  },
+  {
+    label: "Anggaran & rencana",
+    items: [
+      { icon: Target, title: "Anggaran per kategori", desc: "Progres & peringatan batas, sisa bisa dibawa ke bulan depan." },
+      { icon: TrendingUp, title: "Rencana bulanan", desc: "Target pemasukan & menabung, progresnya tampil di Beranda." },
+      { icon: Vault, title: "Target tabungan", desc: "Dana darurat, pendidikan, umrah, dalam mata uang aktif mana pun." },
+      { icon: Scale, title: "Utang & piutang", desc: "Cicilan, jatuh tempo, dan pengingat sebelum tenggat." },
+    ],
+  },
+  {
+    label: "Laporan",
+    items: [
+      { icon: BarChart3, title: "Laporan & tren", desc: "Bulanan, mingguan, tahunan; perbandingan dan proyeksi." },
+      { icon: Share2, title: "Bagikan sebagai gambar", desc: "Ringkasan bulan jadi gambar rapi untuk dikirim ke pasangan." },
+      { icon: Receipt, title: "Ekspor PDF, CSV, Excel", desc: "Termasuk PDF lengkap dengan foto bukti transaksi." },
+      { icon: MailCheck, title: "Ringkasan email", desc: "Pengingat harian & laporan bulanan ke kotak masuk." },
+    ],
+  },
+  {
+    label: "Aset, emas & zakat",
+    items: [
+      { icon: Gem, title: "Harga emas acuan", desc: "Satu harga untuk aset, laporan, dan nisab; bisa dibandingkan antar sumber." },
+      { icon: LineChart, title: "Dasbor aset", desc: "Pertumbuhan per jenis, snapshot bulanan, distribusi portofolio." },
+      { icon: ClipboardCheck, title: "Audit kas & rekonsiliasi", desc: "Cocokkan saldo dompet atau rekening, selisih tercatat rapi." },
+      { icon: HandCoins, title: "Zakat mal", desc: "Status nisab & haul, riwayat bayar, pengingat menjelang haul." },
+      { icon: History, title: "Riwayat mutasi aset", desc: "Setiap perubahan saldo tercatat sebagai jejak audit." },
+    ],
+  },
+  {
+    label: "Berdua & keamanan",
+    items: [
+      { icon: Link2, title: "Koneksi pasangan", desc: "Kode referensi unik, peran & akses diatur bersama." },
+      { icon: CheckCheck, title: "Persetujuan transaksi", desc: "Transaksi di atas ambang menunggu persetujuan pasangan." },
+      { icon: BellRing, title: "Aturan notifikasi", desc: "Atur per kategori & ambang nominal." },
+      { icon: EyeOff, title: "Mode privasi", desc: "Sembunyikan semua nominal dengan satu ketuk." },
+      { icon: ShieldCheck, title: "Verifikasi dua langkah", desc: "Lapisan keamanan tambahan untuk akun Anda." },
+      { icon: Activity, title: "Kesehatan data", desc: "Temukan transaksi tanpa kategori, saldo negatif, mata uang keliru." },
+      { icon: Cloud, title: "Cadangan Google Drive", desc: "Backup otomatis & pemulihan data." },
+      { icon: RefreshCw, title: "Offline & PWA", desc: "Pasang di layar utama, catat tanpa sinyal, sinkron saat online." },
+    ],
+  },
 ];
-
-const features = [
-  { group: "catat", icon: ScanLine, title: "Scan Bon AI", desc: "Foto bon otomatis dibaca AI. Bisa 5 foto sekaligus — kategori, nominal & merchant terisi sendiri." },
-  { group: "catat", icon: Check, title: "Tinjau Sebelum Simpan", desc: "Periksa hasil scan, pilih aset dan jangkauan, lalu sistem melewati transaksi yang terdeteksi duplikat." },
-  { group: "catat", icon: Wallet, title: "Catat Transaksi", desc: "Pengeluaran, pemasukan, dan sedekah dengan kategori & tag yang rapi." },
-  { group: "catat", icon: Copy, title: "Deteksi Duplikat", desc: "Pemeriksaan otomatis saat impor & scan bon — transaksi ganda ditandai sebelum disimpan." },
-  { group: "pasangan", icon: Users, title: "Kas Bersama & Pribadi", desc: "Catat keuangan keluarga bersama, sekaligus jaga privasi transaksi pribadi." },
-  { group: "pasangan", icon: Link2, title: "Koneksi Pasangan", desc: "Hubungkan suami-istri lewat kode referensi unik. Transaksi bersama tersinkron otomatis." },
-  { group: "pasangan", icon: BellRing, title: "Notifikasi Pasangan", desc: "Notifikasi real-time saat pasangan mencatat transaksi bersama." },
-  { group: "pasangan", icon: CheckCheck, title: "Persetujuan Transaksi Besar", desc: "Transaksi di atas ambang otomatis meminta persetujuan pasangan sebelum saldo berubah." },
-  { group: "pasangan", icon: Repeat, title: "Aturan Notifikasi Kategori", desc: "Kontrol notifikasi per kategori dengan ambang nominal — silent, min/max, atau channel khusus." },
-  { group: "aset", icon: Landmark, title: "Aset & Investasi", desc: "Kelola emas, investasi DCA, properti, & tanah dengan mata uang masing-masing." },
-  { group: "aset", icon: LineChart, title: "Dasbor Aset", desc: "Grafik pertumbuhan aset & emas, snapshot bulanan, dan distribusi portofolio." },
-  { group: "aset", icon: Coins, title: "Kalkulator Zakat", desc: "Zakat emas & simpanan otomatis berbasis nisab 85 gr + harga emas real-time." },
-  { group: "aset", icon: Target, title: "Target Tabungan", desc: "Tetapkan target dana darurat, pendidikan, rumah, & perjalanan. Pantau progress dengan top-up dari rekening." },
-  { group: "aset", icon: History, title: "Riwayat Mutasi Aset", desc: "Setiap perubahan saldo aset tercatat permanen — audit trail yang transparan dan tidak bisa diubah." },
-  { group: "laporan", icon: Target, title: "Anggaran", desc: "Target pengeluaran per kategori dengan progress bar & peringatan batas." },
-  { group: "laporan", icon: BarChart3, title: "Laporan & Ringkasan", desc: "Grafik bulanan, perbandingan bulan lalu, tren, dan ekspor PDF lengkap dengan bukti." },
-  { group: "laporan", icon: Globe, title: "Multi-Mata Uang", desc: "Aktifkan/nonaktifkan mata uang sesuai kebutuhan, atau tambah mata uang kustom. Catat tanpa mencampur nominal antar-mata uang." },
-  { group: "laporan", icon: Repeat, title: "Anggaran Rollover", desc: "Sisa atau overspend anggaran dibawa ke periode berikutnya. Pilih kebijakan: bawa negatif atau reset." },
-  { group: "laporan", icon: Globe, title: "Kurs Historis & Konsolidasi", desc: "Lihat laporan multi-mata uang dalam satu mata uang dasar dengan kurs historis otomatis." },
-  { group: "laporan", icon: FileSpreadsheet, title: "Export Multi-Format", desc: "Unduh laporan sebagai PDF ringkas, PDF dengan bukti, CSV, atau Excel (XLSX)." },
-  { group: "keamanan", icon: EyeOff, title: "Mode Privasi", desc: "Sembunyikan semua nominal dengan satu ketukan — aman dari mata orang lain." },
-  { group: "keamanan", icon: RefreshCw, title: "Sinkron Offline", desc: "Tetap bisa mencatat tanpa internet. Data tersinkron otomatis saat online kembali." },
-  { group: "keamanan", icon: Cloud, title: "Cadangan Google Drive", desc: "Backup data transaksi & aset ke Google Drive setiap minggu secara otomatis." },
-  { group: "keamanan", icon: MailCheck, title: "Pengingat & Ringkasan Email", desc: "Email pengingat harian & ringkasan laporan bulanan otomatis ke kotak masuk Anda." },
-  { group: "keamanan", icon: Smartphone, title: "Pasang di HP (PWA)", desc: "Instal NAFKITA di layar utama seperti aplikasi native — cepat & ringan." },
-  { group: "keamanan", icon: ScrollText, title: "Audit Log", desc: "Setiap aksi penting — koneksi pasangan, ekspor data, perubahan admin — tercatat permanen." },
-  { group: "keamanan", icon: Activity, title: "Kesehatan Data", desc: "Pindai transaksi tanpa kategori, saldo negatif, dan aset yang belum diperbarui." },
-  { group: "keamanan", icon: FileText, title: "Umpan Balik", desc: "Kirim saran atau lapor bug langsung dari aplikasi untuk bantu kami berkembang." },
-];
-
-const personas = [
-  { icon: Users, title: "Pasangan Suami Istri", desc: "Kelola kas bersama transparan, tetap punya ruang pribadi masing-masing." },
-  { icon: Moon, title: "Keluarga Muslim", desc: "Sedekah, zakat, dan nisab emas terintegrasi dalam satu aplikasi." },
-  { icon: TrendingUp, title: "Pemula Investasi", desc: "Catat DCA emas & investasi, pantau pertumbuhan kekayaan dari waktu ke waktu." },
-];
-
-const advantages = [
-  "Dirancang untuk pengelolaan keuangan keluarga Muslim",
-  "Antarmuka sederhana yang mudah dipahami",
-  "Pencatatan offline dengan sinkronisasi saat kembali online",
-  "Cadangan lokal dan Google Drive untuk membantu pemulihan data",
-  "Pelacakan sedekah dan kalkulator zakat berbasis nisab emas",
-  "Mata uang dapat diaktifkan & dikustom sesuai kebutuhan, tanpa mencampur nominal antar-mata uang",
-  "Dapat dipasang di layar utama sebagai PWA",
-  "Ruang kas bersama dan pribadi dengan kontrol visibilitas",
-];
+const featureCount = FEATURE_GROUPS.reduce((n, g) => n + g.items.length, 0);
 
 const startSteps = [
-  { icon: HomeIcon, t: "Daftar akun", d: "Buat akun dengan email, verifikasi sekali, langsung masuk." },
-  { icon: Plus, t: "Catat transaksi pertama", d: "Tekan tombol + atau scan bon belanja Anda." },
-  { icon: Landmark, t: "Tambahkan aset", d: "Masukkan tabungan, emas, atau investasi di menu Aset." },
-  { icon: BarChart3, t: "Pantau pertumbuhan", d: "Lihat ringkasan, anggaran, dan tren di Beranda setiap hari." },
+  { icon: Smartphone, t: "Daftar & pasang di HP", d: "Buat akun dengan email, lalu tambahkan ke layar utama." },
+  { icon: Wallet, t: "Tambahkan rekening & dompet", d: "Saldo awal rekening, uang tunai, dan emas Anda." },
+  { icon: Link2, t: "Hubungkan pasangan", d: "Bagikan kode unik agar kas keluarga tersinkron." },
+  { icon: Plus, t: "Mulai mencatat", d: "Tekan tombol Catat atau scan struk belanja pertama." },
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
 };
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-};
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const inView = { initial: "hidden", whileInView: "show", viewport: { once: true, margin: "-40px" } };
 
 export default function Welcome() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-primary/5 via-background to-background pb-28">
-      {/* ───────── HERO ───────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white px-6 pt-14 pb-20 rounded-b-[3rem]">
-        {/* Decorative orbs */}
-        <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-warning/15 blur-3xl" />
-        <div className="absolute -bottom-24 -left-16 w-56 h-56 rounded-full bg-scope-private/15 blur-3xl" />
-        <div className="absolute top-28 right-12 w-24 h-24 rounded-full bg-white/5 blur-xl" />
-
-        <div className="relative">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-medium mb-5 border border-white/20"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-warning" /> Selamat datang di
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.05 }}
-            className="flex items-center gap-3"
-          >
-            <img src="/brand/mark.png" alt="" className="w-16 h-16 drop-shadow-lg" />
-            <img src="/brand/wordmark-light.png" alt="NAFKITA" className="h-9 w-auto" />
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[15px] opacity-95 mt-2.5 leading-relaxed max-w-[21rem]"
-          >
-            Nafkah Keluarga Tercinta — kelola keuangan keluarga jadi mudah, rapi, dan penuh berkah.
-          </motion.p>
-
-          {/* Phone mockup */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-            className="mt-8 flex justify-center"
-          >
-            <div className="relative w-[210px]">
-              <div className="absolute inset-0 bg-warning/20 blur-2xl rounded-[2.5rem]" />
-              <div className="relative rounded-[2.5rem] border-[7px] border-white/25 bg-white shadow-2xl overflow-hidden">
-                {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-[hsl(168_40%_8%)] rounded-b-2xl z-10" />
-                {/* Header */}
-                <div className="bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] p-4 pt-6 text-white">
-                  <p className="text-[11px] opacity-80">Saldo bersama • bulan ini</p>
-                  <p className="text-2xl font-bold tracking-tight tabular-nums">Rp 4,2 jt</p>
-                  <div className="flex gap-2 mt-3 text-[8px]">
-                    <div className="flex-1 bg-white/15 backdrop-blur rounded-xl p-2">
-                      <p className="opacity-70">Masuk</p>
-                      <p className="font-semibold tabular-nums text-[11px]">8,5 jt</p>
-                    </div>
-                    <div className="flex-1 bg-white/15 backdrop-blur rounded-xl p-2">
-                      <p className="opacity-70">Keluar</p>
-                      <p className="font-semibold tabular-nums text-[11px]">4,3 jt</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Transaction list */}
-                <div className="p-3 space-y-2 bg-white">
-                  {[
-                    { i: "🛒", n: "Indomaret", a: "−32 rb", c: "text-destructive" },
-                    { i: "💰", n: "Gaji", a: "+8,5 jt", c: "text-success" },
-                    { i: "🕌", n: "Sedekah", a: "−50 rb", c: "text-sedekah" },
-                  ].map((r) => (
-                    <div key={r.n} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-sm">{r.i}</div>
-                      <p className="text-[11px] font-medium text-foreground flex-1">{r.n}</p>
-                      <p className={`text-[11px] font-semibold tabular-nums ${r.c}`}>{r.a}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex items-center justify-center gap-2 mt-6 text-xs opacity-90"
-          >
-            <Heart className="w-4 h-4 text-warning" />
-            <span>Catat, pantau, & tumbuhkan kekayaan bersama pasangan</span>
-          </motion.div>
+    <div className="min-h-screen bg-background pb-32">
+      {/* ───────── TOP BAR ───────── */}
+      <header className="px-5 pt-[max(1.25rem,env(safe-area-inset-top))] max-w-5xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src="/brand/mark.png" alt="" className="w-9 h-9" />
+          <img src="/brand/wordmark.png" alt="NAFKITA" className="h-5 w-auto dark:hidden" />
+          <img src="/brand/wordmark-light.png" alt="NAFKITA" className="h-5 w-auto hidden dark:block" />
         </div>
-      </div>
+        <button onClick={() => navigate("/login")} className="h-10 px-4 rounded-full surface text-sm font-semibold active:scale-95 transition-transform">
+          Masuk
+        </button>
+      </header>
 
-      {/* ───────── TRUST STRIP ───────── */}
-      <div className="px-6 -mt-7 relative z-10 max-w-3xl mx-auto w-full">
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-3 gap-2 surface/90 backdrop-blur shadow-lg shadow-primary/5 p-3.5 text-center"
-        >
-          {[
-            { n: `${features.length}+`, l: "Fitur aktif" },
-            { n: "12+", l: "Mata uang" },
-            { n: "2", l: "Ruang kas" },
-          ].map((s) => (
-            <motion.div key={s.l} variants={fadeUp}>
-              <p className="text-lg font-bold tabular-nums text-primary">{s.n}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{s.l}</p>
+      {/* ───────── HERO ───────── */}
+      <section className="px-5 pt-8 max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-10 md:items-center">
+        <motion.div initial="hidden" animate="show" variants={stagger}>
+          <motion.p variants={fadeUp} className="inline-flex items-center gap-1.5 rounded-full card-pastel card-pastel-butter px-3 py-1.5 text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5" /> Nafkah kita, berkah bersama
+          </motion.p>
+          <motion.h1 variants={fadeUp} className="font-heading text-[34px] leading-[1.1] font-extrabold tracking-tight mt-4">
+            Keuangan keluarga yang <span className="text-primary">rapi</span>, <span className="text-primary">terbuka</span>, dan <span className="text-primary underline decoration-[hsl(var(--gold))] decoration-[5px] underline-offset-[6px]">berkah</span>.
+          </motion.h1>
+          <motion.p variants={fadeUp} className="text-[15px] text-muted-foreground leading-relaxed mt-3 max-w-md">
+            Catat pemasukan, belanja, dan sedekah bersama pasangan. Pantau aset dan emas, rencanakan tabungan, dan hitung zakat mal dari satu aplikasi.
+          </motion.p>
+          <motion.div variants={fadeUp} className="hidden md:flex gap-3 mt-6">
+            <button onClick={() => navigate("/register")} className="btn-gold">Daftar gratis <ArrowRight className="w-5 h-5" /></button>
+            <button onClick={() => navigate("/login")} className="btn-secondary">Sudah punya akun</button>
+          </motion.div>
+        </motion.div>
+
+        <HeroPreview />
+      </section>
+
+      {/* ───────── PILAR ───────── */}
+      <Section className="pt-8">
+        <motion.div variants={stagger} {...inView} className="grid grid-cols-3 gap-2.5">
+          {pillars.map((p) => (
+            <motion.div key={p.title} variants={fadeUp} className={`card-pastel ${p.tone} rounded-3xl p-3.5`}>
+              <span className="w-9 h-9 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center"><p.icon className="w-[18px] h-[18px]" /></span>
+              <p className="font-heading font-bold text-sm mt-2.5">{p.title}</p>
+              <p className="text-[11px] opacity-80 leading-snug mt-0.5">{p.desc}</p>
             </motion.div>
           ))}
         </motion.div>
-      </div>
+      </Section>
 
-      {/* ───────── APA ITU ───────── */}
-      <Section className="pt-9">
-        <SectionLabel>Perkenalan</SectionLabel>
-        <h2 className="text-xl font-bold mt-2 mb-3 tracking-tight">Apa itu NAFKITA?</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          NAFKITA menyatukan pencatatan pemasukan, pengeluaran, sedekah, aset, investasi, anggaran, dan laporan keluarga. Hubungkan akun dengan pasangan, pilih ruang bersama atau pribadi, atur mata uang sesuai kebutuhan Anda, lalu pantau kondisi keuangan dari satu tempat.
-        </p>
-
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-3 gap-2.5 mt-5"
-        >
-          {valuePillars.map((p) => {
-            const Icon = p.icon;
-            return (
-              <motion.div
-                key={p.title}
-                variants={fadeUp}
-                className="surface p-3.5 text-center shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
-                  <Icon className="w-5 h-5 text-primary" />
+      {/* ───────── SOROTAN ───────── */}
+      <Section className="pt-10">
+        <SectionTitle eyebrow="Kenapa NAFKITA" title="Dibuat untuk keluarga Muslim" sub="Bukan sekadar pencatat pengeluaran. Alurnya mengikuti cara keluarga mengelola nafkah." />
+        <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+          {highlights.map((h, i) => (
+            <motion.article key={h.key} variants={fadeUp} {...inView}
+              className={`card-pastel ${h.tone} relative rounded-[28px] p-5 overflow-hidden ${i === 0 ? "md:col-span-2" : ""}`}>
+              <div className="absolute -right-8 -bottom-10 w-36 h-36 rounded-full bg-white/25 dark:bg-white/5 pointer-events-none" aria-hidden="true" />
+              <div className="relative">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center"><h.icon className="w-5 h-5" /></span>
+                  <span className="text-xs font-semibold opacity-75">{h.eyebrow}</span>
                 </div>
-                <p className="text-xs font-semibold">{p.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{p.desc}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </Section>
-
-      {/* ───────── FLAGSHIP: SCAN BON AI ───────── */}
-      <Section className="pt-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white p-6 overflow-hidden relative shadow-xl shadow-primary/20"
-        >
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-warning/15 blur-3xl" />
-          <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-medium mb-3 border border-white/20">
-              <Sparkles className="w-3 h-3 text-warning" /> Unggulan
-            </div>
-            <h2 className="text-lg font-bold leading-tight">Scan Bon dengan AI</h2>
-            <p className="text-xs opacity-90 mt-2 leading-relaxed">
-              Tidak perlu input manual. Foto bon belanja Anda, biarkan AI membaca nominal, nama toko, dan kategorinya secara otomatis. Bisa scan hingga 5 bon sekaligus.
-            </p>
-            <div className="mt-4 space-y-2">
-              {flagshipSteps.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <div key={i} className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl px-3.5 py-2.5 border border-white/10">
-                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-xs font-medium">{s.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
-      </Section>
-
-      {/* ───────── FITUR ───────── */}
-      <Section className="pt-9">
-        <SectionLabel>Fitur</SectionLabel>
-        <h2 className="text-xl font-bold mt-2 mb-1 tracking-tight">Apa saja yang bisa dilakukan?</h2>
-        <p className="text-xs text-muted-foreground mb-5">Semua yang Anda butuhkan untuk mengelola keuangan keluarga, dalam satu aplikasi.</p>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-        >
-          {FEATURE_GROUPS.map((g) => (
-            <div key={g.key} className="col-span-full">
-              <p className="text-xs font-semibold text-muted-foreground mt-2 mb-2.5 first:mt-0">{g.label}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {features.filter((f) => f.group === g.key).map((f) => {
-                  const Icon = f.icon;
-                  return (
-                    <motion.div
-                      key={f.title}
-                      variants={fadeUp}
-                      className="surface p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 ${g.bg}`}>
-                        <Icon className={`w-5 h-5 ${g.text}`} />
-                      </div>
-                      <p className="text-sm font-semibold leading-tight">{f.title}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{f.desc}</p>
-                    </motion.div>
-                  );
-                })}
+                <h3 className="font-heading font-extrabold text-xl leading-tight mt-3">{h.title}</h3>
+                <p className="text-sm opacity-85 leading-relaxed mt-2">{h.desc}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {h.points.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-[13px]">
+                      <span className="w-4 h-4 rounded-full bg-[hsl(var(--pastel-ink))] text-white dark:text-[hsl(var(--background))] flex items-center justify-center shrink-0 mt-0.5"><Check className="w-2.5 h-2.5" strokeWidth={3} /></span>
+                      <span className="leading-snug">{pt}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            </motion.article>
           ))}
-        </motion.div>
-      </Section>
-
-      {/* ───────── UNTUK SIAPA ───────── */}
-      <Section className="pt-9">
-        <SectionLabel>Pengguna</SectionLabel>
-        <h2 className="text-xl font-bold mt-2 mb-4 tracking-tight">Untuk siapa NAFKITA?</h2>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-          className="space-y-3"
-        >
-          {personas.map((p) => {
-            const Icon = p.icon;
-            return (
-              <motion.div
-                key={p.title}
-                variants={fadeUp}
-                className="flex items-start gap-3.5 surface p-4 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{p.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-snug">{p.desc}</p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </Section>
-
-      {/* ───────── CARA MULAI ───────── */}
-      <Section className="pt-9">
-        <SectionLabel>Mulai</SectionLabel>
-        <h2 className="text-xl font-bold mt-2 mb-5 tracking-tight">Cara memulai dalam 4 langkah</h2>
-        <div className="relative pl-2">
-          <div className="absolute left-[1.55rem] top-3 bottom-3 w-px bg-gradient-to-b from-primary/40 via-border to-transparent" />
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-50px" }}
-            className="space-y-4"
-          >
-            {startSteps.map((s, i) => {
-              const Icon = s.icon;
-              return (
-                <motion.div key={i} variants={fadeUp} className="relative flex items-start gap-3.5">
-                  <div className="relative z-10 w-12 h-12 rounded-full bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 ring-4 ring-background">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 pt-2">
-                    <p className="text-sm font-semibold">{s.t}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{s.d}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
         </div>
       </Section>
 
-      {/* ───────── KELEBIHAN ───────── */}
-      <Section className="pt-9">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-primary/5 to-gold/10 border border-primary/20 p-5"
-        >
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[hsl(var(--hero-from))] to-[hsl(var(--hero-to))] flex items-center justify-center shadow-md shadow-primary/20">
-              <ShieldCheck className="w-5 h-5 text-white" />
+      {/* ───────── SEMUA FITUR ───────── */}
+      <Section className="pt-10">
+        <SectionTitle eyebrow={`${featureCount} fitur`} title="Semua yang ada di dalamnya" />
+        <div className="space-y-5">
+          {FEATURE_GROUPS.map((g) => (
+            <div key={g.label}>
+              <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">{g.label}</p>
+              <motion.ul variants={stagger} {...inView} className="surface rounded-3xl divide-y divide-border md:grid md:grid-cols-2 md:divide-y-0">
+                {g.items.map((f) => (
+                  <motion.li key={f.title} variants={fadeUp} className="flex items-start gap-3 px-4 py-3">
+                    <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><f.icon className="w-[18px] h-[18px]" /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold leading-tight">{f.title}</span>
+                      <span className="block text-xs text-muted-foreground leading-snug mt-0.5">{f.desc}</span>
+                    </span>
+                  </motion.li>
+                ))}
+              </motion.ul>
             </div>
-            <h2 className="text-lg font-bold tracking-tight">Kenapa memilih NAFKITA?</h2>
-          </div>
-          <ul className="space-y-3">
-            {advantages.map((a) => (
-              <li key={a} className="flex items-start gap-3 text-sm">
-                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <Check className="w-3 h-3" />
-                </span>
-                <span className="text-foreground/90 leading-snug">{a}</span>
-              </li>
-            ))}
-          </ul>
-        </motion.div>
+          ))}
+        </div>
       </Section>
 
-      {/* ───────── FINAL CTA ───────── */}
-      <Section className="pt-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5 }}
-          className="rounded-3xl bg-gradient-to-br from-[hsl(var(--hero-from))] via-[hsl(165_58%_18%)] to-[hsl(var(--hero-to))] text-white p-7 text-center overflow-hidden relative shadow-xl shadow-primary/20"
-        >
-          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-warning/15 blur-3xl" />
-          <div className="absolute -bottom-14 -left-10 w-32 h-32 rounded-full bg-scope-private/15 blur-3xl" />
+      {/* ───────── CARA MULAI ───────── */}
+      <Section className="pt-10">
+        <SectionTitle eyebrow="Mulai" title="Empat langkah, lalu terbiasa" />
+        <motion.ol variants={stagger} {...inView} className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          {startSteps.map((s, i) => (
+            <motion.li key={s.t} variants={fadeUp} className="surface rounded-3xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="w-9 h-9 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center"><s.icon className="w-[18px] h-[18px]" /></span>
+                <span className="font-heading text-2xl font-extrabold text-muted-foreground/40 tabular-nums">{i + 1}</span>
+              </div>
+              <p className="text-sm font-semibold leading-tight mt-3">{s.t}</p>
+              <p className="text-xs text-muted-foreground leading-snug mt-1">{s.d}</p>
+            </motion.li>
+          ))}
+        </motion.ol>
+      </Section>
+
+      {/* ───────── CTA PENUTUP ───────── */}
+      <Section className="pt-10">
+        <motion.div variants={fadeUp} {...inView} className="card-gradient-primary relative rounded-[28px] p-6 overflow-hidden text-center">
+          <div className="absolute -top-12 -right-10 w-40 h-40 rounded-full bg-[hsl(var(--gold))]/20 blur-3xl" aria-hidden="true" />
           <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mx-auto mb-4 border border-white/20">
-              <PiggyBank className="w-8 h-8" />
-            </div>
-            <h2 className="text-lg font-bold tracking-tight">Siap mengelola keuangan dengan berkah?</h2>
-            <p className="text-xs opacity-90 mt-2 leading-relaxed max-w-[16rem] mx-auto">
-              Buat akun dan mulai mencatat keuangan keluarga secara rapi bersama NAFKITA.
-            </p>
+            <img src="/brand/mark.png" alt="" className="w-14 h-14 mx-auto" />
+            <h2 className="font-heading text-xl font-extrabold mt-3">Mulai rapikan nafkah keluarga hari ini</h2>
+            <p className="text-sm opacity-85 mt-2 max-w-xs mx-auto leading-relaxed">Gratis untuk dicoba. Data Anda bisa dicadangkan ke Google Drive kapan saja.</p>
           </div>
         </motion.div>
+        <p className="text-[11px] text-muted-foreground text-center mt-4 leading-snug px-4">
+          Perhitungan zakat di aplikasi adalah perkiraan berdasarkan data yang Anda catat. Untuk kepastian, konsultasikan dengan amil atau BAZNAS setempat.
+        </p>
       </Section>
 
-      {/* ───────── CTA STICKY ───────── */}
-      <div className="fixed bottom-0 inset-x-0 px-5 py-4 bg-gradient-to-t from-background via-background to-background/0 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2.5">
-        <button
-          onClick={() => navigate("/register")}
-          className="w-full py-3.5 rounded-2xl bg-gold text-gold-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.99] transition-transform shadow-lg shadow-primary/20"
-        >
-          Daftar Sekarang <ArrowRight className="w-5 h-5" />
+      {/* ───────── CTA MENEMPEL (mobile) ───────── */}
+      <div className="fixed bottom-0 inset-x-0 z-20 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-background/90 backdrop-blur-xl border-t border-border md:hidden">
+        <button onClick={() => navigate("/register")} className="w-full btn-gold">
+          Daftar gratis <ArrowRight className="w-5 h-5" />
         </button>
-        <button
-          onClick={() => navigate("/login")}
-          className="w-full py-3 surface text-foreground font-medium text-sm active:scale-[0.99] transition-transform"
-        >
-          Sudah punya akun? Masuk
+        <button onClick={() => navigate("/login")} className="w-full mt-2 h-10 text-sm font-semibold text-muted-foreground inline-flex items-center justify-center gap-1">
+          Sudah punya akun? <span className="text-primary">Masuk</span> <ChevronRight className="w-4 h-4 text-primary" />
         </button>
       </div>
     </div>
   );
 }
 
-function Section({ children, className = "" }) {
-  return <section className={`px-6 w-full max-w-5xl mx-auto ${className}`}>{children}</section>;
+// Pratinjau ringkas yang meniru Beranda asli (kartu saldo + rencana + jejak).
+function HeroPreview() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+      className="relative mt-8 md:mt-0"
+      aria-label="Contoh tampilan Beranda NAFKITA"
+      role="img"
+    >
+      <div className="card-gradient-primary relative rounded-[28px] p-5 overflow-hidden">
+        <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full bg-white/10" aria-hidden="true" />
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold"><Wallet className="w-3 h-3" /> Saldo bersama</span>
+            <span className="text-[11px] opacity-75">Bulan ini</span>
+          </div>
+          <p className="text-xs opacity-80 mt-4">Sisa uang bulan ini</p>
+          <p className="font-heading text-[32px] leading-none font-extrabold tracking-tight tabular-nums mt-1">Rp 9.080.000</p>
+          <div className="flex gap-1.5 mt-3">
+            <span className="h-6 px-2.5 rounded-full bg-white text-[hsl(var(--hero-from))] text-[11px] font-bold inline-flex items-center">IDR</span>
+            <span className="h-6 px-2.5 rounded-full border border-white/25 text-[11px] font-bold inline-flex items-center opacity-80">{SAR_SIGN} SAR</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-4 text-[11px]">
+            {[["Pemasukan", "Rp 15,0 jt"], ["Pengeluaran", "Rp 5,4 jt"], ["Menabung", "61%"]].map(([l, v]) => (
+              <div key={l} className="rounded-2xl bg-white/10 border border-white/10 p-2.5">
+                <p className="opacity-75">{l}</p>
+                <p className="font-bold text-sm tabular-nums mt-0.5">{v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 mt-2.5">
+        <div className="card-pastel card-pastel-mint rounded-3xl p-3.5">
+          <div className="flex items-center justify-between">
+            <span className="w-8 h-8 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center"><Vault className="w-4 h-4" /></span>
+            <span className="text-[10px] font-semibold opacity-75">Umrah 2027</span>
+          </div>
+          <p className="font-heading font-extrabold text-2xl mt-2 tabular-nums">38<span className="text-sm">%</span></p>
+          <div className="mt-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden"><div className="h-full w-[38%] rounded-full bg-[hsl(var(--pastel-ink))]" /></div>
+        </div>
+        <div className="card-pastel card-pastel-peach rounded-3xl p-3.5">
+          <div className="flex items-center justify-between">
+            <span className="w-8 h-8 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center"><Coins className="w-4 h-4" /></span>
+            <span className="text-[10px] font-semibold opacity-75">Zakat mal</span>
+          </div>
+          <p className="text-sm font-bold mt-2 leading-tight">Sudah capai nisab</p>
+          <p className="text-[11px] opacity-80 mt-0.5 inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Haul 42 hari lagi</p>
+        </div>
+      </div>
+
+      <div className="surface rounded-3xl mt-2.5 divide-y divide-border">
+        {[
+          { icon: ScanLine, n: "Struk Panda Market", s: "Dibaca AI · baru saja", a: `−${SAR_SIGN} 86.50`, c: "text-expense" },
+          { icon: Heart, n: "Sedekah masjid", s: "Siti · hari ini", a: "−Rp 50.000", c: "text-sedekah" },
+        ].map((r) => (
+          <div key={r.n} className="flex items-center gap-3 px-4 py-2.5">
+            <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><r.icon className="w-4 h-4" /></span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[13px] font-semibold truncate">{r.n}</span>
+              <span className="block text-[11px] text-muted-foreground">{r.s}</span>
+            </span>
+            <span className={`text-[13px] font-bold tabular-nums ${r.c}`}>{r.a}</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
 }
 
-function SectionLabel({ children }) {
+function Section({ children, className = "" }) {
+  return <section className={`px-5 w-full max-w-5xl mx-auto ${className}`}>{children}</section>;
+}
+
+function SectionTitle({ eyebrow, title, sub }) {
   return (
-    <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary">
-      <span className="w-5 h-px bg-primary/40" />
-      {children}
+    <div className="mb-4 px-1">
+      <p className="text-xs font-semibold text-primary">{eyebrow}</p>
+      <h2 className="font-heading text-2xl font-extrabold tracking-tight leading-tight mt-1">{title}</h2>
+      {sub && <p className="text-sm text-muted-foreground leading-relaxed mt-1.5">{sub}</p>}
     </div>
   );
 }

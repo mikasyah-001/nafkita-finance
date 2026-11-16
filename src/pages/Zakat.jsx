@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh } from "@/hooks/useFinance";
-import { useZakat, isPlausibleGoldPrice, GOLD_PRICE_MIN, GOLD_PRICE_MAX } from "@/hooks/useZakat";
-import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain } from "@/lib/finance";
+import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useZakat } from "@/hooks/useZakat";
+import GoldPriceCard from "@/components/GoldPriceCard";
+import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain, convertTo, canConvert, currencySymbol } from "@/lib/finance";
 import { ZAKAT_GROUP_LABEL, NISAB_GOLD_GRAM, formatHijri, HAUL_DAYS } from "@/lib/zakat";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import PageHeader from "@/components/PageHeader";
@@ -18,7 +19,6 @@ export default function Zakat() {
   const z = useZakat();
   const refresh = useRefresh();
   const [payOpen, setPayOpen] = useState(false);
-  const [priceDraft, setPriceDraft] = useState("");
   const [haulDraft, setHaulDraft] = useState(null);
   const [savingPref, setSavingPref] = useState(false);
   const [sending, setSending] = useState(false);
@@ -36,11 +36,7 @@ export default function Zakat() {
     setSavingPref(false);
   };
 
-  const saveGoldPrice = () => {
-    const v = Number(priceDraft);
-    if (!isPlausibleGoldPrice(v)) return toast.error("Harga emas tidak wajar", { description: `Masukkan antara ${formatMoney(GOLD_PRICE_MIN, "IDR")} dan ${formatMoney(GOLD_PRICE_MAX, "IDR")} per gram.` });
-    savePrefs({ zakat_gold_price: v, zakat_gold_price_date: new Date().toISOString().slice(0, 10) }, "Harga emas disimpan").then(() => setPriceDraft(""));
-  };
+
 
   const status = z.needsGoldPrice ? "price" : z.isPaidOff ? "paid" : z.reachesNisab ? "due" : "below";
   const statusMeta = {
@@ -68,7 +64,7 @@ export default function Zakat() {
 
   const rows = [
     { key: "kas", icon: Wallet, value: z.groups.kas },
-    { key: "emas", icon: Coins, value: z.groups.emas, sub: z.goldGrams ? `${formatNumber(z.goldGrams)} gram` : null },
+    { key: "emas", icon: Coins, value: z.groups.emas, sub: z.goldGrams ? `${formatNumber(z.goldGrams)} gram sudah genap haul` : z.goldGramsPending ? "Belum ada emas yang genap haul" : null },
     { key: "investasi", icon: TrendingUp, value: z.groups.investasi },
     { key: "piutang", icon: HandCoins, value: z.groups.piutang, toggle: true },
     { key: "utang", icon: MinusCircle, value: -z.groups.utang },
@@ -155,6 +151,32 @@ export default function Zakat() {
             </div>
           </section>
 
+          {z.goldPending.length > 0 && (
+            <section className="surface rounded-3xl mb-5" aria-labelledby="emas-belum-haul">
+              <div className="px-4 pt-4 pb-2">
+                <h2 id="emas-belum-haul" className="font-semibold text-[15px] flex items-center gap-2"><CalendarClock className="w-4 h-4 text-muted-foreground" /> Emas belum genap haul</h2>
+                <p className="text-xs text-muted-foreground">Dihitung dari tanggal beli di data aset; belum masuk zakat periode ini.</p>
+              </div>
+              <div className="divide-y divide-border">
+                {z.goldPending.map((g) => (
+                  <div key={g.id} className="flex items-center gap-3 px-4 py-3">
+                    <Coins className="w-4 h-4 text-gold shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{g.name} · {formatNumber(g.grams)} gr</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {g.dateSource === "purchase" ? "Dibeli" : "Dicatat"} {formatDate(g.acquired, "d MMM yyyy")} · haul {formatDate(g.due, "d MMM yyyy")} ({formatHijri(g.due)})
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold rounded-full bg-gold/20 px-2.5 py-1 shrink-0">{g.daysLeft} hari lagi</span>
+                  </div>
+                ))}
+              </div>
+              {z.goldPending.some((g) => g.dateSource === "recorded") && (
+                <p className="text-[11px] text-muted-foreground px-4 pb-3">Sebagian memakai tanggal aset dicatat karena tanggal beli kosong. Isi tanggal beli di menu Aset agar haul lebih tepat.</p>
+              )}
+            </section>
+          )}
+
           {(z.excluded.length > 0 || z.unconverted.length > 0) && (
             <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="tidak-dihitung">
               <h2 id="tidak-dihitung" className="font-semibold text-[15px] flex items-center gap-2"><Ban className="w-4 h-4 text-muted-foreground" /> Tidak dihitung</h2>
@@ -168,25 +190,8 @@ export default function Zakat() {
             </section>
           )}
 
-          {/* Harga emas */}
-          <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="harga-emas">
-            <h2 id="harga-emas" className="font-semibold text-[17px] leading-tight">Harga emas untuk nisab</h2>
-            <p className="text-xs text-muted-foreground mb-3">
-              {z.goldPrice > 0
-                ? <>{formatMoney(z.goldPrice, cur)}/gram · {z.goldSource?.label}{z.goldSource?.date ? `, ${z.goldSource.date}` : ""}</>
-                : z.goldLoading ? "Mencari harga emas terkini…" : "Harga otomatis belum tersedia. Isi manual dari Antam/Pegadaian."}
-            </p>
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center rounded-2xl border border-border bg-card px-3 focus-within:ring-2 ring-primary/30">
-                <span className="text-xs text-muted-foreground mr-1">Rp</span>
-                <input id="zakat-gold-price" aria-label="Harga emas per gram (Rp)" type="number" inputMode="numeric" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} placeholder={z.goldPrice ? String(z.goldPrice) : "Mis. 1.500.000"} className="flex-1 py-2.5 text-sm bg-transparent outline-none tabular-nums" />
-              </div>
-              <button onClick={saveGoldPrice} disabled={!priceDraft || savingPref} className="btn-primary btn-sm">Pakai</button>
-            </div>
-            {z.goldSource?.kind === "manual" && (
-              <button onClick={() => savePrefs({ zakat_gold_price: null, zakat_gold_price_date: null }, "Kembali ke harga otomatis")} className="text-xs font-semibold text-primary mt-2">Pakai harga otomatis</button>
-            )}
-          </section>
+          {/* Harga emas: kartu bersama, berlaku untuk seluruh aplikasi */}
+          <GoldPriceCard title="Harga emas untuk nisab" grams={z.goldGrams + z.goldGramsPending} />
 
           {/* Haul */}
           <section className="surface rounded-3xl p-4 mb-5" aria-labelledby="haul">
@@ -225,7 +230,10 @@ export default function Zakat() {
                     <p className="text-sm font-medium">{p.zakat_type === "mal" ? "Zakat mal" : p.zakat_type === "emas" ? "Zakat emas (data lama)" : "Zakat simpanan (data lama)"}</p>
                     <p className="text-[11px] text-muted-foreground">{p.paid_date ? formatDate(p.paid_date, "d MMM yyyy") : "—"}{p.notes ? ` · ${p.notes}` : ""}</p>
                   </div>
-                  <p className="text-sm font-semibold tabular-nums">{formatMoney(p.amount || 0, p.currency || "IDR")}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold tabular-nums">{formatMoney(p.amount || 0, p.currency || "IDR")}</p>
+                    {(p.currency || "IDR") !== "IDR" && p.amount_idr > 0 && <p className="text-[11px] text-muted-foreground tabular-nums">≈ {formatMoney(p.amount_idr, "IDR")}</p>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -249,8 +257,24 @@ export default function Zakat() {
 
 function PayZakatSheet({ z, onClose, onSaved }) {
   const { data: assets = [] } = useAssets();
-  const moneyAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === z.currency && a.created_by_id === z.me?.id);
+  // Zakat dihitung dalam IDR, tetapi boleh dibayar dengan mata uang lain
+  // (mis. SAR dari dompet Riyal). Nominal disimpan dalam mata uang bayar
+  // beserta setara IDR-nya saat itu.
+  const userCurrencies = useUserCurrencies();
+  const payable = userCurrencies.filter((c) => canConvert(c.code, z.currency, z.rateMap));
+  const [payCur, setPayCur] = useState(z.currency);
+  const toPay = (v) => convertTo(v, z.currency, payCur, z.rateMap);
+  const moneyAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === payCur && a.created_by_id === z.me?.id);
   const [amount, setAmount] = useState(String(Math.round(z.remaining)));
+  const switchCur = (c) => {
+    if (c === payCur) return;
+    const inZakat = convertTo(Number(amount) || 0, payCur, z.currency, z.rateMap);
+    const next = convertTo(inZakat, z.currency, c, z.rateMap);
+    setPayCur(c);
+    setAssetId("");
+    setAmount(String(c === "IDR" ? Math.round(next) : Math.round(next * 100) / 100));
+  };
+  const amountIdr = payCur === z.currency ? Number(amount) || 0 : convertTo(Number(amount) || 0, payCur, z.currency, z.rateMap);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [recipient, setRecipient] = useState("");
   const [assetId, setAssetId] = useState("");
@@ -262,14 +286,14 @@ function PayZakatSheet({ z, onClose, onSaved }) {
     setSaving(true);
     try {
       const res = await saveTransactionWithAsset({
-        type: "sedekah", amount: amt, currency: z.currency, category: "Zakat",
+        type: "sedekah", amount: amt, currency: payCur, category: "Zakat",
         date: new Date(`${date}T10:00:00`).toISOString(), merchant: recipient || "Zakat mal",
         notes: `Zakat mal · ${z.period.label}`, visibility: "shared",
         input_by_name: z.me?.full_name || z.me?.email || "Keluarga", tags: ["zakat"],
         linked_asset_id: assetId || undefined,
       });
       await base44.entities.ZakatPayment.create({
-        year: z.period.hijriYear, zakat_type: "mal", amount: amt, currency: z.currency, status: "paid",
+        year: z.period.hijriYear, zakat_type: "mal", amount: amt, currency: payCur, amount_idr: Math.round(amountIdr), status: "paid",
         paid_date: date, period_key: z.period.key, transaction_id: res?.transaction?.id || res?.id || "",
         notes: recipient || "",
       });
@@ -285,11 +309,22 @@ function PayZakatSheet({ z, onClose, onSaved }) {
     <FormSheet title="Catat pembayaran zakat" subtitle={`${z.period.label} · sisa ${formatMoney(z.remaining, z.currency)}`} onClose={onClose}
       footer={<button onClick={save} disabled={saving} className="w-full btn-primary">{saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan pembayaran</button>}>
       <section className="card-gradient-primary rounded-[24px] p-4">
-        <label htmlFor="zakat-pay-amount" className="text-xs opacity-80">Nominal dibayar</label>
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="zakat-pay-amount" className="text-xs opacity-80">Nominal dibayar</label>
+          {payable.length > 1 && (
+            <div role="radiogroup" aria-label="Mata uang pembayaran" className="flex gap-1">
+              {payable.map((c) => (
+                <button key={c.code} type="button" role="radio" aria-checked={payCur === c.code} onClick={() => switchCur(c.code)}
+                  className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${payCur === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-lg font-semibold opacity-70">Rp</span>
+          <span className="text-lg font-semibold opacity-70">{currencySymbol(payCur)}</span>
           <input id="zakat-pay-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[30px] leading-none font-extrabold tabular-nums text-[hsl(var(--hero-foreground))]" />
         </div>
+        {payCur !== z.currency && <p className="text-xs opacity-85 mt-1 tabular-nums">≈ {formatMoneyPlain(Math.round(amountIdr), z.currency)} · sisa {formatMoneyPlain(toPay(z.remaining), payCur)}</p>}
         <p className="text-[11px] opacity-75 mt-1">Boleh dicicil; sisa tetap terlihat di halaman Zakat.</p>
       </section>
       <FieldGroup>

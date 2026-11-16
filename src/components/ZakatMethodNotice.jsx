@@ -20,6 +20,7 @@ export default function ZakatMethodNotice() {
           <li>Utang yang jatuh tempo dalam 12 bulan dikurangkan sebelum dibandingkan dengan nisab.</li>
           <li>Rumah tinggal, tanah, kendaraan & barang pakai tidak dihitung, kecuali untuk diperjualbelikan.</li>
           <li>Haul 1 tahun hijriah (±354 hari) dari tanggal harta mencapai nisab; atur tanggalnya di bagian Haul.</li>
+          <li>Haul emas dihitung per aset dari tanggal beli yang tersimpan (bila kosong, tanggal aset dicatat). Emas yang belum genap 354 hari belum dihitung.</li>
           <li>Semua emas tercatat ikut dihitung. Untuk perhiasan yang dipakai wajar ada perbedaan pendapat ulama.</li>
           <li>Rujukan: praktik BAZNAS & PMA 52/2014 jo. PMA 31/2019. Konsultasikan ke amil resmi sebelum membayar.</li>
         </ul>

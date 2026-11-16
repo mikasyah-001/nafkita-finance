@@ -91,16 +91,38 @@ try {
     start.saldo = after.saldo; start.belanja = after.belanja;
   });
 
+  await step("Edit transaksi: layar sama dengan Catat, isian terisi, simpan memperbarui (bukan membuat baru)", async () => {
+    const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
+    const countBefore = await page.evaluate(() => window.__qa.tx.length);
+    await nav(`/transaksi/${t0.id}`);
+    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.waitForTimeout(500);
+    assert.ok(await page.getByRole("heading", { name: "Edit transaksi" }).isVisible(), "Judul Edit transaksi");
+    assert.equal(await page.locator("nav a[href='/add']").count(), 0, "Navigasi bawah disembunyikan (tidak menutupi isian)");
+    assert.equal(await page.inputValue("#add-tx-merchant"), "QA Warung", "Merchant terisi");
+    assert.equal(await page.getByRole("tab", { name: "Pengeluaran" }).getAttribute("aria-selected"), "true");
+    assert.equal(await page.getByText("Pakai template").count(), 0, "Template tidak tampil saat edit");
+    await page.fill("#add-tx-merchant", "QA Warung Baru");
+    await page.getByRole("button", { name: /Simpan Perubahan/ }).click();
+    await page.waitForTimeout(900);
+    const t1 = await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i), t0.id);
+    assert.equal(t1.merchant, "QA Warung Baru", "Tersimpan ke transaksi yang sama");
+    assert.equal(t1.amount, t0.amount); assert.equal(t1.currency, t0.currency);
+    assert.equal(await page.evaluate(() => window.__qa.tx.length), countBefore, "Tidak membuat transaksi baru");
+    assert.ok(page.url().endsWith(`/transaksi/${t0.id}`), "Kembali ke detail");
+    await page.evaluate((i) => { window.__qa.tx.find((t) => t.id === i).merchant = "QA Warung"; }, t0.id);
+  });
+
   await step("Hapus transaksi: dialog konfirmasi muncul, Batal tidak menghapus, Hapus menghapus", async () => {
     const txId = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung").id);
     await nav(`/transaksi/${txId}`);
     await page.getByRole("button", { name: "Edit transaksi" }).click();
-    await page.getByRole("button", { name: /Hapus Transaksi/ }).click();
+    await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     const dialog = page.getByRole("alertdialog");
     await dialog.waitFor({ timeout: 3000 });
     await dialog.getByRole("button", { name: "Batal" }).click();
     assert.ok(await page.evaluate((i) => window.__qa.tx.some((t) => t.id === i), txId), "Batal tidak menghapus");
-    await page.getByRole("button", { name: /Hapus Transaksi/ }).click();
+    await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Hapus" }).click();
     await page.waitForTimeout(800);
     assert.ok(!(await page.evaluate((i) => window.__qa.tx.some((t) => t.id === i), txId)), "Terhapus");
@@ -181,6 +203,72 @@ try {
     assert.equal(a.value, 15000000); assert.equal(a.unit, "gram"); assert.equal(a.currency, "IDR");
   });
 
+  await step("Emas dengan mata uang SAR tapi harga diketik Rupiah → peringatan + ganti ke IDR satu ketuk", async () => {
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    assert.ok(await page.getByText("Harga beli / gr (SAR)").isVisible(), "Label harga ikut mata uang terpilih (bukan 'Rp')");
+    await page.fill("#asset-name", "QA Emas Makkah");
+    await page.fill("#asset-gold-quantity", "2");
+    await page.fill("#asset-gold-purchase-price", "1250000");
+    assert.ok(await page.getByText(/Sepertinya nominal ini dalam IDR/).isVisible(), "Peringatan salah mata uang muncul");
+    await page.getByRole("button", { name: "Ganti ke IDR" }).click();
+    assert.equal(await page.getByRole("radio", { name: "IDR", exact: true }).getAttribute("aria-checked"), "true");
+    assert.equal(await page.getByText(/Sepertinya nominal ini dalam/).count(), 0, "Peringatan hilang setelah diganti");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Emas Makkah"));
+    assert.equal(a.currency, "IDR"); assert.equal(a.value, 2500000);
+  });
+
+  await step("Emas fisik dibeli dalam SAR tersimpan sebagai SAR (tidak dipaksa IDR)", async () => {
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Emas", exact: true }).click();
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    await page.fill("#asset-name", "QA Emas SAR");
+    await page.fill("#asset-gold-quantity", "1");
+    await page.fill("#asset-gold-purchase-price", "502.38");
+    assert.equal(await page.getByText(/Sepertinya nominal ini dalam/).count(), 0, "Harga riyal wajar tidak diperingatkan");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Emas SAR"));
+    assert.equal(a.currency, "SAR"); assert.equal(a.purchase_price, 502.38);
+  });
+
+  await step("Kesehatan data: emas bertanda SAR dengan harga Rupiah terdeteksi & bisa diperbaiki", async () => {
+    await page.evaluate(() => window.__qa.assets.push({ id: "qa-bad", name: "QA Emas Salah", type: "emas", quantity: 1, purchase_price: 1400000, value: 1400000, currency: "SAR", unit: "gram", visibility: "shared", created_by_id: "u1", created_date: new Date().toISOString(), updated_date: new Date().toISOString() }));
+    await nav("/kesehatan-data");
+    assert.ok(await page.getByText("Mata Uang Tampak Keliru").isVisible());
+    await page.getByRole("button", { name: "Jadikan IDR" }).click();
+    await page.waitForTimeout(700);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-bad"));
+    assert.equal(a.currency, "IDR");
+    assert.equal(await page.getByText("Mata Uang Tampak Keliru").count(), 0, "Masalah hilang setelah diperbaiki");
+    await nav("/aset");
+  });
+
+  await step("Bukti pembelian: ikon di daftar aset & thumbnail di form membuka pratinjau gambar", async () => {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==";
+    await page.evaluate((u) => window.__qa.assets.push({ id: "qa-proof", name: "QA Emas Bukti", type: "emas", quantity: 1, purchase_price: 1500000, value: 1500000, currency: "IDR", unit: "gram", purchase_proof_url: u, visibility: "shared", created_by_id: "u1", created_date: new Date().toISOString(), updated_date: new Date(Date.now() + 60000).toISOString() }), png);
+    await nav("/kesehatan-data"); await nav("/aset");
+    await page.getByRole("button", { name: "Lihat bukti pembelian QA Emas Bukti" }).click();
+    const dlg = page.getByRole("dialog", { name: "Bukti pembelian" });
+    assert.ok(await dlg.isVisible(), "Pratinjau terbuka");
+    const box = await dlg.locator("img").boundingBox();
+    assert.ok(box && box.height > 50, `Gambar terlihat (tinggi ${box?.height})`);
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    assert.equal(await dlg.count(), 0, "Pratinjau tertutup");
+    await page.getByRole("button", { name: "Edit aset QA Emas Bukti" }).click();
+    await page.getByRole("button", { name: "Lihat bukti pembelian", exact: true }).click();
+    assert.ok(await dlg.isVisible(), "Pratinjau dari form terbuka");
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    assert.ok(await page.locator("#asset-name").isVisible(), "Form aset tetap terbuka setelah pratinjau ditutup");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    if (await page.locator("#asset-name").count()) await page.getByRole("button", { name: /Tutup|Batal/ }).first().click();
+    await page.waitForTimeout(300);
+  });
+
   await step("Ganti jenis Emas → Bank: isian gram/harga tidak terbawa", async () => {
     await page.getByRole("button", { name: /Tambah aset/i }).first().click();
     await page.getByRole("radio", { name: "Emas", exact: true }).click();
@@ -196,16 +284,34 @@ try {
     assert.equal(a.value, 7000000); assert.equal(a.quantity, 0); assert.equal(a.purchase_price, 0); assert.equal(a.unit, "");
   });
 
+  await step("Harga emas acuan: diisi di Aset → untung/rugi emas tampil & harga sama di Zakat", async () => {
+    await nav("/aset");
+    assert.ok(await page.getByText("Isi harga emas acuan di atas").first().isVisible(), "Sebelum ada harga: diminta isi harga");
+    await page.fill("#gold-price-input", "1500000");
+    await page.getByRole("button", { name: "Pakai", exact: true }).click();
+    await page.waitForTimeout(900);
+    const card = page.locator("div.surface", { hasText: "Emas Antam" }).first();
+    const text = (await card.innerText()).replace(/\s+/g, " ");
+    assert.ok(text.includes("Rp 1.500.000"), "Harga pasar/gr tampil");
+    assert.ok(/\+\s?Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
+    await nav("/zakat");
+    assert.ok(await page.getByText("Rp 1.500.000/gram").first().isVisible(), "Harga acuan sama di Zakat");
+  });
+
   await step("Zakat: harta simpanan digabung (IDR+SAR+emas), rumah tidak dihitung, utang dikurangkan", async () => {
     await nav("/zakat");
-    await page.fill("#zakat-gold-price", "1500000");
-    await page.getByRole("button", { name: "Pakai" }).click();
+    await page.fill("#gold-price-input", "1500000");
+    await page.getByRole("button", { name: "Pakai", exact: true }).click();
     await page.waitForTimeout(900);
     const expected = await page.evaluate(() => {
       const rate = { IDR: 1, SAR: 4250 };
       let net = 0;
       for (const a of window.__qa.assets) {
-        if (a.type === "emas" || a.type === "emas_digital") net += (a.quantity || 0) * 1500000;
+        if (a.type === "emas" || a.type === "emas_digital") {
+          const d = a.purchase_date || a.created_date;
+          if (d && Date.now() < new Date(d).getTime() + 354 * 86400000) continue; // belum genap haul
+          net += (a.quantity || 0) * 1500000;
+        }
         else if (["bank", "tunai", "investasi"].includes(a.type)) net += a.value * (rate[a.currency || "IDR"] || 0);
       }
       net -= 5000000; // utang aktif jatuh tempo < 12 bulan (data contoh)
@@ -214,6 +320,8 @@ try {
     const hero = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
     assert.equal(hero, expected, "Zakat = 2,5% × harta bersih gabungan");
     assert.ok(await page.getByText("Wajib zakat").isVisible());
+    assert.ok(await page.getByText("Emas belum genap haul").isVisible(), "Emas baru dibeli tampil sebagai belum haul");
+    assert.ok(await page.getByText(/Emas tabungan anak · 15 gr/).isVisible());
   });
 
   await step("Zakat: catat pembayaran sebagian → sisa berkurang & tercatat sebagai transaksi Zakat", async () => {
@@ -227,6 +335,51 @@ try {
     assert.equal(before - after, 1000000, "Sisa berkurang");
     const tx = await page.evaluate(() => window.__qa.tx.find((t) => t.category === "Zakat"));
     assert.ok(tx && tx.type === "sedekah" && tx.amount === 1000000, "Transaksi zakat tercatat");
+  });
+
+  await step("Zakat dibayar dalam SAR: nominal dikonversi, sisa berkurang setara IDR", async () => {
+    await nav("/zakat");
+    const before = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    await page.getByRole("button", { name: /Catat pembayaran zakat/ }).click();
+    await page.getByRole("radiogroup", { name: "Mata uang pembayaran" }).getByRole("radio", { name: "SAR", exact: true }).click();
+    await page.fill("#zakat-pay-amount", "100");
+    assert.ok(await page.getByText(/≈ Rp\s?425\.000/).isVisible(), "Setara IDR tampil");
+    await page.getByRole("button", { name: /Simpan pembayaran/ }).click();
+    await page.waitForTimeout(900);
+    const after = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+    assert.equal(before - after, 425000, "Sisa berkurang 100 × 4.250");
+    const tx = await page.evaluate(() => window.__qa.tx.filter((t) => t.category === "Zakat").find((t) => t.currency === "SAR"));
+    assert.ok(tx && tx.amount === 100, "Transaksi zakat tercatat dalam SAR");
+  });
+
+  await step("Catat transaksi SAR bernominal Rupiah → peringatan & pratinjau setara IDR", async () => {
+    await nav("/add");
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    await page.fill("#add-tx-amount", "150000");
+    assert.ok(await page.getByText(/Yakin bukan Rupiah/).isVisible(), "Peringatan nominal muncul");
+    await page.getByRole("button", { name: "Jadikan IDR" }).click();
+    assert.equal(await page.getByRole("radio", { name: "IDR", exact: true }).getAttribute("aria-checked"), "true");
+    assert.equal(await page.inputValue("#add-tx-amount"), "150.000");
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    await page.fill("#add-tx-amount", "100");
+    assert.ok(await page.getByText(/≈ Rp\s?425\.000/).isVisible(), "Pratinjau setara Rupiah");
+  });
+
+  await step("Target tabungan dalam riyal: mata uang aktif bisa dipilih, aset sumber hanya SAR", async () => {
+    await nav("/target-tabungan");
+    await page.getByRole("button", { name: /Tambah/ }).first().click();
+    await page.getByRole("radio", { name: "SAR", exact: true }).click();
+    const opts = await page.locator("#savings-goal-linked-asset option").allInnerTexts();
+    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia");
+    assert.ok(!opts.some((o) => o.includes("Tabungan BCA")), "Rekening IDR tidak ditawarkan");
+    await page.fill("#savings-goal-name", "QA Umrah SAR");
+    await page.fill("#savings-goal-target-amount", "20000");
+    await page.getByRole("button", { name: /^Simpan$/ }).click();
+    await page.waitForTimeout(800);
+    const g = await page.evaluate(() => (window.__qaData.SavingsGoal || []).find((x) => x.name === "QA Umrah SAR"));
+    assert.equal(g?.currency, "SAR");
+    assert.equal(g?.target_amount, 20000);
+    assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

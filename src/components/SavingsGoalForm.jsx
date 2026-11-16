@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
-import { currencySymbol, formatMoneyPlain } from "@/lib/finance";
+import { currencySymbol, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
+import { useMe, useUserCurrencies } from "@/hooks/useFinance";
 import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 
@@ -17,17 +18,32 @@ const colors = ["green", "blue", "amber", "violet", "pink", "teal", "orange", "c
 const colorLabels = { green: "Hijau", blue: "Biru", amber: "Kuning", violet: "Ungu", pink: "Merah muda", teal: "Toska", orange: "Oranye", cyan: "Sian" };
 
 export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
+  const { data: me } = useMe();
+  const userCurrencies = useUserCurrencies();
+  // Mata uang aktif di aplikasi; mata uang target lama tetap tersedia saat edit.
+  const currencyOptions = [...new Set([...userCurrencies.map((c) => c.code), ...(goal?.currency ? [goal.currency] : [])])];
+  const hasProgress = Number(goal?.current_amount) > 0;
   const [form, setForm] = useState({
     name: goal?.name || "",
     type: goal?.type || "darurat",
     target_amount: goal?.target_amount || "",
-    currency: goal?.currency || "IDR",
+    currency: goal?.currency || me?.default_currency || "IDR",
     target_date: goal?.target_date || "",
     linked_asset_id: goal?.linked_asset_id || "",
     color: goal?.color || "green",
     visibility: goal?.visibility || "shared",
   });
   const [submitting, setSubmitting] = useState(false);
+  // Target baru: ikuti mata uang utama begitu profil termuat.
+  useEffect(() => {
+    if (!goal?.id && me?.default_currency) setForm((f) => (f.target_amount || f.linked_asset_id ? f : { ...f, currency: me.default_currency }));
+  }, [me?.default_currency, goal?.id]);
+  const setCurrency = (c) => setForm((f) => {
+    const linked = assets.find((a) => a.id === f.linked_asset_id);
+    return { ...f, currency: c, linked_asset_id: linked && (linked.currency || "IDR") === c ? f.linked_asset_id : "" };
+  });
+  // Aset sumber harus bermata uang sama dengan target (tidak ada konversi kurs).
+  const sourceAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === form.currency);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,7 +118,20 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
 
         {/* Nominal */}
         <section className="card-gradient-primary rounded-[24px] p-4">
-          <label htmlFor="savings-goal-target-amount" className="block text-xs opacity-80">Nominal target</label>
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="savings-goal-target-amount" className="block text-xs opacity-80">Nominal target</label>
+            {currencyOptions.length > 1 && (
+              <div role="radiogroup" aria-label="Mata uang target" className="flex gap-1 flex-wrap justify-end">
+                {currencyOptions.map((c) => (
+                  <button key={c} type="button" role="radio" aria-checked={form.currency === c} disabled={hasProgress && c !== form.currency}
+                    onClick={() => setCurrency(c)}
+                    className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors disabled:opacity-40 ${form.currency === c ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-lg font-semibold opacity-70">{currencySymbol(form.currency)}</span>
             <input
@@ -116,6 +145,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
+          {hasProgress && currencyOptions.length > 1 && <p className="text-[11px] opacity-70 mt-2">Mata uang tidak bisa diganti karena target sudah punya progres.</p>}
         </section>
 
         <FieldGroup label="Rencana">
@@ -128,7 +158,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className={fieldInput}
             />
           </FieldRow>
-          <FieldRow icon={Landmark} label="Aset sumber (opsional)" htmlFor="savings-goal-linked-asset">
+          <FieldRow icon={Landmark} label={`Aset sumber (opsional, ${form.currency})`} htmlFor="savings-goal-linked-asset" hint={sourceAssets.length === 0 ? `Belum ada rekening/dompet tunai bermata uang ${form.currency}.` : undefined}>
             <select
               id="savings-goal-linked-asset"
               value={form.linked_asset_id}
@@ -136,7 +166,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className={`${fieldInput} bg-background`}
             >
               <option value="">Tidak ada</option>
-              {assets.filter(a => a.type === "bank").map(a => (
+              {sourceAssets.map(a => (
                 <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
             </select>

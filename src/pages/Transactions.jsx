@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTransactions, useCategories, useMe, useRateMap } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useRateMap, useRefresh } from "@/hooks/useFinance";
+import { usePullToRefresh, PullToRefreshIndicator } from "@/hooks/usePullToRefresh";
 import { formatDate, formatMoney, formatMoneyShort, summarizeConsolidated, filterReportableTx } from "@/lib/finance";
 import TransactionItem from "@/components/TransactionItem";
 import CalendarView from "@/components/CalendarView";
@@ -21,6 +22,8 @@ const typeFilters = [
 export default function Transactions() {
   const { data: transactions = [], isLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const refresh = useRefresh();
+  const ptr = usePullToRefresh(refresh);
   const [active, setActive] = useState("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
@@ -91,6 +94,7 @@ export default function Transactions() {
 
   return (
     <div className="px-5 pt-6">
+      <PullToRefreshIndicator pull={ptr.pull} refreshing={ptr.refreshing} threshold={ptr.threshold} />
       <PageHeader
         title="Riwayat transaksi"
         subtitle={`${filtered.length} catatan · ${periodLabel}`}

@@ -418,3 +418,20 @@ test("knownBrokers: 'Bank BSI' dan 'BSI' tidak muncul ganda", async () => {
   assert.deepEqual(list, ["Bank BSI"]);
   assert.equal(canonicalBroker("BSI", list), "Bank BSI");
 });
+
+test("placeSuggestions & withSavedBank: bank baru ditetapkan & tinggal klik di semua jenis bank", async () => {
+  const { placeSuggestions, withSavedBank, DEFAULT_BANKS } = await import("../finance.js");
+  const assets = [{ type: "bank", broker: "Bank Ar-Rajhi" }, { type: "emas_digital", broker: "Bank Aljazira" }, { type: "investasi", broker: "Al Rajhi Capital" }];
+  // Tabungan/Bank: dipakai sendiri → profil → jenis bank lain → saran umum; tanpa broker investasi
+  assert.deepEqual(placeSuggestions({ assets, type: "bank", savedBanks: ["Riyad Bank"], defaults: DEFAULT_BANKS.SAR }),
+    ["Bank Ar-Rajhi", "Riyad Bank", "Bank Aljazira", "Al Rajhi Bank", "SNB", "Alinma Bank", "Bank Albilad"]);
+  // Emas Digital ikut menawarkan bank dari Tabungan/Bank
+  assert.ok(placeSuggestions({ assets, type: "emas_digital" }).includes("Bank Ar-Rajhi"));
+  // Investasi tidak dicampur bank
+  assert.deepEqual(placeSuggestions({ assets, type: "investasi", savedBanks: ["Riyad Bank"] }), ["Al Rajhi Capital"]);
+  // Bank yang sudah dihapus asetnya tetap ada bila ditetapkan di profil
+  assert.ok(placeSuggestions({ assets: [], type: "bank", savedBanks: ["Bank Ar-Rajhi"] }).includes("Bank Ar-Rajhi"));
+  assert.deepEqual(withSavedBank(["BCA"], "  Bank Ar-Rajhi "), ["BCA", "Bank Ar-Rajhi"]);
+  assert.equal(withSavedBank(["Bank BSI"], "BSI"), null, "ejaan lain bank yang sama tidak ditambah");
+  assert.equal(withSavedBank([], ""), null);
+});

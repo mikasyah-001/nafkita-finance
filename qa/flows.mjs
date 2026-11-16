@@ -943,6 +943,40 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await step("Bank baru ditetapkan: lain kali tinggal klik (juga di Emas Digital, tetap ada walau asetnya dihapus)", async () => {
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.fill("#asset-broker", "Bank Ar-Rajhi");
+    await page.fill("#asset-account", "SA0380000000608010167519");
+    await page.fill("#asset-value", "1000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(700);
+    const pick = async (type) => {
+      await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+      await page.getByRole("radio", { name: type, exact: true }).click();
+      return page.getByRole("radiogroup", { name: "Bank tersimpan" }).getByRole("radio", { name: "Bank Ar-Rajhi" });
+    };
+    let chip = await pick("Tabungan/Bank");
+    assert.ok(await chip.isVisible(), "Bank baru jadi pilihan");
+    await chip.click();
+    assert.equal(await page.inputValue("#asset-broker"), "Bank Ar-Rajhi", "Sekali klik terisi");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    chip = await pick("Emas Digital");
+    assert.ok(await chip.isVisible(), "Juga ditawarkan di Emas Digital");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    // Aset dihapus → bank tetap tersimpan di profil
+    await page.evaluate(() => { window.__qa.assets = window.__qa.assets.filter((x) => x.broker !== "Bank Ar-Rajhi"); });
+    assert.equal(await page.evaluate(() => window.__qa.assets.some((x) => x.broker === "Bank Ar-Rajhi")), false, "Aset benar-benar terhapus");
+    await nav("/riwayat"); await nav("/aset");
+    chip = await pick("Tabungan/Bank");
+    assert.ok(await chip.isVisible(), "Tetap ada walau asetnya dihapus");
+    // Ketikan beda ejaan diseragamkan
+    await page.fill("#asset-broker", "bank ar-rajhi");
+    assert.ok(await page.getByText("Disimpan sebagai").isVisible(), "Ejaan diseragamkan ke bank tersimpan");
+    await page.keyboard.press("Escape");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

@@ -399,6 +399,42 @@ export function canonicalBroker(input, known = [], { prefix = true } = {}) {
   return name;
 }
 
+// Bank dipakai lintas jenis (tabungan & emas digital di bank yang sama).
+export const BANK_LIKE_TYPES = ["bank", "emas_digital"];
+export const DEFAULT_BANKS = {
+  IDR: ["BCA", "Mandiri", "BSI", "BNI", "BRI"],
+  SAR: ["Al Rajhi Bank", "SNB", "Riyad Bank", "Alinma Bank", "Bank Albilad", "Bank Aljazira"],
+};
+
+/**
+ * Pilihan "tinggal klik" untuk isian bank/broker, urut: dipakai di jenis
+ * ini → (untuk bank) bank yang ditetapkan di profil & dipakai jenis bank
+ * lain → saran umum. Tanpa duplikat ejaan ("Bank BSI" = "BSI").
+ */
+export function placeSuggestions({ assets = [], type, savedBanks = [], defaults = [], limit = 12 } = {}) {
+  const bankLike = BANK_LIKE_TYPES.includes(type);
+  const pool = [
+    ...knownBrokers(assets, { type }),
+    ...(bankLike ? savedBanks.map(tidyBroker) : []),
+    ...(bankLike ? BANK_LIKE_TYPES.filter((t) => t !== type).flatMap((t) => knownBrokers(assets, { type: t })) : []),
+    ...defaults,
+  ];
+  const out = [];
+  for (const b of pool) {
+    if (!brokerKey(b)) continue;
+    if (out.some((x) => brokerKey(x) === brokerKey(b))) continue;
+    out.push(b);
+  }
+  return out.slice(0, limit);
+}
+
+/** Tambahkan bank ke daftar tetap di profil; null bila sudah ada / kosong. */
+export function withSavedBank(savedBanks = [], name) {
+  const n = tidyBroker(name);
+  if (!brokerKey(n) || savedBanks.some((b) => brokerKey(b) === brokerKey(n))) return null;
+  return [...savedBanks, n];
+}
+
 // Nama aset untuk tampilan: spasi dirapikan, dan kode ticker di akhir nama
 // ("SP FUNDS S&P 500 SHARIA (SPUS)") dipisah agar nama tidak terpotong —
 // ticker ditampilkan terpisah. Data tersimpan tidak diubah.

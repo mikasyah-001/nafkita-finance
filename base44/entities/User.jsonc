@@ -29,6 +29,12 @@
       ],
       "description": "Daftar kode mata uang yang diaktifkan pengguna (bawaan maupun kustom)"
     },
+    "saved_banks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Bank yang pernah ditulis pengguna — ditawarkan sebagai pilihan tinggal klik (tetap ada walau asetnya dihapus)"
+    },
     "custom_currencies": {
       "type": "array",
       "items": {

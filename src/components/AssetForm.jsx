@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
-import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, knownBrokers, canonicalBroker, canonicalBrokerFor } from "@/lib/finance";
+import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, canonicalBrokerFor, canonicalBroker, placeSuggestions, withSavedBank, BANK_LIKE_TYPES, DEFAULT_BANKS } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
@@ -29,6 +30,7 @@ const empty = {
 
 export default function AssetForm({ asset, onClose }) {
   const refresh = useRefresh();
+  const queryClient = useQueryClient();
   const isEdit = !!asset;
   const [form, setForm] = useState(() =>
     asset
@@ -87,9 +89,9 @@ export default function AssetForm({ asset, onClose }) {
       if (accountError) return toast.error(accountError);
       if (accountRequired && !normalizeAccountNumber(form.account_number)) return toast.error("Isi no. rekening", { description: "Satu bank bisa punya beberapa rekening — nomornya yang membedakan." });
       if (duplicateAccount) return toast.error("Rekening ini sudah tercatat", { description: `Sebagai "${duplicateAccount.name}".` });
-      if (!String(name || "").trim()) name = defaultBankName(canonicalBrokerFor(form.broker, allAssets, form.type), form.account_number);
+      if (!String(name || "").trim()) name = defaultBankName(canonBroker(form.broker), form.account_number);
     }
-    const { error, payload } = buildAssetPayload({ ...form, name, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
+    const { error, payload } = buildAssetPayload({ ...form, name, broker: canonBroker(form.broker) });
     if (error) return toast.error(error);
     payload.account_number = payload.type === "bank" ? normalizeAccountNumber(form.account_number) : "";
     // Jenis investasi: pilihan sendiri dikunci; selain itu tebakan otomatis dari nama/ticker.
@@ -111,6 +113,16 @@ export default function AssetForm({ asset, onClose }) {
         await base44.entities.Asset.create(payload);
         toast.success("Aset ditambahkan");
       }
+      // Bank baru → ditetapkan di profil agar lain kali tinggal klik
+      // (juga untuk Emas Digital, dan tetap ada walau asetnya dihapus).
+      if (BANK_LIKE_TYPES.includes(payload.type)) {
+        const next = withSavedBank(savedBanks, payload.broker);
+        if (next) {
+          base44.auth.updateMe({ saved_banks: next })
+            .then(() => queryClient.setQueryData(["me"], (m) => (m ? { ...m, saved_banks: next } : m)))
+            .catch(() => {});
+        }
+      }
       refresh();
       onClose();
     } catch {
@@ -121,11 +133,20 @@ export default function AssetForm({ asset, onClose }) {
 
   const showCurrency = true;
   // Saran: broker yang pernah dipakai untuk jenis ini lebih dulu, lalu saran umum.
-  const savedBrokers = knownBrokers(allAssets, { type: form.type });
-  const defaultBrokers = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
-  const brokerSuggestions = [...savedBrokers, ...defaultBrokers.filter((d) => canonicalBroker(d, savedBrokers) === d && !savedBrokers.includes(d))].slice(0, 8);
+  // Pilihan tinggal klik: bank/broker yang pernah ditulis (termasuk yang
+  // ditetapkan di profil) lebih dulu, lalu saran umum sesuai mata uang.
+  const savedBanks = Array.isArray(me?.saved_banks) ? me.saved_banks : [];
+  const defaultBrokers = form.type === "bank" ? (DEFAULT_BANKS[cur] || DEFAULT_BANKS.IDR) : form.type === "emas_digital" ? (digitalGoldBrokers[cur] || []) : [];
+  const savedBrokers = placeSuggestions({ assets: allAssets, type: form.type, savedBanks, defaults: [] });
+  // Seragamkan ketikan ke ejaan tersimpan: aset sejenis dulu, lalu bank di profil.
+  const canonBroker = (x) => {
+    const viaAssets = canonicalBrokerFor(x, allAssets, form.type);
+    if (viaAssets !== String(x || "").replace(/\s+/g, " ").trim()) return viaAssets;
+    return canonicalBroker(x, savedBrokers, { prefix: false });
+  };
+  const brokerSuggestions = placeSuggestions({ assets: allAssets, type: form.type, savedBanks, defaults: defaultBrokers });
   const brokerTyped = (form.broker || "").trim();
-  const brokerCanon = brokerTyped ? canonicalBrokerFor(brokerTyped, allAssets, form.type) : "";
+  const brokerCanon = brokerTyped ? canonBroker(brokerTyped) : "";
   const brokerFix = brokerCanon && brokerCanon !== brokerTyped.replace(/\s+/g, " ") ? brokerCanon : "";
   // Rekening wajib untuk bank baru; rekening lama tanpa nomor tetap bisa disimpan.
   const accountRequired = form.type === "bank" && (!isEdit || !!asset?.account_number);
@@ -203,7 +224,7 @@ export default function AssetForm({ asset, onClose }) {
               <p className="text-[11px] text-muted-foreground mt-1">Disimpan sebagai <button type="button" onClick={() => setForm({ ...form, broker: brokerFix })} className="font-semibold text-primary">{brokerFix}</button> (sudah tersimpan)</p>
             )}
             {brokerSuggestions.length > 0 && (
-              <div className="mt-2"><ChipChoice size="sm" ariaLabel={savedBrokers.length ? "Broker tersimpan" : "Saran"} options={brokerSuggestions} value={brokerCanon || form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
+              <div className="mt-2"><ChipChoice size="sm" ariaLabel={savedBrokers.length ? (BANK_LIKE_TYPES.includes(form.type) ? "Bank tersimpan" : "Broker tersimpan") : "Saran"} options={brokerSuggestions} value={brokerCanon || form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
             )}
           </FieldRow>
         )}

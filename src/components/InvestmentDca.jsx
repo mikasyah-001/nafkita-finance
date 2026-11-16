@@ -20,7 +20,8 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const r4 = (n) => Math.round(n * 10000) / 10000;
 const PREVIEW = 5;
 
-export default function InvestmentDca({ asset }) {
+// readOnly: aset bersama milik pasangan — riwayat terlihat, perubahan hanya oleh pemilik.
+export default function InvestmentDca({ asset, readOnly = false }) {
   const refresh = useRefresh();
   const { data: lots = [], isLoading } = useInvestmentLots(asset.id);
   const [priceDraft, setPriceDraft] = useState("");
@@ -143,8 +144,8 @@ export default function InvestmentDca({ asset }) {
 
   return (
     <>
-      {/* Perbarui nilai pasar — utamakan broker */}
-      <section aria-label="Perbarui nilai pasar" className="surface rounded-3xl p-4 mb-4">
+      {/* Perbarui nilai pasar — utamakan broker (hanya pemilik aset) */}
+      {!readOnly && <section aria-label="Perbarui nilai pasar" className="surface rounded-3xl p-4 mb-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold">Perbarui nilai pasar</p>
           <Link to="/impor-portofolio" className="text-xs font-semibold text-primary inline-flex items-center gap-1"><Upload className="w-3.5 h-3.5" /> Dari {asset.broker || "broker"}</Link>
@@ -163,7 +164,7 @@ export default function InvestmentDca({ asset }) {
         {Number(priceDraft) > 0 && <p className="text-xs text-muted-foreground mt-2 tabular-nums">Nilai baru: <span className="font-semibold text-foreground">{formatMoney(Number(priceDraft) * qty, cur)}</span></p>}
         {live?.price && <p className="text-[11px] text-muted-foreground mt-1.5">Perkiraan online {formatMoney(live.price, cur)} · {live.source || "internet"}{live.as_of ? ` · ${formatDate(live.as_of, "d MMM yyyy")}` : ""} — bisa berbeda dari {asset.broker || "broker"}.</p>}
         {live?.error && <p className="text-[11px] text-warning mt-1.5">{live.error}. Isi dari aplikasi broker.</p>}
-      </section>
+      </section>}
 
       {/* Riwayat DCA */}
       <section id="dca" aria-label="Riwayat DCA" className="mb-4">
@@ -172,10 +173,12 @@ export default function InvestmentDca({ asset }) {
           <span className="text-xs text-muted-foreground">{lots.length} lot{info.firstDate ? ` · sejak ${formatDate(info.firstDate, "d MMM yyyy")}` : ""}</span>
         </div>
         {info.message && <p className={`text-[11px] leading-snug px-1 mb-2 ${tone}`}>{info.message}</p>}
-        <div className="grid grid-cols-2 gap-2 mb-2.5">
+        {readOnly ? (
+          <p className="text-[11px] text-muted-foreground px-1 mb-2">Aset bersama milik pasangan — riwayat hanya bisa dilihat. Pencatatan oleh pemilik aset.</p>
+        ) : <div className="grid grid-cols-2 gap-2 mb-2.5">
           <button onClick={() => setShowForm(true)} className="btn-primary btn-sm"><Plus className="w-4 h-4" /> Catat pembelian</button>
           <Link to="/impor-portofolio" className="btn-secondary btn-sm"><Upload className="w-4 h-4" /> Impor lot</Link>
-        </div>
+        </div>}
 
         {isLoading ? (
           <div className="py-6 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
@@ -198,7 +201,7 @@ export default function InvestmentDca({ asset }) {
                   <p className="text-[11px] text-muted-foreground tabular-nums">{formatNumber(l.quantity)} {unit} × {formatMoney(l.price_per_unit, cur)}</p>
                 </div>
                 <p className="text-[13px] font-semibold tabular-nums shrink-0">{formatMoney(l.amount ?? l.quantity * l.price_per_unit, cur)}</p>
-                <button onClick={() => handleDeleteLot(l)} aria-label={`Hapus lot ${formatDate(l.date, "d MMM yyyy")}`} className="w-8 h-8 rounded-full text-destructive flex items-center justify-center shrink-0 -mr-1.5"><Trash2 className="w-3.5 h-3.5" /></button>
+                {!readOnly && <button onClick={() => handleDeleteLot(l)} aria-label={`Hapus lot ${formatDate(l.date, "d MMM yyyy")}`} className="w-8 h-8 rounded-full text-destructive flex items-center justify-center shrink-0 -mr-1.5"><Trash2 className="w-3.5 h-3.5" /></button>}
               </li>
             ))}
             {sortedLots.length > PREVIEW && (

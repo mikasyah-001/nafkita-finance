@@ -76,7 +76,9 @@ export function useZakatPayments() {
 export function useInvestmentLots(assetId) {
   return useQuery({
     queryKey: ["investmentLots", assetId],
-    queryFn: () => base44.entities.InvestmentLot.filter({ asset_id: assetId }, "date", 500),
+    // Lewat backend: pasangan juga melihat Riwayat DCA aset BERSAMA
+    // (baca langsung entitas hanya mengembalikan lot buatan sendiri).
+    queryFn: async () => (await base44.functions.invoke("listVisibleInvestmentLots", { asset_id: assetId })).data?.lots || [],
     enabled: !!assetId,
   });
 }
@@ -86,7 +88,7 @@ export function useInvestmentLots(assetId) {
 export function useAllInvestmentLots() {
   return useQuery({
     queryKey: ["investmentLots", "all"],
-    queryFn: () => base44.entities.InvestmentLot.list("-date", 5000),
+    queryFn: async () => (await base44.functions.invoke("listVisibleInvestmentLots", {})).data?.lots || [],
   });
 }
 

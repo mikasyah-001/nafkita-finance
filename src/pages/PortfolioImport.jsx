@@ -9,7 +9,7 @@ import {
 import { fetchLivePrices } from "@/lib/livePrice";
 import PageHeader from "@/components/PageHeader";
 import { ChipChoice } from "@/components/FormSheet";
-import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate } from "@/lib/finance";
 import {
   INSTRUMENTS, HOLDINGS_PROMPT, HOLDINGS_SCHEMA, normalizeHolding, mergeHoldings,
@@ -25,7 +25,11 @@ const isPdf = (f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
 export default function PortfolioImport() {
   const navigate = useNavigate();
   const refresh = useRefresh();
-  const { data: assets = [] } = useAssets();
+  const { data: allAssets = [] } = useAssets();
+  const { data: me } = useMe();
+  // Hanya aset milik sendiri yang boleh diperbarui impor (aset bersama pasangan
+  // terlihat, tetapi hanya pemiliknya yang bisa mengubah).
+  const assets = useMemo(() => allAssets.filter((a) => !a.created_by_id || !me?.id || a.created_by_id === me.id), [allAssets, me?.id]);
   const userCurrencies = useUserCurrencies();
   const fileRef = useRef(null);
 

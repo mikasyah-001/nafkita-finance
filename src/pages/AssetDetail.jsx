@@ -164,7 +164,7 @@ export default function AssetDetail() {
       )}
 
       {/* Investasi: perbarui nilai + Riwayat DCA langsung di halaman ini */}
-      {a.type === "investasi" && <InvestmentDca asset={a} />}
+      {a.type === "investasi" && <InvestmentDca asset={a} readOnly={!isOwner} />}
 
       {/* Bukti pembelian */}
       {a.purchase_proof_url && (

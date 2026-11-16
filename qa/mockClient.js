@@ -73,6 +73,12 @@ const PARTNERSHIPS = [
   { id: "p3", inviter_id: "u3", invitee_id: "u4", status: "ended", end_reason: "permintaan pengguna", created_date: d(1, -1) },
 ];
 const FN = {
+  // Emulasi backend: lot pada aset yang terlihat (milik sendiri + bersama pasangan).
+  listVisibleInvestmentLots: ({ asset_id } = {}) => {
+    const visible = new Set(db.assets.filter((a) => a.created_by_id === "u1" || a.visibility !== "private").map((a) => a.id));
+    const lots = (DATA.InvestmentLot || []).filter((l) => visible.has(l.asset_id) && (!asset_id || l.asset_id === asset_id));
+    return { lots: lots.map((l) => ({ ...l })) };
+  },
   adminListUsers: () => ({ users: ADMIN_USERS.map((u) => ({ ...u })), partnerships: PARTNERSHIPS.map((p) => ({ ...p })) }),
   adminListTransactions: () => ({ transactions: db.tx.map((t) => ({ ...t })).sort((a, b) => new Date(b.date) - new Date(a.date)), has_more: false }),
   adminListAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }),

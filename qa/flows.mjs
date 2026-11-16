@@ -655,6 +655,36 @@ try {
     assert.ok(/Disimpan .*sejak/.test(anak), `Lama disimpan tampil bila ada tanggal beli: ${anak}`);
   });
 
+  await step("Pasangan melihat Riwayat DCA aset bersama (hanya-baca); impor tidak menimpa aset pasangan", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push({ id: "qa-siti-inv", name: "SABIC Siti (2010)", ticker: "2010", type: "investasi", instrument: "saham", unit: "lembar", currency: "SAR", quantity: 30, value: 2100, purchase_price: 2000, broker: "Al Rajhi Capital", visibility: "shared", created_by_id: "u2", created_date: now, updated_date: now });
+      (window.__qaData.InvestmentLot ||= []).push(
+        { id: "ls1", asset_id: "qa-siti-inv", date: "2026-03-01", quantity: 20, price_per_unit: 66, amount: 1320, side: "buy", source: "manual", created_by_id: "u2" },
+        { id: "ls2", asset_id: "qa-siti-inv", date: "2026-06-01", quantity: 10, price_per_unit: 68, amount: 680, side: "buy", source: "manual", created_by_id: "u2" },
+      );
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(600);
+    const card = (await page.locator("a.surface", { hasText: "SABIC Siti" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/2 lot DCA/.test(card), `Kartu aset pasangan menampilkan lot: ${card}`);
+    await page.getByRole("link", { name: "Detail aset SABIC Siti (2010)" }).click();
+    await page.waitForTimeout(700);
+    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
+    assert.ok(await page.getByText("2 lot · sejak 1 Mar 2026").isVisible(), "Lot pasangan tampil");
+    assert.ok(await page.getByText(/riwayat hanya bisa dilihat/).isVisible(), "Mode hanya-baca");
+    assert.equal(await page.getByRole("button", { name: /Catat pembelian/ }).count(), 0, "Tidak bisa mencatat di aset pasangan");
+    assert.equal(await page.getByRole("button", { name: /^Hapus lot/ }).count(), 0, "Tidak bisa menghapus lot pasangan");
+    // Impor dengan kode sama (2010) → aset BARU milik sendiri, bukan memperbarui aset Siti
+    await page.evaluate(() => { window.__qaLLM = [{ holdings: [{ name: "SABIC", ticker: "2010", currency: "SAR", quantity: "5", market_value: "⃁ 350.00", total_cost: "⃁ 340.00" }] }]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "s.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1200);
+    const row = (await page.locator("li.surface", { hasText: "SABIC" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(!/Perbarui "SABIC Siti/.test(row), `Tidak mencocokkan aset pasangan: ${row}`);
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

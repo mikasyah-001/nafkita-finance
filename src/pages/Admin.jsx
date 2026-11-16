@@ -206,7 +206,7 @@ export default function Admin() {
     // Judul tetap tampil (bukan layar kosong) selama data admin dimuat —
     // data ini sengaja diambil hanya saat panel dibuka (berat, khusus admin).
     return (
-      <div className="px-5 pt-6 pb-28">
+      <div className="px-5 pt-6 pb-4">
         <PageHeader title="Panel admin" subtitle="Pengguna, pasangan, data & audit" back />
         <div className="space-y-4" aria-busy="true" aria-label="Memuat data admin">
           <div className="h-36 rounded-[28px] bg-muted animate-pulse" />
@@ -254,7 +254,7 @@ export default function Admin() {
   const active24 = users.filter((u) => u.last_active_at && Date.now() - new Date(u.last_active_at).getTime() < 864e5).length;
 
   return (
-    <div className="px-5 pt-6 pb-28">
+    <div className="px-5 pt-6 pb-4">
       <PageHeader title="Panel admin" subtitle="Pengguna, pasangan, data & audit" back />
 
       {/* Ringkasan singkat */}

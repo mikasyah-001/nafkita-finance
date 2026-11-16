@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react';
 import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from '@/components/PageTransition';
 import PageNotFound from './lib/PageNotFound';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -58,8 +60,16 @@ const RouteFallback = () => (
   </div>
 );
 
+// Layar di luar Layout (sambutan & autentikasi) beranimasi per halaman.
+// Seluruh area aplikasi memakai satu kunci ("app") agar Layout — sidebar &
+// nav bawah — tetap terpasang; transisi antarhalaman di dalamnya ditangani
+// Layout sendiri.
+const STANDALONE_PATHS = ['/selamat-datang', '/login', '/register', '/forgot-password', '/reset-password'];
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const location = useLocation();
+  const transitionKey = STANDALONE_PATHS.includes(location.pathname) ? location.pathname : 'app';
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -83,8 +93,10 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <AnimatePresence mode="wait" initial={false}>
+    <PageTransition key={transitionKey}>
     <Suspense fallback={<RouteFallback />}>
-    <Routes>
+    <Routes location={location}>
       <Route path="/selamat-datang" element={<Welcome />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -127,6 +139,8 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </Suspense>
+    </PageTransition>
+    </AnimatePresence>
   );
 };
 

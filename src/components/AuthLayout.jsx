@@ -3,7 +3,7 @@ import BrandLogo from "@/components/BrandLogo";
 
 export default function AuthLayout({ icon: _icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 pt-safe">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <BrandLogo variant="mark" markClassName="h-20 w-20 mx-auto" className="block mb-2" />

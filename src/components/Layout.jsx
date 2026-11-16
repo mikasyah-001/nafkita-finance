@@ -1,5 +1,7 @@
-import { Outlet } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useLocation, useOutlet } from "react-router-dom";
+import { Suspense, useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "./PageTransition";
 import { base44 } from "@/api/base44Client";
 import BottomNav from "./BottomNav";
 import Sidebar from "./Sidebar";
@@ -31,16 +33,41 @@ export default function Layout() {
     };
   }, []);
 
+  const location = useLocation();
+  const outlet = useOutlet();
+
   return (
     <div className={`min-h-screen flex ${scope === "private" ? "bg-scope-tint-private" : "bg-scope-tint-shared"}`}>
       <Sidebar />
       <main className="flex-1 pb-28 md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0">
-        <Outlet />
+        {/* pt-safe: konten tidak tertutup notch / status bar saat dibuka di
+            WebView native (viewport-fit=cover). Di desktop nilainya 0. */}
+        <div className="pt-safe">
+          {/* Kunci per pathname → tiap layar beranimasi saat berpindah; query
+              string (mis. ?tab=) tidak memicu animasi ulang. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={location.pathname}>
+              <Suspense fallback={<PageFallback />}>{outlet}</Suspense>
+            </PageTransition>
+          </AnimatePresence>
+        </div>
       </main>
       <BottomNav />
       <OfflineSyncManager />
       <NotificationToaster />
       <InstallPrompt />
+    </div>
+  );
+}
+
+// Kerangka sementara saat halaman (code-split) sedang dimuat — dirender di
+// dalam Layout sehingga sidebar & nav bawah tidak ikut hilang.
+function PageFallback() {
+  return (
+    <div className="px-5 pt-6 space-y-4" aria-busy="true" aria-label="Memuat halaman">
+      <div className="h-7 w-40 rounded-lg bg-muted animate-pulse" />
+      <div className="h-36 rounded-3xl bg-muted animate-pulse" />
+      <div className="h-48 rounded-2xl bg-muted animate-pulse" />
     </div>
   );
 }

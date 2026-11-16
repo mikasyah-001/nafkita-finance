@@ -226,23 +226,25 @@ export function useRateMap() {
 
 export function useRefresh() {
   const qc = useQueryClient();
-  return () => {
-    qc.invalidateQueries({ queryKey: ["transactions"] });
-    qc.invalidateQueries({ queryKey: ["categories"] });
-    qc.invalidateQueries({ queryKey: ["assets"] });
-    qc.invalidateQueries({ queryKey: ["budgets"] });
-    qc.invalidateQueries({ queryKey: ["templates"] });
-    qc.invalidateQueries({ queryKey: ["assetSnapshots"] });
-    qc.invalidateQueries({ queryKey: ["zakatPayments"] });
-    qc.invalidateQueries({ queryKey: ["investmentLots"] });
-    qc.invalidateQueries({ queryKey: ["me"] });
-    qc.invalidateQueries({ queryKey: ["debts"] });
-    qc.invalidateQueries({ queryKey: ["recurringBills"] });
-    qc.invalidateQueries({ queryKey: ["reconciliations"] });
-    qc.invalidateQueries({ queryKey: ["savingsGoals"] });
-    qc.invalidateQueries({ queryKey: ["pendingApprovals"] });
-    qc.invalidateQueries({ queryKey: ["assetMutations"] });
-    qc.invalidateQueries({ queryKey: ["notificationRules"] });
-    qc.invalidateQueries({ queryKey: ["exchangeRates"] });
-  };
+  // Mengembalikan Promise yang selesai setelah data aktif dimuat ulang
+  // (dipakai pull-to-refresh); pemanggil lama yang mengabaikannya tetap aman.
+  return () => Promise.all([
+    qc.invalidateQueries({ queryKey: ["transactions"] }),
+    qc.invalidateQueries({ queryKey: ["categories"] }),
+    qc.invalidateQueries({ queryKey: ["assets"] }),
+    qc.invalidateQueries({ queryKey: ["budgets"] }),
+    qc.invalidateQueries({ queryKey: ["templates"] }),
+    qc.invalidateQueries({ queryKey: ["assetSnapshots"] }),
+    qc.invalidateQueries({ queryKey: ["zakatPayments"] }),
+    qc.invalidateQueries({ queryKey: ["investmentLots"] }),
+    qc.invalidateQueries({ queryKey: ["me"] }),
+    qc.invalidateQueries({ queryKey: ["debts"] }),
+    qc.invalidateQueries({ queryKey: ["recurringBills"] }),
+    qc.invalidateQueries({ queryKey: ["reconciliations"] }),
+    qc.invalidateQueries({ queryKey: ["savingsGoals"] }),
+    qc.invalidateQueries({ queryKey: ["pendingApprovals"] }),
+    qc.invalidateQueries({ queryKey: ["assetMutations"] }),
+    qc.invalidateQueries({ queryKey: ["notificationRules"] }),
+    qc.invalidateQueries({ queryKey: ["exchangeRates"] }),
+  ]);
 }

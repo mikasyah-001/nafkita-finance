@@ -32,7 +32,7 @@ export default function BottomNav() {
     <>
       <nav
         aria-label="Navigasi utama"
-        className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] pointer-events-none"
+        className="no-select md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] pointer-events-none"
       >
         <div className="pointer-events-auto flex items-end justify-around h-[66px] px-1 rounded-[26px] bg-card/90 backdrop-blur-xl border border-border shadow-[0_14px_40px_-18px_hsl(var(--hero-from)/0.55)]">
           {items.slice(0, 2).map((it) => (

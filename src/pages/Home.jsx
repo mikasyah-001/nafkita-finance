@@ -20,6 +20,7 @@ import GoalsCarousel from "@/components/GoalsCarousel";
 import HomeNudges from "@/components/HomeNudges";
 import { usePartnership } from "@/hooks/usePartnership";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
+import { usePullToRefresh, PullToRefreshIndicator } from "@/hooks/usePullToRefresh";
 
 
 export default function Home() {
@@ -30,6 +31,7 @@ export default function Home() {
   const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
   const refresh = useRefresh();
+  const ptr = usePullToRefresh(refresh);
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
   const { data: approvals } = usePendingApprovals();
@@ -139,6 +141,7 @@ export default function Home() {
 
   return (
     <div className="px-5 pt-6 pb-6">
+      <PullToRefreshIndicator pull={ptr.pull} refreshing={ptr.refreshing} threshold={ptr.threshold} />
       <header className="flex items-center justify-between gap-3 mb-1">
         <BrandLogo variant="mark" markClassName="h-11 w-11 -ml-1" />
         <div className="flex items-center gap-2">

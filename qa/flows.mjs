@@ -269,10 +269,15 @@ try {
     await nav("/aset");
   });
 
-  await step("Bukti pembelian: ikon di daftar aset & thumbnail di form membuka pratinjau gambar", async () => {
+  await step("Ketuk kartu aset → halaman detail; bukti pembelian & form Ubah membuka pratinjau gambar", async () => {
     const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==";
     await page.evaluate((u) => window.__qa.assets.push({ id: "qa-proof", name: "QA Emas Bukti", type: "emas", quantity: 1, purchase_price: 1500000, value: 1500000, currency: "IDR", unit: "gram", purchase_proof_url: u, visibility: "shared", created_by_id: "u1", created_date: new Date().toISOString(), updated_date: new Date(Date.now() + 60000).toISOString() }), png);
     await nav("/kesehatan-data"); await nav("/aset");
+    await page.getByRole("link", { name: "Detail aset QA Emas Bukti" }).click();
+    await page.waitForTimeout(500);
+    assert.ok(page.url().endsWith("/aset/qa-proof"), "Kartu membuka halaman detail");
+    assert.ok(await page.getByRole("heading", { name: "QA Emas Bukti" }).isVisible());
+    assert.ok(await page.getByText("Harga beli /gram").isVisible(), "Rincian sesuai jenis (emas)");
     await page.getByRole("button", { name: "Lihat bukti pembelian QA Emas Bukti" }).click();
     const dlg = page.getByRole("dialog", { name: "Bukti pembelian" });
     assert.ok(await dlg.isVisible(), "Pratinjau terbuka");
@@ -280,7 +285,7 @@ try {
     assert.ok(box && box.height > 50, `Gambar terlihat (tinggi ${box?.height})`);
     await page.getByRole("button", { name: "Tutup pratinjau" }).click();
     assert.equal(await dlg.count(), 0, "Pratinjau tertutup");
-    await page.getByRole("button", { name: "Edit aset QA Emas Bukti" }).click();
+    await page.getByRole("button", { name: "Ubah aset" }).click();
     await page.getByRole("button", { name: "Lihat bukti pembelian", exact: true }).click();
     assert.ok(await dlg.isVisible(), "Pratinjau dari form terbuka");
     await page.getByRole("button", { name: "Tutup pratinjau" }).click();
@@ -289,6 +294,7 @@ try {
     await page.waitForTimeout(300);
     if (await page.locator("#asset-name").count()) await page.getByRole("button", { name: /Tutup|Batal/ }).first().click();
     await page.waitForTimeout(300);
+    await nav("/aset");
   });
 
   await step("Ganti jenis Emas → Bank: isian gram/harga tidak terbawa", async () => {
@@ -315,10 +321,13 @@ try {
     await page.waitForTimeout(900);
     await page.getByRole("dialog", { name: "Harga emas acuan" }).getByRole("button", { name: "Tutup" }).click();
     assert.ok(await page.getByText(/acuan Rp\s?1\.500\.000\/gr/).isVisible(), "Kartu total menampilkan harga acuan");
-    const card = page.locator("div.surface", { hasText: "Emas Antam" }).first();
+    const card = page.locator("a.surface", { hasText: "Emas Antam" }).first();
     const text = (await card.innerText()).replace(/\s+/g, " ");
-    assert.ok(text.includes("Rp 1.500.000"), "Harga pasar/gr tampil");
-    assert.ok(/\+\s?Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
+    assert.ok(/\+\s?Rp\s?10\.000\.000/.test(text) && text.includes("+20.0%"), `Kartu: untung 40 gr × (1,5 jt − 1,25 jt) = Rp 10 jt (+20%) — ${text}`);
+    await card.click();
+    await page.waitForTimeout(500);
+    const det = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+    assert.ok(/Harga pasar \/gram Rp\s?1\.500\.000/.test(det), `Detail: harga pasar/gr — ${det.slice(0, 300)}`);
     await nav("/zakat");
     assert.ok(await page.getByText("Rp 1.500.000/gram").first().isVisible(), "Harga acuan sama di Zakat");
   });
@@ -598,9 +607,12 @@ try {
     // Kartu Aset menampilkan Riwayat DCA dari data lot yang sama
     await nav("/aset");
     await page.waitForTimeout(600);
-    const card = page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first();
-    assert.ok(/Riwayat DCA · 2 lot, sejak 12 Jan 2026/.test((await card.innerText()).replace(/\s+/g, " ")), "Ringkasan DCA di kartu aset");
-    await card.getByRole("link", { name: /Riwayat DCA/ }).click();
+    const card = page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first();
+    assert.ok(/2 lot DCA/.test((await card.innerText()).replace(/\s+/g, " ")), "Jumlah lot di kartu aset");
+    await card.click();
+    await page.waitForTimeout(500);
+    assert.ok(await page.getByText(/2 lot, sejak 12 Jan 2026/).isVisible(), "Ringkasan DCA di detail aset");
+    await page.getByRole("link", { name: /Riwayat DCA/ }).click();
     await page.waitForTimeout(700);
     assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
     await page.getByRole("button", { name: /Catat pembelian/ }).click();
@@ -610,8 +622,8 @@ try {
     await page.waitForTimeout(900);
     await nav("/aset");
     await page.waitForTimeout(600);
-    const t = (await page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
-    assert.ok(/Riwayat DCA · 3 lot/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
+    const t = (await page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/3 lot DCA/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
     const a2 = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "4280"));
     assert.equal(a2.quantity, 105, "100 + 5 lembar");
   });

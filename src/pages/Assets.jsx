@@ -2,24 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn } from "@/lib/finance";
+import { formatMoney, formatNumber, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
-import ProofViewer from "@/components/ProofViewer";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Layers, Eye, EyeOff, History, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
-import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { refreshAssetPrices } from "@/lib/livePrice";
-import { lotSummary, valueSourceInfo } from "@/lib/portfolioImport";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
@@ -51,7 +48,6 @@ export default function Assets() {
   useEffect(() => { if (me?.default_currency) setDisplayCurrency(me.default_currency); }, [me?.default_currency]);
   const { scope, setScope } = useScope();
   const [sortBy, setSortBy] = useState("updated");
-  const [viewProof, setViewProof] = useState(null);
   const [livePricing, setLivePricing] = useState(false);
   const [showGold, setShowGold] = useState(false);
   const { data: allLots = [] } = useAllInvestmentLots();
@@ -117,34 +113,8 @@ export default function Assets() {
   const goldGramsIdr = scopedAssets.filter((a) => isGoldType(a.type) && (a.currency || "IDR") === "IDR").reduce((t, a) => t + (Number(a.quantity) || 0), 0);
 
   const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
-  const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
 
-  const handleDelete = async (id) => {
-    const a = assets.find((x) => x.id === id);
-    const ok = await confirmAction({
-      title: `Hapus aset${a?.name ? ` "${a.name}"` : ""}?`,
-      description: "Aset beserta seluruh riwayat lot/DCA-nya akan dihapus permanen dan tidak bisa dikembalikan.",
-    });
-    if (!ok) return;
-    try {
-      await base44.functions.invoke("deleteAssetWithLots", { asset_id: id });
-      refresh();
-      toast.success("Aset dihapus");
-    } catch {
-      toast.error("Gagal menghapus");
-    }
-  };
 
-  const handleToggleVisibility = async (a) => {
-    const next = a.visibility === "private" ? "shared" : "private";
-    try {
-      await base44.entities.Asset.update(a.id, { visibility: next });
-      refresh();
-      toast.success(next === "private" ? "Aset diubah menjadi Pribadi" : "Aset diubah menjadi Bersama");
-    } catch {
-      toast.error("Gagal mengubah jangkauan");
-    }
-  };
 
   return (
     <div className="px-5 pt-6">
@@ -255,160 +225,52 @@ export default function Assets() {
             const rank = rankMap[a.id];
             const hasPurchase = a.purchase_price && a.purchase_price > 0;
             const g = assetGain(a, goldPriceNum, rateMap);
-            const totalPurchase = g.cost;
             const gain = g.gain;
             const gainPct = g.pct;
             const isGain = gain >= 0;
             const showChange = g.available;
-            const marketPerGram = isGoldType(a.type) ? goldPriceIn(a.currency, goldPriceNum, rateMap) : 0;
-            const duration = formatDuration(a.purchase_date);
 
             return (
-              <div key={a.id} className="surface p-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
-                      <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
-                    </div>
-                    <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
-                      {rank}
-                    </span>
+              <Link key={a.id} to={`/aset/${a.id}`} aria-label={`Detail aset ${a.name}`}
+                className="surface p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+                <div className="relative shrink-0">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${cm.bg}`}>
+                    <CategoryIcon name={meta.icon} className={`w-5 h-5 ${cm.text}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate flex items-center gap-1">
-                      {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
-                      {a.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {meta.label}{a.owner ? ` • ${a.owner}` : ""}
-                      {isGoldType(a.type) && a.quantity ? ` • ${formatNumber(a.quantity)} gr` : ""}
-                      {a.type === "tanah" && a.quantity ? ` • ${formatNumber(a.quantity)} m²` : ""}
-                      {a.type === "investasi" && a.broker ? ` • ${a.broker}` : ""}
-                      {a.type === "bank" && a.broker ? ` • ${a.broker}` : ""}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
-                    <div className="flex items-center gap-2 mt-1 ml-auto justify-end">
-                      {a.purchase_proof_url && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); setViewProof(a.purchase_proof_url); }} aria-label={`Lihat bukti pembelian ${a.name}`} className="-m-2 p-2 text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Lihat bukti pembelian">
-                          <Receipt className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button onClick={() => handleToggleVisibility(a)} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title={a.visibility === "private" ? "Jadikan Bersama" : "Jadikan Pribadi"}>
-                        {a.visibility === "private" ? <Users className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                      </button>
-                      {a.type === "investasi" && (
-                        <Link to={`/investasi/${a.id}`} className="text-xs text-success flex items-center gap-1 active:scale-95 transition-transform" title="Catat DCA bulanan">
-                          <Layers className="w-3.5 h-3.5" />
-                        </Link>
-                      )}
-                      <Link to={`/mutasi-aset?asset_id=${a.id}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Riwayat mutasi aset">
-                        <History className="w-3.5 h-3.5" />
-                      </Link>
-                      <button onClick={() => openEdit(a)} aria-label={`Edit aset ${a.name}`} className="text-xs text-muted-foreground flex items-center gap-1 active:scale-95 transition-transform" title="Edit aset">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDelete(a.id)} className="text-xs text-destructive flex items-center gap-1" title="Hapus aset">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
+                  <span className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-background ${rankBadgeClass(rank)}`}>
+                    {rank}
+                  </span>
                 </div>
-
-                {(hasPurchase || duration || a.type === "tanah") && (
-                  <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs">
-                    {a.type === "tanah" ? (
-                      <>
-                        <div>
-                          <p className="text-muted-foreground">Harga Beli /m²</p>
-                          <p className="font-medium"><Money value={a.purchase_price} currency={a.currency} /></p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Luas</p>
-                          <p className="font-medium">{formatNumber(a.quantity)} m²</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Total Beli</p>
-                          <p className="font-medium"><Money value={totalPurchase} currency={a.currency} /></p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Perkiraan Sekarang</p>
-                          <p className="font-medium"><Money value={curVal} currency={a.currency} /></p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Perubahan</p>
-                          <p className={`font-medium flex items-center gap-1 ${isGain ? "text-success" : "text-destructive"}`}>
-                            {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                            {isGain ? "+" : ""}{formatMoney(gain, a.currency)} ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
-                          </p>
-                        </div>
-                      </>
-                    ) : hasPurchase && (
-                      <>
-                        <div>
-                          <p className="text-muted-foreground">Harga Beli{isGoldType(a.type) ? " /gr" : ""}</p>
-                          <p className="font-medium"><Money value={a.purchase_price} currency={a.currency} /></p>
-                        </div>
-                        {isGoldType(a.type) && (
-                          <div>
-                            <p className="text-muted-foreground">Harga Pasar /gr</p>
-                            <p className="font-medium">{marketPerGram > 0 ? <Money value={marketPerGram} currency={a.currency} /> : <span className="text-[11px] text-warning">Belum ada</span>}</p>
-                          </div>
-                        )}
-                        {isGoldType(a.type) && (
-                          <div>
-                            <p className="text-muted-foreground">Total Beli</p>
-                            <p className="font-medium"><Money value={totalPurchase} currency={a.currency} /></p>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-muted-foreground">Perubahan</p>
-                          {showChange ? (
-                            <p className={`font-medium flex items-center gap-1 ${isGain ? "text-success" : "text-destructive"}`}>
-                              {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                              {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
-                            </p>
-                          ) : (
-                            <p className="text-[11px] text-warning">{g.currencySuspect ? <Link to="/kesehatan-data" className="underline">Mata uang tampak keliru — periksa</Link> : g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : <button onClick={() => setShowGold(true)} className="underline">Atur harga emas acuan</button>) : "—"}</p>
-                          )}
-                        </div>
-                      </>
-                    )}
-                    {duration && (
-                      <div className={hasPurchase ? "" : "col-span-2"}>
-                        <p className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Disimpan</p>
-                        <p className="font-medium">{duration}{a.purchase_date ? ` (sejak ${formatDate(a.purchase_date, "dd MMM yyyy")})` : ""}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Riwayat DCA (lot) — selalu dari data lot yang sama dengan halaman investasi */}
-                {(a.type === "investasi" || a.import_source) && (() => {
-                  const vs = valueSourceInfo(a);
-                  return (
-                    <p className={`mt-2.5 text-[11px] inline-flex items-center gap-1 ${vs.kind === "online" ? "text-warning" : "text-muted-foreground"}`}>
-                      {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}
-                      Nilai: {vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate flex items-center gap-1">
+                    {a.visibility === "private" && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                    {a.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {meta.label}
+                    {isGoldType(a.type) && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
+                    {a.type === "tanah" && a.quantity ? ` · ${formatNumber(a.quantity)} m²` : ""}
+                    {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
+                    {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}
+                  </p>
+                  {/* Satu baris status: untung/rugi, atau apa yang perlu dilengkapi */}
+                  {showChange ? (
+                    <p className={`text-[11px] font-semibold mt-0.5 inline-flex items-center gap-1 tabular-nums ${isGain ? "text-income" : "text-expense"}`}>
+                      {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                     </p>
-                  );
-                })()}
-                {a.type === "investasi" && (() => {
-                  const ls = lotsByAsset[a.id] || [];
-                  const info = lotSummary(ls.map((l) => ({ ...l, date: String(l.date).slice(0, 10), side: l.side || "buy", price: l.price_per_unit })), Number(a.quantity) || 0);
-                  return (
-                    <Link to={`/investasi/${a.id}`} className="mt-3 flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs active:scale-[0.99] transition-transform">
-                      <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="flex-1 min-w-0">
-                        <span className="font-semibold">Riwayat DCA</span>
-                        <span className="text-muted-foreground"> · {ls.length ? `${ls.length} lot${info.firstDate ? `, sejak ${formatDate(info.firstDate, "d MMM yyyy")}` : ""}` : "belum ada lot"}</span>
-                        {info.status === "partial" && <span className="block text-warning text-[11px] mt-0.5">Lot mencakup {formatNumber(info.netQty)} dari {formatNumber(Number(a.quantity))} {a.unit || "unit"}</span>}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                    </Link>
-                  );
-                })()}
-              </div>
+                  ) : g.currencySuspect ? (
+                    <p className="text-[11px] text-warning mt-0.5">Mata uang tampak keliru</p>
+                  ) : g.needsGoldPrice && hasPurchase ? (
+                    <p className="text-[11px] text-warning mt-0.5">{a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Harga emas acuan belum diatur"}</p>
+                  ) : null}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold tabular-nums"><Money value={curVal} currency={a.currency} /></p>
+                  {a.type === "investasi" && (lotsByAsset[a.id]?.length > 0) && <p className="text-[11px] text-muted-foreground mt-0.5">{lotsByAsset[a.id].length} lot DCA</p>}
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 -mr-1" />
+              </Link>
             );
           })}
         </div>
@@ -442,7 +304,6 @@ export default function Assets() {
         </div>
       )}
 
-      {viewProof && <ProofViewer url={viewProof} onClose={() => setViewProof(null)} />}
     </div>
   );
 }

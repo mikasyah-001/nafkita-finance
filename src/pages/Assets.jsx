@@ -13,7 +13,7 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus, Upload, ChevronRight, Loader2 } from "lucide-react";
+import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Layers, Eye, EyeOff, History, ChevronDown, Globe, X, AlertTriangle, Plus, ChevronRight, Loader2 } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
@@ -52,6 +52,7 @@ export default function Assets() {
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
   const [livePricing, setLivePricing] = useState(false);
+  const [showGold, setShowGold] = useState(false);
   const priceable = assets.filter((a) => a.type === "investasi" && Number(a.quantity) > 0 && (a.ticker || a.name));
   const handleLivePrices = async () => {
     setLivePricing(true);
@@ -84,7 +85,7 @@ export default function Assets() {
     const m = {};
     ranked.forEach((a, i) => { m[a.id] = i + 1; });
     return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [scopedAssets, goldPriceNum, displayCurrency, rateMap]);
 
   // Reset paginasi saat filter/sort/scope berubah.
@@ -106,6 +107,7 @@ export default function Assets() {
   const total = scopedAssets.reduce((s, a) => s + convertedValue(a), 0);
   const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
+  const goldGramsIdr = scopedAssets.filter((a) => isGoldType(a.type) && (a.currency || "IDR") === "IDR").reduce((t, a) => t + (Number(a.quantity) || 0), 0);
 
   const openAdd = () => { setEditingAsset(null); setFormOpen(true); };
   const openEdit = (a) => { setEditingAsset(a); setFormOpen(true); };
@@ -157,21 +159,6 @@ export default function Assets() {
 
       <ScopeToggle className="mb-4" />
 
-      <Link to="/impor-portofolio" className="card-pastel card-pastel-sage rounded-3xl p-3.5 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
-        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0"><Upload className="w-5 h-5" /></span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold">Impor portofolio investasi</span>
-          <span className="block text-xs opacity-80 leading-snug">Saham, reksa dana, ETF & emas dari foto/PDF aplikasi broker</span>
-        </span>
-        <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
-      </Link>
-      {priceable.length > 0 && (
-        <button onClick={handleLivePrices} disabled={livePricing}
-          className="w-full -mt-2 mb-4 h-10 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
-          {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
-          {livePricing ? "Mencari harga terbaru…" : `Perbarui harga online (${priceable.length} investasi)`}
-        </button>
-      )}
 
       <div className="rounded-3xl card-gradient-primary p-5 mb-4 shadow-lg">
         <div className="flex items-center justify-between mb-1">
@@ -184,7 +171,17 @@ export default function Assets() {
         {userCurrencies.length > 1 && (
           <div className="mt-2"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={displayCurrency} onChange={setDisplayCurrency} variant="inverse" /></div>
         )}
-        {emasGrams > 0 && <p className="text-xs opacity-80 mt-2 flex items-center gap-1"><Coins className="w-3.5 h-3.5" /> Emas: {formatNumber(emasGrams)} gram</p>}
+        {emasGrams > 0 && (
+          <button onClick={() => setShowGold(true)} aria-label="Atur harga emas acuan"
+            className="mt-3 w-full flex items-center gap-2 rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-left active:scale-[0.99] transition-transform">
+            <Coins className="w-4 h-4 shrink-0 opacity-90" />
+            <span className="flex-1 min-w-0 text-xs">
+              <span className="font-semibold">Emas {formatNumber(emasGrams)} gram</span>
+              <span className="opacity-80"> · {goldPriceNum > 0 ? `acuan ${formatMoney(goldPriceNum, "IDR")}/gr` : "atur harga emas acuan"}</span>
+            </span>
+            <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+          </button>
+        )}
       </div>
 
       {missingRates.length > 0 && (
@@ -194,33 +191,41 @@ export default function Assets() {
         </div>
       )}
 
-      {scopedAssets.some((a) => isGoldType(a.type)) && (
-        <GoldPriceCard grams={scopedAssets.filter((a) => isGoldType(a.type) && (a.currency || "IDR") === "IDR").reduce((t, a) => t + (Number(a.quantity) || 0), 0)} className="mb-4" />
-      )}
 
       {scopedAssets.length > 0 && <ZakatSummaryCard className="mb-4" />}
 
-      <AssetGrowthTrend />
 
+      {/* Daftar aset: judul + urutan sebaris, filter jenis satu baris geser */}
       {scopedAssets.length > 0 && (
-        <div className="surface p-3 mb-3 space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" /> Filter Jenis</div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <section aria-label="Daftar aset" className="mb-3">
+          <div className="flex items-center justify-between gap-2 mb-2 px-1">
+            <h2 className="text-sm font-semibold">Daftar aset <span className="text-muted-foreground font-normal">({filteredAssets.length})</span></h2>
+            <label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <select aria-label="Urutkan aset" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-transparent outline-none font-semibold text-foreground">
+                {sortOptions.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <div role="group" aria-label="Filter jenis aset" className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
             {typeOptions.map((t) => (
-              <button key={t} onClick={() => setTypeFilter(t)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              <button key={t} aria-pressed={typeFilter === t} onClick={() => setTypeFilter(t)}
+                className={`shrink-0 h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${typeFilter === t ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"}`}>
                 {t === "all" ? "Semua" : assetTypeLabels[t].label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><ArrowUpDown className="w-3.5 h-3.5" /> Urutkan</div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {sortOptions.map((o) => (
-              <button key={o.key} onClick={() => setSortBy(o.key)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${sortBy === o.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
+
+          {/* Konteks per jenis: harga emas acuan untuk emas; harga online untuk investasi */}
+          {isGoldType(typeFilter) && <GoldPriceCard grams={goldGramsIdr} className="mt-3" />}
+          {(typeFilter === "investasi" || typeFilter === "all") && priceable.length > 0 && (
+            <button onClick={handleLivePrices} disabled={livePricing}
+              className="mt-2.5 w-full h-10 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
+              {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+              {livePricing ? "Mencari harga terbaru…" : `Perbarui harga online · ${priceable.length} investasi`}
+            </button>
+          )}
+        </section>
       )}
 
       {isLoading ? (
@@ -353,7 +358,7 @@ export default function Assets() {
                               {isGain ? "+" : ""}<Money value={gain} currency={a.currency} /> ({isGain ? "+" : ""}{gainPct.toFixed(1)}%)
                             </p>
                           ) : (
-                            <p className="text-[11px] text-warning">{g.currencySuspect ? <Link to="/kesehatan-data" className="underline">Mata uang tampak keliru — periksa</Link> : g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : "Isi harga emas acuan di atas") : "—"}</p>
+                            <p className="text-[11px] text-warning">{g.currencySuspect ? <Link to="/kesehatan-data" className="underline">Mata uang tampak keliru — periksa</Link> : g.needsGoldPrice ? (a.currency && a.currency !== "IDR" ? `Butuh kurs ${a.currency}` : <button onClick={() => setShowGold(true)} className="underline">Atur harga emas acuan</button>) : "—"}</p>
                           )}
                         </div>
                       </>
@@ -382,6 +387,23 @@ export default function Assets() {
       )}
 
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
+
+      {/* Analisis di akhir: setelah melihat daftar */}
+      {scopedAssets.length > 0 && <div className="mt-6"><AssetGrowthTrend /></div>}
+
+      {/* Harga emas acuan sebagai lembar (dibuka dari kartu total) */}
+      {showGold && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-foreground/30 backdrop-blur-[2px]" onClick={() => setShowGold(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Harga emas acuan" onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-background rounded-t-[28px] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="font-heading font-bold text-lg">Harga emas acuan</h2>
+              <button onClick={() => setShowGold(false)} aria-label="Tutup" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"><X className="w-4 h-4" /></button>
+            </div>
+            <GoldPriceCard grams={goldGramsIdr} className="mb-0" />
+          </div>
+        </div>
+      )}
 
       {viewProof && <ProofViewer url={viewProof} onClose={() => setViewProof(null)} />}
     </div>

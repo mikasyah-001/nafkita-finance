@@ -308,10 +308,13 @@ try {
 
   await step("Harga emas acuan: diisi di Aset → untung/rugi emas tampil & harga sama di Zakat", async () => {
     await nav("/aset");
-    assert.ok(await page.getByText("Isi harga emas acuan di atas").first().isVisible(), "Sebelum ada harga: diminta isi harga");
+    assert.ok(await page.getByRole("button", { name: "Atur harga emas acuan" }).first().isVisible(), "Sebelum ada harga: diminta atur harga");
+    await page.getByRole("button", { name: "Atur harga emas acuan" }).first().click();
     await page.fill("#gold-price-input", "1500000");
     await page.getByRole("button", { name: "Pakai", exact: true }).click();
     await page.waitForTimeout(900);
+    await page.getByRole("dialog", { name: "Harga emas acuan" }).getByRole("button", { name: "Tutup" }).click();
+    assert.ok(await page.getByText(/acuan Rp\s?1\.500\.000\/gr/).isVisible(), "Kartu total menampilkan harga acuan");
     const card = page.locator("div.surface", { hasText: "Emas Antam" }).first();
     const text = (await card.innerText()).replace(/\s+/g, " ");
     assert.ok(text.includes("Rp 1.500.000"), "Harga pasar/gr tampil");
@@ -439,7 +442,10 @@ try {
       ] },
     ]; });
     await nav("/aset");
-    await page.getByRole("link", { name: /Impor portofolio investasi/ }).click();
+    // Impor kini ada di dalam Tambah aset → jenis Investasi
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: /Investasi/ }).click();
+    await page.getByRole("link", { name: /Impor dari aplikasi broker/ }).click();
     await page.waitForTimeout(500);
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
     await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([

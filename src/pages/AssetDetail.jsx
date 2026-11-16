@@ -133,15 +133,16 @@ export default function AssetDetail() {
           <p className="font-heading text-[34px] leading-none font-extrabold tracking-tight tabular-nums mt-1 break-all"><Money value={value} currency={cur} /></p>
           {cur !== mainCur && conversionPreview(value, cur, mainCur, rateMap) && <p className="text-sm opacity-80 mt-1 tabular-nums">{conversionPreview(value, cur, mainCur, rateMap)}</p>}
           {g.available && (
-            <p className="text-sm font-semibold mt-2 inline-flex items-center gap-1 tabular-nums">
+            <p className="text-sm font-semibold mt-2 flex items-center gap-1 tabular-nums">
               {g.gain >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {g.gain >= 0 ? "+" : ""}{formatMoney(g.gain, cur)} ({g.gain >= 0 ? "+" : ""}{g.pct.toFixed(2)}%)
             </p>
           )}
+          {/* Asal nilai: baris sendiri di pojok kanan bawah, tidak menempel ke perubahan */}
           {vs && (
-            <p className="text-[11px] opacity-85 mt-3 inline-flex items-center gap-1">
-              {vs.kind === "online" ? <Globe className="w-3 h-3" /> : <Upload className="w-3 h-3" />}
-              {vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}
+            <p className="text-[11px] opacity-80 mt-3 flex items-center justify-end gap-1 text-right">
+              {vs.kind === "online" ? <Globe className="w-3 h-3 shrink-0" /> : <Upload className="w-3 h-3 shrink-0" />}
+              <span>{vs.label}{vs.date ? ` · ${formatDate(vs.date, "d MMM yyyy")}` : ""}</span>
             </p>
           )}
         </div>

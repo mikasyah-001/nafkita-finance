@@ -18,11 +18,25 @@ export default async function (req) {
     if (me.role !== "admin")
       return Response.json({ error: "forbidden" }, { status: 403 });
 
-    const [users, transactions, assets] = await Promise.all([
-      fetchAll(base44.asServiceRole.entities.User),
-      fetchAllByDate(base44.asServiceRole.entities.Transaction, {}),
-      fetchAll(base44.asServiceRole.entities.Asset),
-    ]);
+    // Tiap sumber berdiri sendiri: satu gagal tidak membuat seluruh panel
+    // kosong (dulu → 500 dan semua angka 0). Kegagalan dilaporkan di `errors`.
+    const sources = [
+      ["pengguna", () => fetchAll(base44.asServiceRole.entities.User)],
+      ["transaksi", () => fetchAllByDate(base44.asServiceRole.entities.Transaction, {})],
+      ["aset", () => fetchAll(base44.asServiceRole.entities.Asset)],
+    ];
+    const settled = await Promise.allSettled(sources.map(([, fn]) => fn()));
+    const errors = [];
+    const [users, transactions, assets] = settled.map((r, i) => {
+      if (r.status === "fulfilled") return r.value || [];
+      const message = r.reason?.message || String(r.reason);
+      console.error(`adminStats: gagal memuat ${sources[i][0]}:`, message);
+      errors.push({ source: sources[i][0], message });
+      return [];
+    });
+    if (errors.length === sources.length) {
+      return Response.json({ error: `Semua sumber gagal dimuat: ${errors.map((e) => `${e.source} (${e.message})`).join("; ")}`, errors }, { status: 500 });
+    }
 
     const now = Date.now();
     const FIVE_MIN = 5 * 60 * 1000;
@@ -130,8 +144,10 @@ export default async function (req) {
         by_currency: assetByCurrency,
       },
       user_breakdown: userBreakdown,
+      errors,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("adminStats:", error);
+    return Response.json({ error: error?.message || String(error) }, { status: 500 });
   }
 }

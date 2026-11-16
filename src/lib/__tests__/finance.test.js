@@ -401,3 +401,13 @@ test("switchCurrencyAmounts: konversi langsung, berpatokan pada angka asli", asy
   assert.deepEqual(switchCurrencyAmounts({ currency: "IDR", amounts: { amount: "" }, to: "SAR", rateMap }).amounts, { amount: "" });
   assert.equal(switchCurrencyAmounts({ currency: "IDR", amounts: { amount: "5" }, to: "EUR", rateMap }).ok, false);
 });
+
+test("errorMessage: pesan asli dari backend, bukan 'status code 500'", async () => {
+  const { errorMessage, partialErrorText } = await import("../errorMessage.js");
+  const e = Object.assign(new Error("Request failed with status code 500"), { response: { status: 500, data: { error: "limit too large" } } });
+  assert.equal(errorMessage(e), "limit too large (kode 500)");
+  assert.equal(errorMessage(new Error("Network Error")), "Network Error");
+  assert.equal(errorMessage(null, "x"), "x");
+  assert.equal(partialErrorText([{ source: "transaksi", message: "timeout" }]), "transaksi: timeout");
+  assert.equal(partialErrorText([]), "");
+});

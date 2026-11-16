@@ -176,7 +176,15 @@ export const base44 = {
     logout: () => {}, redirectToLogin: () => {}, setToken: () => {}, loginWithProvider: () => {},
   },
   entities: new Proxy({}, { get: (_, k) => entity(k) }),
-  functions: { invoke: async (name, args = {}) => { await lag("fn:" + name); return { data: FN[name] ? FN[name](args) : {} }; } },
+  functions: { invoke: async (name, args = {}) => {
+    await lag("fn:" + name);
+    // Simulasi kegagalan backend: window.__qaFnFail = { adminStats: { status: 500, error: "..." } }
+    const fail = typeof window !== "undefined" && window.__qaFnFail?.[name];
+    if (fail) { const e = new Error(`Request failed with status code ${fail.status || 500}`); e.response = { status: fail.status || 500, data: { error: fail.error } }; throw e; }
+    const partial = typeof window !== "undefined" && window.__qaFnPartial?.[name];
+    const data = FN[name] ? FN[name](args) : {};
+    return { data: partial ? { ...data, errors: partial } : data };
+  } },
   integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadFile")
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })

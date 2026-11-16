@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { errorMessage, partialErrorText } from "@/lib/errorMessage";
 import { useMe } from "@/hooks/useFinance";
 import {
   ShieldCheck, Users, Link2, Receipt, Search, Loader2, ChevronDown, ScrollText,
@@ -82,11 +83,12 @@ export default function Admin() {
           base44.entities.Category.list(),
         ]);
         const data = adminData?.data || adminData || {};
+        if (data.errors?.length) toast.warning("Sebagian data admin gagal dimuat", { description: partialErrorText(data.errors) });
         setUsers(data.users || []);
         setPartnerships(data.partnerships || []);
         setCategories(c || []);
       } catch (e) {
-        toast.error("Gagal memuat data admin", { description: e?.message });
+        toast.error("Gagal memuat data admin", { description: errorMessage(e) });
       } finally {
         setLoading(false);
       }
@@ -108,7 +110,7 @@ export default function Admin() {
       setTxPage((prev) => (reset ? newTx : [...prev, ...newTx]));
       setTxHasMore(!!data.has_more);
     } catch (e) {
-      toast.error("Gagal memuat transaksi", { description: e?.message });
+      toast.error("Gagal memuat transaksi", { description: errorMessage(e) });
     } finally {
       setTxLoadingMore(false);
     }
@@ -126,7 +128,7 @@ export default function Admin() {
       const logs = await base44.entities.AuditLog.list("-created_date", 100);
       setAuditLogs(logs || []);
     } catch (e) {
-      toast.error("Gagal memuat audit log", { description: e?.message });
+      toast.error("Gagal memuat audit log", { description: errorMessage(e) });
     } finally {
       setAuditLoading(false);
     }
@@ -145,7 +147,7 @@ export default function Admin() {
       });
       setAssets((res?.data || {}).assets || []);
     } catch (e) {
-      toast.error("Gagal memuat aset", { description: e?.message });
+      toast.error("Gagal memuat aset", { description: errorMessage(e) });
     } finally {
       setAssetLoading(false);
     }
@@ -244,7 +246,7 @@ export default function Admin() {
       toast.success("Koneksi diputus");
       setPartnerships((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: "ended", end_reason: reason } : x)));
     } catch (e) {
-      toast.error("Gagal memutuskan", { description: e?.message });
+      toast.error("Gagal memutuskan", { description: errorMessage(e) });
     }
   };
 

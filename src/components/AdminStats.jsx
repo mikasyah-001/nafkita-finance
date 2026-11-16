@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { errorMessage, partialErrorText } from "@/lib/errorMessage";
 import { Loader2, RefreshCw, Users, Receipt, Landmark, TrendingUp, TrendingDown, Heart, Activity } from "lucide-react";
 import { formatMoney, formatMoneyShort, formatDate } from "@/lib/finance";
 import { ChipChoice } from "@/components/FormSheet";
@@ -30,9 +31,11 @@ export default function AdminStats() {
     try {
       // auto:true → backend tidak mencatat audit untuk penyegaran berkala.
       const res = await base44.functions.invoke("adminStats", { auto: silent });
-      setStats(res?.data || res);
+      const data = res?.data || res;
+      setStats(data);
+      if (!silent && data?.errors?.length) toast.warning("Sebagian statistik gagal dimuat", { description: partialErrorText(data.errors) });
     } catch (e) {
-      if (!silent) toast.error("Gagal memuat statistik", { description: e?.message });
+      if (!silent) toast.error("Gagal memuat statistik", { description: errorMessage(e) });
     } finally {
       setLoading(false);
       setRefreshing(false);

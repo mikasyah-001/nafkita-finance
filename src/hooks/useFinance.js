@@ -81,6 +81,15 @@ export function useInvestmentLots(assetId) {
   });
 }
 
+// Semua lot milik pengguna (untuk ringkasan Riwayat DCA di kartu aset).
+// queryKey diawali "investmentLots" agar ikut disegarkan bersama lot per aset.
+export function useAllInvestmentLots() {
+  return useQuery({
+    queryKey: ["investmentLots", "all"],
+    queryFn: () => base44.entities.InvestmentLot.list("-date", 5000),
+  });
+}
+
 export function useMe() {
   return useQuery({ queryKey: ["me"], queryFn: () => base44.auth.me() });
 }
@@ -287,5 +296,6 @@ export function WarmSecondaryData() {
   useNotificationRules();
   useAssetSnapshots();
   useCategories();
+  useAllInvestmentLots();
   return null;
 }

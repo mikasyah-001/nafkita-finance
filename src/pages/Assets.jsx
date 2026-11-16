@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
@@ -19,6 +19,7 @@ import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { refreshAssetPrices } from "@/lib/livePrice";
+import { lotSummary } from "@/lib/portfolioImport";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
@@ -53,6 +54,12 @@ export default function Assets() {
   const [viewProof, setViewProof] = useState(null);
   const [livePricing, setLivePricing] = useState(false);
   const [showGold, setShowGold] = useState(false);
+  const { data: allLots = [] } = useAllInvestmentLots();
+  const lotsByAsset = useMemo(() => {
+    const m = {};
+    allLots.forEach((l) => { (m[l.asset_id] ||= []).push(l); });
+    return m;
+  }, [allLots]);
   const priceable = assets.filter((a) => a.type === "investasi" && Number(a.quantity) > 0 && (a.ticker || a.name));
   const handleLivePrices = async () => {
     setLivePricing(true);
@@ -371,6 +378,22 @@ export default function Assets() {
                     )}
                   </div>
                 )}
+                {/* Riwayat DCA (lot) — selalu dari data lot yang sama dengan halaman investasi */}
+                {a.type === "investasi" && (() => {
+                  const ls = lotsByAsset[a.id] || [];
+                  const info = lotSummary(ls.map((l) => ({ ...l, date: String(l.date).slice(0, 10), side: l.side || "buy", price: l.price_per_unit })), Number(a.quantity) || 0);
+                  return (
+                    <Link to={`/investasi/${a.id}`} className="mt-3 flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs active:scale-[0.99] transition-transform">
+                      <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="font-semibold">Riwayat DCA</span>
+                        <span className="text-muted-foreground"> · {ls.length ? `${ls.length} lot${info.firstDate ? `, sejak ${formatDate(info.firstDate, "d MMM yyyy")}` : ""}` : "belum ada lot"}</span>
+                        {info.status === "partial" && <span className="block text-warning text-[11px] mt-0.5">Lot mencakup {formatNumber(info.netQty)} dari {formatNumber(Number(a.quantity))} {a.unit || "unit"}</span>}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </Link>
+                  );
+                })()}
               </div>
             );
           })}

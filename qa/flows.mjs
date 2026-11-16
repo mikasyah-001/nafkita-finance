@@ -570,6 +570,48 @@ try {
     assert.equal(r1.length, 1); assert.equal(r1[0].value, 5583.6); assert.equal(r1[0].purchase_price, 5731.91);
   });
 
+  await step("Lot sebagai daftar datar (aset BARU) → tersimpan, tampil di kartu Aset & Riwayat DCA, sinkron dengan DCA manual", async () => {
+    await page.evaluate(() => { window.__qaLLM = [
+      { holdings: [{ name: "KINGDOM", ticker: "4280", exchange: "TASI", instrument: "saham", market_value: "⃁ 960.00", quantity: "100", total_cost: "⃁ 900.00", last_price: "⃁ 9.60" }] },
+      // Layar lot: holdings hanya judul, lot di daftar terpisah tingkat atas
+      { holdings: [{ name: "KINGDOM", ticker: "4280", last_price: "⃁ 9.60" }], lots: [
+        { ticker: "4280", date: "10 Mar 2026", side: "Buy", quantity: "60.0000", price: "9.0000" },
+        { ticker: "4280", date: "12 Jan 2026", side: "Buy", quantity: "40.0000", price: "9.0000" },
+      ] },
+    ]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "details.png", mimeType: "image/png", buffer: png }, { name: "lots.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1500);
+    assert.ok(await page.getByText("1 kepemilikan · 2 lot").isVisible(), "Kartu berkas menampilkan jumlah lot terbaca");
+    assert.ok(await page.getByText(/Riwayat lot lengkap: 100 dari 100/).isVisible(), "Lot lengkap = total");
+    await page.getByRole("button", { name: /Simpan 1 aset/ }).click();
+    await page.waitForTimeout(1500);
+    const st = await page.evaluate(() => { const a = window.__qa.assets.find((x) => x.ticker === "4280"); return { a, lots: (window.__qaData.InvestmentLot || []).filter((l) => l.asset_id === a.id) }; });
+    assert.ok(st.a.id, "Aset baru punya id");
+    assert.equal(st.lots.length, 2, "Lot tersimpan untuk aset baru");
+    assert.equal(st.a.purchase_date, "2026-01-12");
+    // Kartu Aset menampilkan Riwayat DCA dari data lot yang sama
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    const card = page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first();
+    assert.ok(/Riwayat DCA · 2 lot, sejak 12 Jan 2026/.test((await card.innerText()).replace(/\s+/g, " ")), "Ringkasan DCA di kartu aset");
+    await card.getByRole("link", { name: /Riwayat DCA/ }).click();
+    await page.waitForTimeout(700);
+    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
+    await page.getByRole("button", { name: /Catat pembelian/ }).click();
+    await page.fill("#investment-lot-quantity", "5");
+    await page.fill("#investment-lot-price", "9.5");
+    await page.getByRole("button", { name: /Simpan pembelian/ }).click();
+    await page.waitForTimeout(900);
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    const t = (await page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/Riwayat DCA · 3 lot/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
+    const a2 = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "4280"));
+    assert.equal(a2.quantity, 105, "100 + 5 lembar");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

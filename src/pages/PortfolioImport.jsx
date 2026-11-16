@@ -14,7 +14,7 @@ import { formatMoney, formatNumber, formatDate } from "@/lib/finance";
 import {
   INSTRUMENTS, HOLDINGS_PROMPT, HOLDINGS_SCHEMA, normalizeHolding, mergeHoldings,
   matchExistingAsset, holdingToAsset, summarize, reconcileHolding, displayName,
-  lotSummary, lotsToCreate,
+  lotSummary, lotsToCreate, attachLots,
 } from "@/lib/portfolioImport";
 
 const MAX_FILES = 10;
@@ -48,7 +48,7 @@ export default function PortfolioImport() {
       const res = await base44.integrations.Core.ExtractDataFromUploadedFile({ file_url, json_schema: HOLDINGS_SCHEMA });
       data = res?.output || res;
     }
-    return (data?.holdings || []).filter((h) => h && (h.name || h.ticker));
+    return attachLots(data || {});
   };
 
   const handleFiles = async (e) => {
@@ -64,7 +64,8 @@ export default function PortfolioImport() {
       try {
         const raw = await readFile(f);
         collected.push(...raw);
-        setFiles((prev) => prev.map((x) => (x.id === id ? { ...x, status: "done", count: raw.length } : x)));
+        const lotCount = raw.reduce((t, h) => t + (h.lots?.length || 0), 0);
+        setFiles((prev) => prev.map((x) => (x.id === id ? { ...x, status: "done", count: raw.length, lots: lotCount } : x)));
       } catch (err) {
         setFiles((prev) => prev.map((x) => (x.id === id ? { ...x, status: "error", error: err?.message || "Gagal dibaca" } : x)));
       }
@@ -157,6 +158,7 @@ export default function PortfolioImport() {
     }
     setSaving(true);
     let created = 0, updated = 0, lotsAdded = 0;
+    const lotFails = [];
     try {
       for (const r of chosen) {
         let assetId = r.existing?.id;
@@ -169,22 +171,38 @@ export default function PortfolioImport() {
         } else {
           const payload = clean(holdingToAsset(r, { visibility, existing: r.existing }));
           if (r.existing) { await base44.entities.Asset.update(assetId, payload); updated++; }
-          else { const res = await base44.entities.Asset.create(payload); assetId = res?.id; created++; }
+          else { const res = await base44.entities.Asset.create(payload); assetId = res?.id || res?.data?.id; created++; }
         }
         // Riwayat lot: hanya yang belum ada (impor sebelumnya / DCA manual yang sama).
+        if (!assetId && r.lots?.length) lotFails.push(`${displayName(r)}: aset tidak terbuat, lot dilewati`);
         if (assetId && r.lots?.length) {
           const have = r.existing ? await base44.entities.InvestmentLot.filter({ asset_id: assetId }) : [];
-          for (const l of lotsToCreate(r.lots, have || [])) {
-            await base44.entities.InvestmentLot.create({
-              asset_id: assetId, date: l.date, side: l.side, quantity: l.quantity, price_per_unit: l.price,
-              amount: l.amount, source: "import", notes: `Impor${platform ? ` · ${platform}` : ""}`,
-            });
-            lotsAdded++;
+          const todo = lotsToCreate(r.lots, have || []);
+          for (const l of todo) {
+            const rec = { asset_id: assetId, date: l.date, quantity: l.quantity, price_per_unit: l.price, amount: l.amount, notes: `Impor${platform ? ` · ${platform}` : ""}` };
+            try {
+              await base44.entities.InvestmentLot.create({ ...rec, side: l.side, source: "import" });
+              lotsAdded++;
+            } catch {
+              // Cadangan: bila skema server belum punya kolom side/source, simpan tanpa itu
+              // (jual dicatat lewat catatan agar tidak hilang).
+              try {
+                await base44.entities.InvestmentLot.create({ ...rec, notes: `${rec.notes}${l.side === "sell" ? " · JUAL" : ""}` });
+                lotsAdded++;
+              } catch (e2) { lotFails.push(`${displayName(r)} ${l.date}: ${e2?.message || "gagal"}`); }
+            }
+          }
+          // Verifikasi: hitung ulang lot yang benar-benar tersimpan untuk aset ini.
+          if (todo.length) {
+            const after = await base44.entities.InvestmentLot.filter({ asset_id: assetId });
+            const missing = lotsToCreate(r.lots, after || []).length;
+            if (missing) lotFails.push(`${displayName(r)}: ${missing} lot belum tersimpan`);
           }
         }
       }
       refresh();
-      toast.success("Portofolio tersimpan", { description: `${created} aset baru, ${updated} diperbarui${lotsAdded ? `, ${lotsAdded} riwayat lot` : ""}.` });
+      toast.success("Portofolio tersimpan", { description: `${created} aset baru, ${updated} diperbarui${lotsAdded ? `, ${lotsAdded} lot masuk Riwayat DCA` : ""}.` });
+      if (lotFails.length) toast.error("Sebagian riwayat lot gagal disimpan", { description: lotFails.slice(0, 4).join(" · ") });
       navigate("/aset");
     } catch (e) {
       toast.error("Sebagian gagal disimpan", { description: `${created + updated} dari ${chosen.length} tersimpan. ${e?.message || ""}` });
@@ -221,7 +239,7 @@ export default function PortfolioImport() {
                 {f.pdf ? <FileText className="w-4 h-4 shrink-0" /> : <ImageIcon className="w-4 h-4 shrink-0" />}
                 <span className="flex-1 min-w-0 truncate">{f.name}</span>
                 {f.status === "reading" && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                {f.status === "done" && <span className="shrink-0 font-semibold">{f.count} terbaca</span>}
+                {f.status === "done" && <span className="shrink-0 font-semibold">{f.count} kepemilikan{f.lots ? ` · ${f.lots} lot` : ""}</span>}
                 {f.status === "error" && <span className="shrink-0 font-semibold text-destructive">Gagal</span>}
                 {f.status !== "reading" && <button onClick={() => removeFile(f.id)} aria-label={`Hapus ${f.name} dari daftar`} className="shrink-0 opacity-70"><X className="w-3.5 h-3.5" /></button>}
               </li>

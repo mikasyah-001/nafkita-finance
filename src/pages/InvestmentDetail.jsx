@@ -191,7 +191,7 @@ export default function InvestmentDetail() {
 
       {/* Riwayat lot */}
       <div className="flex items-center justify-between mb-2 px-1">
-        <h2 className="text-sm font-semibold flex items-center gap-1.5"><Layers className="w-4 h-4 text-muted-foreground" /> Riwayat pembelian</h2>
+        <h2 className="text-sm font-semibold flex items-center gap-1.5"><Layers className="w-4 h-4 text-muted-foreground" /> Riwayat DCA</h2>
         <span className="text-xs text-muted-foreground">{lots.length} lot</span>
       </div>
 

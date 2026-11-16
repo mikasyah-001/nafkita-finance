@@ -245,7 +245,7 @@ Untuk tiap holding isi:
 - platform: nama aplikasi/broker bila terlihat (mis. "Al Rajhi Capital", "Bibit", "Derayah"); kosongkan bila tidak jelas
 - as_of: tanggal data bila tertera (yyyy-mm-dd), mis. "Data per 04 Nov 2026" → 2026-11-04
 
-- lots: bila layar menampilkan riwayat pembelian per lot (Lots Breakdown / riwayat transaksi beli-jual / riwayat dompet emas), isi SETIAP baris: date (yyyy-mm-dd), side ("buy"/"sell"), quantity, price (harga per unit/gram). Tempelkan lot pada holding yang judulnya tampil di layar itu (mis. ALRAJHI 1120). Layar rincian lot boleh hanya berisi name/ticker/last_price + lots tanpa angka lain.
+RIWAYAT LOT (daftar "lots" di tingkat atas, TERPISAH dari "holdings"): bila layar menampilkan riwayat pembelian per lot (Lots Breakdown, riwayat transaksi beli/jual, riwayat dompet emas), masukkan SETIAP baris ke "lots": ticker & name instrumen (dari judul layar, mis. "1120"/"ALRAJHI"), date (yyyy-mm-dd, mis. "13 May 2026" → 2026-05-13), side ("buy"/"sell"), quantity, price (harga per unit/gram), currency. Jangan lewatkan satu baris pun. Pada layar lot, "holdings" cukup berisi name/ticker/last_price dari judul.
 
 Pemetaan layar rincian (Details) broker: Market Value → market_value; Quantity → quantity; Avg. Cost / Avg. Price PL → avg_cost (pilih yang paling banyak desimal); Total Cost / Cost Value PL → total_cost (pilih yang paling banyak desimal); Gain/Loss / UPL PL → gain; harga besar di judul (mis. ⃁ 63.30) → last_price.
 Layar "Lots Breakdown" hanya berisi lots + harga judul — jangan mengosongkan angka dari layar Details lain; tiap layar dibaca terpisah.
@@ -270,11 +270,16 @@ export const HOLDINGS_SCHEMA = {
           quantity: NUM_T, avg_cost: NUM_T, total_cost: NUM_T,
           last_price: NUM_T, market_value: NUM_T, gain: NUM_T,
           platform: { type: "string" }, as_of: { type: "string" },
-          lots: {
-            type: "array",
-            items: { type: "object", properties: { date: { type: "string" }, side: { type: "string" }, quantity: NUM_T, price: NUM_T } },
-          },
         },
+      },
+    },
+    // Lot sebagai daftar terpisah (tidak bersarang di holding) — model lebih
+    // andal mengisi array datar. attachLots() menempelkannya ke holding.
+    lots: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { ticker: { type: "string" }, name: { type: "string" }, date: { type: "string" }, side: { type: "string" }, quantity: NUM_T, price: NUM_T, currency: { type: "string" } },
       },
     },
   },
@@ -365,3 +370,28 @@ export function validateLivePrice(p, it, today = new Date()) {
   return { ...base, ok: true, reason: "" };
 }
 
+
+/**
+ * Hasil AI satu berkas → daftar holding mentah dengan lot terpasang.
+ * Lot boleh datang (a) di dalam holding atau (b) sebagai daftar terpisah
+ * di tingkat atas `lots` (lebih andal dibaca model). (b) ditempel ke holding
+ * dengan kode/nama sama; bila layar hanya punya satu holding, ke holding itu;
+ * bila tak ada holding sama sekali, dibuat holding ringkas dari info lot.
+ */
+export function attachLots(data = {}) {
+  const holdings = (data.holdings || []).filter((h) => h && (h.name || h.ticker)).map((h) => ({ ...h, lots: [...(h.lots || [])] }));
+  const flat = (data.lots || []).filter(Boolean);
+  const keyH = (h) => String(h.ticker || "").trim().toUpperCase() || normName(h.name);
+  for (const l of flat) {
+    const k = String(l.ticker || "").trim().toUpperCase() || normName(l.name);
+    let h = (k && holdings.find((x) => keyH(x) === k || (l.name && normName(x.name) && normName(l.name).startsWith(normName(x.name)))))
+      || (holdings.length === 1 ? holdings[0] : null);
+    if (!h) {
+      if (!l.ticker && !l.name) continue;
+      h = { name: l.name || "", ticker: l.ticker || "", currency: l.currency || "", lots: [] };
+      holdings.push(h);
+    }
+    h.lots.push({ date: l.date, side: l.side, quantity: l.quantity, price: l.price });
+  }
+  return holdings;
+}

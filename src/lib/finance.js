@@ -345,6 +345,59 @@ export function formatDuration(fromDate) {
   return `${days} hari`;
 }
 
+// ── Broker / aplikasi tersimpan ─────────────────────────────────────────────
+// Satu sumber: diambil dari aset yang sudah ada, agar tidak mengetik ulang &
+// tidak muncul ejaan ganda ("Al Rajhi Capital" vs "al rajhi capital").
+const brokerKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+const tidyBroker = (s) => String(s || "").replace(/\s+/g, " ").trim();
+
+// Daftar broker yang pernah dipakai, paling sering dulu. `type` → jenis aset itu
+// diutamakan; jenis lain hanya bila `includeOtherTypes`.
+export function knownBrokers(assets = [], { type, includeOtherTypes = false } = {}) {
+  const by = new Map();
+  for (const a of assets || []) {
+    const name = tidyBroker(a?.broker);
+    const k = brokerKey(name);
+    if (!k) continue;
+    const same = !type || a.type === type;
+    if (!same && !includeOtherTypes) continue;
+    const e = by.get(k) || { name, count: 0, sameType: 0, spellings: new Map() };
+    e.count += 1;
+    if (same) e.sameType += 1;
+    e.spellings.set(name, (e.spellings.get(name) || 0) + 1);
+    by.set(k, e);
+  }
+  return [...by.values()]
+    .map((e) => ({ name: [...e.spellings.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0], count: e.count, sameType: e.sameType }))
+    .sort((x, y) => y.sameType - x.sameType || y.count - x.count || x.name.localeCompare(y.name, "id"))
+    .map((e) => e.name);
+}
+
+// Seragamkan ketikan ke ejaan yang sudah tersimpan: sama persis tanpa
+// memperhatikan huruf besar/spasi/tanda baca, atau awalan unik ≥ 4 huruf
+// ("Al Rajhi" → "Al Rajhi Capital"). Selain itu ketikan dipakai apa adanya.
+// `prefix: false` → hanya pencocokan persis (dipakai untuk daftar lintas jenis,
+// agar "Mandiri" untuk bank tidak tertarik ke "Mandiri Sekuritas").
+export function canonicalBrokerFor(input, assets = [], type) {
+  const sameType = knownBrokers(assets, { type });
+  const viaType = canonicalBroker(input, sameType);
+  if (viaType !== tidyBroker(input)) return viaType;
+  return canonicalBroker(input, knownBrokers(assets), { prefix: false });
+}
+
+export function canonicalBroker(input, known = [], { prefix = true } = {}) {
+  const name = tidyBroker(input);
+  const k = brokerKey(name);
+  if (!k) return "";
+  const exact = known.find((b) => brokerKey(b) === k);
+  if (exact) return exact;
+  if (prefix && k.length >= 4) {
+    const pre = known.filter((b) => brokerKey(b).startsWith(k));
+    if (pre.length === 1) return pre[0];
+  }
+  return name;
+}
+
 // Nama aset untuk tampilan: spasi dirapikan, dan kode ticker di akhir nama
 // ("SP FUNDS S&P 500 SHARIA (SPUS)") dipisah agar nama tidak terpotong —
 // ticker ditampilkan terpisah. Data tersimpan tidak diubah.

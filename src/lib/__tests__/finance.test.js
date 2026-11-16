@@ -329,3 +329,33 @@ test("assetDisplayName memisah ticker di akhir nama & merapikan spasi", async ()
   assert.deepEqual(assetDisplayName({ name: "SPUS", ticker: "spus" }), { name: "SPUS", ticker: "" });
   assert.deepEqual(assetDisplayName({ name: "Reksa Dana (Syariah)" }), { name: "Reksa Dana (Syariah)", ticker: "" });
 });
+
+test("knownBrokers & canonicalBroker: broker tersimpan, tanpa ejaan ganda", async () => {
+  const { knownBrokers, canonicalBroker } = await import("../finance.js");
+  const assets = [
+    { type: "investasi", broker: "Al Rajhi Capital" },
+    { type: "investasi", broker: "al rajhi  capital" },
+    { type: "investasi", broker: "Al Rajhi Capital" },
+    { type: "investasi", broker: "Bibit" },
+    { type: "bank", broker: "BCA" },
+    { type: "investasi", broker: "  " },
+  ];
+  assert.deepEqual(knownBrokers(assets, { type: "investasi" }), ["Al Rajhi Capital", "Bibit"]);
+  assert.deepEqual(knownBrokers(assets, { type: "investasi", includeOtherTypes: true }), ["Al Rajhi Capital", "Bibit", "BCA"]);
+  const known = knownBrokers(assets);
+  assert.equal(canonicalBroker("AL RAJHI CAPITAL", known), "Al Rajhi Capital");
+  assert.equal(canonicalBroker("Al-Rajhi Capital ", known), "Al Rajhi Capital");
+  assert.equal(canonicalBroker("Al Rajhi", known), "Al Rajhi Capital");
+  assert.equal(canonicalBroker("bibit", known), "Bibit");
+  assert.equal(canonicalBroker("Bi", known), "Bi"); // terlalu pendek untuk ditebak
+  assert.equal(canonicalBroker("Stockbit  ", known), "Stockbit");
+  assert.equal(canonicalBroker("", known), "");
+});
+
+test("canonicalBrokerFor: tebakan awalan hanya dalam jenis aset yang sama", async () => {
+  const { canonicalBrokerFor } = await import("../finance.js");
+  const assets = [{ type: "investasi", broker: "Mandiri Sekuritas" }, { type: "bank", broker: "BCA" }];
+  assert.equal(canonicalBrokerFor("Mandiri", assets, "bank"), "Mandiri");
+  assert.equal(canonicalBrokerFor("Mandiri", assets, "investasi"), "Mandiri Sekuritas");
+  assert.equal(canonicalBrokerFor("bca", assets, "emas_digital"), "BCA"); // persis lintas jenis tetap diseragamkan
+});

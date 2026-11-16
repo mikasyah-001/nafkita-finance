@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview } from "@/lib/finance";
+import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
+import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, knownBrokers, canonicalBroker, canonicalBrokerFor } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight } from "lucide-react";
@@ -44,6 +44,7 @@ export default function AssetForm({ asset, onClose }) {
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
+  const { data: allAssets = [] } = useAssets();
   useEffect(() => {
     // Form baru mengikuti mata uang utama; "" = belum diisi (dulu default "IDR"
     // membuat mata uang utama tak pernah terpakai).
@@ -67,7 +68,8 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const handleSave = async () => {
-    const { error, payload } = buildAssetPayload(form);
+    // Broker diseragamkan ke ejaan yang sudah tersimpan (tanpa ganda/salah ketik).
+    const { error, payload } = buildAssetPayload({ ...form, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
     if (error) return toast.error(error);
     // Nilai yang diubah sendiri di form → asal nilai "manual" (tidak lagi "dari broker").
     if (payload.type === "investasi" && (!isEdit || Number(payload.value) !== Number(asset.value))) {
@@ -92,7 +94,13 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const showCurrency = true;
-  const brokerSuggestions = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
+  // Saran: broker yang pernah dipakai untuk jenis ini lebih dulu, lalu saran umum.
+  const savedBrokers = knownBrokers(allAssets, { type: form.type });
+  const defaultBrokers = form.type === "bank" ? ["BCA", "Mandiri", "BSI", "BNI", "BRI"] : form.type === "emas_digital" ? (digitalGoldBrokers[form.currency] || []) : [];
+  const brokerSuggestions = [...savedBrokers, ...defaultBrokers.filter((d) => canonicalBroker(d, savedBrokers) === d && !savedBrokers.includes(d))].slice(0, 8);
+  const brokerTyped = (form.broker || "").trim();
+  const brokerCanon = brokerTyped ? canonicalBrokerFor(brokerTyped, allAssets, form.type) : "";
+  const brokerFix = brokerCanon && brokerCanon !== brokerTyped.replace(/\s+/g, " ") ? brokerCanon : "";
   const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
   const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
   const goldHint = isGoldType(form.type) ? goldPriceCurrencyHint(form.purchase_price, cur, userCurrencies.map((c) => c.code), rateMap) : null;
@@ -149,9 +157,12 @@ export default function AssetForm({ asset, onClose }) {
         </FieldRow>
         {showBroker && (
           <FieldRow icon={Building2} label={brokerLabel} htmlFor="asset-broker">
-            <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder="Opsional" className={fieldInput} />
+            <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder={brokerSuggestions.length ? "Pilih di bawah atau ketik baru" : "Opsional"} className={fieldInput} />
+            {brokerFix && (
+              <p className="text-[11px] text-muted-foreground mt-1">Disimpan sebagai <button type="button" onClick={() => setForm({ ...form, broker: brokerFix })} className="font-semibold text-primary">{brokerFix}</button> (sudah tersimpan)</p>
+            )}
             {brokerSuggestions.length > 0 && (
-              <div className="mt-2"><ChipChoice size="sm" ariaLabel="Saran" options={brokerSuggestions} value={form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
+              <div className="mt-2"><ChipChoice size="sm" ariaLabel={savedBrokers.length ? "Broker tersimpan" : "Saran"} options={brokerSuggestions} value={brokerCanon || form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
             )}
           </FieldRow>
         )}

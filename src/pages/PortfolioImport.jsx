@@ -10,7 +10,7 @@ import { fetchLivePrices } from "@/lib/livePrice";
 import PageHeader from "@/components/PageHeader";
 import { ChipChoice } from "@/components/FormSheet";
 import { useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
-import { formatMoney, formatNumber, formatDate } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, knownBrokers, canonicalBroker } from "@/lib/finance";
 import {
   INSTRUMENTS, HOLDINGS_PROMPT, HOLDINGS_SCHEMA, normalizeHolding, mergeHoldings,
   matchExistingAsset, holdingToAsset, summarize, reconcileHolding, displayName,
@@ -36,6 +36,15 @@ export default function PortfolioImport() {
   const [files, setFiles] = useState([]); // { id, name, pdf, status, count, error }
   const [rows, setRows] = useState([]); // holding + { id, include }
   const [platform, setPlatform] = useState("");
+  // Broker/aplikasi yang pernah dipakai (investasi & emas digital) — dipilih,
+  // tidak diketik ulang; hasil baca AI diseragamkan ke ejaan tersimpan.
+  const savedPlatforms = useMemo(() => {
+    const list = [...knownBrokers(allAssets, { type: "investasi" }), ...knownBrokers(allAssets, { type: "emas_digital" })];
+    const out = [];
+    for (const b of list) if (!out.includes(canonicalBroker(b, out, { prefix: false }))) out.push(b);
+    return out;
+  }, [allAssets]);
+  const canonPlatform = (p) => canonicalBroker(p, savedPlatforms);
   const [visibility, setVisibility] = useState("shared");
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -86,14 +95,14 @@ export default function PortfolioImport() {
       const next = merged.map((h, i) => ({ ...h, id: `${rowKey(h)}-${i}`, include: keep.get(rowKey(h)) ?? true }));
       if (!platform) {
         const p = next.find((r) => r.platform)?.platform;
-        if (p) setPlatform(p);
+        if (p) setPlatform(canonPlatform(p));
       }
       return next;
     });
   };
 
   const view = useMemo(() => rows.map((r) => {
-    const h = { ...r, platform: platform || r.platform };
+    const h = { ...r, platform: canonPlatform(platform || r.platform) };
     const existing = matchExistingAsset(h, assets);
     // Layar "Lots Breakdown" saja (tanpa nilai pasar) untuk aset yang sudah ada:
     // hanya menambah riwayat lot, total aset tidak disentuh.
@@ -102,7 +111,7 @@ export default function PortfolioImport() {
     // "Nilai pasar belum ada" sudah ditangani kotak aksi di kartu → tidak diulang.
     const warnings = (h.warnings || []).filter((w) => !/Nilai pasar belum ada/.test(w));
     return { ...h, existing, lotsOnly, lotInfo, warnings };
-  }), [rows, assets, platform]);
+  }), [rows, assets, platform, savedPlatforms]);
 
   const chosen = view.filter((r) => r.include);
   // Ringkasan hanya dari baris yang sudah bernilai (hindari "⃁ 0,00" menyesatkan).
@@ -127,7 +136,7 @@ export default function PortfolioImport() {
     if (!targets.length) return;
     setLivePending(ids.length === 1 ? ids[0] : "all");
     try {
-      const items = targets.map((r) => ({ key: r.id, name: r.name, ticker: r.ticker, exchange: r.exchange, currency: r.currency, broker: platform || r.platform || "", instrument: r.instrument, ref_price: r.last_price || (r.quantity && r.market_value ? r.market_value / r.quantity : 0) || r.avg_cost || (r.quantity && r.total_cost ? r.total_cost / r.quantity : 0) }));
+      const items = targets.map((r) => ({ key: r.id, name: r.name, ticker: r.ticker, exchange: r.exchange, currency: r.currency, broker: canonPlatform(platform || r.platform || ""), instrument: r.instrument, ref_price: r.last_price || (r.quantity && r.market_value ? r.market_value / r.quantity : 0) || r.avg_cost || (r.quantity && r.total_cost ? r.total_cost / r.quantity : 0) }));
       const found = await fetchLivePrices(items);
       // Hitung hasil DI LUAR setRows (callback setState berjalan belakangan —
       // dulu alasan penolakan hilang dari pesan dan jumlah berhasil keliru).
@@ -260,7 +269,10 @@ export default function PortfolioImport() {
           <section className="surface rounded-3xl divide-y divide-border mb-4">
             <div className="px-4 py-3">
               <label htmlFor="pi-platform" className="block text-[11px] text-muted-foreground">Aplikasi / broker</label>
-              <input id="pi-platform" value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder="Mis. Al Rajhi Capital, Bibit" className="w-full bg-transparent outline-none text-sm font-medium py-0.5" />
+              <input id="pi-platform" value={platform} onChange={(e) => setPlatform(e.target.value)} onBlur={() => setPlatform((p) => canonPlatform(p))} placeholder="Mis. Al Rajhi Capital, Bibit" className="w-full bg-transparent outline-none text-sm font-medium py-0.5" />
+              {savedPlatforms.length > 0 && (
+                <div className="mt-2"><ChipChoice size="sm" ariaLabel="Broker tersimpan" options={savedPlatforms.slice(0, 8)} value={canonPlatform(platform)} onChange={setPlatform} /></div>
+              )}
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <span className="text-sm">Jangkauan aset baru</span>

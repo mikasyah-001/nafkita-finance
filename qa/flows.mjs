@@ -708,6 +708,30 @@ try {
     await spus.screenshot({ path: process.env.QA_SHOT_DIR ? `${process.env.QA_SHOT_DIR}/kartu-spus.png` : "/dev/null" }).catch(() => {});
   });
 
+  await step("Broker tersimpan: dipilih tanpa mengetik ulang; ketikan diseragamkan ke ejaan tersimpan", async () => {
+    await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Investasi", exact: true }).click();
+    const chips = page.getByRole("radiogroup", { name: "Broker tersimpan" });
+    assert.ok(await chips.getByRole("radio", { name: "Al Rajhi Capital" }).isVisible(), "Broker yang pernah dipakai muncul sebagai pilihan");
+    await page.fill("#asset-name", "QA Saham Broker");
+    await page.fill("#asset-value", "1000000");
+    await page.fill("#asset-broker", "al rajhi");
+    assert.ok(await page.getByText("Disimpan sebagai").isVisible(), "Petunjuk penyeragaman tampil");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Saham Broker"));
+    assert.equal(a?.broker, "Al Rajhi Capital");
+    // Impor portofolio juga menawarkan broker tersimpan
+    await nav("/impor-portofolio");
+    await page.evaluate(() => { window.__qaLLM = [{ holdings: [{ platform: "AL RAJHI CAPITAL", name: "QA Broker Impor", ticker: "QBI", currency: "SAR", quantity: "1", market_value: "100", total_cost: "90" }] }]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "b.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1200);
+    assert.equal(await page.inputValue("#pi-platform"), "Al Rajhi Capital", "Hasil baca AI diseragamkan");
+    assert.ok(await page.getByRole("radiogroup", { name: "Broker tersimpan" }).getByRole("radio", { name: "Al Rajhi Capital" }).isVisible());
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

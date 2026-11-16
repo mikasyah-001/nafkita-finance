@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useMe } from "@/hooks/useFinance";
 import {
   ShieldCheck, Users, Link2, Receipt, Search, Loader2, ChevronDown, ScrollText,
   LayoutDashboard, Landmark, Info, Unlink, Activity, HeartHandshake,
@@ -48,7 +49,7 @@ const initials = (name = "") => name.trim().split(/\s+/).slice(0, 2).map((w) => 
 
 export default function Admin() {
   const navigate = useNavigate();
-  const [me, setMe] = useState(null);
+  const { data: me } = useMe();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [partnerships, setPartnerships] = useState([]);
@@ -71,12 +72,11 @@ export default function Admin() {
 
   // Periksa role admin dahulu, baru muat data.
   useEffect(() => {
+    if (!me) return;
     (async () => {
       setLoading(true);
       try {
-        const m = await base44.auth.me();
-        setMe(m);
-        if (m?.role !== "admin") return;
+        if (me.role !== "admin") return;
         const [adminData, c] = await Promise.all([
           base44.functions.invoke("adminListUsers", {}),
           base44.entities.Category.list(),
@@ -91,7 +91,7 @@ export default function Admin() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [me?.id, me?.role]);
 
   const loadTransactions = useCallback(async (reset) => {
     if (reset) setTxPage([]);

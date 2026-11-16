@@ -13,7 +13,8 @@
     "test": "node --test \"src/**/*.test.js\"",
     "qa:serve": "vite --config qa/vite.config.mjs",
     "qa": "node qa/screenshots.mjs",
-    "qa:flows": "node qa/flows.mjs"
+    "qa:flows": "node qa/flows.mjs",
+    "qa:flicker": "node qa/flicker.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.62",

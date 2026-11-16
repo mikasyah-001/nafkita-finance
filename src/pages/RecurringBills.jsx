@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRecurringBills, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useRecurringBills, useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -21,13 +21,9 @@ export default function RecurringBills() {
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
-  const [user, setUser] = useState(null);
+  const { data: user = null } = useMe();
   const [showForm, setShowForm] = useState(false);
   const [toggling, setToggling] = useState(null);
-
-  useEffect(() => {
-    base44.auth.me().then((u) => setUser(u)).catch(() => {});
-  }, []);
 
   const myBills = bills.filter((b) => b.created_by_id === user?.id);
 

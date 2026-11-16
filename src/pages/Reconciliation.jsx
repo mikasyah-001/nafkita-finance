@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useReconciliations, useRefresh } from "@/hooks/useFinance";
+import { useAssets, useReconciliations, useRefresh, useMe } from "@/hooks/useFinance";
 import { formatMoney, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -11,17 +11,13 @@ import { FieldRow, fieldInput } from "@/components/FormSheet";
 export default function Reconciliation() {
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
-  const [user, setUser] = useState(null);
+  const { data: user = null } = useMe();
   const [selectedAssetId, setSelectedAssetId] = useState("");
   const [statementBalance, setStatementBalance] = useState("");
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().slice(0, 10));
   const [reconResult, setReconResult] = useState(null);
   const [computing, setComputing] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
-
-  useEffect(() => {
-    base44.auth.me().then((u) => setUser(u)).catch(() => {});
-  }, []);
 
   const bankAssets = assets.filter((a) => a.type === "bank" && a.created_by_id === user?.id);
   const selectedAsset = bankAssets.find((a) => a.id === selectedAssetId);

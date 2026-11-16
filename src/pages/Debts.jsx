@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useDebts, useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
+import { useDebts, useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -14,14 +14,10 @@ export default function Debts() {
   const { data: assets = [] } = useAssets();
   const refresh = useRefresh();
   const userCurrencies = useUserCurrencies();
-  const [user, setUser] = useState(null);
+  const { data: user = null } = useMe();
   const [showForm, setShowForm] = useState(false);
   const [payingDebt, setPayingDebt] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    base44.auth.me().then((u) => setUser(u)).catch(() => {});
-  }, []);
 
   const myDebts = debts.filter((d) => d.created_by_id === user?.id);
 
@@ -57,7 +53,7 @@ export default function Debts() {
       {Object.entries(map).map(([c, v]) => (
         <p key={c} className="font-heading font-bold text-[17px] leading-tight tabular-nums truncate">{formatMoney(v, c)}</p>
       ))}
-      {Object.keys(map).length === 0 && <p className="font-heading font-bold text-[17px] leading-tight opacity-60">—</p>}
+      {isLoading ? <div className="h-5 w-24 rounded bg-white/15 animate-pulse" /> : Object.keys(map).length === 0 && <p className="font-heading font-bold text-[17px] leading-tight opacity-60">—</p>}
     </div>
   );
 

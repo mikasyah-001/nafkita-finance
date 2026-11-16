@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap, useMe } from "@/hooks/useFinance";
 import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
@@ -34,7 +34,8 @@ export default function AddTransaction() {
   const editTx = isEdit ? transactions.find((t) => t.id === editId) : null;
   const [editLoaded, setEditLoaded] = useState(false);
   const { data: assets = [] } = useAssets();
-  const [user, setUser] = useState(null);
+  // Profil dari cache login (useMe) — tidak mengambil ulang, tidak berkedip.
+  const { data: user = null } = useMe();
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [type, setType] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -56,7 +57,7 @@ export default function AddTransaction() {
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState([]);
   const [visibility, setVisibility] = useState("shared");
-  const [currency, setCurrency] = useState("IDR");
+  const [currency, setCurrency] = useState(() => (!isEdit && user?.default_currency) || "IDR");
   const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
@@ -72,11 +73,8 @@ export default function AddTransaction() {
   }, [highlightScan]);
 
   useEffect(() => {
-    base44.auth.me().then((u) => {
-      setUser(u);
-      if (u?.default_currency && !isEdit) setCurrency(u.default_currency);
-    }).catch(() => {});
-  }, [isEdit]);
+    if (user?.default_currency && !isEdit) setCurrency(user.default_currency);
+  }, [user?.default_currency, isEdit]);
 
   // Isi form dari transaksi yang diedit (sekali saja).
   useEffect(() => {

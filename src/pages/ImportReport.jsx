@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useCategories, useRefresh, useTransactions, useUserCurrencies } from "@/hooks/useFinance";
+import { useCategories, useRefresh, useTransactions, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, colorMap } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories, sanitizeIcon, sanitizeColor } from "@/lib/categoryAuto";
@@ -16,7 +16,7 @@ export default function ImportReport() {
   const { data: categories = [] } = useCategories();
   const { data: transactions = [] } = useTransactions();
   const fileRef = useRef(null);
-  const [user, setUser] = useState(null);
+  const { data: user = null } = useMe();
   const [mode, setMode] = useState("file");
   const [text, setText] = useState("");
   const [parsing, setParsing] = useState(false);
@@ -24,13 +24,13 @@ export default function ImportReport() {
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
-  const [importCurrency, setImportCurrency] = useState("IDR");
+  const [importCurrency, setImportCurrency] = useState(() => user?.default_currency || "IDR");
   const [importVisibility, setImportVisibility] = useState("shared");
   const userCurrencies = useUserCurrencies();
 
   useEffect(() => {
-    base44.auth.me().then((u) => { setUser(u); if (u?.default_currency) setImportCurrency(u.default_currency); }).catch(() => {});
-  }, []);
+    if (user?.default_currency) setImportCurrency(user.default_currency);
+  }, [user?.default_currency]);
 
   const normalizeDate = (d) => {
     if (!d) return new Date().toISOString().slice(0, 10);

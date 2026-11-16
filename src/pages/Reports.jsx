@@ -39,7 +39,8 @@ function ReportsAnalysis() {
   // Harga emas acuan bersama — tidak lagi mengambil harga sendiri.
   const { price: emasPriceNum } = useGoldPrice();
   const [currency, setCurrency] = useState(me?.default_currency || "IDR");
-  const [consolidated, setConsolidated] = useState(false);
+  // null = ikuti otomatis (konsolidasi bila >1 mata uang); true/false = pilihan pengguna.
+  const [consolidatedPref, setConsolidated] = useState(null);
   useEffect(() => { if (me?.default_currency) setCurrency(me.default_currency); }, [me?.default_currency]);
   const { map: rateMap } = useRateMap();
 
@@ -99,9 +100,8 @@ function ReportsAnalysis() {
   const missingRates = activeCurs.filter((c) => c !== "IDR" && !hasRate(c, rateMap));
   // Saat ada lebih dari satu mata uang aktif, otomatis aktifkan konsolidasi
   // agar tab mata uang menampilkan nilai terkonversi (bukan filter per mata uang).
-  useEffect(() => {
-    if (activeCurs.length > 1) setConsolidated(true);
-  }, [activeCurs.length]);
+  // Nilai turunan (bukan useEffect) agar render pertama sudah benar — tanpa kedip.
+  const consolidated = consolidatedPref ?? activeCurs.length > 1;
   const cur = activeCurs.length ? (activeCurs.includes(currency) ? currency : activeCurs[0]) : currency;
   const s = summary[cur] || { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 };
 

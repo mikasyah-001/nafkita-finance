@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import BottomNav from "./BottomNav";
 import Sidebar from "./Sidebar";
@@ -8,15 +8,25 @@ import NotificationToaster from "./NotificationToaster";
 import InstallPrompt from "./InstallPrompt";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useScope } from "@/lib/ScopeContext";
+import { useCoreDataReady, useMe } from "@/hooks/useFinance";
 
 export default function Layout() {
   useSeedCategories();
   const { scope } = useScope();
+  const ready = useCoreDataReady();
+  // Halaman baru dipasang setelah profil ada, agar state awalnya (mis. mata
+  // uang utama) langsung benar — bukan IDR dulu lalu berganti.
+  const { data: me } = useMe();
 
   // Heartbeat: perbarui last_active_at tiap 60 detik + saat tab kembali fokus.
   const heartbeat = useRef(null);
   useEffect(() => {
+    // focus & visibilitychange sering terpicu bersamaan → batasi 1x per 30 dtk.
+    let last = 0;
     const send = () => {
+      const now = Date.now();
+      if (now - last < 30000) return;
+      last = now;
       base44.auth.updateMe({ last_active_at: new Date().toISOString() }).catch(() => {});
     };
     send();
@@ -35,12 +45,42 @@ export default function Layout() {
     <div className={`min-h-screen flex ${scope === "private" ? "bg-scope-tint-private" : "bg-scope-tint-shared"}`}>
       <Sidebar />
       <main className="flex-1 pb-28 md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0">
-        <Outlet />
+        {/* Halaman tetap dirender (kode & state disiapkan paralel) tetapi baru
+            ditampilkan setelah data inti siap — satu layar muat, tanpa kedip. */}
+        {!ready && <AppLoading />}
+        <div className={ready ? "contents" : "hidden"} aria-hidden={!ready}>
+          {/* Suspense di sini (bukan di App) agar menu & kerangka tidak ikut
+              hilang saat kode halaman sedang dimuat. */}
+          {me && (
+            <Suspense fallback={ready ? <AppLoading /> : null}>
+              <Outlet />
+            </Suspense>
+          )}
+        </div>
       </main>
       <BottomNav />
       <OfflineSyncManager />
       <NotificationToaster />
       <InstallPrompt />
+    </div>
+  );
+}
+function AppLoading() {
+  return (
+    <div className="px-5 pt-6 space-y-4" aria-busy="true" aria-label="Memuat data">
+      <div className="flex items-center gap-3">
+        <img src="/brand/mark.png" alt="" className="w-10 h-10 animate-pulse" />
+        <div className="space-y-2 flex-1">
+          <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+          <div className="h-5 w-44 rounded-lg bg-muted animate-pulse" />
+        </div>
+      </div>
+      <div className="h-40 rounded-[28px] bg-muted animate-pulse" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-28 rounded-3xl bg-muted animate-pulse" />
+        <div className="h-28 rounded-3xl bg-muted animate-pulse" />
+      </div>
+      <div className="h-48 rounded-3xl bg-muted animate-pulse" />
     </div>
   );
 }

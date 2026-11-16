@@ -234,3 +234,11 @@ test("Impor broker → asal nilai 'Dari Al Rajhi Capital'; dilengkapi online →
   assert.equal(holdingToAsset({ ...h, price_source: "Tadawul" }).value_source, "online");
   assert.equal(valueSourceInfo({ value_source: "online", price_date: "2026-11-16" }).label, "Perkiraan harga online");
 });
+
+test("manualValuePatch: nilai total → harga per unit ikut, sumber 'manual'", async () => {
+  const { manualValuePatch } = await import("../portfolioImport.js");
+  assert.deepEqual(manualValuePatch({ quantity: 15390.581 }, "22400000", "2026-11-16"), { value: 22400000, value_source: "manual", price_date: "2026-11-16", last_price: 1455.4356 });
+  assert.deepEqual(manualValuePatch({}, 5000.456, "2026-11-16"), { value: 5000.46, value_source: "manual", price_date: "2026-11-16" });
+  assert.equal(manualValuePatch({ quantity: 5 }, "0"), null);
+  assert.equal(manualValuePatch({ quantity: 5 }, ""), null);
+});

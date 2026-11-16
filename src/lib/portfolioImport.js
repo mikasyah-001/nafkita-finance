@@ -434,3 +434,17 @@ export function valueSourceInfo(asset = {}) {
   if (src === "online") return { kind: "online", label: "Perkiraan harga online", date };
   return { kind: "manual", label: "Diisi manual", date };
 }
+
+/**
+ * Patch untuk memperbarui NILAI TOTAL investasi secara manual (mis. angka
+ * yang terlihat di aplikasi broker). Harga per unit diturunkan dari jumlah
+ * unit agar kartu & Riwayat DCA tetap konsisten. null bila nilai tidak sah.
+ */
+export function manualValuePatch(asset = {}, newValue, today = new Date().toISOString().slice(0, 10)) {
+  const v = Number(newValue);
+  if (!(v > 0)) return null;
+  const qty = Number(asset.quantity) || 0;
+  const patch = { value: round2(v), value_source: "manual", price_date: today };
+  if (qty > 0) patch.last_price = round4(v / qty);
+  return patch;
+}

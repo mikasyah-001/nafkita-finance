@@ -833,6 +833,28 @@ try {
     await page.evaluate(() => { window.__qaFnPartial = {}; });
   });
 
+  await step("Tombol 'Perbarui nilai investasi' memperbarui nilai langsung (bukan pindah ke impor)", async () => {
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(500);
+    assert.equal(await page.getByRole("link", { name: /Perbarui nilai/ }).count(), 0, "Bukan lagi tautan ke impor");
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    const sheet = page.getByRole("dialog", { name: "Perbarui nilai investasi" });
+    assert.ok(await sheet.isVisible(), "Lembar terbuka di halaman yang sama");
+    assert.ok(page.url().endsWith("/aset"), "Tidak berpindah halaman");
+    // Aset bersama milik pasangan tidak ditawarkan (hanya pemiliknya yang bisa mengubah)
+    assert.equal(await sheet.getByText("SABIC Siti").count(), 0);
+    await sheet.getByLabel("Nilai baru Reksa Dana Syariah").fill("45000000");
+    await sheet.getByRole("button", { name: "Simpan 1 perubahan" }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "a3"));
+    assert.equal(a.value, 45000000); assert.equal(a.value_source, "manual");
+    assert.equal(await sheet.count(), 0, "Lembar tertutup setelah simpan");
+    // Impor screenshot tetap tersedia sebagai cara lain, di dalam lembar
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    assert.ok(await page.getByRole("dialog", { name: "Perbarui nilai investasi" }).getByRole("link", { name: /Impor screenshot/ }).isVisible());
+    await page.keyboard.press("Escape");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

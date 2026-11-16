@@ -345,6 +345,24 @@ export function formatDuration(fromDate) {
   return `${days} hari`;
 }
 
+// Nama aset untuk tampilan: spasi dirapikan, dan kode ticker di akhir nama
+// ("SP FUNDS S&P 500 SHARIA (SPUS)") dipisah agar nama tidak terpotong —
+// ticker ditampilkan terpisah. Data tersimpan tidak diubah.
+export function assetDisplayName(a) {
+  const raw = String(a?.name || "").replace(/\s+/g, " ").trim();
+  let ticker = String(a?.ticker || "").trim().toUpperCase();
+  let name = raw;
+  const m = raw.match(/^(.*\S)\s*\(([A-Za-z0-9.\-]{1,12})\)$/);
+  // Tanpa ticker tersimpan, hanya kode huruf besar/angka ("(SPUS)", "(2010)") yang
+  // dianggap ticker — "(Syariah)" tetap bagian nama.
+  if (m && (ticker ? m[2].toUpperCase() === ticker : /^[A-Z0-9.\-]+$/.test(m[2]))) {
+    name = m[1];
+    ticker = m[2].toUpperCase();
+  }
+  if (ticker && name.toUpperCase() === ticker) ticker = "";
+  return { name: name || raw || "Tanpa nama", ticker };
+}
+
 export const assetTypeLabels = {
   bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
   tunai: { label: "Uang Tunai", icon: "Wallet", color: "green" },

@@ -18,7 +18,7 @@ import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots } from "@/h
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 import {
   assetTypeLabels, colorMap, formatDate, formatDuration, formatMoney, formatNumber, isGoldType,
-  assetMarketValue, assetGain, goldPriceIn, conversionPreview,
+  assetMarketValue, assetGain, goldPriceIn, conversionPreview, assetDisplayName,
 } from "@/lib/finance";
 import { valueSourceInfo, INSTRUMENTS } from "@/lib/portfolioImport";
 import { ZAKAT_EXCLUDED_TYPES } from "@/lib/zakat";
@@ -117,7 +117,7 @@ export default function AssetDetail() {
 
   return (
     <div className="px-5 pt-6 pb-28">
-      <PageHeader title={a.name} subtitle={[meta.label, a.broker].filter(Boolean).join(" · ")} back
+      <PageHeader title={assetDisplayName(a).name} subtitle={[meta.label, assetDisplayName(a).ticker, a.broker].filter(Boolean).join(" · ")} back
         actions={<button onClick={() => setEditing(true)} aria-label="Ubah aset" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"><Pencil className="w-4 h-4" /></button>} />
 
       {/* Nilai */}

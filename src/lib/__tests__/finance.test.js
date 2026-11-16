@@ -318,3 +318,14 @@ test("Untung emas tidak dihitung bila harga beli/gr salah mata uang", () => {
   assert.equal(g2.available, true);
   assert.ok(g2.pct > 10 && g2.pct < 30, `pct wajar, dapat ${g2.pct}`);
 });
+
+test("assetDisplayName memisah ticker di akhir nama & merapikan spasi", async () => {
+  const { assetDisplayName } = await import("../finance.js");
+  assert.deepEqual(assetDisplayName({ name: "SP FUNDS S&P 500 SHARIA (SPUS)", ticker: "SPUS" }), { name: "SP FUNDS S&P 500 SHARIA", ticker: "SPUS" });
+  assert.deepEqual(assetDisplayName({ name: "SABIC  (2010)" }), { name: "SABIC", ticker: "2010" });
+  // Kurung yang bukan ticker aset ini tetap bagian nama.
+  assert.deepEqual(assetDisplayName({ name: "Reksa Dana (Syariah Plus)", ticker: "RDX" }), { name: "Reksa Dana (Syariah Plus)", ticker: "RDX" });
+  assert.deepEqual(assetDisplayName({ name: "Mandiri Pasar Uang Syariah Ekstra" }), { name: "Mandiri Pasar Uang Syariah Ekstra", ticker: "" });
+  assert.deepEqual(assetDisplayName({ name: "SPUS", ticker: "spus" }), { name: "SPUS", ticker: "" });
+  assert.deepEqual(assetDisplayName({ name: "Reksa Dana (Syariah)" }), { name: "Reksa Dana (Syariah)", ticker: "" });
+});

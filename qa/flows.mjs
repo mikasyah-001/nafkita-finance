@@ -608,7 +608,7 @@ try {
     // Kartu Aset menampilkan Riwayat DCA dari data lot yang sama
     await nav("/aset");
     await page.waitForTimeout(600);
-    const card = page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first();
+    const card = page.locator("a.surface[aria-label=\"Detail aset KINGDOM (4280)\"]").first();
     assert.ok(/2 lot DCA/.test((await card.innerText()).replace(/\s+/g, " ")), "Jumlah lot di kartu aset");
     await card.click();
     await page.waitForTimeout(500);
@@ -625,7 +625,7 @@ try {
     await page.waitForTimeout(900);
     await nav("/aset");
     await page.waitForTimeout(600);
-    const t = (await page.locator("a.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
+    const t = (await page.locator("a.surface[aria-label=\"Detail aset KINGDOM (4280)\"]").first().innerText()).replace(/\s+/g, " ");
     assert.ok(/3 lot DCA/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
     const a2 = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "4280"));
     assert.equal(a2.quantity, 105, "100 + 5 lembar");
@@ -683,6 +683,29 @@ try {
     await page.waitForTimeout(1200);
     const row = (await page.locator("li.surface", { hasText: "SABIC" }).first().innerText()).replace(/\s+/g, " ");
     assert.ok(!/Perbarui "SABIC Siti/.test(row), `Tidak mencocokkan aset pasangan: ${row}`);
+  });
+
+  await step("Kartu aset: nama panjang tidak terpotong, ticker dipisah, peringkat hanya 3 teratas", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push(
+        { id: "qa-long1", name: "SP FUNDS S&P 500 SHARIA (SPUS)", ticker: "SPUS", type: "investasi", unit: "unit", currency: "IDR", quantity: 65, value: 3694600, purchase_price: 3627000, broker: "Al Rajhi Capital", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+        { id: "qa-long2", name: "Mandiri Pasar Uang Syariah Ekstra", type: "investasi", unit: "unit", currency: "IDR", quantity: 15390.581, value: 22315881, purchase_price: 21750000, broker: "Livin Mandiri", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+      );
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(600);
+    const spus = page.locator("a.surface", { hasText: "SP FUNDS" }).first();
+    const name = spus.locator("p.line-clamp-2").first();
+    assert.equal((await name.innerText()).trim(), "SP FUNDS S&P 500 SHARIA", "Ticker dipisah dari nama");
+    const fits = await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    assert.ok(fits, "Nama tidak terpotong ke samping");
+    assert.ok(/· SPUS ·/.test(await spus.innerText()), "Ticker tampil di baris info");
+    const mandiri = (await page.locator("a.surface", { hasText: "Mandiri Pasar Uang Syariah Ekstra" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/\+Rp\s?565\.881 \(\+2\.6%\)/.test(mandiri), `Perubahan rapat tanpa jeda aneh: ${mandiri}`);
+    const badges = await page.locator("a.surface span[title^='Nilai terbesar ke-']").allInnerTexts();
+    assert.ok(badges.length <= 3 && badges.every((b) => Number(b) <= 3), `Lencana peringkat hanya 1–3: ${badges}`);
+    await spus.screenshot({ path: process.env.QA_SHOT_DIR ? `${process.env.QA_SHOT_DIR}/kartu-spus.png` : "/dev/null" }).catch(() => {});
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

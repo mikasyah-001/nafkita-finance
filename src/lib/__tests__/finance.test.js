@@ -359,3 +359,25 @@ test("canonicalBrokerFor: tebakan awalan hanya dalam jenis aset yang sama", asyn
   assert.equal(canonicalBrokerFor("Mandiri", assets, "investasi"), "Mandiri Sekuritas");
   assert.equal(canonicalBrokerFor("bca", assets, "emas_digital"), "BCA"); // persis lintas jenis tetap diseragamkan
 });
+
+test("convertAmounts & roundMoney: ganti mata uang mengonversi, bukan mengganti label", async () => {
+  const { convertAmounts, roundMoney, buildRateMap } = await import("../finance.js");
+  const rateMap = buildRateMap([{ base_currency: "USD", quote_currency: "IDR", rate: 16500 }, { base_currency: "SAR", quote_currency: "IDR", rate: 4400 }]);
+  assert.deepEqual(convertAmounts({ value: "1008000", purchase_price: "1872000" }, "IDR", "USD", rateMap), { value: "61.09", purchase_price: "113.45" });
+  assert.deepEqual(convertAmounts({ amount: "100" }, "SAR", "IDR", rateMap), { amount: "440000" });
+  assert.deepEqual(convertAmounts({ amount: "", other: "0" }, "IDR", "SAR", rateMap), { amount: "", other: "0" });
+  assert.equal(convertAmounts({ amount: "5" }, "IDR", "EUR", rateMap), null); // kurs tidak ada
+  assert.equal(roundMoney(1234.567, "IDR"), 1235);
+  assert.equal(roundMoney(1234.567, "SAR"), 1234.57);
+});
+
+test("assetCurrencyIssue: Rupiah berlabel mata uang asing pada aset non-emas", async () => {
+  const { assetCurrencyIssue, buildRateMap } = await import("../finance.js");
+  const rateMap = buildRateMap([{ base_currency: "USD", quote_currency: "IDR", rate: 16500 }, { base_currency: "SAR", quote_currency: "IDR", rate: 4400 }]);
+  const wrong = assetCurrencyIssue({ type: "investasi", currency: "USD", value: 1008000 }, ["IDR", "USD"], rateMap);
+  assert.equal(wrong?.suggest, "IDR");
+  // Aset asing yang memang besar tetapi wajar tidak ditandai.
+  assert.equal(assetCurrencyIssue({ type: "investasi", currency: "SAR", value: 250000 }, ["IDR", "SAR"], rateMap), null);
+  assert.equal(assetCurrencyIssue({ type: "bank", currency: "USD", value: 40000 }, ["IDR", "USD"], rateMap), null);
+  assert.equal(assetCurrencyIssue({ type: "bank", currency: "IDR", value: 9e9 }, ["IDR"], rateMap), null);
+});

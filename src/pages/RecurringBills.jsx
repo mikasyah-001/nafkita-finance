@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useRecurringBills, useAssets, useRefresh, useUserCurrencies, useMe } from "@/hooks/useFinance";
+import { useRecurringBills, useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib/finance";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
@@ -132,6 +134,12 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
   const [visibility, setVisibility] = useState("shared");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const { map: rateMap } = useRateMap();
+  const curGuard = useCurrencySwitch({
+    currency, amounts: { amount }, rateMap,
+    setCurrency: (c) => { setCurrency(c); setLinkedAssetId(""); },
+    setAmounts: (a) => setAmount(a.amount),
+  });
 
   const bankAssets = assets.filter((a) => a.type === "bank" && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
 
@@ -188,7 +196,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
           {userCurrencies.length > 0 && (
             <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
               {userCurrencies.map((c) => (
-                <button key={c.code} type="button" role="radio" aria-checked={currency === c.code} onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
+                <button key={c.code} type="button" role="radio" aria-checked={currency === c.code} onClick={() => curGuard.change(c.code)}
                   className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>{c.code}</button>
               ))}
             </div>
@@ -199,6 +207,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
           <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
             className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
         </div>
+        <CurrencySwitchNotice guard={curGuard} amounts={{ amount }} />
       </section>
 
       <FieldGroup label="Tagihan">

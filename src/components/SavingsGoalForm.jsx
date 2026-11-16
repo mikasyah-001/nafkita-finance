@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
 import { currencySymbol, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
-import { useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 
@@ -42,12 +44,18 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
     const linked = assets.find((a) => a.id === f.linked_asset_id);
     return { ...f, currency: c, linked_asset_id: linked && (linked.currency || "IDR") === c ? f.linked_asset_id : "" };
   });
+  const { map: rateMap } = useRateMap();
+  const curGuard = useCurrencySwitch({
+    currency: form.currency, amounts: { target_amount: form.target_amount }, rateMap, strict: !!goal?.id,
+    setCurrency, setAmounts: (a) => setForm((f) => ({ ...f, ...a })),
+  });
   // Aset sumber harus bermata uang sama dengan target (tidak ada konversi kurs).
   const sourceAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === form.currency);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.target_amount) return;
+    if (curGuard.guardSave()) return toast.error("Periksa mata uang dulu", { description: `Pilih: konversi target ke ${curGuard.pending.to}, angka memang ${curGuard.pending.to}, atau kembali ke ${curGuard.pending.from}.` });
     setSubmitting(true);
     try {
       const data = {
@@ -124,7 +132,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               <div role="radiogroup" aria-label="Mata uang target" className="flex gap-1 flex-wrap justify-end">
                 {currencyOptions.map((c) => (
                   <button key={c} type="button" role="radio" aria-checked={form.currency === c} disabled={hasProgress && c !== form.currency}
-                    onClick={() => setCurrency(c)}
+                    onClick={() => curGuard.change(c)}
                     className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors disabled:opacity-40 ${form.currency === c ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}>
                     {c}
                   </button>
@@ -145,6 +153,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
+          <CurrencySwitchNotice guard={curGuard} amounts={{ target_amount: form.target_amount }} />
           {hasProgress && currencyOptions.length > 1 && <p className="text-[11px] opacity-70 mt-2">Mata uang tidak bisa diganti karena target sudah punya progres.</p>}
         </section>
 

@@ -569,8 +569,20 @@ export function goldPriceLooksWrong(asset, rateMap = {}) {
 
 /** Aset emas yang harga beli per gram-nya tampak salah mata uang. */
 export function assetCurrencyIssue(asset, candidates = [], rateMap = {}) {
-  if (!isGoldType(asset?.type)) return null;
-  return goldPriceCurrencyHint(asset.purchase_price, asset.currency, candidates, rateMap);
+  if (isGoldType(asset?.type)) return goldPriceCurrencyHint(asset.purchase_price, asset.currency, candidates, rateMap);
+  // Aset non-emas: nominal Rupiah yang terlanjur berlabel mata uang asing
+  // (mis. Rp1.008.000 tersimpan sebagai $1.008.000 ≈ Rp17,8 M). Ambang lebih
+  // ketat dari petunjuk saat mengetik, agar aset asing yang memang besar tidak
+  // ditandai: ≥ 500.000 unit DAN setara ≥ Rp5 miliar.
+  const c = (asset?.currency || "IDR").toUpperCase();
+  if (c === "IDR") return null;
+  const r = idrPerUnit(c, rateMap);
+  const v = Math.max(Number(asset?.value) || 0, Number(asset?.purchase_price) || 0);
+  if (!r || v < 500_000 || v * r < 5_000_000_000) return null;
+  return {
+    suggest: "IDR",
+    message: `${formatMoneyPlain(v, c)} setara ±${formatMoneyPlain(Math.round(v * r), "IDR")}. Sepertinya angka ini Rupiah yang terlanjur berlabel ${c} (mis. chip mata uang tersentuh).`,
+  };
 }
 
 /**
@@ -585,6 +597,31 @@ export function amountCurrencyHint(amount, currency, rateMap = {}) {
   const r = idrPerUnit(c, rateMap);
   if (!r || a * r < 100_000_000) return null;
   return { suggest: "IDR", message: `${formatMoneyPlain(a, c)} setara ±${formatMoneyPlain(Math.round(a * r), "IDR")}. Yakin bukan Rupiah?` };
+}
+
+/** Pembulatan nominal sesuai mata uang: Rupiah bulat, lainnya 2 desimal. */
+export function roundMoney(n, currency = "IDR") {
+  const x = Number(n) || 0;
+  return (currency || "IDR").toUpperCase() === "IDR" ? Math.round(x) : Math.round(x * 100) / 100;
+}
+
+/**
+ * Konversi sekumpulan isian nominal saat mata uang form diganti.
+ * Mengembalikan null bila kurs tidak tersedia. Isian kosong/0 dibiarkan.
+ * Dipakai bersama oleh semua form (lihat hooks/useCurrencySwitch) agar
+ * mengganti mata uang TIDAK diam-diam menafsirkan ulang angka.
+ */
+export function convertAmounts(amounts = {}, from, to, rateMap = {}) {
+  const f = (from || "IDR").toUpperCase();
+  const t = (to || "IDR").toUpperCase();
+  if (f === t) return { ...amounts };
+  if (!canConvert(f, t, rateMap)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(amounts)) {
+    const n = Number(v);
+    out[k] = n > 0 ? String(roundMoney(convertTo(n, f, t, rateMap), t)) : v;
+  }
+  return out;
 }
 
 /** Pratinjau konversi "≈ Rp 1.075.000" untuk input bermata uang asing. */

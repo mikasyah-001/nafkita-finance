@@ -13,6 +13,8 @@ import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/link
 import { confirmAction } from "@/components/ConfirmHost";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock, CalendarDays, Store, Wallet, NotebookPen, Sparkles, ChevronDown, Trash2, AlertCircle } from "lucide-react";
 
 const typeTabs = [
@@ -61,6 +63,12 @@ export default function AddTransaction() {
   const [linkedAssetId, setLinkedAssetId] = useState(() => new URLSearchParams(window.location.search).get("asset") || "");
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
+  // Ganti mata uang setelah nominal terisi → tawarkan konversi, bukan ganti label diam-diam.
+  const curGuard = useCurrencySwitch({
+    currency, amounts: { amount }, rateMap, strict: isEdit,
+    setCurrency: (c) => { setCurrency(c); setLinkedAssetId(""); },
+    setAmounts: (a) => setAmount(a.amount),
+  });
   const [multiTx, setMultiTx] = useState(null);
   const [savingMulti, setSavingMulti] = useState(false);
   const fileRef = useRef(null);
@@ -319,6 +327,7 @@ export default function AddTransaction() {
   const handleSave = () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast.error("Masukkan nominal terlebih dahulu");
+    if (curGuard.guardSave()) return toast.error("Periksa mata uang dulu", { description: `Pilih: konversi ke ${curGuard.pending.to}, angka memang ${curGuard.pending.to}, atau kembali ke ${curGuard.pending.from}.` });
     if (type !== "sedekah" && !category) return toast.error("Pilih kategori");
     if (isEdit) return performSave();
     const dup = findDuplicate(
@@ -443,7 +452,7 @@ export default function AddTransaction() {
                     key={c.code}
                     role="radio"
                     aria-checked={currency === c.code}
-                    onClick={() => { setCurrency(c.code); setLinkedAssetId(""); }}
+                    onClick={() => curGuard.change(c.code)}
                     className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}
                   >
                     {c.code}
@@ -468,7 +477,8 @@ export default function AddTransaction() {
             />
           </div>
           <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 && currency !== "IDR" ? `${formatMoney(amountNum, currency)} ${conversionPreview(amountNum, currency, "IDR", rateMap)}`.trim() : ""}</p>
-          {amountHint && userCurrencies.some((c) => c.code === "IDR") && (
+          <CurrencySwitchNotice guard={curGuard} amounts={{ amount }} />
+          {!curGuard.pending && amountHint && userCurrencies.some((c) => c.code === "IDR") && (
             <div role="alert" className="mt-2 rounded-2xl bg-white/12 border border-white/25 px-3 py-2 text-xs flex items-center gap-2">
               <span className="flex-1 min-w-0 opacity-90">{amountHint.message}</span>
               <button type="button" onClick={() => { setCurrency("IDR"); setLinkedAssetId(""); setAmount(String(Math.round(amountNum))); }}

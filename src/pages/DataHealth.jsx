@@ -105,7 +105,7 @@ export default function DataHealth() {
             <IssueSection
               icon={Coins}
               title="Mata Uang Tampak Keliru"
-              subtitle="Harga per gram tidak wajar untuk mata uangnya — laporan & zakat jadi melenceng"
+              subtitle="Nominal tidak wajar untuk mata uangnya — laporan & zakat jadi melenceng"
               tone="destructive"
             >
               {issues.currencyMismatch.map(({ asset: a, issue }) => (
@@ -116,7 +116,9 @@ export default function DataHealth() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">{a.quantity} gr · beli <Money value={a.purchase_price} currency={a.currency} />/gr</p>
+                      <p className="text-xs text-muted-foreground">{a.type === "emas" || a.type === "emas_digital"
+                        ? <>{a.quantity} gr · beli <Money value={a.purchase_price} currency={a.currency} />/gr</>
+                        : <>Nilai <Money value={a.value} currency={a.currency} /></>}</p>
                     </div>
                     <button
                       onClick={() => fixCurrency(a, issue.suggest)}

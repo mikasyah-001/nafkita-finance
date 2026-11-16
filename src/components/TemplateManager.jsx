@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useTemplates, useCategories, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
+import { useTemplates, useCategories, useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
+import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
+import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { colorMap, formatMoney, currencySymbol } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
@@ -27,6 +29,12 @@ export default function TemplateManager() {
     if (me?.default_currency) setTpl((p) => (p.currency && p.currency !== "IDR" ? p : { ...p, currency: me.default_currency }));
   }, [me]);
 
+  const { map: rateMap } = useRateMap();
+  const curGuard = useCurrencySwitch({
+    currency: tpl.currency, amounts: { amount: tpl.amount }, rateMap,
+    setCurrency: (c) => setTpl((p) => ({ ...p, currency: c })),
+    setAmounts: (a) => setTpl((p) => ({ ...p, ...a })),
+  });
   const availableCategories = categories.filter((c) => c.type === tpl.type);
 
   const handleSave = async () => {
@@ -85,13 +93,14 @@ export default function TemplateManager() {
           </div>
           <div className="flex gap-1">
             {userCurrencies.map((c) => (
-              <button key={c.code} onClick={() => setTpl({ ...tpl, currency: c.code })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.currency === c.code ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.code}</button>
+              <button key={c.code} onClick={() => curGuard.change(c.code)} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${tpl.currency === c.code ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.code}</button>
             ))}
           </div>
           <div className="flex items-center rounded-lg border border-border px-3">
             <span className="text-xs text-muted-foreground mr-1">{currencySymbol(tpl.currency)}</span>
             <input aria-label="Nominal" type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
           </div>
+          <CurrencySwitchNotice guard={curGuard} amounts={{ amount: tpl.amount }} tone="plain" />
           {tpl.type !== "sedekah" && (
             <select aria-label="Kategori" value={tpl.category} onChange={(e) => setTpl({ ...tpl, category: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none bg-background">
               <option value="">Pilih kategori</option>

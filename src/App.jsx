@@ -28,6 +28,7 @@ const Budget = lazyPage(() => import('@/pages/Budget'));
 const AssetDashboard = lazyPage(() => import('@/pages/AssetDashboard'));
 const ImportReport = lazyPage(() => import('@/pages/ImportReport'));
 const PortfolioImport = lazyPage(() => import('@/pages/PortfolioImport'));
+const AssetDetail = lazyPage(() => import('@/pages/AssetDetail'));
 const TransactionDetail = lazyPage(() => import('@/pages/TransactionDetail'));
 const Profile = lazyPage(() => import('@/pages/Profile'));
 const Categories = lazyPage(() => import('@/pages/Categories'));
@@ -123,6 +124,7 @@ const AuthenticatedApp = () => {
           <Route path="/sambungkan-pasangan" element={<PartnerOnboarding />} />
           <Route path="/kategori" element={<Categories />} />
           <Route path="/asisten-struk" element={<Navigate to="/add" replace />} />
+          <Route path="/aset/:id" element={<AssetDetail />} />
           <Route path="/investasi/:id" element={<InvestmentDetail />} />
           <Route path="/umpan-balik" element={<Feedback />} />
           <Route path="/admin" element={<Admin />} />

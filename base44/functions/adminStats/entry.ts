@@ -10,6 +10,8 @@ import { logAdminAction } from "../../shared/auditLog.ts";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    let body = {};
+    try { body = await req.json(); } catch {}
     let me;
     try { me = await base44.auth.me(); } catch {}
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,22 +39,39 @@ export default async function (req) {
       if (now - t <= THIRTY_DAYS) active30d++;
     }
 
-    // Agregasi transaksi
-    let txCount = 0, txIncome = 0, txExpense = 0, txSedekah = 0;
+    // Agregasi transaksi PER MATA UANG (SAR tidak boleh dijumlah sebagai IDR).
+    // Transfer antar rekening & transaksi yang belum disetujui tidak dihitung
+    // sebagai pemasukan/pengeluaran (sama seperti Beranda & Laporan).
+    const cur = (c) => String(c || "IDR").toUpperCase();
+    const txByCurrency = {};
+    let txCount = 0;
     for (const t of transactions) {
       txCount++;
+      if (t.transfer_pair_id) continue;
+      if (t.approval_status && t.approval_status !== "approved") continue;
+      const c = cur(t.currency);
+      const e = (txByCurrency[c] ||= { income: 0, expense: 0, sedekah: 0, count: 0 });
       const amt = Number(t.amount) || 0;
-      if (t.type === "income") txIncome += amt;
-      else if (t.type === "expense") txExpense += amt;
-      else if (t.type === "sedekah") txSedekah += amt;
+      e.count++;
+      if (t.type === "income") e.income += amt;
+      else if (t.type === "expense") e.expense += amt;
+      else if (t.type === "sedekah") e.sedekah += amt;
     }
+    const txIncome = txByCurrency.IDR?.income || 0;
+    const txExpense = txByCurrency.IDR?.expense || 0;
+    const txSedekah = txByCurrency.IDR?.sedekah || 0;
 
-    // Agregasi aset
-    let assetCount = 0, assetValue = 0;
+    // Agregasi aset per mata uang
+    let assetCount = 0;
+    const assetByCurrency = {};
     for (const a of assets) {
       assetCount++;
-      assetValue += Number(a.value) || 0;
+      const c = cur(a.currency);
+      const e = (assetByCurrency[c] ||= { value: 0, count: 0 });
+      e.value += Number(a.value) || 0;
+      e.count++;
     }
+    const assetValue = assetByCurrency.IDR?.value || 0;
 
     // Breakdown per-user
     const byUser = {};
@@ -64,28 +83,25 @@ export default async function (req) {
         role: u.role,
         last_active_at: u.last_active_at || null,
         tx_count: 0,
-        tx_total: 0,
         asset_count: 0,
-        asset_value: 0,
       };
     }
     for (const t of transactions) {
       const entry = byUser[t.created_by_id];
       if (!entry) continue;
       entry.tx_count++;
-      entry.tx_total += Number(t.amount) || 0;
     }
     for (const a of assets) {
       const entry = byUser[a.created_by_id];
       if (!entry) continue;
       entry.asset_count++;
-      entry.asset_value += Number(a.value) || 0;
     }
     const userBreakdown = Object.values(byUser).sort(
       (a, b) => b.tx_count + b.asset_count - (a.tx_count + a.asset_count)
     );
 
-    await logAdminAction(base44, {
+    // Penyegaran otomatis (tiap 30 dtk) tidak dicatat agar audit log tidak banjir.
+    if (!body?.auto) await logAdminAction(base44, {
       actor_id: me.id,
       actor_name: me.full_name || me.email,
       actor_email: me.email,
@@ -106,10 +122,12 @@ export default async function (req) {
         income: txIncome,
         expense: txExpense,
         sedekah: txSedekah,
+        by_currency: txByCurrency,
       },
       assets: {
         count: assetCount,
         total_value: assetValue,
+        by_currency: assetByCurrency,
       },
       user_breakdown: userBreakdown,
     });

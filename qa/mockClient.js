@@ -49,9 +49,42 @@ const DATA = {
     const p = new Date(Date.UTC(Y, M + o, 1));
     return { id: id(), period: p.toISOString().slice(0, 7), currency: "IDR", total_value: 182e6 + i * 7e6, emas_value: 60e6 + i * 2e6, investasi_value: 40e6 + i * 1.5e6, bank_value: 82e6 + i * 3.5e6 };
   }),
+  AuditLog: [
+    { id: id(), actor_name: "Ahmad Fauzi", action: "terminate_partnership", target_label: "Rudi ⇄ Lina", details: "Alasan: permintaan pengguna", created_date: d(12) },
+    { id: id(), actor_name: "Ahmad Fauzi", action: "view_admin_stats", target_label: "", details: "Statistik: 4 user", created_date: d(13) },
+    { id: id(), actor_name: "Ahmad Fauzi", action: "export_data", target_label: "Laporan November", details: "", created_date: d(14) },
+  ],
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
 };
+// Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.
+const ago = (m) => new Date(Date.now() - m * 60000).toISOString();
+const ADMIN_USERS = [
+  { id: "u1", full_name: "Ahmad Fauzi", email: "keluarga@contoh.id", role: "admin", last_active_at: ago(1), created_date: d(1, -6) },
+  { id: "u2", full_name: "Siti Aminah", email: "siti@contoh.id", role: "user", last_active_at: ago(180), created_date: d(2, -6) },
+  { id: "u3", full_name: "Rudi Hartono", email: "rudi@contoh.id", role: "user", last_active_at: ago(60 * 24 * 9), created_date: d(5, -2) },
+  { id: "u4", full_name: "Lina Marlina", email: "lina@contoh.id", role: "user", last_active_at: null, created_date: d(7, -1) },
+];
+const PARTNERSHIPS = [
+  { id: "p1", inviter_id: "u1", invitee_id: "u2", inviter_role: "suami", invitee_role: "istri", status: "active", created_date: d(3, -6) },
+  { id: "p2", inviter_id: "u3", invitee_email: "lina@contoh.id", status: "pending", created_date: d(8) },
+  { id: "p3", inviter_id: "u3", invitee_id: "u4", status: "ended", end_reason: "permintaan pengguna", created_date: d(1, -1) },
+];
 const FN = {
+  adminListUsers: () => ({ users: ADMIN_USERS.map((u) => ({ ...u })), partnerships: PARTNERSHIPS.map((p) => ({ ...p })) }),
+  adminListTransactions: () => ({ transactions: db.tx.map((t) => ({ ...t })).sort((a, b) => new Date(b.date) - new Date(a.date)), has_more: false }),
+  adminListAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }),
+  adminStats: () => {
+    const by = {}; const ab = {};
+    db.tx.forEach((t) => { if (t.transfer_pair_id || (t.approval_status && t.approval_status !== "approved")) return; const c = t.currency || "IDR"; const e = (by[c] ||= { income: 0, expense: 0, sedekah: 0, count: 0 }); e.count++; if (e[t.type] != null) e[t.type] += t.amount; });
+    db.assets.forEach((a) => { const c = a.currency || "IDR"; const e = (ab[c] ||= { value: 0, count: 0 }); e.value += a.value || 0; e.count++; });
+    return {
+      users: { total: ADMIN_USERS.length, active_now: 1, active_24h: 2, active_30d: 3 },
+      transactions: { count: db.tx.length, by_currency: by },
+      assets: { count: db.assets.length, by_currency: ab },
+      user_breakdown: ADMIN_USERS.map((u) => ({ id: u.id, name: u.full_name, email: u.email, role: u.role, last_active_at: u.last_active_at, tx_count: db.tx.filter((t) => t.created_by_id === u.id).length, asset_count: db.assets.filter((a) => a.created_by_id === u.id).length })),
+    };
+  },
+  terminatePartnership: ({ partnership_id, end_reason }) => { const p = PARTNERSHIPS.find((x) => x.id === partnership_id); if (p) Object.assign(p, { status: "ended", end_reason }); return { ok: true }; },
   listVisibleTransactions: () => ({ transactions: db.tx.map((t) => ({ ...t })).sort((a, b) => new Date(b.date) - new Date(a.date)) }),
   listVisibleAssets: () => ({ assets: db.assets.map((a) => ({ ...a })) }), // salinan, seperti respons server
   listVisibleBudgets: () => ({ budgets: [...(DATA.Budget || []),

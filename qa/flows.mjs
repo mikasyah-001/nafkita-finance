@@ -404,6 +404,27 @@ try {
     assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
   });
 
+  await step("Panel admin: menu berurutan, total per mata uang (SAR tidak dijumlah sebagai IDR), putus koneksi dengan konfirmasi", async () => {
+    await nav("/admin");
+    await page.waitForTimeout(800);
+    const tabs = await page.getByRole("tablist", { name: "Menu admin" }).getByRole("tab").allInnerTexts();
+    assert.deepEqual(tabs.map((t) => t.trim()), ["Ringkasan", "Pengguna", "Pasangan", "Transaksi", "Aset", "Audit"]);
+    const sarIncome = await page.evaluate(() => window.__qa.tx.some((t) => t.currency === "SAR"));
+    if (sarIncome) assert.ok(await page.getByRole("radio", { name: "SAR", exact: true }).isVisible(), "Pilihan SAR tersedia di ringkasan");
+    await page.getByRole("tab", { name: "Pengguna" }).click();
+    assert.ok(await page.getByText("4 pengguna", { exact: false }).isVisible());
+    await page.getByRole("tab", { name: "Pasangan" }).click();
+    await page.getByRole("button", { name: "Putuskan koneksi" }).first().click();
+    const dlg = page.getByRole("alertdialog");
+    await dlg.getByRole("button", { name: "Batal" }).click();
+    assert.ok(await page.getByText("Aktif (1)").isVisible(), "Batal tidak memutus");
+    await page.getByRole("button", { name: "Putuskan koneksi" }).first().click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Putuskan" }).click();
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("Aktif (0)").isVisible(), "Koneksi pindah ke riwayat");
+    await nav("/");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

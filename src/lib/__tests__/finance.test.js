@@ -381,3 +381,23 @@ test("assetCurrencyIssue: Rupiah berlabel mata uang asing pada aset non-emas", a
   assert.equal(assetCurrencyIssue({ type: "bank", currency: "USD", value: 40000 }, ["IDR", "USD"], rateMap), null);
   assert.equal(assetCurrencyIssue({ type: "bank", currency: "IDR", value: 9e9 }, ["IDR"], rateMap), null);
 });
+
+test("switchCurrencyAmounts: konversi langsung, berpatokan pada angka asli", async () => {
+  const { switchCurrencyAmounts, buildRateMap } = await import("../finance.js");
+  const rateMap = buildRateMap([{ base_currency: "USD", quote_currency: "IDR", rate: 16500 }, { base_currency: "SAR", quote_currency: "IDR", rate: 4400 }]);
+  const start = { value: "1008000", purchase_price: "1872000" };
+  const toSar = switchCurrencyAmounts({ currency: "IDR", amounts: start, to: "SAR", rateMap });
+  assert.deepEqual(toSar.amounts, { value: "229.09", purchase_price: "425.45" });
+  // SAR → USD dihitung dari angka asli IDR, bukan dari hasil bulat SAR
+  const toUsd = switchCurrencyAmounts({ origin: toSar.origin, currency: "SAR", amounts: toSar.amounts, to: "USD", rateMap });
+  assert.deepEqual(toUsd.amounts, { value: "61.09", purchase_price: "113.45" });
+  // Kembali ke IDR → tepat angka semula
+  const back = switchCurrencyAmounts({ origin: toUsd.origin, currency: "USD", amounts: toUsd.amounts, to: "IDR", rateMap });
+  assert.deepEqual(back.amounts, start); assert.equal(back.origin, null);
+  // Angka diketik ulang setelah konversi → patokan baru
+  const typed = switchCurrencyAmounts({ origin: toSar.origin, currency: "SAR", amounts: { value: "100", purchase_price: "425.45" }, to: "IDR", rateMap });
+  assert.deepEqual(typed.amounts, { value: "440000", purchase_price: "1871980" });
+  // Kosong → hanya ganti mata uang; kurs tidak ada → ditolak
+  assert.deepEqual(switchCurrencyAmounts({ currency: "IDR", amounts: { amount: "" }, to: "SAR", rateMap }).amounts, { amount: "" });
+  assert.equal(switchCurrencyAmounts({ currency: "IDR", amounts: { amount: "5" }, to: "EUR", rateMap }).ok, false);
+});

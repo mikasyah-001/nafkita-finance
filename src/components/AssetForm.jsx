@@ -57,7 +57,7 @@ export default function AssetForm({ asset, onClose }) {
   // Ganti mata uang ≠ ganti label diam-diam: tawarkan konversi / tetap / kembali.
   const moneyFields = { value: form.value, purchase_price: form.purchase_price };
   const curGuard = useCurrencySwitch({
-    currency: form.currency, amounts: moneyFields, rateMap, strict: isEdit,
+    currency: form.currency, amounts: moneyFields, rateMap,
     setCurrency: (c) => setForm((f) => ({ ...f, currency: c })),
     setAmounts: (a) => setForm((f) => ({ ...f, ...a })),
   });
@@ -77,7 +77,6 @@ export default function AssetForm({ asset, onClose }) {
   };
 
   const handleSave = async () => {
-    if (curGuard.guardSave()) return toast.error("Periksa mata uang dulu", { description: `Pilih: konversi nilai ke ${curGuard.pending.to}, angka memang ${curGuard.pending.to}, atau kembali ke ${curGuard.pending.from}.` });
     // Broker diseragamkan ke ejaan yang sudah tersimpan (tanpa ganda/salah ketik).
     const { error, payload } = buildAssetPayload({ ...form, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
     if (error) return toast.error(error);
@@ -216,11 +215,11 @@ export default function AssetForm({ asset, onClose }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
           </div>
         )}
-        {!isGoldType(form.type) && form.type !== "tanah" && cur !== "IDR" && conversionPreview(form.value, cur, "IDR", rateMap) && (
+        {!curGuard.origin && !isGoldType(form.type) && form.type !== "tanah" && cur !== "IDR" && conversionPreview(form.value, cur, "IDR", rateMap) && (
           <p className="text-xs opacity-80 mt-1 tabular-nums">{conversionPreview(form.value, cur, "IDR", rateMap)}</p>
         )}
-        <CurrencySwitchNotice guard={curGuard} amounts={moneyFields} />
-        {!curGuard.pending && valueHint && (
+        <CurrencySwitchNotice guard={curGuard} />
+        {valueHint && (
           <div role="alert" className="mt-3 rounded-2xl bg-white/12 border border-white/25 p-3 text-xs">
             <p className="font-semibold">Periksa mata uang</p>
             <p className="opacity-85 mt-0.5">{valueHint.message}</p>

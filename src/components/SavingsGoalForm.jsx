@@ -46,7 +46,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
   });
   const { map: rateMap } = useRateMap();
   const curGuard = useCurrencySwitch({
-    currency: form.currency, amounts: { target_amount: form.target_amount }, rateMap, strict: !!goal?.id,
+    currency: form.currency, amounts: { target_amount: form.target_amount }, rateMap,
     setCurrency, setAmounts: (a) => setForm((f) => ({ ...f, ...a })),
   });
   // Aset sumber harus bermata uang sama dengan target (tidak ada konversi kurs).
@@ -55,7 +55,6 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.target_amount) return;
-    if (curGuard.guardSave()) return toast.error("Periksa mata uang dulu", { description: `Pilih: konversi target ke ${curGuard.pending.to}, angka memang ${curGuard.pending.to}, atau kembali ke ${curGuard.pending.from}.` });
     setSubmitting(true);
     try {
       const data = {
@@ -153,7 +152,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
-          <CurrencySwitchNotice guard={curGuard} amounts={{ target_amount: form.target_amount }} />
+          <CurrencySwitchNotice guard={curGuard} />
           {hasProgress && currencyOptions.length > 1 && <p className="text-[11px] opacity-70 mt-2">Mata uang tidak bisa diganti karena target sudah punya progres.</p>}
         </section>
 

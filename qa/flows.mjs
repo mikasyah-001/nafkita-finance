@@ -732,7 +732,7 @@ try {
     assert.ok(await page.getByRole("radiogroup", { name: "Broker tersimpan" }).getByRole("radio", { name: "Al Rajhi Capital" }).isVisible());
   });
 
-  await step("Bug mata uang: ganti chip tidak menafsir ulang angka diam-diam (Ubah aset ditahan sampai dipilih)", async () => {
+  await step("Bug mata uang: ganti chip langsung mengonversi dengan kurs, berpatokan pada angka asli", async () => {
     await page.evaluate(() => {
       const now = new Date().toISOString();
       window.__qa.assets.push({ id: "qa-cur", name: "QA Growin", type: "investasi", currency: "IDR", value: 1008000, purchase_price: 1872000, broker: "Growin' Mandiri", visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now });
@@ -741,43 +741,34 @@ try {
     await page.getByRole("button", { name: "Ubah aset" }).click();
     const curs = page.getByRole("radiogroup", { name: "Mata uang" });
     await curs.getByRole("radio", { name: "SAR" }).click();
-    const notice = page.getByRole("alert", { name: "Periksa mata uang" });
-    assert.ok(await notice.isVisible(), "Peringatan ganti mata uang tampil");
-    assert.ok(/IDR → SAR/.test(await notice.innerText()));
-    if (process.env.QA_SHOT_DIR) { await notice.scrollIntoViewIfNeeded(); await page.waitForTimeout(300); await notice.screenshot({ path: `${process.env.QA_SHOT_DIR}/ganti-mata-uang.png` }); }
-    await page.getByRole("button", { name: "Simpan perubahan" }).click();
-    await page.waitForTimeout(500);
-    let a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-cur"));
-    assert.equal(a.currency, "IDR", "Simpan ditahan: belum memilih");
-    assert.equal(a.value, 1008000);
-    // Kembali → bersih; ganti lagi → konversi dengan kurs (4.250)
-    await notice.getByRole("button", { name: "Kembali ke IDR" }).click();
-    assert.equal(await notice.count(), 0);
-    assert.equal(await curs.getByRole("radio", { name: "IDR" }).getAttribute("aria-checked"), "true");
+    assert.equal(await page.inputValue("#asset-value"), "237.18", "Langsung dikonversi (kurs 4.250)");
+    assert.equal(await page.getByRole("alert", { name: "Periksa mata uang" }).count(), 0, "Tanpa kotak penjelasan");
+    assert.ok(await page.getByText("Dikonversi dari Rp 1.008.000").isVisible(), "Satu baris asal konversi");
+    if (process.env.QA_SHOT_DIR) { const sec = page.locator("section.card-gradient-primary").first(); await page.getByText(/Dikonversi dari/).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); void sec; await page.screenshot({ path: `${process.env.QA_SHOT_DIR}/ganti-mata-uang.png` }); }
+    // Kembali ke IDR → tepat angka semula
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#asset-value"), "1008000");
+    assert.equal(await page.getByText(/Dikonversi dari/).count(), 0);
     await curs.getByRole("radio", { name: "SAR" }).click();
-    await notice.getByRole("button", { name: /^Konversi/ }).click();
-    assert.equal(await page.inputValue("#asset-value"), "237.18");
     await page.getByRole("button", { name: "Simpan perubahan" }).click();
     await page.waitForTimeout(600);
-    a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-cur"));
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.id === "qa-cur"));
     assert.equal(a.currency, "SAR"); assert.equal(Number(a.value), 237.18); assert.equal(Number(a.purchase_price), 440.47);
   });
 
-  await step("Transaksi baru: ganti mata uang setelah mengetik → pilihan konversi/tetap (tidak menahan simpan)", async () => {
+  await step("Transaksi baru: ganti mata uang setelah mengetik → nominal ikut dikonversi", async () => {
     await nav("/add");
     await page.fill("#add-tx-amount", "100000");
-    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "SAR" }).click();
-    const notice = page.getByRole("alert", { name: "Periksa mata uang" });
-    assert.ok(await notice.isVisible());
-    assert.ok(!/sebelum menyimpan/.test(await notice.innerText()), "Form baru tidak memaksa");
-    await notice.getByRole("button", { name: "Angka sudah SAR" }).click();
-    assert.equal(await notice.count(), 0);
-    assert.equal(await page.inputValue("#add-tx-amount"), "100000");
-    // Mengetik ulang angka = keputusan sendiri → peringatan hilang
-    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "IDR" }).click();
-    assert.ok(await notice.isVisible());
-    await page.fill("#add-tx-amount", "50000");
-    assert.equal(await notice.count(), 0, "Ketik ulang menutup peringatan");
+    const curs = page.getByRole("radiogroup", { name: "Mata uang" });
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "23.53");
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "100.000", "Kembali tepat ke angka asli");
+    // Ketik ulang dalam SAR → patokan baru
+    await curs.getByRole("radio", { name: "SAR" }).click();
+    await page.fill("#add-tx-amount", "50");
+    await curs.getByRole("radio", { name: "IDR" }).click();
+    assert.equal(await page.inputValue("#add-tx-amount"), "212.500");
   });
 
   await step("Kesehatan Data menandai aset non-emas yang tampak Rupiah berlabel asing", async () => {

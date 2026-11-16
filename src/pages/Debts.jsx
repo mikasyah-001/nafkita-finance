@@ -234,7 +234,7 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
           <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
           <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
         </div>
-        <CurrencySwitchNotice guard={curGuard} amounts={{ amount }} />
+        <CurrencySwitchNotice guard={curGuard} />
       </section>
 
       <FieldGroup label="Pihak">

@@ -100,7 +100,7 @@ export default function TemplateManager() {
             <span className="text-xs text-muted-foreground mr-1">{currencySymbol(tpl.currency)}</span>
             <input aria-label="Nominal" type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
           </div>
-          <CurrencySwitchNotice guard={curGuard} amounts={{ amount: tpl.amount }} tone="plain" />
+          <CurrencySwitchNotice guard={curGuard} tone="plain" />
           {tpl.type !== "sedekah" && (
             <select aria-label="Kategori" value={tpl.category} onChange={(e) => setTpl({ ...tpl, category: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none bg-background">
               <option value="">Pilih kategori</option>

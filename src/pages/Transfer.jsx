@@ -118,7 +118,7 @@ export default function Transfer() {
               />
             </div>
             <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 ? formatMoney(amountNum, currency) : ""}</p>
-            <CurrencySwitchNotice guard={curGuard} amounts={{ amount }} />
+            <CurrencySwitchNotice guard={curGuard} />
             <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 text-xs">
               <span className="truncate flex-1 min-w-0">{fromObj?.name || "Rekening asal"}</span>
               <ArrowRightLeft className="w-3.5 h-3.5 opacity-70 shrink-0" />

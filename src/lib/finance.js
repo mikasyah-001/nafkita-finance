@@ -624,6 +624,26 @@ export function convertAmounts(amounts = {}, from, to, rateMap = {}) {
   return out;
 }
 
+/**
+ * Ganti mata uang form = konversi langsung dengan kurs, berpatokan pada angka
+ * ASLI yang diketik. `origin` mengingat angka asli selama angka belum diketik
+ * ulang, sehingga IDR → SAR → USD → IDR kembali tepat ke angka semula (tanpa
+ * pembulatan berantai). Mengembalikan { ok:false } bila kurs tidak tersedia —
+ * mata uang TIDAK boleh diganti tanpa konversi (itu sumber bug salah tafsir).
+ */
+export function switchCurrencyAmounts({ origin = null, currency, amounts = {}, to, rateMap = {} }) {
+  const cur = (currency || "IDR").toUpperCase();
+  const target = (to || "IDR").toUpperCase();
+  const sig = JSON.stringify(amounts);
+  const src = origin && origin.sig === sig ? origin : { currency: cur, amounts };
+  const hasAmount = Object.values(src.amounts).some((v) => Number(v) > 0);
+  if (!hasAmount) return { ok: true, amounts, origin: null };
+  if (target === src.currency) return { ok: true, amounts: { ...src.amounts }, origin: null };
+  const conv = convertAmounts(src.amounts, src.currency, target, rateMap);
+  if (!conv) return { ok: false };
+  return { ok: true, amounts: conv, origin: { currency: src.currency, amounts: src.amounts, sig: JSON.stringify(conv) } };
+}
+
 /** Pratinjau konversi "≈ Rp 1.075.000" untuk input bermata uang asing. */
 export function conversionPreview(amount, from, to = "IDR", rateMap = {}) {
   const a = Number(amount) || 0;

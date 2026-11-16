@@ -207,7 +207,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
           <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
             className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
         </div>
-        <CurrencySwitchNotice guard={curGuard} amounts={{ amount }} />
+        <CurrencySwitchNotice guard={curGuard} />
       </section>
 
       <FieldGroup label="Tagihan">

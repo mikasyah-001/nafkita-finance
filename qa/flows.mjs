@@ -536,8 +536,9 @@ try {
         .map(([, i, txt]) => { const hit = Object.keys(prices).find((k) => txt.includes(k)); return hit ? { index: i, price: prices[hit], currency: "SAR", as_of: t, source: "Tadawul" } : null; }).filter(Boolean) });
       window.__qaLLM = [
         { holdings: [{ name: "ALRAJHI", ticker: "1120", exchange: "TASI", instrument: "saham", market_value: "⃁ 5,570.40", quantity: "88", avg_cost: "⃁ 65.14", total_cost: "⃁ 5,731.91", gain: "⃁ -161.51", last_price: "⃁ 63.30" }] },
-        { holdings: [{ name: "SABIC", ticker: "2010", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: "10", total_cost: "⃁ 700.00", last_price: "⃁ 70.00" }] },
-        priceBy({ SABIC: "140.00" }), // salah instrumen → harus ditolak
+        // SABIC: layar tanpa harga & nilai pasar (mis. daftar terpotong) → butuh pelengkap
+        { holdings: [{ name: "SABIC", ticker: "2010", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: "10", total_cost: "⃁ 700.00" }] },
+        priceBy({ SABIC: "140.00" }), // salah instrumen (2× harga rata-rata beli) → harus ditolak
         priceBy({ SABIC: "71.20", ALRAJHI: "63.45" }), // wajar → dipakai
       ];
     });
@@ -549,25 +550,70 @@ try {
     const sab = page.locator("li.surface", { hasText: "SABIC" });
     const t1 = (await alr.innerText()).replace(/\s+/g, " ");
     assert.ok(/5,570\.40/.test(t1) && /5,731\.91/.test(t1), `Nilai pasar & modal dari teks ⃁ terbaca: ${t1}`);
-    assert.ok(/700\.00/.test((await sab.innerText()).replace(/\s+/g, " ")), "Nilai = jumlah × harga terakhir di gambar");
-    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    assert.ok(await sab.getByText(/Nilai pasar belum terbaca/).isVisible(), "SABIC ditandai belum bernilai");
+    // Hanya SABIC (tanpa nilai) yang ditawari harga online; ALRAJHI dari broker tidak disentuh.
+    assert.equal(await alr.getByRole("button", { name: /Perkiraan online/ }).count(), 0, "Baris bernilai broker tidak ditawari online");
+    await sab.getByRole("button", { name: /Perkiraan online/ }).click();
     await page.waitForTimeout(900);
     const toasts = (await page.locator("[data-sonner-toast]").allInnerTexts()).join(" | ").replace(/\s+/g, " ");
     assert.ok(/SABIC.*Selisih 100%/.test(toasts), `Harga tidak wajar ditolak, bukan dipakai — toast: ${toasts}`);
-    assert.ok(!/Harga online/.test(await sab.innerText()), "SABIC tidak berubah");
-    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    assert.ok(!/Perkiraan online ·/.test(await sab.innerText()), "SABIC tidak berubah");
+    await sab.getByRole("button", { name: /Perkiraan online/ }).click();
     await page.waitForTimeout(900);
     const t2 = (await sab.innerText()).replace(/\s+/g, " ");
-    assert.ok(/712\.00/.test(t2) && /Harga online · Tadawul/.test(t2), `Harga online wajar dipakai (10 × 71,20): ${t2}`);
+    assert.ok(/712\.00/.test(t2) && /Perkiraan online · Tadawul/.test(t2), `Harga online wajar dipakai (10 × 71,20): ${t2}`);
     const t3 = (await alr.innerText()).replace(/\s+/g, " ");
-    assert.ok(/5,583\.60/.test(t3) && /5,731\.91/.test(t3), `ALRAJHI: 88 × 63,45, modal tetap: ${t3}`);
+    assert.ok(/5,570\.40/.test(t3), `ALRAJHI tetap nilai dari broker: ${t3}`);
     await page.getByRole("button", { name: /Simpan 2 aset/ }).click();
     await page.waitForTimeout(1300);
     const a = await page.evaluate(() => window.__qa.assets);
     const s1 = a.find((x) => x.ticker === "2010");
     assert.equal(s1.value, 712); assert.equal(s1.last_price, 71.2); assert.equal(s1.purchase_price, 700);
     const r1 = a.filter((x) => x.ticker === "1120");
-    assert.equal(r1.length, 1); assert.equal(r1[0].value, 5583.6); assert.equal(r1[0].purchase_price, 5731.91);
+    assert.equal(r1.length, 1); assert.equal(r1[0].value, 5570.4, "Nilai broker dipertahankan"); assert.equal(r1[0].purchase_price, 5731.91);
+    assert.equal(r1[0].value_source, "broker"); assert.equal(s1.value_source, "online");
+  });
+
+  await step("Lot sebagai daftar datar (aset BARU) → tersimpan, tampil di kartu Aset & Riwayat DCA, sinkron dengan DCA manual", async () => {
+    await page.evaluate(() => { window.__qaLLM = [
+      { holdings: [{ name: "KINGDOM", ticker: "4280", exchange: "TASI", instrument: "saham", market_value: "⃁ 960.00", quantity: "100", total_cost: "⃁ 900.00", last_price: "⃁ 9.60" }] },
+      // Layar lot: holdings hanya judul, lot di daftar terpisah tingkat atas
+      { holdings: [{ name: "KINGDOM", ticker: "4280", last_price: "⃁ 9.60" }], lots: [
+        { ticker: "4280", date: "10 Mar 2026", side: "Buy", quantity: "60.0000", price: "9.0000" },
+        { ticker: "4280", date: "12 Jan 2026", side: "Buy", quantity: "40.0000", price: "9.0000" },
+      ] },
+    ]; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "details.png", mimeType: "image/png", buffer: png }, { name: "lots.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1500);
+    assert.ok(await page.getByText("1 kepemilikan · 2 lot").isVisible(), "Kartu berkas menampilkan jumlah lot terbaca");
+    assert.ok(await page.getByText(/Riwayat lot lengkap: 100 dari 100/).isVisible(), "Lot lengkap = total");
+    await page.getByRole("button", { name: /Simpan 1 aset/ }).click();
+    await page.waitForTimeout(1500);
+    const st = await page.evaluate(() => { const a = window.__qa.assets.find((x) => x.ticker === "4280"); return { a, lots: (window.__qaData.InvestmentLot || []).filter((l) => l.asset_id === a.id) }; });
+    assert.ok(st.a.id, "Aset baru punya id");
+    assert.equal(st.lots.length, 2, "Lot tersimpan untuk aset baru");
+    assert.equal(st.a.purchase_date, "2026-01-12");
+    // Kartu Aset menampilkan Riwayat DCA dari data lot yang sama
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    const card = page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first();
+    assert.ok(/Riwayat DCA · 2 lot, sejak 12 Jan 2026/.test((await card.innerText()).replace(/\s+/g, " ")), "Ringkasan DCA di kartu aset");
+    await card.getByRole("link", { name: /Riwayat DCA/ }).click();
+    await page.waitForTimeout(700);
+    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
+    await page.getByRole("button", { name: /Catat pembelian/ }).click();
+    await page.fill("#investment-lot-quantity", "5");
+    await page.fill("#investment-lot-price", "9.5");
+    await page.getByRole("button", { name: /Simpan pembelian/ }).click();
+    await page.waitForTimeout(900);
+    await nav("/aset");
+    await page.waitForTimeout(600);
+    const t = (await page.locator("div.surface", { hasText: "KINGDOM (4280)" }).first().innerText()).replace(/\s+/g, " ");
+    assert.ok(/Riwayat DCA · 3 lot/.test(t), `DCA manual langsung tampil di kartu aset: ${t}`);
+    const a2 = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "4280"));
+    assert.equal(a2.quantity, 105, "100 + 5 lembar");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

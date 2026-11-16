@@ -200,10 +200,13 @@ export function holdingToAsset(h, { visibility = "shared", existing = null, toda
     purchase_price: isGold ? round4(h.avg_cost || 0) : round2(h.total_cost || 0),
     broker: h.platform || existing?.broker || "",
     ticker: h.ticker || existing?.ticker || "",
+    exchange: h.exchange || existing?.exchange || undefined,
     instrument: isGold ? undefined : h.instrument,
     last_price: h.last_price ? round4(h.last_price) : undefined,
     price_date: priceDate,
     import_source: src,
+    // Nilai dari layar broker = sumber utama. Bila dilengkapi harga online saat impor → "online".
+    value_source: h.price_source ? "online" : "broker",
   };
   // Tanggal beli = lot beli paling awal (untuk emas, dipakai menghitung haul zakat).
   const firstBuy = lotSummary(h.lots || []).firstDate;
@@ -245,7 +248,7 @@ Untuk tiap holding isi:
 - platform: nama aplikasi/broker bila terlihat (mis. "Al Rajhi Capital", "Bibit", "Derayah"); kosongkan bila tidak jelas
 - as_of: tanggal data bila tertera (yyyy-mm-dd), mis. "Data per 04 Nov 2026" → 2026-11-04
 
-- lots: bila layar menampilkan riwayat pembelian per lot (Lots Breakdown / riwayat transaksi beli-jual / riwayat dompet emas), isi SETIAP baris: date (yyyy-mm-dd), side ("buy"/"sell"), quantity, price (harga per unit/gram). Tempelkan lot pada holding yang judulnya tampil di layar itu (mis. ALRAJHI 1120). Layar rincian lot boleh hanya berisi name/ticker/last_price + lots tanpa angka lain.
+RIWAYAT LOT (daftar "lots" di tingkat atas, TERPISAH dari "holdings"): bila layar menampilkan riwayat pembelian per lot (Lots Breakdown, riwayat transaksi beli/jual, riwayat dompet emas), masukkan SETIAP baris ke "lots": ticker & name instrumen (dari judul layar, mis. "1120"/"ALRAJHI"), date (yyyy-mm-dd, mis. "13 May 2026" → 2026-05-13), side ("buy"/"sell"), quantity, price (harga per unit/gram), currency. Jangan lewatkan satu baris pun. Pada layar lot, "holdings" cukup berisi name/ticker/last_price dari judul.
 
 Pemetaan layar rincian (Details) broker: Market Value → market_value; Quantity → quantity; Avg. Cost / Avg. Price PL → avg_cost (pilih yang paling banyak desimal); Total Cost / Cost Value PL → total_cost (pilih yang paling banyak desimal); Gain/Loss / UPL PL → gain; harga besar di judul (mis. ⃁ 63.30) → last_price.
 Layar "Lots Breakdown" hanya berisi lots + harga judul — jangan mengosongkan angka dari layar Details lain; tiap layar dibaca terpisah.
@@ -270,11 +273,16 @@ export const HOLDINGS_SCHEMA = {
           quantity: NUM_T, avg_cost: NUM_T, total_cost: NUM_T,
           last_price: NUM_T, market_value: NUM_T, gain: NUM_T,
           platform: { type: "string" }, as_of: { type: "string" },
-          lots: {
-            type: "array",
-            items: { type: "object", properties: { date: { type: "string" }, side: { type: "string" }, quantity: NUM_T, price: NUM_T } },
-          },
         },
+      },
+    },
+    // Lot sebagai daftar terpisah (tidak bersarang di holding) — model lebih
+    // andal mengisi array datar. attachLots() menempelkannya ke holding.
+    lots: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { ticker: { type: "string" }, name: { type: "string" }, date: { type: "string" }, side: { type: "string" }, quantity: NUM_T, price: NUM_T, currency: { type: "string" } },
       },
     },
   },
@@ -365,3 +373,57 @@ export function validateLivePrice(p, it, today = new Date()) {
   return { ...base, ok: true, reason: "" };
 }
 
+
+/**
+ * Hasil AI satu berkas → daftar holding mentah dengan lot terpasang.
+ * Lot boleh datang (a) di dalam holding atau (b) sebagai daftar terpisah
+ * di tingkat atas `lots` (lebih andal dibaca model). (b) ditempel ke holding
+ * dengan kode/nama sama; bila layar hanya punya satu holding, ke holding itu;
+ * bila tak ada holding sama sekali, dibuat holding ringkas dari info lot.
+ */
+export function attachLots(data = {}) {
+  const holdings = (data.holdings || []).filter((h) => h && (h.name || h.ticker)).map((h) => ({ ...h, lots: [...(h.lots || [])] }));
+  const flat = (data.lots || []).filter(Boolean);
+  const keyH = (h) => String(h.ticker || "").trim().toUpperCase() || normName(h.name);
+  for (const l of flat) {
+    const k = String(l.ticker || "").trim().toUpperCase() || normName(l.name);
+    let h = (k && holdings.find((x) => keyH(x) === k || (l.name && normName(x.name) && normName(l.name).startsWith(normName(x.name)))))
+      || (holdings.length === 1 ? holdings[0] : null);
+    if (!h) {
+      if (!l.ticker && !l.name) continue;
+      h = { name: l.name || "", ticker: l.ticker || "", currency: l.currency || "", lots: [] };
+      holdings.push(h);
+    }
+    h.lots.push({ date: l.date, side: l.side, quantity: l.quantity, price: l.price });
+  }
+  return holdings;
+}
+
+// ─── ASAL NILAI PASAR ───────────────────────────────────────────────────
+// Prioritas: broker (aplikasi tempat beli) > manual > online (perkiraan).
+
+/** Sumber harga resmi yang dipakai broker/aplikasi tempat membeli. */
+export function brokerPriceSource({ broker = "", exchange = "", instrument = "", currency = "" } = {}) {
+  const b = broker.toLowerCase(), x = exchange.toUpperCase();
+  if (/rajhi|derayah|snb|alinma|riyad|albilad|aljazira|sab invest|saudi fransi/.test(b) || x === "TASI" || x === "NOMU") {
+    if (instrument === "reksadana") return `NAV resmi dana di situs pengelola/${broker || "broker Saudi"} (bukan harga bursa)`;
+    if (x && x !== "TASI" && x !== "NOMU") return `harga penutupan bursa ${x} sebagaimana ditampilkan ${broker || "broker"}`;
+    return "harga resmi Saudi Exchange (saudiexchange.sa / Tadawul) — sama dengan yang ditampilkan Al Rajhi Capital";
+  }
+  if (/bibit|bareksa|ajaib|ipot|stockbit|mandiri|bni|bca|bri/.test(b) || currency === "IDR") {
+    if (instrument === "reksadana") return `NAB/unit resmi terbaru (situs manajer investasi, Bibit/Bareksa, atau KSEI)`;
+    return "harga penutupan resmi Bursa Efek Indonesia (idx.co.id)";
+  }
+  if (x === "ARCA" || x === "NYSE" || x === "NASDAQ" || currency === "USD") return `harga penutupan resmi bursa AS (${x || "NYSE/NASDAQ"})`;
+  return "sumber resmi bursa/pengelola instrumen";
+}
+
+/** Label asal nilai untuk ditampilkan di kartu aset & halaman investasi. */
+export function valueSourceInfo(asset = {}) {
+  const date = asset.price_date ? String(asset.price_date).slice(0, 10) : "";
+  const src = asset.value_source || (/^Harga online/.test(asset.import_source || "") ? "online" : asset.import_source ? "broker" : "manual");
+  const broker = asset.broker || String(asset.import_source || "").replace(/\s*·\s*impor$/, "");
+  if (src === "broker") return { kind: "broker", label: `Dari ${broker || "aplikasi broker"}`, date };
+  if (src === "online") return { kind: "online", label: "Perkiraan harga online", date };
+  return { kind: "manual", label: "Diisi manual", date };
+}

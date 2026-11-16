@@ -149,16 +149,17 @@ const FN = {
   deleteAssetWithLots: ({ asset_id }) => { db.assets = db.assets.filter((a) => a.id !== asset_id); return { ok: true }; },
 };
 const entity = (name) => ({
-  list: async () => DATA[name] || [],
+  list: async () => (DATA[name] || []).map((r) => ({ ...r })),
   // Filter sederhana: kecocokan nilai persis per kunci (cukup untuk asset_id, created_by_id).
   filter: async (q = {}) => (DATA[name] || []).filter((r) => Object.entries(q || {}).every(([k, v]) => r[k] === v)).map((r) => ({ ...r })), get: async () => (DATA[name] || [])[0] || null,
   create: async (o) => {
-    const r = { id: id(), created_by_id: "u1", ...o };
+    const ts = new Date().toISOString(); // seperti server: tanggal dibuat/diubah otomatis
+    const r = { id: id(), created_by_id: "u1", created_date: ts, updated_date: ts, ...o };
     if (name === "Asset") db.assets.push(r); else (DATA[name] ||= []).push(r);
     return r;
   },
   bulkCreate: async (a) => a,
-  update: async (i, o) => { const list = name === "Asset" ? db.assets : name === "Transaction" ? db.tx : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o); return { id: i, ...o }; },
+  update: async (i, o) => { const list = name === "Asset" ? db.assets : name === "Transaction" ? db.tx : DATA[name] || []; const r = list.find((x) => x.id === i); if (r) Object.assign(r, o, { updated_date: new Date().toISOString() }); return { id: i, ...o }; },
   updateMany: async () => ({}),
   delete: async (i) => { DATA[name] = (DATA[name] || []).filter((r) => r.id !== i); return {}; },
   subscribe: () => () => {},

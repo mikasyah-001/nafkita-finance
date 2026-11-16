@@ -57,6 +57,10 @@
       "type": "string",
       "description": "Kode efek/instrumen (mis. 1120, 2222, SPUS) — kunci pencocokan saat impor ulang portofolio"
     },
+    "exchange": {
+      "type": "string",
+      "description": "Bursa efek (mis. TASI, ARCA) — menentukan sumber harga resmi"
+    },
     "instrument": {
       "type": "string",
       "enum": ["saham", "reksadana", "etf", "sukuk", "lainnya"],
@@ -70,6 +74,11 @@
       "type": "string",
       "format": "date",
       "description": "Tanggal harga/nilai pasar terakhir"
+    },
+    "value_source": {
+      "type": "string",
+      "enum": ["broker", "online", "manual"],
+      "description": "Asal nilai pasar terakhir: broker (impor dari aplikasi tempat beli — utama), online (perkiraan harga internet), manual"
     },
     "import_source": {
       "type": "string",

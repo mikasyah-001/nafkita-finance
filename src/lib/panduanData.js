@@ -306,6 +306,21 @@ export const panduanCategories = [
         tips: "Gunakan filter jenis perubahan untuk menyaring mutasi spesifik (mis. hanya transaksi atau hanya rekonsiliasi).",
       },
       {
+        to: "/impor-portofolio",
+        icon: Upload,
+        name: "Impor Portofolio",
+        short: "Saham, reksa dana, ETF & emas dari foto/PDF aplikasi broker",
+        description: "Masukkan kepemilikan investasi dari aplikasi lain (mis. Al Rajhi Capital, Derayah, Bibit, dompet emas) cukup dengan screenshot atau laporan PDF — tanpa mengetik satu per satu.",
+        howItWorks: "AI membaca nama, kode, jumlah unit, modal, harga terakhir, dan nilai pasar tiap kepemilikan. Data yang sama dari beberapa screenshot (mis. daftar + rincian) digabung; angka yang tertera di aplikasi diutamakan daripada hasil hitungan. Kepemilikan yang sudah pernah diimpor dicocokkan lewat kode/nama dan mata uang, lalu DIPERBARUI — bukan diduplikasi. Saham/reksa dana/ETF tersimpan sebagai Investasi (modal total), emas digital sebagai Emas digital (harga beli per gram).",
+        steps: [
+          "Buka Aset → Impor portofolio investasi",
+          "Pilih satu atau beberapa screenshot/PDF portofolio",
+          "Periksa daftar hasil baca: centang yang ingin disimpan, ketuk Ubah bila ada angka yang keliru",
+          "Ketuk Simpan — aset baru dibuat, aset lama diperbarui",
+        ],
+        tips: "Impor ulang tiap bulan untuk memperbarui nilai pasar. Untuk modal yang akurat, sertakan screenshot rincian per saham (Total Cost / Gain). Nama, jangkauan & catatan aset lama tidak diubah saat diperbarui.",
+      },
+      {
         to: "/aset-dashboard",
         icon: Layers,
         name: "Dasbor Aset",

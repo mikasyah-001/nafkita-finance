@@ -522,6 +522,48 @@ try {
     assert.equal(x.quantity, 90, "Lot impor dihapus → total tetap");
   });
 
+  await step("Impor: angka teks ber-simbol ⃁ terbaca; baris tanpa nilai pasar dilengkapi harga online tervalidasi", async () => {
+    await page.evaluate(() => {
+      const t = new Date().toISOString().slice(0, 10);
+      // Jawab harga per instrumen berdasarkan nomor urut di prompt (bukan urutan tetap).
+      const priceBy = (prices) => ({ prompt }) => ({ prices: prompt.split("\n").map((l) => l.match(/^(\d+)\. (.*)$/)).filter(Boolean)
+        .map(([, i, txt]) => { const hit = Object.keys(prices).find((k) => txt.includes(k)); return hit ? { index: i, price: prices[hit], currency: "SAR", as_of: t, source: "Tadawul" } : null; }).filter(Boolean) });
+      window.__qaLLM = [
+        { holdings: [{ name: "ALRAJHI", ticker: "1120", exchange: "TASI", instrument: "saham", market_value: "⃁ 5,570.40", quantity: "88", avg_cost: "⃁ 65.14", total_cost: "⃁ 5,731.91", gain: "⃁ -161.51", last_price: "⃁ 63.30" }] },
+        { holdings: [{ name: "SABIC", ticker: "2010", exchange: "TASI", instrument: "saham", currency: "SAR", quantity: "10", total_cost: "⃁ 700.00", last_price: "⃁ 70.00" }] },
+        priceBy({ SABIC: "140.00" }), // salah instrumen → harus ditolak
+        priceBy({ SABIC: "71.20", ALRAJHI: "63.45" }), // wajar → dipakai
+      ];
+    });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    await nav("/impor-portofolio");
+    await page.locator('input[aria-label="Berkas portofolio"]').setInputFiles([{ name: "IMG_9628.png", mimeType: "image/png", buffer: png }, { name: "sabic.png", mimeType: "image/png", buffer: png }]);
+    await page.waitForTimeout(1500);
+    const alr = page.locator("li.surface", { hasText: "ALRAJHI" });
+    const sab = page.locator("li.surface", { hasText: "SABIC" });
+    const t1 = (await alr.innerText()).replace(/\s+/g, " ");
+    assert.ok(/5,570\.40/.test(t1) && /5,731\.91/.test(t1), `Nilai pasar & modal dari teks ⃁ terbaca: ${t1}`);
+    assert.ok(/700\.00/.test((await sab.innerText()).replace(/\s+/g, " ")), "Nilai = jumlah × harga terakhir di gambar");
+    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    await page.waitForTimeout(900);
+    const toasts = (await page.locator("[data-sonner-toast]").allInnerTexts()).join(" | ").replace(/\s+/g, " ");
+    assert.ok(/SABIC.*Selisih 100%/.test(toasts), `Harga tidak wajar ditolak, bukan dipakai — toast: ${toasts}`);
+    assert.ok(!/Harga online/.test(await sab.innerText()), "SABIC tidak berubah");
+    await page.getByRole("button", { name: "Pakai harga online hari ini" }).click();
+    await page.waitForTimeout(900);
+    const t2 = (await sab.innerText()).replace(/\s+/g, " ");
+    assert.ok(/712\.00/.test(t2) && /Harga online · Tadawul/.test(t2), `Harga online wajar dipakai (10 × 71,20): ${t2}`);
+    const t3 = (await alr.innerText()).replace(/\s+/g, " ");
+    assert.ok(/5,583\.60/.test(t3) && /5,731\.91/.test(t3), `ALRAJHI: 88 × 63,45, modal tetap: ${t3}`);
+    await page.getByRole("button", { name: /Simpan 2 aset/ }).click();
+    await page.waitForTimeout(1300);
+    const a = await page.evaluate(() => window.__qa.assets);
+    const s1 = a.find((x) => x.ticker === "2010");
+    assert.equal(s1.value, 712); assert.equal(s1.last_price, 71.2); assert.equal(s1.purchase_price, 700);
+    const r1 = a.filter((x) => x.ticker === "1120");
+    assert.equal(r1.length, 1); assert.equal(r1[0].value, 5583.6); assert.equal(r1[0].purchase_price, 5731.91);
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

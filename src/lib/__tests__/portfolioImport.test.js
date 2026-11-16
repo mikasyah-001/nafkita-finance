@@ -169,3 +169,37 @@ test("Impor ulang hanya membuat lot yang belum ada (termasuk DCA manual yang sam
   const todo = lotsToCreate(lots, existing);
   assert.deepEqual(todo.map((l) => l.date), ["2026-07-08", "2026-06-05", "2026-05-13"]);
 });
+
+// ── Angka berupa teks apa adanya dari AI (penyebab nilai pasar 0 di HP) ──
+import { num } from "../portfolioImport.js";
+test("Angka teks dengan simbol riyal & format lokal terbaca", () => {
+  assert.equal(num("⃁ 5,570.40"), 5570.4);
+  assert.equal(num("⃁ -161.51"), -161.51);
+  assert.equal(num("(319.91)"), -319.91);
+  assert.equal(num("Rp 22.287.562,64", "IDR"), 22287562.64);
+  assert.equal(num("Rp 537.562", "IDR"), 537562);
+  assert.equal(num("1,782", "SAR"), 1782);
+  assert.equal(num("0,5", "IDR"), 0.5);
+  assert.equal(num("9.0866"), 9.0866);
+  assert.equal(num("—"), null);
+});
+test("Layar Details ALRAJHI (angka teks) → nilai pasar & modal terisi", () => {
+  const h = normalizeHolding({ name: "ALRAJHI", ticker: "1120", market_value: "⃁ 5,570.40", quantity: "88", avg_cost: "⃁ 65.14", total_cost: "⃁ 5,731.91", gain: "⃁ -161.51", last_price: "⃁ 63.30" });
+  assert.equal(h.currency, "SAR", "Mata uang ditebak dari simbol");
+  assert.equal(h.market_value, 5570.4);
+  assert.equal(h.total_cost, 5731.91);
+  assert.equal(h.gain, -161.51);
+  assert.deepEqual(h.warnings, []);
+});
+
+// ── Harga online: validasi sebelum dipakai ──
+import { validateLivePrice } from "../portfolioImport.js";
+test("Harga online divalidasi: mata uang, selisih wajar, kebaruan", () => {
+  const it = { ticker: "1120", currency: "SAR", ref_price: 63.3 };
+  const now = new Date("2026-11-16");
+  assert.equal(validateLivePrice({ price: "63.45", currency: "SAR", as_of: "2026-11-16" }, it, now).ok, true);
+  assert.equal(validateLivePrice({ price: "16.9", currency: "USD", as_of: "2026-11-16" }, it, now).ok, false, "Mata uang beda");
+  assert.match(validateLivePrice({ price: "126.6", currency: "SAR", as_of: "2026-11-16" }, it, now).reason, /Selisih 100%/);
+  assert.match(validateLivePrice({ price: "63", currency: "SAR", as_of: "2026-10-01" }, it, now).reason, /Data lama/);
+  assert.equal(validateLivePrice({ price: "", currency: "SAR" }, it, now).ok, false);
+});

@@ -13,11 +13,12 @@ import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus, Upload, ChevronRight } from "lucide-react";
+import { Landmark, Trash2, Coins, TrendingUp, TrendingDown, Calendar, BarChart3, Users, Lock, Pencil, ArrowUpDown, Receipt, Filter, Layers, Eye, EyeOff, History, ChevronDown, Globe, AlertTriangle, Plus, Upload, ChevronRight, Loader2 } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import { refreshAssetPrices } from "@/lib/livePrice";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import ZakatSummaryCard from "@/components/ZakatSummaryCard";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
@@ -50,6 +51,20 @@ export default function Assets() {
   const { scope, setScope } = useScope();
   const [sortBy, setSortBy] = useState("updated");
   const [viewProof, setViewProof] = useState(null);
+  const [livePricing, setLivePricing] = useState(false);
+  const priceable = assets.filter((a) => a.type === "investasi" && Number(a.quantity) > 0 && (a.ticker || a.name));
+  const handleLivePrices = async () => {
+    setLivePricing(true);
+    try {
+      const { updated, skipped } = await refreshAssetPrices(priceable, (id, patch) => base44.entities.Asset.update(id, patch));
+      refresh();
+      if (updated.length) toast.success(`${updated.length} harga diperbarui`, { description: skipped.length ? `Dilewati: ${skipped.map((x) => `${x.asset.name} (${x.reason})`).join(", ")}` : undefined });
+      else toast.error("Belum ada harga yang bisa dipakai", { description: skipped.map((x) => `${x.asset.name}: ${x.reason}`).join(" · ") });
+    } catch (e) {
+      toast.error("Gagal mencari harga online", { description: e?.message });
+    }
+    setLivePricing(false);
+  };
   const [typeFilter, setTypeFilter] = useState("all");
   const [visibleCount, setVisibleCount] = useState(10);
   const { hidden, toggle } = usePrivacy();
@@ -150,6 +165,13 @@ export default function Assets() {
         </span>
         <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
       </Link>
+      {priceable.length > 0 && (
+        <button onClick={handleLivePrices} disabled={livePricing}
+          className="w-full -mt-2 mb-4 h-10 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60 active:scale-[0.99] transition-transform">
+          {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+          {livePricing ? "Mencari harga terbaru…" : `Perbarui harga online (${priceable.length} investasi)`}
+        </button>
+      )}
 
       <div className="rounded-3xl card-gradient-primary p-5 mb-4 shadow-lg">
         <div className="flex items-center justify-between mb-1">

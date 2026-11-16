@@ -14,17 +14,31 @@ export const INSTRUMENTS = {
   lainnya: "Lainnya",
 };
 
-const num = (v) => {
+// Angka dari AI bisa berupa number atau teks apa adanya ("⃁ 5,570.40",
+// "Rp 22.287.562,64", "-161.51", "(319.91)"). Dibersihkan di sini, bukan oleh AI.
+export const num = (v, currency = "") => {
   if (v == null || v === "") return null;
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  // "1,782.99" / "1.782,99" / "Rp 22.287.562,64"
-  let s = String(v).replace(/[^\d.,-]/g, "");
-  if (!s) return null;
+  const raw = String(v).trim();
+  const neg = /^\(.*\)$/.test(raw) || /[-−–]\s*[\d.,]/.test(raw);
+  let s = raw.replace(/[^\d.,]/g, "");
+  if (!s || !/\d/.test(s)) return null;
+  const dots = (s.match(/\./g) || []).length, commas = (s.match(/,/g) || []).length;
   const lastComma = s.lastIndexOf(","), lastDot = s.lastIndexOf(".");
-  if (lastComma > lastDot) s = s.replace(/\./g, "").replace(",", ".");
-  else s = s.replace(/,/g, "");
+  if (dots && commas) {
+    s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  } else if (dots > 1) {
+    s = s.replace(/\./g, ""); // 22.287.562
+  } else if (commas > 1) {
+    s = s.replace(/,/g, ""); // 1,782,990
+  } else if (commas === 1) {
+    // "1,782" ribuan (format Inggris) vs "0,5" desimal (format Indonesia)
+    s = /^\d{1,3},\d{3}$/.test(s) && String(currency).toUpperCase() !== "IDR" ? s.replace(",", "") : s.replace(",", ".");
+  } else if (dots === 1 && String(currency).toUpperCase() === "IDR" && /^\d{1,3}\.\d{3}$/.test(s)) {
+    s = s.replace(".", ""); // Rp 537.562 → ribuan
+  }
   const n = Number(s);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? (neg ? -n : n) : null;
 };
 
 export function normalizeCurrency(raw, fallback = "IDR") {
@@ -35,6 +49,15 @@ export function normalizeCurrency(raw, fallback = "IDR") {
   if (s.includes("IDR") || s.startsWith("RP")) return "IDR";
   if (/^[A-Z]{3}$/.test(s)) return s;
   return fallback;
+}
+
+// Bila AI tak mengisi mata uang, tebak dari simbol pada angka mentah.
+function guessCurrency(raw) {
+  const t = ["market_value", "last_price", "avg_cost", "total_cost"].map((k) => String(raw[k] ?? "")).join(" ");
+  if (/\u20C1|SAR|ر\.س/.test(t)) return "SAR";
+  if (/\$|USD/.test(t)) return "USD";
+  if (/Rp|IDR/i.test(t)) return "IDR";
+  return "";
 }
 
 const normName = (s) => String(s || "").toLowerCase().replace(/\.{2,}|…/g, "").replace(/[^a-z0-9]+/g, " ").trim();
@@ -53,17 +76,13 @@ export function normalizeHolding(raw, defaults = {}) {
     ticker: String(raw.ticker || "").trim().toUpperCase(),
     exchange: String(raw.exchange || "").trim().toUpperCase(),
     instrument,
-    currency: normalizeCurrency(raw.currency, defaults.currency || "IDR"),
+    currency: normalizeCurrency(raw.currency || guessCurrency(raw), defaults.currency || "IDR"),
     quantity: num(raw.quantity),
-    avg_cost: num(raw.avg_cost),
-    total_cost: num(raw.total_cost),
-    last_price: num(raw.last_price),
-    market_value: num(raw.market_value),
-    gain: num(raw.gain),
     platform: String(raw.platform || defaults.platform || "").trim(),
     as_of: String(raw.as_of || defaults.as_of || "").slice(0, 10),
   };
   h.lots = mergeLots((raw.lots || []).map(normalizeLot));
+  for (const k of ["avg_cost", "total_cost", "last_price", "market_value", "gain"]) h[k] = num(raw[k], h.currency);
   // Angka yang benar-benar tertera (bukan hasil hitung) — dipakai saat menggabung.
   h.given = NUMS.filter((k) => h[k] != null);
   return reconcileHolding(h);
@@ -228,8 +247,15 @@ Untuk tiap holding isi:
 
 - lots: bila layar menampilkan riwayat pembelian per lot (Lots Breakdown / riwayat transaksi beli-jual / riwayat dompet emas), isi SETIAP baris: date (yyyy-mm-dd), side ("buy"/"sell"), quantity, price (harga per unit/gram). Tempelkan lot pada holding yang judulnya tampil di layar itu (mis. ALRAJHI 1120). Layar rincian lot boleh hanya berisi name/ticker/last_price + lots tanpa angka lain.
 
-Angka: tulis sebagai number murni (titik desimal), tanpa simbol mata uang/pemisah ribuan. Jangan menebak angka yang tidak terlihat — kosongkan.
+Pemetaan layar rincian (Details) broker: Market Value → market_value; Quantity → quantity; Avg. Cost / Avg. Price PL → avg_cost (pilih yang paling banyak desimal); Total Cost / Cost Value PL → total_cost (pilih yang paling banyak desimal); Gain/Loss / UPL PL → gain; harga besar di judul (mis. ⃁ 63.30) → last_price.
+Layar "Lots Breakdown" hanya berisi lots + harga judul — jangan mengosongkan angka dari layar Details lain; tiap layar dibaca terpisah.
+
+Angka: salin PERSIS seperti tertera sebagai teks (boleh dengan simbol/pemisah ribuan, mis. "⃁ 5,570.40", "-161.51", "Rp 22.287.562,64"). Jangan menebak angka yang tidak terlihat — kosongkan.
 Jawab HANYA JSON sesuai skema.`;
+
+// Angka diminta sebagai TEKS apa adanya: model sering gagal mengubah "⃁ 5,570.40"
+// menjadi number lalu mengosongkannya. Teks dibersihkan oleh num().
+const NUM_T = { type: "string" };
 
 export const HOLDINGS_SCHEMA = {
   type: "object",
@@ -241,12 +267,12 @@ export const HOLDINGS_SCHEMA = {
         properties: {
           name: { type: "string" }, ticker: { type: "string" }, exchange: { type: "string" },
           instrument: { type: "string" }, currency: { type: "string" },
-          quantity: { type: "number" }, avg_cost: { type: "number" }, total_cost: { type: "number" },
-          last_price: { type: "number" }, market_value: { type: "number" }, gain: { type: "number" },
+          quantity: NUM_T, avg_cost: NUM_T, total_cost: NUM_T,
+          last_price: NUM_T, market_value: NUM_T, gain: NUM_T,
           platform: { type: "string" }, as_of: { type: "string" },
           lots: {
             type: "array",
-            items: { type: "object", properties: { date: { type: "string" }, side: { type: "string" }, quantity: { type: "number" }, price: { type: "number" } } },
+            items: { type: "object", properties: { date: { type: "string" }, side: { type: "string" }, quantity: NUM_T, price: NUM_T } },
           },
         },
       },
@@ -318,3 +344,24 @@ export function lotsToCreate(lots = [], existingLots = []) {
   const have = new Set(existingLots.map((l) => lotKey({ date: String(l.date || "").slice(0, 10), side: l.side || "buy", quantity: l.quantity, price: l.price_per_unit })));
   return lots.filter((l) => !have.has(lotKey(l)));
 }
+
+// ─── HARGA ONLINE: validasi (murni) ─────────────────────────────────────
+export const MAX_DEVIATION = 0.35; // >35% dari harga terakhir diketahui → curigai salah instrumen
+
+/** Validasi satu harga online terhadap instrumen yang diminta. */
+export function validateLivePrice(p, it, today = new Date()) {
+  const price = num(p.price, it.currency);
+  const currency = normalizeCurrency(p.currency, it.currency);
+  const base = { price, currency, as_of: String(p.as_of || "").slice(0, 10), source: p.source || "", url: p.url || "" };
+  if (!(price > 0)) return { ...base, ok: false, reason: "Harga tidak ditemukan" };
+  if (currency !== (it.currency || "").toUpperCase()) return { ...base, ok: false, reason: `Mata uang ${currency} ≠ ${it.currency}` };
+  if (it.ref_price > 0 && Math.abs(price - it.ref_price) / it.ref_price > MAX_DEVIATION) {
+    return { ...base, ok: false, reason: `Selisih ${Math.round((Math.abs(price - it.ref_price) / it.ref_price) * 100)}% dari harga terakhir — mungkin instrumen lain` };
+  }
+  if (base.as_of) {
+    const age = (today - new Date(base.as_of)) / 864e5;
+    if (age > 10) return { ...base, ok: false, reason: `Data lama (${base.as_of})` };
+  }
+  return { ...base, ok: true, reason: "" };
+}
+

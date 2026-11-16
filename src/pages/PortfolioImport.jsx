@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   Upload, Loader2, Check, AlertTriangle, FileText, Image as ImageIcon, X, Pencil, RefreshCw,
-  Sparkles, TrendingUp, TrendingDown, Plus, ShieldCheck,
+  Sparkles, TrendingUp, TrendingDown, Plus, ShieldCheck, Globe,
 } from "lucide-react";
+import { fetchLivePrices } from "@/lib/livePrice";
 import PageHeader from "@/components/PageHeader";
 import { ChipChoice } from "@/components/FormSheet";
 import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
@@ -93,12 +94,14 @@ export default function PortfolioImport() {
     // hanya menambah riwayat lot, total aset tidak disentuh.
     const lotsOnly = !!existing && !(h.market_value > 0) && h.lots?.length > 0;
     const lotInfo = h.lots?.length ? lotSummary(h.lots, lotsOnly ? existing.quantity : h.quantity) : null;
-    const warnings = lotsOnly ? (h.warnings || []).filter((w) => !/Nilai pasar/.test(w)) : h.warnings;
+    // "Nilai pasar belum ada" sudah ditangani kotak aksi di kartu → tidak diulang.
+    const warnings = (h.warnings || []).filter((w) => !/Nilai pasar belum ada/.test(w));
     return { ...h, existing, lotsOnly, lotInfo, warnings };
   }), [rows, assets, platform]);
 
   const chosen = view.filter((r) => r.include);
-  const totals = summarize(chosen);
+  // Ringkasan hanya dari baris yang sudah bernilai (hindari "⃁ 0,00" menyesatkan).
+  const totals = summarize(chosen.filter((r) => r.market_value > 0));
   const nNew = chosen.filter((r) => !r.existing).length;
   const nUpd = chosen.length - nNew;
   const inactive = [...new Set(chosen.map((r) => r.currency))].filter((c) => !userCurrencies.some((u) => u.code === c));
@@ -110,10 +113,48 @@ export default function PortfolioImport() {
   }));
   const removeFile = (id) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
+  // Harga online hari ini (AI + internet), divalidasi sebelum dipakai.
+  const [livePending, setLivePending] = useState(null); // null | "all" | rowId
+  const applyLive = async (ids) => {
+    const targets = rows.filter((r) => ids.includes(r.id) && (r.ticker || r.name));
+    if (!targets.length) return;
+    setLivePending(ids.length === 1 ? ids[0] : "all");
+    try {
+      const items = targets.map((r) => ({ key: r.id, name: r.name, ticker: r.ticker, exchange: r.exchange, currency: r.currency, ref_price: r.last_price || (r.quantity && r.market_value ? r.market_value / r.quantity : 0) }));
+      const found = await fetchLivePrices(items);
+      // Hitung hasil DI LUAR setRows (callback setState berjalan belakangan —
+      // dulu alasan penolakan hilang dari pesan dan jumlah berhasil keliru).
+      const patches = new Map(); const fails = [];
+      for (const r of targets) {
+        const lp = found.get(r.id);
+        if (!lp) { fails.push(`${displayName(r)}: tidak ditemukan`); continue; }
+        if (!lp.ok) { fails.push(`${displayName(r)}: ${lp.reason}`); continue; }
+        const patch = { last_price: lp.price, as_of: lp.as_of || r.as_of, price_source: lp.source };
+        if (r.quantity > 0) patch.market_value = Math.round(lp.price * r.quantity * 100) / 100;
+        patches.set(r.id, patch);
+      }
+      const ok = patches.size;
+      setRows((prev) => prev.map((r) => {
+        const patch = patches.get(r.id);
+        return patch ? reconcileForEdit({ ...r, ...patch }, Object.keys(patch).filter((k) => k !== "as_of" && k !== "price_source")) : r;
+      }));
+      if (ok) toast.success(`Harga online dipakai untuk ${ok} aset`, { description: fails.length ? fails.join(" · ") : undefined });
+      else toast.error("Harga online belum ditemukan", { description: fails.join(" · ") || "Coba lagi atau isi manual." });
+    } catch (e) {
+      toast.error("Gagal mencari harga online", { description: e?.message });
+    }
+    setLivePending(null);
+  };
+
   const save = async () => {
     if (!chosen.length) return;
     const bad = chosen.find((r) => (!r.lotsOnly && !(r.market_value > 0)) || !(r.name || r.ticker));
-    if (bad) return toast.error("Lengkapi data dulu", { description: `${displayName(bad) || "Satu baris"}: nama & nilai pasar wajib diisi.` });
+    if (bad) {
+      const need = !(bad.name || bad.ticker) ? "nama" : !(bad.quantity > 0) ? "jumlah lembar & nilai pasar" : "nilai pasar";
+      toast.error(`${displayName(bad) || "Satu baris"}: ${need} belum ada`, { description: "Isi manual, atau ketuk “Cari harga online”." });
+      setEditing(bad.id);
+      return;
+    }
     setSaving(true);
     let created = 0, updated = 0, lotsAdded = 0;
     try {
@@ -220,10 +261,17 @@ export default function PortfolioImport() {
           )}
 
           {/* Daftar kepemilikan */}
-          <h2 className="text-sm font-semibold mb-2 px-1">Tinjau {view.length} kepemilikan</h2>
+          <div className="flex items-center justify-between gap-2 mb-2 px-1">
+            <h2 className="text-sm font-semibold">Tinjau {view.length} kepemilikan</h2>
+            <button onClick={() => applyLive(view.filter((r) => r.include && !r.lotsOnly).map((r) => r.id))} disabled={!!livePending}
+              className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
+              {livePending === "all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Pakai harga online hari ini
+            </button>
+          </div>
           <ul className="space-y-2.5">
             {view.map((r) => (
-              <HoldingCard key={r.id} r={r} onToggle={() => updateRow(r.id, { include: !r.include })} onEdit={() => setEditing(r.id)} />
+              <HoldingCard key={r.id} r={r} onToggle={() => updateRow(r.id, { include: !r.include })} onEdit={() => setEditing(r.id)}
+                onLive={() => applyLive([r.id])} liveBusy={livePending === r.id || livePending === "all"} />
             ))}
           </ul>
           <p className="text-[11px] text-muted-foreground mt-3 px-1 leading-snug flex items-start gap-1.5">
@@ -252,7 +300,7 @@ export default function PortfolioImport() {
   );
 }
 
-function HoldingCard({ r, onToggle, onEdit }) {
+function HoldingCard({ r, onToggle, onEdit, onLive, liveBusy }) {
   const gain = r.gain ?? (r.market_value != null && r.total_cost != null ? r.market_value - r.total_cost : null);
   const pct = gain != null && r.total_cost ? (gain / r.total_cost) * 100 : null;
   const up = (gain ?? 0) >= 0;
@@ -294,6 +342,18 @@ function HoldingCard({ r, onToggle, onEdit }) {
               <span className="inline-flex items-center gap-1 rounded-full bg-income/10 text-income px-2.5 py-1 text-[11px] font-semibold"><Plus className="w-3 h-3" /> Aset baru</span>
             )}
           </div>
+          {!r.lotsOnly && !(r.market_value > 0) && (
+            <div className="mt-2.5 rounded-2xl bg-warning/10 p-2.5">
+              <p className="text-[11px] text-warning font-semibold leading-snug">Nilai pasar belum terbaca dari gambar{r.quantity ? "" : " (jumlah lembar juga belum ada)"}.</p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={onLive} disabled={liveBusy} className="h-8 px-3 rounded-full bg-card border border-border text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
+                  {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Cari harga online
+                </button>
+                <button onClick={onEdit} className="h-8 px-3 rounded-full bg-card border border-border text-xs font-semibold inline-flex items-center gap-1.5"><Pencil className="w-3 h-3" /> Isi manual</button>
+              </div>
+            </div>
+          )}
+          {r.price_source && <p className="text-[11px] text-muted-foreground mt-1.5 inline-flex items-center gap-1"><Globe className="w-3 h-3" /> Harga online · {r.price_source}{r.as_of ? ` · ${formatDate(r.as_of, "d MMM yyyy")}` : ""}</p>}
           {r.lotInfo && <LotBlock info={r.lotInfo} lots={r.lots} currency={r.currency} unit={r.instrument === "emas" ? "gr" : r.instrument === "saham" ? "lembar" : "unit"} />}
           {r.warnings?.length > 0 && (
             <ul className="mt-2 space-y-1">
@@ -428,7 +488,12 @@ const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !=
 function reconcileForEdit(r, changed) {
   const given = new Set([...(r.given || []), ...changed]);
   // Untung/rugi dari aplikasi tidak lagi berlaku bila modal/nilai diubah manual.
-  if (changed.some((k) => ["market_value", "total_cost", "avg_cost", "quantity", "last_price"].includes(k))) given.delete("gain");
+  if (changed.some((k) => ["market_value", "total_cost", "avg_cost", "quantity", "last_price"].includes(k))) {
+    // Modal yang sudah ada (mis. turunan nilai − untung) dikunci dulu agar tidak hilang.
+    if (r.total_cost != null && !changed.includes("total_cost")) given.add("total_cost");
+    if (r.quantity != null && !changed.includes("quantity")) given.add("quantity");
+    given.delete("gain");
+  }
   const nums = ["quantity", "avg_cost", "total_cost", "last_price", "market_value", "gain"];
   const base = { ...r, warnings: undefined };
   nums.forEach((k) => { if (!given.has(k)) base[k] = null; });

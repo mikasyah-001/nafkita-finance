@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Lock, Clock, X } from "lucide-react";
+import { Lock, Clock, X, Paperclip } from "lucide-react";
 import { formatDate, colorMap, isExtraordinary } from "@/lib/finance";
 import Money from "./Money";
 import CategoryIcon from "./CategoryIcon";
@@ -37,6 +37,7 @@ export default function TransactionItem({ tx, categories }) {
         </p>
         <p className="text-xs text-muted-foreground truncate">
           {tx.input_by_name || "Keluarga"} • {formatDate(tx.date, "dd MMM, HH:mm")}
+          {tx.photo_url && <span className="inline-flex items-center gap-0.5 ml-1.5 text-primary" title="Ada bukti transaksi"><Paperclip className="w-3 h-3" /><span className="sr-only">Ada bukti</span></span>}
         </p>
         {tx.tags?.length > 0 && (
           <div className="flex gap-1 flex-wrap mt-1">

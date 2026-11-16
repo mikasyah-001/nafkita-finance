@@ -95,7 +95,7 @@ try {
     const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
     const countBefore = await page.evaluate(() => window.__qa.tx.length);
     await nav(`/transaksi/${t0.id}`);
-    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.getByRole("button", { name: /Edit atau hapus/ }).click();
     await page.waitForTimeout(500);
     assert.ok(await page.getByRole("heading", { name: "Edit transaksi" }).isVisible(), "Judul Edit transaksi");
     assert.equal(await page.locator("nav a[href='/add']").count(), 0, "Navigasi bawah disembunyikan (tidak menutupi isian)");
@@ -113,10 +113,32 @@ try {
     await page.evaluate((i) => { window.__qa.tx.find((t) => t.id === i).merchant = "QA Warung"; }, t0.id);
   });
 
+  await step("Bukti transaksi: tambah dari Detail, tampil, buka layar penuh, hapus", async () => {
+    const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
+    await nav(`/transaksi/${t0.id}`);
+    assert.ok(await page.getByText("Tambah foto bukti").isVisible(), "Ajakan tambah bukti tampil saat belum ada");
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==", "base64");
+    await page.locator('section[aria-label="Bukti transaksi"] input[type=file]').setInputFiles({ name: "bon.png", mimeType: "image/png", buffer: png });
+    await page.waitForTimeout(900);
+    const saved = await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id);
+    assert.ok(saved && saved.startsWith("data:image/png"), "photo_url tersimpan");
+    const img = page.locator('section[aria-label="Bukti transaksi"] img');
+    const box = await img.boundingBox();
+    assert.ok(box && box.height > 50, `Bukti terlihat (tinggi ${box?.height})`);
+    await page.getByRole("button", { name: "Lihat bukti layar penuh" }).click();
+    assert.ok(await page.getByRole("dialog", { name: "Bukti transaksi" }).isVisible(), "Pratinjau layar penuh");
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
+    await page.locator('section[aria-label="Bukti transaksi"]').getByRole("button", { name: "Hapus", exact: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: /Hapus|Ya/ }).click();
+    await page.waitForTimeout(700);
+    assert.equal(await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id), "", "Bukti dihapus, transaksi tetap");
+    assert.ok(await page.getByText("Tambah foto bukti").isVisible());
+  });
+
   await step("Hapus transaksi: dialog konfirmasi muncul, Batal tidak menghapus, Hapus menghapus", async () => {
     const txId = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung").id);
     await nav(`/transaksi/${txId}`);
-    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.getByRole("button", { name: /Edit atau hapus/ }).click();
     await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     const dialog = page.getByRole("alertdialog");
     await dialog.waitFor({ timeout: 3000 });
@@ -380,6 +402,27 @@ try {
     assert.equal(g?.currency, "SAR");
     assert.equal(g?.target_amount, 20000);
     assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
+  });
+
+  await step("Panel admin: menu berurutan, total per mata uang (SAR tidak dijumlah sebagai IDR), putus koneksi dengan konfirmasi", async () => {
+    await nav("/admin");
+    await page.waitForTimeout(800);
+    const tabs = await page.getByRole("tablist", { name: "Menu admin" }).getByRole("tab").allInnerTexts();
+    assert.deepEqual(tabs.map((t) => t.trim()), ["Ringkasan", "Pengguna", "Pasangan", "Transaksi", "Aset", "Audit"]);
+    const sarIncome = await page.evaluate(() => window.__qa.tx.some((t) => t.currency === "SAR"));
+    if (sarIncome) assert.ok(await page.getByRole("radio", { name: "SAR", exact: true }).isVisible(), "Pilihan SAR tersedia di ringkasan");
+    await page.getByRole("tab", { name: "Pengguna" }).click();
+    assert.ok(await page.getByText("4 pengguna", { exact: false }).isVisible());
+    await page.getByRole("tab", { name: "Pasangan" }).click();
+    await page.getByRole("button", { name: "Putuskan koneksi" }).first().click();
+    const dlg = page.getByRole("alertdialog");
+    await dlg.getByRole("button", { name: "Batal" }).click();
+    assert.ok(await page.getByText("Aktif (1)").isVisible(), "Batal tidak memutus");
+    await page.getByRole("button", { name: "Putuskan koneksi" }).first().click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Putuskan" }).click();
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("Aktif (0)").isVisible(), "Koneksi pindah ke riwayat");
+    await nav("/");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

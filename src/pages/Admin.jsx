@@ -2,19 +2,49 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ShieldCheck, Users, Link2, Receipt,
-  Trash2, UserCircle, Search, Loader2, ChevronDown, ScrollText,
-  BarChart3, Landmark, Info,
+import {
+  ShieldCheck, Users, Link2, Receipt, Search, Loader2, ChevronDown, ScrollText,
+  LayoutDashboard, Landmark, Info, Unlink, Activity, HeartHandshake,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Money from "@/components/Money";
-import { formatDate, colorMap, formatMoneyShort } from "@/lib/finance";
+import { formatDate, colorMap, formatMoneyShort, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
-import AdminStats from "@/components/AdminStats";
+import AdminStats, { lastActiveLabel } from "@/components/AdminStats";
 import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
+import { confirmAction } from "@/components/ConfirmHost";
+import { ChipChoice } from "@/components/FormSheet";
+
+// Urutan menu: gambaran umum dulu, lalu orang (pengguna → pasangan),
+// lalu data (transaksi → aset), terakhir jejak tindakan admin.
+const TABS = [
+  { key: "ringkasan", label: "Ringkasan", icon: LayoutDashboard },
+  { key: "pengguna", label: "Pengguna", icon: Users },
+  { key: "pasangan", label: "Pasangan", icon: HeartHandshake },
+  { key: "transaksi", label: "Transaksi", icon: Receipt },
+  { key: "aset", label: "Aset", icon: Landmark },
+  { key: "audit", label: "Audit", icon: ScrollText },
+];
 
 const ROLE_LABEL = { suami: "Suami", istri: "Istri" };
+const P_STATUS = {
+  active: { label: "Aktif", cls: "bg-success/15 text-success" },
+  pending: { label: "Menunggu", cls: "bg-warning/15 text-warning" },
+  ended: { label: "Berakhir", cls: "bg-muted text-muted-foreground" },
+  cancelled: { label: "Dibatalkan", cls: "bg-muted text-muted-foreground" },
+  declined: { label: "Ditolak", cls: "bg-muted text-muted-foreground" },
+};
+const AUDIT_LABEL = {
+  view_admin_stats: "Melihat statistik",
+  terminate_partnership: "Memutus koneksi pasangan",
+  export_data: "Mengekspor data",
+  admin_view_transaction: "Membuka transaksi pengguna",
+  admin_list_transactions: "Melihat daftar transaksi",
+  admin_list_assets: "Melihat daftar aset",
+  admin_list_users: "Melihat daftar pengguna",
+};
+
+const initials = (name = "") => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || "").join("") || "?";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -23,7 +53,9 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [partnerships, setPartnerships] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [tab, setTab] = useState("pengguna");
+  const [tab, setTab] = useState("ringkasan");
+  const [userQuery, setUserQuery] = useState("");
+  const [pFilter, setPFilter] = useState("active");
   const [txFilter, setTxFilter] = useState("");
   const [txUserFilter, setTxUserFilter] = useState("all");
   const [txPage, setTxPage] = useState([]);
@@ -31,6 +63,7 @@ export default function Admin() {
   const [txLoadingMore, setTxLoadingMore] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [hideViews, setHideViews] = useState(true);
   const [assets, setAssets] = useState([]);
   const [assetFilter, setAssetFilter] = useState("");
   const [assetUserFilter, setAssetUserFilter] = useState("all");
@@ -52,14 +85,12 @@ export default function Admin() {
         setUsers(data.users || []);
         setPartnerships(data.partnerships || []);
         setCategories(c || []);
-        loadTransactions(true);
       } catch (e) {
         toast.error("Gagal memuat data admin", { description: e?.message });
       } finally {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTransactions = useCallback(async (reset) => {
@@ -83,11 +114,11 @@ export default function Admin() {
     }
   }, [txPage, txUserFilter]);
 
-  // Muat ulang transaksi saat filter user berubah.
+  // Data per menu dimuat saat menu dibuka (bukan semuanya di awal).
   useEffect(() => {
-    if (me?.role === "admin") loadTransactions(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txUserFilter]);
+    if (me?.role === "admin" && tab === "transaksi") loadTransactions(true);
+     
+  }, [tab, txUserFilter, me?.role]);
 
   const loadAuditLogs = useCallback(async () => {
     setAuditLoading(true);
@@ -100,12 +131,10 @@ export default function Admin() {
       setAuditLoading(false);
     }
   }, []);
-
-  // Muat audit log saat tab aktif.
   useEffect(() => {
     if (me?.role === "admin" && tab === "audit" && auditLogs.length === 0) loadAuditLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+     
+  }, [tab, me?.role]);
 
   const loadAssets = useCallback(async (userFilter) => {
     setAssetLoading(true);
@@ -114,381 +143,400 @@ export default function Admin() {
         user_filter: userFilter && userFilter !== "all" ? userFilter : undefined,
         limit: 500,
       });
-      const data = res?.data || {};
-      setAssets(data.assets || []);
+      setAssets((res?.data || {}).assets || []);
     } catch (e) {
       toast.error("Gagal memuat aset", { description: e?.message });
     } finally {
       setAssetLoading(false);
     }
   }, []);
-
-  // Muat aset saat tab aset aktif.
   useEffect(() => {
     if (me?.role === "admin" && tab === "aset") loadAssets(assetUserFilter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, assetUserFilter]);
+     
+  }, [tab, assetUserFilter, me?.role]);
 
   const isAdmin = me?.role === "admin";
 
-  const userMap = useMemo(() => {
-    const map = {};
-    (users || []).forEach((u) => (map[u.id] = u));
-    return map;
-  }, [users]);
-
+  const userMap = useMemo(() => Object.fromEntries((users || []).map((u) => [u.id, u])), [users]);
+  const activeP = useMemo(() => (partnerships || []).filter((p) => p.status === "active"), [partnerships]);
   const partnerOf = useMemo(() => {
     const map = {};
-    (partnerships || []).filter((p) => p.status === "active").forEach((p) => {
-      if (p.inviter_id) map[p.inviter_id] = p.invitee_id || p.invitee_email;
-      if (p.invitee_id) map[p.invitee_id] = p.inviter_id;
+    activeP.forEach((p) => {
+      if (p.inviter_id) map[p.inviter_id] = { id: p.invitee_id || p.invitee_email, role: p.inviter_role };
+      if (p.invitee_id) map[p.invitee_id] = { id: p.inviter_id, role: p.invitee_role };
     });
     return map;
-  }, [partnerships]);
+  }, [activeP]);
 
-  // Peran suami/istri tiap user dari hubungan aktif (inviter→inviter_role, invitee→invitee_role).
-  const roleOf = useMemo(() => {
-    const map = {};
-    (partnerships || []).filter((p) => p.status === "active").forEach((p) => {
-      if (p.inviter_id && p.inviter_role) map[p.inviter_id] = p.inviter_role;
-      if (p.invitee_id && p.invitee_role) map[p.invitee_id] = p.invitee_role;
-    });
-    return map;
-  }, [partnerships]);
+  const sortedUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase();
+    return [...users]
+      .filter((u) => !q || (u.full_name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q))
+      .sort((a, b) => (b.role === "admin") - (a.role === "admin")
+        || new Date(b.last_active_at || 0) - new Date(a.last_active_at || 0));
+  }, [users, userQuery]);
+
+  const pGroups = useMemo(() => ({
+    active: partnerships.filter((p) => p.status === "active"),
+    pending: partnerships.filter((p) => p.status === "pending"),
+    history: partnerships.filter((p) => !["active", "pending"].includes(p.status)),
+  }), [partnerships]);
 
   const filteredTx = useMemo(() => {
-    let list = txPage;
-    if (txFilter.trim()) {
-      const q = txFilter.toLowerCase();
-      list = list.filter(
-        (t) =>
-          (t.merchant || "").toLowerCase().includes(q) ||
-          (t.notes || "").toLowerCase().includes(q) ||
-          (t.category || "").toLowerCase().includes(q)
-      );
-    }
-    return list;
+    const q = txFilter.trim().toLowerCase();
+    if (!q) return txPage;
+    return txPage.filter((t) => [t.merchant, t.notes, t.category].some((v) => (v || "").toLowerCase().includes(q)));
   }, [txPage, txFilter]);
 
+  const filteredAssets = useMemo(() => {
+    const q = assetFilter.trim().toLowerCase();
+    return assets.filter((a) => !q || [a.name, a.type, a.notes].some((v) => (v || "").toLowerCase().includes(q)));
+  }, [assets, assetFilter]);
+  const assetTotals = useMemo(() => {
+    const m = {};
+    filteredAssets.forEach((a) => { const c = (a.currency || "IDR").toUpperCase(); m[c] = (m[c] || 0) + (Number(a.value) || 0); });
+    return Object.entries(m).sort((a, b) => (a[0] === "IDR" ? -1 : b[0] === "IDR" ? 1 : a[0].localeCompare(b[0])));
+  }, [filteredAssets]);
+
+  const visibleLogs = useMemo(() => (hideViews ? auditLogs.filter((l) => l.action !== "view_admin_stats") : auditLogs), [auditLogs, hideViews]);
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   if (!isAdmin) {
     return (
-      <div className="px-5 pt-10 text-center">
-        <ShieldCheck className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-        <p className="text-sm font-medium">Akses Ditolak</p>
-        <p className="text-xs text-muted-foreground mt-1 mb-4">Halaman ini khusus administrator.</p>
-        <button onClick={() => navigate(-1)} className="text-sm text-primary underline">Kembali</button>
+      <div className="px-5 pt-6">
+        <PageHeader title="Panel admin" back />
+        <EmptyState icon={ShieldCheck} title="Akses ditolak" subtitle="Halaman ini khusus administrator." />
+        <button onClick={() => navigate(-1)} className="w-full btn-secondary mt-2">Kembali</button>
       </div>
     );
   }
 
-  const partnerLabel = (idOrEmail) => {
+  const userName = (idOrEmail) => {
     if (!idOrEmail) return "—";
     const u = userMap[idOrEmail];
     return u ? u.full_name || u.email : idOrEmail;
   };
 
   const handleDisconnect = async (p) => {
-    const reason = window.prompt("Putuskan koneksi pasangan ini?\n\nAlasan (opsional):", "");
-    if (reason === null) return;
+    const ok = await confirmAction({
+      title: "Putuskan koneksi pasangan?",
+      description: `${userName(p.inviter_id)} ⇄ ${userName(p.invitee_id || p.invitee_email)}. Data transaksi tetap ada, hanya tidak lagi dibagikan.`,
+      confirmText: "Putuskan",
+    });
+    if (!ok) return;
+    const reason = "Diputus oleh admin";
     try {
-      await base44.functions.invoke("terminatePartnership", { partnership_id: p.id, end_reason: reason.trim() });
+      await base44.functions.invoke("terminatePartnership", { partnership_id: p.id, end_reason: reason });
       toast.success("Koneksi diputus");
-      setPartnerships((prev) => prev.map((x) => x.id === p.id ? { ...x, status: "ended", end_reason: reason.trim() } : x));
+      setPartnerships((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: "ended", end_reason: reason } : x)));
     } catch (e) {
       toast.error("Gagal memutuskan", { description: e?.message });
     }
   };
 
+  const onlineNow = users.filter((u) => u.last_active_at && Date.now() - new Date(u.last_active_at).getTime() < 5 * 60000).length;
+  const active24 = users.filter((u) => u.last_active_at && Date.now() - new Date(u.last_active_at).getTime() < 864e5).length;
+
   return (
-    <div className="px-5 pt-6">
-      <PageHeader title="Panel Admin" subtitle="Kelola pengguna, koneksi & transaksi" back />
+    <div className="px-5 pt-6 pb-28">
+      <PageHeader title="Panel admin" subtitle="Pengguna, pasangan, data & audit" back />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full mb-4 h-auto gap-1">
-          <TabsTrigger value="statistik" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><BarChart3 className="w-4 h-4" />Statistik</TabsTrigger>
-          <TabsTrigger value="pengguna" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Users className="w-4 h-4" />User</TabsTrigger>
-          <TabsTrigger value="koneksi" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Link2 className="w-4 h-4" />Koneksi</TabsTrigger>
-          <TabsTrigger value="transaksi" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Receipt className="w-4 h-4" />Transaksi</TabsTrigger>
-          <TabsTrigger value="aset" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><Landmark className="w-4 h-4" />Aset</TabsTrigger>
-          <TabsTrigger value="audit" className="flex-col gap-0.5 py-2 px-1 text-[11px]"><ScrollText className="w-4 h-4" />Audit</TabsTrigger>
-        </TabsList>
-
-        {/* STATISTIK — agregasi real-time seluruh aplikasi */}
-        <TabsContent value="statistik">
-          <AdminStats />
-        </TabsContent>
-
-        {/* USERS */}
-        <TabsContent value="pengguna" className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-xs text-muted-foreground">{users.length} pengguna terdaftar</p>
+      {/* Ringkasan singkat */}
+      <section aria-label="Ringkasan admin" className="card-gradient-primary relative rounded-[28px] p-5 overflow-hidden mb-4">
+        <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-white/10 pointer-events-none" aria-hidden="true" />
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold"><ShieldCheck className="w-3.5 h-3.5" /> Administrator</span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] opacity-85">
+              <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(var(--gold))] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(var(--gold))]" /></span>
+              {onlineNow} online
+            </span>
           </div>
-          {users.map((u) => {
-            const pid = partnerOf[u.id];
-            const partner = pid && userMap[pid];
-            return (
-              <div key={u.id} className="surface p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <UserCircle className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                    {u.full_name || u.email}
-                    {u.role === "admin" && (
-                      <span className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[11px] font-semibold">ADMIN</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                    {partner ? (
-                      <><Link2 className="w-3 h-3 text-success" /> <span className="text-success">Terhubung: {partner.full_name || partner.email}{roleOf[u.id] ? ` (${ROLE_LABEL[roleOf[u.id]]})` : ""}</span></>
-                    ) : (
-                      <span className="text-warning">Belum terhubung</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </TabsContent>
-
-        {/* CONNECTIONS — read-only; koneksi hanya via undangan */}
-        <TabsContent value="koneksi" className="space-y-3">
-          <div className="rounded-2xl border border-border bg-muted/40 p-3 flex gap-2.5">
-            <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Koneksi pasangan hanya dibuat via undangan email/kode referensi oleh pengguna sendiri. Daftar bersifat read-only; admin dapat memutuskan koneksi bila perlu.
-            </p>
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            <HeroStat label="Pengguna" value={users.length} />
+            <HeroStat label="Aktif 24 jam" value={active24} />
+            <HeroStat label="Pasangan aktif" value={activeP.length} />
           </div>
+        </div>
+      </section>
 
-          <p className="text-xs text-muted-foreground px-1">Koneksi & riwayat</p>
-          {partnerships.length === 0 && (
-            <EmptyState icon={Link2} title="Belum ada koneksi" subtitle="Belum ada hubungan pasangan tercatat." />
+      {/* Menu */}
+      <div role="tablist" aria-label="Menu admin" className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-4">
+        {TABS.map((t) => {
+          const on = tab === t.key;
+          return (
+            <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
+              className={`h-10 px-2 rounded-full text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>
+              <t.icon className="w-4 h-4" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* RINGKASAN */}
+      {tab === "ringkasan" && <AdminStats />}
+
+      {/* PENGGUNA */}
+      {tab === "pengguna" && (
+        <div className="space-y-3">
+          <SearchBox value={userQuery} onChange={setUserQuery} placeholder="Cari nama atau email…" label="Cari pengguna" />
+          <SectionNote>{sortedUsers.length} pengguna · admin di atas, lalu yang terakhir aktif</SectionNote>
+          {sortedUsers.length === 0 ? (
+            <EmptyState icon={Users} title="Tidak ada pengguna" subtitle="Tidak ada yang cocok dengan pencarian." />
+          ) : (
+            <ul className="surface rounded-3xl divide-y divide-border">
+              {sortedUsers.map((u) => {
+                const p = partnerOf[u.id];
+                const online = lastActiveLabel(u.last_active_at) === "Online";
+                return (
+                  <li key={u.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="relative w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-bold">
+                      {initials(u.full_name || u.email)}
+                      {online && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success ring-2 ring-card" aria-label="Online" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate flex items-center gap-1.5">
+                        {u.full_name || u.email}
+                        {u.role === "admin" && <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shrink-0">Admin</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                      <p className="text-[11px] mt-0.5 flex items-center gap-1 truncate">
+                        {p ? (
+                          <span className="text-success inline-flex items-center gap-1 truncate"><Link2 className="w-3 h-3 shrink-0" /> {userName(p.id)}{p.role ? ` · ${ROLE_LABEL[p.role]}` : ""}</span>
+                        ) : (
+                          <span className="text-muted-foreground">Belum terhubung</span>
+                        )}
+                      </p>
+                    </div>
+                    <span className={`text-[11px] text-right shrink-0 max-w-[6.5rem] leading-tight ${online ? "text-success font-semibold" : "text-muted-foreground"}`}>{lastActiveLabel(u.last_active_at)}</span>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {partnerships.map((p) => {
-            const a = userMap[p.inviter_id];
-            const b = p.invitee_id ? userMap[p.invitee_id] : null;
-            const terminal = p.status === "ended" || p.status === "cancelled" || p.status === "declined";
-            const statusStyle = {
-              active: "bg-success/15 text-success",
-              pending: "bg-warning/15 text-warning",
-              ended: "bg-muted text-muted-foreground",
-              cancelled: "bg-muted text-muted-foreground",
-              declined: "bg-muted text-muted-foreground",
-            };
-            const statusLabel = { active: "Aktif", pending: "Menunggu", ended: "Berakhir", cancelled: "Dibatalkan", declined: "Ditolak" };
-            return (
-              <div key={p.id} className="surface p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Link2 className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {a?.full_name || a?.email || "—"}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""} <span className="text-muted-foreground mx-0.5">⇄</span> {b?.full_name || b?.email || p.invitee_email}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${statusStyle[p.status]}`}>{statusLabel[p.status]}</span>
-                    {p.end_reason && <span className="text-[11px] text-muted-foreground truncate">{p.end_reason}</span>}
-                  </div>
-                </div>
-                {!terminal && (
-                  <button
-                    onClick={() => handleDisconnect(p)}
-                    className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 hover:bg-destructive/20 transition-colors"
-                    title="Putuskan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* TRANSACTIONS — non-private lintas keluarga, paginated */}
-        <TabsContent value="transaksi" className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                aria-label="Cari transaksi"
-                value={txFilter}
-                onChange={(e) => setTxFilter(e.target.value)}
-                placeholder="Cari transaksi…"
-                className="input pl-9"
-              />
-            </div>
-            <select aria-label="Filter user transaksi" value={txUserFilter} onChange={(e) => setTxUserFilter(e.target.value)} className="input max-w-[40%]">
-              <option value="all">Semua User</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-            </select>
-          </div>
+      {/* PASANGAN */}
+      {tab === "pasangan" && (
+        <div className="space-y-3">
+          <ChipChoice
+            size="sm"
+            ariaLabel="Status koneksi"
+            value={pFilter}
+            onChange={setPFilter}
+            options={[
+              { value: "active", label: `Aktif (${pGroups.active.length})` },
+              { value: "pending", label: `Menunggu (${pGroups.pending.length})` },
+              { value: "history", label: `Riwayat (${pGroups.history.length})` },
+            ]}
+          />
+          {pGroups[pFilter].length === 0 ? (
+            <EmptyState icon={HeartHandshake} title="Tidak ada koneksi" subtitle="Belum ada koneksi pada status ini." />
+          ) : (
+            <ul className="surface rounded-3xl divide-y divide-border">
+              {pGroups[pFilter].map((p) => {
+                const st = P_STATUS[p.status] || P_STATUS.ended;
+                const terminal = ["ended", "cancelled", "declined"].includes(p.status);
+                return (
+                  <li key={p.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Link2 className="w-5 h-5" /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold leading-snug">
+                        {userName(p.inviter_id)}{p.inviter_role ? ` (${ROLE_LABEL[p.inviter_role]})` : ""}
+                        <span className="text-muted-foreground font-normal mx-1">⇄</span>
+                        {userName(p.invitee_id || p.invitee_email)}{p.invitee_role ? ` (${ROLE_LABEL[p.invitee_role]})` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className={`px-1.5 py-0.5 rounded-full font-semibold ${st.cls}`}>{st.label}</span>
+                        {p.created_date && <span>sejak {formatDate(p.created_date, "d MMM yyyy")}</span>}
+                        {p.end_reason && <span className="truncate">· {p.end_reason}</span>}
+                      </p>
+                    </div>
+                    {!terminal && (
+                      <button onClick={() => handleDisconnect(p)} aria-label="Putuskan koneksi"
+                        className="h-8 px-3 rounded-full border border-destructive/30 text-destructive text-xs font-semibold inline-flex items-center gap-1 shrink-0 active:scale-95 transition-transform">
+                        <Unlink className="w-3.5 h-3.5" /> Putus
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <InfoNote>Koneksi hanya dibuat oleh pengguna sendiri lewat undangan atau kode referensi. Admin hanya bisa melihat dan memutus koneksi bila diperlukan.</InfoNote>
+        </div>
+      )}
 
-          <p className="text-[11px] text-muted-foreground px-1">
-            {filteredTx.length} transaksi{txHasMore ? " (ada lagi)" : ""} • pencarian atas data termuat
-          </p>
-
-          {filteredTx.length === 0 && !txLoadingMore && (
+      {/* TRANSAKSI */}
+      {tab === "transaksi" && (
+        <div className="space-y-3">
+          <FilterBar query={txFilter} onQuery={setTxFilter} queryLabel="Cari transaksi" placeholder="Cari tempat, catatan, kategori…"
+            user={txUserFilter} onUser={setTxUserFilter} users={users} />
+          <SectionNote>{txLoadingMore && txPage.length === 0 ? "Memuat…" : `${filteredTx.length} transaksi${txHasMore ? " · ada lagi" : ""} · transaksi pribadi tidak ditampilkan`}</SectionNote>
+          {txLoadingMore && txPage.length === 0 ? (
+            <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : filteredTx.length === 0 ? (
             <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle="Belum ada transaksi yang sesuai filter." />
+          ) : (
+            <ul className="surface rounded-3xl divide-y divide-border">
+              {filteredTx.map((tx) => {
+                const isIncome = tx.type === "income";
+                const isSedekah = tx.type === "sedekah";
+                const cat = categories.find((c) => c.name === tx.category);
+                const c = colorMap[isSedekah ? "teal" : cat?.color || "slate"] || colorMap.slate;
+                return (
+                  <li key={tx.id}>
+                    <Link to={`/transaksi/${tx.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors">
+                      <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${c.bg}`}>
+                        <CategoryIcon name={isSedekah ? "Heart" : cat?.icon || "Wallet"} className={`w-5 h-5 ${c.text}`} />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold truncate">{tx.merchant || tx.notes || (isSedekah ? "Sedekah" : tx.category || "Transaksi")}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{userName(tx.created_by_id)} · {formatDate(tx.date, "d MMM yyyy, HH:mm")}</span>
+                      </span>
+                      <span className={`text-sm font-bold whitespace-nowrap shrink-0 tabular-nums ${tx.transfer_pair_id ? "text-muted-foreground" : isIncome ? "text-income" : isSedekah ? "text-sedekah" : "text-expense"}`}>
+                        {isIncome ? "+" : "−"}<Money value={tx.amount} currency={tx.currency} />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-
-          {filteredTx.map((tx) => {
-            const isIncome = tx.type === "income";
-            const isSedekah = tx.type === "sedekah";
-            const cat = categories.find((c) => c.name === tx.category);
-            const color = isSedekah ? "teal" : cat?.color || "slate";
-            const icon = isSedekah ? "Heart" : cat?.icon || "Wallet";
-            const c = colorMap[color] || colorMap.slate;
-            const owner = userMap[tx.created_by_id];
-            return (
-              <Link
-                to={`/transaksi/${tx.id}`}
-                key={tx.id}
-                className="flex items-center gap-3 surface p-3 active:scale-[0.99] transition-transform"
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c.bg}`}>
-                  <CategoryIcon name={icon} className={`w-5 h-5 ${c.text}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1">
-                    {tx.merchant || tx.notes || (isSedekah ? "Sedekah" : tx.category || "Transaksi")}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {owner?.full_name || owner?.email || "—"} • {formatDate(tx.date, "dd MMM, HH:mm")}
-                  </p>
-                </div>
-                <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${isIncome ? "text-success" : isSedekah ? "text-sedekah" : ""}`}>
-                  {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
-                </div>
-              </Link>
-            );
-          })}
-
           {txHasMore && (
-            <button
-              onClick={() => loadTransactions(false)}
-              disabled={txLoadingMore}
-              className="w-full disabled:opacity-60 btn-secondary btn-sm"
-            >
+            <button onClick={() => loadTransactions(false)} disabled={txLoadingMore} className="w-full btn-secondary btn-sm disabled:opacity-60">
               {txLoadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />} Muat lebih banyak
             </button>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ASET — non-private lintas keluarga */}
-        <TabsContent value="aset" className="space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                aria-label="Cari aset"
-                value={assetFilter}
-                onChange={(e) => setAssetFilter(e.target.value)}
-                placeholder="Cari aset…"
-                className="input pl-9"
-              />
+      {/* ASET */}
+      {tab === "aset" && (
+        <div className="space-y-3">
+          <FilterBar query={assetFilter} onQuery={setAssetFilter} queryLabel="Cari aset" placeholder="Cari nama atau jenis aset…"
+            user={assetUserFilter} onUser={setAssetUserFilter} users={users} />
+          {!assetLoading && assetTotals.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {assetTotals.map(([c, v]) => (
+                <div key={c} className="shrink-0 card-pastel card-pastel-butter rounded-2xl px-3.5 py-2.5">
+                  <p className="text-[11px] opacity-75">Total {c}</p>
+                  <p className="text-sm font-bold tabular-nums">{formatMoneyShort(v, c)}</p>
+                </div>
+              ))}
             </div>
-            <select aria-label="Filter user aset" value={assetUserFilter} onChange={(e) => setAssetUserFilter(e.target.value)} className="input max-w-[40%]">
-              <option value="all">Semua User</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-            </select>
-          </div>
-
-          <p className="text-[11px] text-muted-foreground px-1">
-            {assetLoading ? "Memuat…" : `${assets.length} aset`}
-          </p>
-
-          {assetLoading && (
-            <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           )}
-
-          {!assetLoading && assets.length === 0 && (
+          <SectionNote>{assetLoading ? "Memuat…" : `${filteredAssets.length} aset · total dipisah per mata uang`}</SectionNote>
+          {assetLoading ? (
+            <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : filteredAssets.length === 0 ? (
             <EmptyState icon={Landmark} title="Tidak ada aset" subtitle="Belum ada aset yang sesuai filter." />
+          ) : (
+            <ul className="surface rounded-3xl divide-y divide-border">
+              {filteredAssets.map((a) => {
+                const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
+                const cm = colorMap[meta?.color] || colorMap.slate;
+                return (
+                  <li key={a.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${cm.bg}`}><CategoryIcon name={meta?.icon || "Landmark"} className={`w-5 h-5 ${cm.text}`} /></span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{a.name || "Tanpa nama"}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {meta?.label || a.type}
+                        {a.quantity > 0 ? ` · ${a.quantity}${a.unit ? ` ${a.unit}` : ""}` : ""}
+                        {` · ${userName(a.created_by_id)}`}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold whitespace-nowrap shrink-0 tabular-nums"><Money value={a.value} currency={a.currency} /></span>
+                  </li>
+                );
+              })}
+            </ul>
           )}
+        </div>
+      )}
 
-          {!assetLoading && assets.filter((a) => {
-            if (!assetFilter.trim()) return true;
-            const q = assetFilter.toLowerCase();
-            return (a.name || "").toLowerCase().includes(q) ||
-              (a.type || "").toLowerCase().includes(q) ||
-              (a.notes || "").toLowerCase().includes(q);
-          }).map((a) => {
-            const owner = userMap[a.created_by_id];
-            return (
-              <div key={a.id} className="flex items-center gap-3 surface p-3">
-                <div className="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
-                  <Landmark className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                    {a.name || "Tanpa Nama"}
-                    {a.visibility === "private" && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-medium shrink-0">private</span>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium capitalize shrink-0">{a.type || "lainnya"}</span>
-                    {a.quantity > 0 && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        {a.quantity}{a.unit ? ` ${a.unit}` : ""} {a.purchase_price ? `× ${formatMoneyShort(a.purchase_price, a.currency)}` : ""}
-                      </span>
-                    )}
-                    <span className="text-[11px] text-muted-foreground truncate">• {owner?.full_name || owner?.email || "—"}</span>
+      {/* AUDIT */}
+      {tab === "audit" && (
+        <div className="space-y-3">
+          <label className="surface rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer">
+            <Activity className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="flex-1 text-sm">Sembunyikan "melihat statistik"</span>
+            <input type="checkbox" checked={hideViews} onChange={(e) => setHideViews(e.target.checked)} className="w-4 h-4 accent-[hsl(var(--primary))]" />
+          </label>
+          <SectionNote>{auditLoading ? "Memuat…" : `${visibleLogs.length} dari ${auditLogs.length} entri terakhir`}</SectionNote>
+          {auditLoading ? (
+            <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : visibleLogs.length === 0 ? (
+            <EmptyState icon={ScrollText} title="Belum ada catatan" subtitle="Riwayat tindakan admin akan muncul di sini." />
+          ) : (
+            <ul className="surface rounded-3xl divide-y divide-border">
+              {visibleLogs.map((log) => (
+                <li key={log.id} className="flex items-start gap-3 px-4 py-3">
+                  <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><ScrollText className="w-4 h-4" /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold leading-snug">{AUDIT_LABEL[log.action] || log.action}</p>
+                      <p className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">{formatDate(log.created_date, "d MMM, HH:mm")}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">oleh {log.actor_name || log.actor_email || "Admin"}</p>
+                    {log.target_label && <p className="text-[11px] text-muted-foreground truncate mt-0.5">Target: {log.target_label}</p>}
+                    {log.details && <p className="text-[11px] text-muted-foreground mt-0.5">{log.details}</p>}
                   </div>
-                </div>
-                <div className="text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums">
-                  <Money value={a.value} currency={a.currency} />
-                </div>
-              </div>
-            );
-          })}
-        </TabsContent>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {/* AUDIT LOG — riwayat tindakan admin */}
-        <TabsContent value="audit" className="space-y-2">
-          <p className="text-xs text-muted-foreground px-1 mb-1">
-            {auditLoading ? "Memuat…" : `${auditLogs.length} entri terakhir`}
-          </p>
-          {auditLoading && (
-            <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-          )}
-          {!auditLoading && auditLogs.length === 0 && (
-            <EmptyState icon={ScrollText} title="Belum ada catatan audit" subtitle="Riwayat tindakan admin akan muncul di sini." />
-          )}
-          {!auditLoading && auditLogs.map((log) => (
-            <div key={log.id} className="surface p-3">
-              <div className="flex items-start gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <ScrollText className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium truncate">{log.actor_name || log.actor_email || "Admin"}</p>
-                    <p className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
-                      {formatDate(log.created_date, "dd MMM, HH:mm")}
-                    </p>
-                  </div>
-                  <p className="text-xs text-primary font-medium mt-0.5">{log.action}</p>
-                  {log.target_label && (
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">Target: {log.target_label}</p>
-                  )}
-                  {log.details && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{log.details}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </TabsContent>
-      </Tabs>
+function HeroStat({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-white/10 border border-white/10 p-2.5">
+      <p className="text-[11px] opacity-75 leading-tight">{label}</p>
+      <p className="font-heading text-2xl font-extrabold tabular-nums leading-none mt-1">{value}</p>
+    </div>
+  );
+}
+
+function SearchBox({ value, onChange, placeholder, label }) {
+  return (
+    <div className="relative flex-1 min-w-0">
+      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <input aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full h-11 rounded-full border border-border bg-card pl-10 pr-4 text-sm outline-none focus:ring-2 ring-primary/30" />
+    </div>
+  );
+}
+
+function FilterBar({ query, onQuery, queryLabel, placeholder, user, onUser, users }) {
+  return (
+    <div className="space-y-2">
+      <SearchBox value={query} onChange={onQuery} placeholder={placeholder} label={queryLabel} />
+      <select aria-label="Filter pengguna" value={user} onChange={(e) => onUser(e.target.value)}
+        className="w-full h-11 rounded-full border border-border bg-card px-4 text-sm outline-none focus:ring-2 ring-primary/30">
+        <option value="all">Semua pengguna</option>
+        {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function SectionNote({ children }) {
+  return <p className="text-xs text-muted-foreground px-1">{children}</p>;
+}
+
+function InfoNote({ children }) {
+  return (
+    <div className="flex items-start gap-2 rounded-2xl bg-muted/60 p-3 text-xs text-muted-foreground leading-snug">
+      <Info className="w-4 h-4 shrink-0 mt-0.5" /> {children}
     </div>
   );
 }

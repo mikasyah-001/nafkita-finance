@@ -8,6 +8,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
 import InvestmentValueSheet from "@/components/InvestmentValueSheet";
+import { maskAccount, accountLast4 } from "@/lib/bankAccount";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
@@ -325,6 +326,7 @@ export default function Assets() {
                       {gold && a.quantity ? ` · ${formatNumber(a.quantity)} gr` : ""}
                       {a.type === "investasi" && a.quantity ? ` · ${formatNumber(a.quantity)} ${a.unit || "unit"}` : ""}
                       {(a.type === "investasi" || a.type === "bank") && a.broker ? ` · ${a.broker}` : ""}
+                      {a.type === "bank" && a.account_number && !String(a.name || "").includes(accountLast4(a.account_number)) ? ` · ${maskAccount(a.account_number)}` : ""}
                     </p>
                   </div>
                   <p className="text-sm font-bold tabular-nums shrink-0"><Money value={curVal} currency={a.currency} /></p>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useReconciliations, useRefresh, useMe } from "@/hooks/useFinance";
 import { formatMoney, formatDate, formatMoneyPlain } from "@/lib/finance";
+import { assetLabel } from "@/lib/bankAccount";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Loader2, Check, Scale, History, AlertCircle, Landmark, ReceiptText, CalendarDays } from "lucide-react";
@@ -95,7 +96,7 @@ export default function Reconciliation() {
               <select id="recon-asset" value={selectedAssetId} onChange={(e) => { setSelectedAssetId(e.target.value); setReconResult(null); }} className={`${fieldInput} -ml-0.5`}>
                 <option value="">Pilih rekening bank</option>
                 {bankAssets.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
+                  <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
                 ))}
               </select>
             </FieldRow>

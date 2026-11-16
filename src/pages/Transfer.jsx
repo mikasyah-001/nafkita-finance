@@ -5,6 +5,7 @@ import { useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/h
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { formatMoney, currencySymbol, isMoneyAsset, formatMoneyPlain } from "@/lib/finance";
+import { assetLabel } from "@/lib/bankAccount";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -120,9 +121,9 @@ export default function Transfer() {
             <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 ? formatMoney(amountNum, currency) : ""}</p>
             <CurrencySwitchNotice guard={curGuard} />
             <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 text-xs">
-              <span className="truncate flex-1 min-w-0">{fromObj?.name || "Rekening asal"}</span>
+              <span className="truncate flex-1 min-w-0">{fromObj ? assetLabel(fromObj) : "Rekening asal"}</span>
               <ArrowRightLeft className="w-3.5 h-3.5 opacity-70 shrink-0" />
-              <span className="truncate flex-1 min-w-0 text-right">{toObj?.name || "Rekening tujuan"}</span>
+              <span className="truncate flex-1 min-w-0 text-right">{toObj ? assetLabel(toObj) : "Rekening tujuan"}</span>
             </div>
           </section>
 
@@ -136,7 +137,7 @@ export default function Transfer() {
                 <select id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening asal</option>
                   {bankAssets.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
+                    <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
                 </select>
               </FieldRow>
@@ -144,7 +145,7 @@ export default function Transfer() {
                 <select id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening tujuan</option>
                   {bankAssets.filter((a) => a.id !== fromAsset).map((a) => (
-                    <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>
+                    <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
                 </select>
               </FieldRow>

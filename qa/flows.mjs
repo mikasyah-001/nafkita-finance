@@ -304,6 +304,7 @@ try {
     await page.fill("#asset-gold-purchase-price", "1250000");
     await page.getByRole("radio", { name: /Tabungan/ }).click();
     await page.fill("#asset-name", "QA Bank");
+    await page.fill("#asset-account", "7000111222");
     await page.fill("#asset-value", "7000000");
     assert.equal(await page.locator("#asset-purchase-price").count(), 0, "Bank tidak menanyakan harga beli");
     await page.getByRole("button", { name: /Simpan aset/i }).click();
@@ -885,6 +886,52 @@ try {
     const btn = page.getByRole("dialog", { name: "Perbarui nilai investasi" }).getByRole("button", { name: "Semua sudah terbaru" });
     assert.ok(await btn.isDisabled(), "Tombol nonaktif bila semua sudah terbaru");
     await page.keyboard.press("Escape");
+  });
+
+  await step("Tabungan/Bank: no. rekening membedakan rekening di bank yang sama; nama otomatis; duplikat dicegah", async () => {
+    await nav("/aset");
+    const addBca = async (acc, value) => {
+      await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+      await page.getByRole("radio", { name: /Tabungan/ }).click();
+      // Urutan: Bank → No. rekening → Nama
+      const order = await page.evaluate(() => ["asset-broker", "asset-account", "asset-name"].map((id) => document.getElementById(id)?.getBoundingClientRect().top || 0));
+      assert.ok(order[0] < order[1] && order[1] < order[2], `Urutan Bank → Rekening → Nama: ${order}`);
+      await page.fill("#asset-broker", "BCA");
+      await page.fill("#asset-account", acc);
+      await page.fill("#asset-value", value);
+    };
+    // Tanpa nomor → ditolak
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.fill("#asset-broker", "BCA"); await page.fill("#asset-value", "100");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.getByText("Isi no. rekening", { exact: true }).first().waitFor({ timeout: 3000 });
+    assert.equal(await page.evaluate(() => window.__qa.assets.filter((x) => x.type === "bank" && x.broker === "BCA" && !x.account_number && x.value === 100).length), 0, "Tidak tersimpan tanpa nomor");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    // Dua rekening BCA berbeda → keduanya tersimpan, nama otomatis
+    await addBca("1234 5678 90", "5000000");
+    assert.ok(await page.getByPlaceholder("Otomatis: BCA ••7890").isVisible(), "Nama otomatis ditawarkan");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    await addBca("5555666677", "2000000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    const banks = await page.evaluate(() => window.__qa.assets.filter((x) => x.type === "bank" && x.broker === "BCA").map((x) => [x.name, x.account_number]));
+    assert.deepEqual(banks.filter(([, n]) => n === "1234567890" || n === "5555666677"), [["BCA ••7890", "1234567890"], ["BCA ••6677", "5555666677"]]);
+    // Nomor sama → ditolak
+    await addBca("1234567890", "1");
+    assert.ok(await page.getByText(/Rekening ini sudah tercatat sebagai “BCA ••7890”/).isVisible(), "Peringatan duplikat");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(400);
+    assert.equal(await page.evaluate(() => window.__qa.assets.filter((x) => x.account_number === "1234567890").length), 1, "Tidak dobel");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    // Pilihan rekening di Catat transaksi menampilkan ••4 digit
+    await nav("/add");
+    const opts = await page.locator("option").allInnerTexts();
+    assert.ok(opts.some((o) => /BCA ••7890/.test(o)) && opts.some((o) => /BCA ••6677/.test(o)), `Pilihan rekening terbedakan: ${opts.filter((o) => /BCA/.test(o))}`);
+    // Detail: tersamar dulu, bisa ditampilkan
+    const id = await page.evaluate(() => window.__qa.assets.find((x) => x.account_number === "1234567890").id);
+    await nav("/riwayat"); await nav(`/aset/${id}`);
+    assert.ok(await page.getByText("••7890").first().isVisible());
+    await page.getByRole("button", { name: "Tampilkan no. rekening" }).click();
+    assert.ok(await page.getByText("1234 5678 90").isVisible(), "Nomor lengkap setelah ditampilkan");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

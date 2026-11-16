@@ -516,10 +516,11 @@ try {
     assert.equal(n2, 9, "Tidak ada lot duplikat");
   });
 
-  await step("Halaman investasi: ringkasan dari total aset; DCA manual menambah selisih; hapus lot impor tidak mengubah total", async () => {
+  await step("Detail aset investasi (gabung DCA): ringkasan dari total aset; DCA manual menambah selisih; hapus lot impor tidak mengubah total", async () => {
     const a = await page.evaluate(() => window.__qa.assets.find((x) => x.ticker === "1120"));
-    await nav(`/investasi/${a.id}`);
-    await page.waitForTimeout(600);
+    await nav(`/investasi/${a.id}`); // tautan lama → dialihkan ke detail aset
+    await page.waitForTimeout(800);
+    assert.ok(page.url().includes(`/aset/${a.id}`), `Rute lama dialihkan: ${page.url()}`);
     assert.ok(await page.getByText(/72 dari 88/).isVisible(), "Status kecocokan lot tampil");
     assert.ok(await page.getByText("88 lembar").first().isVisible(), "Jumlah dari total aset, bukan dari lot");
     await page.getByRole("button", { name: /Catat pembelian/ }).click();
@@ -611,10 +612,10 @@ try {
     assert.ok(/2 lot DCA/.test((await card.innerText()).replace(/\s+/g, " ")), "Jumlah lot di kartu aset");
     await card.click();
     await page.waitForTimeout(500);
-    assert.ok(await page.getByText(/2 lot, sejak 12 Jan 2026/).isVisible(), "Ringkasan DCA di detail aset");
-    await page.getByRole("link", { name: /Riwayat DCA/ }).click();
-    await page.waitForTimeout(700);
-    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible());
+    // Detail aset & Riwayat DCA satu halaman
+    assert.ok(await page.getByRole("heading", { name: "Riwayat DCA" }).isVisible(), "Riwayat DCA langsung di detail aset");
+    assert.ok(await page.getByText(/2 lot · sejak 12 Jan 2026/).isVisible(), "Ringkasan lot");
+    assert.ok(await page.getByText("Modal").first().isVisible(), "Rincian aset di halaman yang sama");
     await page.getByRole("button", { name: /Catat pembelian/ }).click();
     await page.fill("#investment-lot-quantity", "5");
     await page.fill("#investment-lot-price", "9.5");

@@ -3,23 +3,24 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
-  Pencil, Trash2, History, Layers, ChevronRight, Lock, Users, Receipt, Maximize2, TrendingUp, TrendingDown,
+  Pencil, Trash2, History, ChevronRight, Lock, Users, Receipt, Maximize2, TrendingUp, TrendingDown,
   Globe, Upload, Coins, CalendarDays, Building2, UserRound, NotebookPen, Hash, Scale, ShieldCheck, Ban,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AssetForm from "@/components/AssetForm";
 import ProofViewer from "@/components/ProofViewer";
 import GoldPriceCard from "@/components/GoldPriceCard";
+import InvestmentDca from "@/components/InvestmentDca";
 import CategoryIcon from "@/components/CategoryIcon";
 import Money from "@/components/Money";
 import { confirmAction } from "@/components/ConfirmHost";
-import { useAssets, useAllInvestmentLots, useMe, useRateMap, useRefresh } from "@/hooks/useFinance";
+import { useAssets, useMe, useRateMap, useRefresh } from "@/hooks/useFinance";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 import {
   assetTypeLabels, colorMap, formatDate, formatDuration, formatMoney, formatNumber, isGoldType,
   assetMarketValue, assetGain, goldPriceIn, conversionPreview,
 } from "@/lib/finance";
-import { lotSummary, valueSourceInfo, INSTRUMENTS } from "@/lib/portfolioImport";
+import { valueSourceInfo, INSTRUMENTS } from "@/lib/portfolioImport";
 import { ZAKAT_EXCLUDED_TYPES } from "@/lib/zakat";
 
 const UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
@@ -34,7 +35,6 @@ export default function AssetDetail() {
   const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
   const { price: goldPrice } = useGoldPrice();
-  const { data: allLots = [] } = useAllInvestmentLots();
   const [editing, setEditing] = useState(false);
   const [viewProof, setViewProof] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,8 +62,6 @@ export default function AssetDetail() {
   const perUnitMarket = gold ? goldPriceIn(cur, gp, rateMap) : Number(a.last_price) || (qty ? value / qty : 0);
   const isOwner = !a.created_by_id || a.created_by_id === me?.id;
   const vs = a.type === "investasi" || a.import_source ? valueSourceInfo(a) : null;
-  const lots = allLots.filter((l) => l.asset_id === a.id);
-  const lotInfo = a.type === "investasi" ? lotSummary(lots.map((l) => ({ ...l, date: String(l.date).slice(0, 10), side: l.side || "buy", price: l.price_per_unit })), qty) : null;
   const zakatCounted = !ZAKAT_EXCLUDED_TYPES.includes(a.type);
   const duration = formatDuration(a.purchase_date);
 
@@ -155,20 +153,8 @@ export default function AssetDetail() {
         </section>
       )}
 
-      {/* Riwayat DCA (investasi) */}
-      {a.type === "investasi" && (
-        <Link to={`/investasi/${a.id}`} className="surface rounded-3xl px-4 py-3 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
-          <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Layers className="w-4 h-4" /></span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold">Riwayat DCA</span>
-            <span className="block text-xs text-muted-foreground">
-              {lots.length ? `${lots.length} lot${lotInfo?.firstDate ? `, sejak ${formatDate(lotInfo.firstDate, "d MMM yyyy")}` : ""}` : "Belum ada lot — catat pembelian atau impor dari broker"}
-            </span>
-            {lotInfo?.status === "partial" && <span className="block text-[11px] text-warning mt-0.5">Lot mencakup {formatNumber(lotInfo.netQty)} dari {formatNumber(qty)} {unit}</span>}
-          </span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </Link>
-      )}
+      {/* Investasi: perbarui nilai + Riwayat DCA langsung di halaman ini */}
+      {a.type === "investasi" && <InvestmentDca asset={a} />}
 
       {/* Bukti pembelian */}
       {a.purchase_proof_url && (

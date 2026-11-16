@@ -102,9 +102,9 @@ export default function AssetDetail() {
     perUnitMarket > 0 && (gold || a.type === "investasi") && { icon: TrendingUp, label: gold ? "Harga pasar /gram" : `Harga terakhir /${unit}`, value: formatMoney(perUnitMarket, cur) },
     (a.ticker || a.exchange) && { icon: Hash, label: "Kode", value: [a.ticker, a.exchange, a.instrument && INSTRUMENTS[a.instrument]].filter(Boolean).join(" · ") },
     a.broker && { icon: Building2, label: a.type === "investasi" ? "Broker / aplikasi" : "Tempat", value: a.broker },
-    a.purchase_date && { icon: CalendarDays, label: "Tanggal beli", value: `${formatDate(a.purchase_date, "d MMMM yyyy")}${duration ? ` · ${duration}` : ""}` },
+    a.purchase_date && { icon: CalendarDays, label: "Tanggal beli", value: `${formatDate(a.purchase_date, "d MMM yyyy")}${duration ? ` · ${duration}` : ""}` },
     a.owner && { icon: UserRound, label: "Pemilik", value: a.owner },
-    a.notes && { icon: NotebookPen, label: "Catatan", value: a.notes },
+    a.notes && { icon: NotebookPen, label: "Catatan", value: a.notes, wide: true },
   ].filter(Boolean);
 
   return (
@@ -143,15 +143,13 @@ export default function AssetDetail() {
       {gold && g.needsGoldPrice && <GoldPriceCard grams={qty} className="mb-4" />}
 
       {/* Rincian */}
+      {/* Rincian: grid 2 kolom padat (catatan panjang selebar penuh) */}
       {rows.length > 0 && (
-        <section aria-label="Rincian" className="surface rounded-3xl divide-y divide-border mb-4">
+        <section aria-label="Rincian" className="surface rounded-3xl p-4 mb-4 grid grid-cols-2 gap-x-4 gap-y-3">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center gap-3 px-4 py-3">
-              <span className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0"><r.icon className="w-4 h-4" /></span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-muted-foreground">{r.label}</p>
-                <p className="text-sm font-medium break-words tabular-nums">{r.value}</p>
-              </div>
+            <div key={r.label} className={`min-w-0 ${r.wide ? "col-span-2" : ""}`}>
+              <p className="text-[11px] text-muted-foreground leading-tight">{r.label}</p>
+              <p className="text-[13px] font-semibold tabular-nums leading-snug mt-0.5 break-words">{r.value}</p>
             </div>
           ))}
         </section>
@@ -159,7 +157,7 @@ export default function AssetDetail() {
 
       {/* Riwayat DCA (investasi) */}
       {a.type === "investasi" && (
-        <Link to={`/investasi/${a.id}`} className="surface rounded-3xl px-4 py-3.5 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+        <Link to={`/investasi/${a.id}`} className="surface rounded-3xl px-4 py-3 mb-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
           <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Layers className="w-4 h-4" /></span>
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-semibold">Riwayat DCA</span>
@@ -185,8 +183,8 @@ export default function AssetDetail() {
 
       {/* Jangkauan, zakat, mutasi */}
       <section className="surface rounded-3xl divide-y divide-border mb-4">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0">{a.visibility === "private" ? <Lock className="w-4 h-4" /> : <Users className="w-4 h-4" />}</span>
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <span className="w-8 h-8 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0">{a.visibility === "private" ? <Lock className="w-4 h-4" /> : <Users className="w-4 h-4" />}</span>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-muted-foreground">Jangkauan</p>
             <p className="text-sm font-medium">{a.visibility === "private" ? "Pribadi, hanya Anda" : "Bersama keluarga"}</p>
@@ -200,16 +198,16 @@ export default function AssetDetail() {
             </div>
           )}
         </div>
-        <Link to="/zakat" className="flex items-center gap-3 px-4 py-3">
-          <span className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0">{zakatCounted ? <ShieldCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}</span>
+        <Link to="/zakat" className="flex items-center gap-3 px-4 py-2.5">
+          <span className="w-8 h-8 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0">{zakatCounted ? <ShieldCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}</span>
           <span className="flex-1 min-w-0">
             <span className="block text-[11px] text-muted-foreground">Zakat mal</span>
             <span className="block text-sm font-medium">{zakatCounted ? "Ikut dihitung (nilai pasar)" : "Tidak dihitung (aset dipakai/tempat tinggal)"}</span>
           </span>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </Link>
-        <Link to={`/mutasi-aset?asset_id=${a.id}`} className="flex items-center gap-3 px-4 py-3">
-          <span className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0"><History className="w-4 h-4" /></span>
+        <Link to={`/mutasi-aset?asset_id=${a.id}`} className="flex items-center gap-3 px-4 py-2.5">
+          <span className="w-8 h-8 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0"><History className="w-4 h-4" /></span>
           <span className="flex-1 min-w-0 text-sm font-medium">Riwayat mutasi saldo</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </Link>

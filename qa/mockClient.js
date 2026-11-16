@@ -174,7 +174,12 @@ export const base44 = {
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
     // AI tiruan: tes mengisi window.__qaLLM = [respons1, respons2, ...] (urut per panggilan).
-    : (ns === "Core" && fn === "InvokeLLM") ? async () => { await lag("llm"); return (window.__qaLLM && window.__qaLLM.shift()) || {}; }
+    : (ns === "Core" && fn === "InvokeLLM") ? async (args) => {
+      await lag("llm");
+      // Entri boleh fungsi (menerima argumen/prompt) agar jawaban bisa bergantung pada isi prompt.
+      const next = window.__qaLLM && window.__qaLLM.shift();
+      return (typeof next === "function" ? next(args) : next) || {};
+    }
     : async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.

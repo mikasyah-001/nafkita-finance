@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { useAssets, useInvestmentLots, useRefresh } from "@/hooks/useFinance";
 import { formatMoney, formatNumber, formatDate, assetGain } from "@/lib/finance";
 import { lotSummary } from "@/lib/portfolioImport";
+import { fetchLivePrices } from "@/lib/livePrice";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Building2, Layers, Check, Upload, Calendar, X } from "lucide-react";
+import { Plus, Trash2, Loader2, TrendingUp, TrendingDown, Building2, Layers, Check, Upload, Calendar, X, Globe } from "lucide-react";
 import { confirmAction } from "@/components/ConfirmHost";
 import PageHeader from "@/components/PageHeader";
 
@@ -27,6 +28,8 @@ export default function InvestmentDetail() {
   const asset = assets.find((a) => a.id === id);
 
   const [priceDraft, setPriceDraft] = useState("");
+  const [live, setLive] = useState(null); // { price, source, as_of } | { error }
+  const [liveBusy, setLiveBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lot, setLot] = useState({ date: new Date().toISOString().slice(0, 10), price_per_unit: "", quantity: "", notes: "" });
@@ -119,11 +122,23 @@ export default function InvestmentDetail() {
     const p = Number(priceDraft);
     if (!(p > 0)) return;
     try {
-      await base44.entities.Asset.update(asset.id, { value: r2(p * qty), last_price: p, price_date: new Date().toISOString().slice(0, 10) });
+      await base44.entities.Asset.update(asset.id, { value: r2(p * qty), last_price: p, price_date: (live?.price === p && live.as_of) || new Date().toISOString().slice(0, 10) });
       refresh();
       setPriceDraft("");
       toast.success("Nilai pasar diperbarui");
     } catch { toast.error("Gagal memperbarui"); }
+  };
+
+  const findOnline = async () => {
+    setLiveBusy(true);
+    setLive(null);
+    try {
+      const found = await fetchLivePrices([{ key: asset.id, name: String(asset.name || "").replace(/\s*\(.*?\)\s*$/, ""), ticker: asset.ticker, exchange: asset.exchange || "", currency: cur, ref_price: lastPrice }]);
+      const lp = found.get(asset.id);
+      if (lp?.ok) { setLive(lp); setPriceDraft(String(lp.price)); }
+      else setLive({ error: lp?.reason || "Harga tidak ditemukan" });
+    } catch (e) { setLive({ error: e?.message || "Gagal mencari" }); }
+    setLiveBusy(false);
   };
 
   const tone = info.status === "complete" ? "card-pastel-mint" : info.status === "none" ? "card-pastel-sage" : "card-pastel-butter";
@@ -166,6 +181,11 @@ export default function InvestmentDetail() {
           </span>
           <button onClick={savePrice} disabled={!(Number(priceDraft) > 0)} className="btn-primary btn-sm shrink-0 disabled:opacity-50">Simpan</button>
         </div>
+        <button onClick={findOnline} disabled={liveBusy} className="mt-2 text-xs font-semibold text-primary inline-flex items-center gap-1.5 disabled:opacity-60">
+          {liveBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {liveBusy ? "Mencari harga terbaru…" : "Cari harga online"}
+        </button>
+        {live?.price && <p className="text-[11px] text-muted-foreground mt-1">Ditemukan {formatMoney(live.price, cur)} · {live.source || "internet"}{live.as_of ? ` · ${formatDate(live.as_of, "d MMM yyyy")}` : ""} — periksa lalu ketuk Simpan.</p>}
+        {live?.error && <p className="text-[11px] text-warning mt-1">{live.error}. Isi manual dari aplikasi broker.</p>}
         {Number(priceDraft) > 0 && <p className="text-xs text-muted-foreground mt-2 tabular-nums">Nilai pasar baru: <span className="font-semibold text-foreground">{formatMoney(Number(priceDraft) * qty, cur)}</span></p>}
       </section>
 

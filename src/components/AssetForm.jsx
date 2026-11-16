@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
-import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen } from "lucide-react";
+import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import CategoryIcon from "@/components/CategoryIcon";
 
@@ -123,6 +124,18 @@ export default function AssetForm({ asset, onClose }) {
             );
           })}
         </div>
+        {/* Impor otomatis — kontekstual untuk jenis yang biasa dicatat di aplikasi broker */}
+        {!isEdit && (form.type === "investasi" || form.type === "emas_digital") && (
+          <Link to="/impor-portofolio" onClick={onClose}
+            className="mt-3 card-pastel card-pastel-sage rounded-2xl p-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
+            <span className="w-9 h-9 rounded-xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0"><Upload className="w-4 h-4" /></span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold leading-tight">Impor dari aplikasi {form.type === "investasi" ? "broker" : "emas"}</span>
+              <span className="block text-[11px] opacity-80 leading-snug mt-0.5">Foto/PDF portofolio dibaca otomatis — jumlah, modal, nilai & tanggal beli</span>
+            </span>
+            <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+          </Link>
+        )}
       </section>
 
       <FieldGroup label="Identitas">

@@ -95,7 +95,7 @@ try {
     const t0 = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung"));
     const countBefore = await page.evaluate(() => window.__qa.tx.length);
     await nav(`/transaksi/${t0.id}`);
-    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.getByRole("button", { name: /Edit atau hapus/ }).click();
     await page.waitForTimeout(500);
     assert.ok(await page.getByRole("heading", { name: "Edit transaksi" }).isVisible(), "Judul Edit transaksi");
     assert.equal(await page.locator("nav a[href='/add']").count(), 0, "Navigasi bawah disembunyikan (tidak menutupi isian)");
@@ -116,7 +116,7 @@ try {
   await step("Hapus transaksi: dialog konfirmasi muncul, Batal tidak menghapus, Hapus menghapus", async () => {
     const txId = await page.evaluate(() => window.__qa.tx.find((t) => t.merchant === "QA Warung").id);
     await nav(`/transaksi/${txId}`);
-    await page.getByRole("button", { name: "Edit transaksi" }).click();
+    await page.getByRole("button", { name: /Edit atau hapus/ }).click();
     await page.getByRole("button", { name: /Hapus transaksi/i }).click();
     const dialog = page.getByRole("alertdialog");
     await dialog.waitFor({ timeout: 3000 });

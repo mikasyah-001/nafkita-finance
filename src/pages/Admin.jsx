@@ -201,7 +201,18 @@ export default function Admin() {
   const visibleLogs = useMemo(() => (hideViews ? auditLogs.filter((l) => l.action !== "view_admin_stats") : auditLogs), [auditLogs, hideViews]);
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+    // Judul tetap tampil (bukan layar kosong) selama data admin dimuat —
+    // data ini sengaja diambil hanya saat panel dibuka (berat, khusus admin).
+    return (
+      <div className="px-5 pt-6 pb-28">
+        <PageHeader title="Panel admin" subtitle="Pengguna, pasangan, data & audit" back />
+        <div className="space-y-4" aria-busy="true" aria-label="Memuat data admin">
+          <div className="h-36 rounded-[28px] bg-muted animate-pulse" />
+          <div className="grid grid-cols-3 gap-1.5">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 rounded-full bg-muted animate-pulse" />)}</div>
+          <div className="h-48 rounded-3xl bg-muted animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (!isAdmin) {

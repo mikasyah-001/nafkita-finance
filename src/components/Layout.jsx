@@ -1,6 +1,5 @@
 import { useLocation, useOutlet } from "react-router-dom";
 import { Suspense, useEffect, useRef } from "react";
-import { AnimatePresence } from "framer-motion";
 import PageTransition from "./PageTransition";
 import { base44 } from "@/api/base44Client";
 import BottomNav from "./BottomNav";
@@ -10,7 +9,8 @@ import NotificationToaster from "./NotificationToaster";
 import InstallPrompt from "./InstallPrompt";
 import { useSeedCategories } from "@/hooks/useSeedCategories";
 import { useScope } from "@/lib/ScopeContext";
-import { useCoreDataReady, useMe } from "@/hooks/useFinance";
+import { useCoreDataReady, useMe, WarmSecondaryData } from "@/hooks/useFinance";
+import { prefetchPages } from "@/lib/pagePrefetch";
 
 export default function Layout() {
   useSeedCategories();
@@ -19,6 +19,7 @@ export default function Layout() {
   // Halaman baru dipasang setelah profil ada, agar state awalnya (mis. mata
   // uang utama) langsung benar — bukan IDR dulu lalu berganti.
   const { data: me } = useMe();
+  useEffect(() => { if (ready) prefetchPages(); }, [ready]);
 
   // Heartbeat: perbarui last_active_at tiap 60 detik + saat tab kembali fokus.
   const heartbeat = useRef(null);
@@ -60,16 +61,20 @@ export default function Layout() {
           <div className={ready ? "contents" : "hidden"} aria-hidden={!ready}>
             {/* Kunci per pathname → tiap layar beranimasi saat berpindah; query
                 string (mis. ?tab=) tidak memicu animasi ulang. */}
+            {/* Tanpa AnimatePresence mode="wait": halaman lama tidak perlu
+                memudar dulu (dulu menimbulkan jeda kosong = kedip pertama). */}
+            {/* Suspense di LUAR pembungkus ber-key: boundary tetap sama antar
+                halaman, sehingga navigasi (startTransition) mempertahankan
+                halaman lama sampai halaman baru siap — tanpa skeleton sesaat. */}
             {me && (
-              <AnimatePresence mode="wait" initial={false}>
-                <PageTransition key={location.pathname}>
-                  <Suspense fallback={<PageFallback />}>{outlet}</Suspense>
-                </PageTransition>
-              </AnimatePresence>
+              <Suspense fallback={<PageFallback />}>
+                <PageTransition key={location.pathname}>{outlet}</PageTransition>
+              </Suspense>
             )}
           </div>
         </div>
       </main>
+      {ready && <WarmSecondaryData />}
       <BottomNav />
       <OfflineSyncManager />
       <NotificationToaster />

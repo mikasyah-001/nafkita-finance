@@ -42,6 +42,37 @@ try {
     if (!ok && process.env.QA_VERBOSE) [...new Set(shown.map((x) => x.nums))].forEach((n) => console.log("    ", n.slice(0, 220)));
     await ctx.close();
   }
+
+  // Tahap 2: BERPINDAH halaman setelah aplikasi siap. Tiap perpindahan harus
+  // langsung dari halaman lama ke halaman baru — tanpa layar kosong, tanpa
+  // halaman lama memudar, tanpa skeleton sesaat.
+  console.log("\nPerpindahan halaman:");
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addInitScript(() => { localStorage.setItem("qaLag", "300"); localStorage.setItem("qaDefaultCur", "SAR"); });
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/");
+  await page.waitForTimeout(3500);
+  for (const to of routes.filter((x) => !["/selamat-datang", "/"].includes(x)).concat("/")) {
+    const segs = await page.evaluate(async (to) => {
+      const out = [];
+      const sample = () => {
+        const m = document.querySelector("main");
+        const empty = (m?.innerText || "").trim().length < 5;
+        const sk = !!m?.querySelector('[aria-busy="true"], .animate-pulse');
+        const faded = [...(m?.querySelectorAll(".pt-safe *") || [])].slice(0, 3).some((el) => Number(getComputedStyle(el).opacity) < 0.95);
+        return empty ? "kosong" : sk ? "skeleton" : faded ? "pudar" : "ok";
+      };
+      window.history.pushState({}, "", to); window.dispatchEvent(new PopStateEvent("popstate"));
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1200) { const k = sample(); if (out.at(-1) !== k) out.push(k); await new Promise((r) => requestAnimationFrame(r)); }
+      return out;
+    }, to);
+    // /admin: data seluruh pengguna sengaja dimuat saat dibuka → skeleton wajar.
+    const ok = segs.every((k) => k === "ok" || (to === "/admin" && k === "skeleton"));
+    if (!ok) bad++;
+    console.log(`${ok ? "✓" : "✗"} → ${to}  ${ok ? "" : segs.join(" → ")}`);
+  }
+  await ctx.close();
 } finally {
   await browser.close();
   server.kill();

@@ -276,3 +276,16 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["exchangeRates"] }),
   ]);
 }
+/**
+ * Dipasang Layout SETELAH data inti siap: menghangatkan cache data sekunder
+ * di latar (tidak menahan tampilan pertama), sehingga membuka Utang, Zakat,
+ * Pengaturan, Dashboard Aset, dll. langsung berisi tanpa skeleton sesaat.
+ */
+export function WarmSecondaryData() {
+  useDebts();
+  useZakatPayments();
+  useNotificationRules();
+  useAssetSnapshots();
+  useCategories();
+  return null;
+}

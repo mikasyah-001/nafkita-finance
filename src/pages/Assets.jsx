@@ -7,13 +7,14 @@ import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetT
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
+import InvestmentValueSheet from "@/components/InvestmentValueSheet";
 import AssetGrowthTrend from "@/components/AssetGrowthTrend";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
-import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Loader2, Calendar, Layers, ShieldCheck } from "lucide-react";
+import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Calendar, Layers, ShieldCheck, RefreshCw } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
@@ -67,7 +68,10 @@ export default function Assets() {
     allLots.forEach((l) => { (m[l.asset_id] ||= []).push(l); });
     return m;
   }, [allLots]);
-  const priceable = assets.filter((a) => a.type === "investasi" && Number(a.quantity) > 0 && (a.ticker || a.name));
+  // Hanya aset milik sendiri yang bisa diperbarui (aset bersama pasangan = hak pemiliknya).
+  const ownInvestments = assets.filter((a) => a.type === "investasi" && (!a.created_by_id || !me?.id || a.created_by_id === me.id));
+  const priceable = ownInvestments.filter((a) => Number(a.quantity) > 0 && (a.ticker || a.name));
+  const [valueSheet, setValueSheet] = useState(false);
   const handleLivePrices = async () => {
     setLivePricing(true);
     try {
@@ -236,17 +240,12 @@ export default function Assets() {
 
           {/* Konteks per jenis: harga emas acuan untuk emas; harga online untuk investasi */}
           {isGoldType(typeFilter) && <GoldPriceCard grams={goldGramsIdr} className="mt-3" />}
-          {/* Perbarui nilai investasi: utamakan data broker tempat membeli; online hanya perkiraan */}
-          {(typeFilter === "investasi" || typeFilter === "all") && priceable.length > 0 && (
-            <div className="mt-2.5 flex items-center gap-2">
-              <Link to="/impor-portofolio" className="flex-1 h-10 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
-                <Upload className="w-3.5 h-3.5" /> Perbarui nilai dari broker
-              </Link>
-              <button onClick={handleLivePrices} disabled={livePricing} title="Perkiraan dari sumber resmi bursa — bisa berbeda dari broker"
-                className="h-10 px-3.5 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
-                {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {livePricing ? "Mencari…" : "Perkiraan online"}
-              </button>
-            </div>
+          {/* Perbarui nilai investasi: isi nilai terkini langsung; impor & online ada di dalam lembar */}
+          {(typeFilter === "investasi" || typeFilter === "all") && ownInvestments.length > 0 && (
+            <button onClick={() => setValueSheet(true)}
+              className="mt-2.5 w-full h-10 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
+              <RefreshCw className="w-3.5 h-3.5" /> Perbarui nilai investasi
+            </button>
           )}
         </section>
       )}
@@ -372,6 +371,10 @@ export default function Assets() {
         </button>
       )}
 
+      {valueSheet && (
+        <InvestmentValueSheet assets={ownInvestments} onClose={() => setValueSheet(false)} onSaved={refresh}
+          onLive={handleLivePrices} livePricing={livePricing} />
+      )}
       {formOpen && <AssetForm asset={editingAsset} onClose={() => { setFormOpen(false); setEditingAsset(null); }} />}
 
       {/* Analisis di akhir: setelah melihat daftar */}

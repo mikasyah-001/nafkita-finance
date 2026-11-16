@@ -36,11 +36,12 @@ export default function DeleteAccountSection() {
       setTimeout(() => base44.auth.logout("/selamat-datang"), 900);
     } catch (e) {
       const code = e?.response?.data?.error || e?.message || "";
-      toast.error("Gagal menghapus akun", {
-        description: code === "user_delete_failed"
-          ? "Data Anda sudah dihapus, tetapi akun belum terhapus. Silakan hubungi kami lewat menu Umpan balik."
-          : "Tidak ada yang dihapus permanen dari akun Anda. Periksa koneksi lalu coba lagi.",
-      });
+      const description = code === "user_delete_failed"
+        ? "Data Anda sudah dihapus, tetapi akun belum terhapus. Silakan hubungi kami lewat menu Umpan balik."
+        : code.startsWith("transfer_")
+          ? "Catatan bersama belum bisa dipindahkan ke pasangan, jadi belum ada data yang dihapus. Coba lagi nanti atau hubungi kami lewat menu Umpan balik."
+          : "Proses terhenti. Periksa koneksi lalu coba lagi; mengulang proses ini aman.";
+      toast.error("Gagal menghapus akun", { description });
       setBusy(false);
     }
   };
@@ -67,11 +68,16 @@ export default function DeleteAccountSection() {
             <AlertDialogTitle className="text-lg">Hapus akun secara permanen?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="text-sm leading-relaxed space-y-2">
-                <p>Tindakan ini <strong className="text-foreground">tidak dapat dibatalkan</strong>. Yang akan dihapus:</p>
+                <p>Tindakan ini <strong className="text-foreground">tidak dapat dibatalkan</strong>.</p>
+                <p className="font-medium text-foreground">Dihapus permanen:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Profil dan akses masuk Anda</li>
-                  <li>Semua transaksi, aset, anggaran, utang, tagihan, target tabungan, dan catatan zakat yang Anda buat</li>
-                  <li>Koneksi pasangan diputus — catatan bersama yang <em>Anda</em> buat juga hilang dari tampilan pasangan</li>
+                  <li>Semua catatan <strong className="text-foreground">pribadi</strong> Anda (transaksi, aset, anggaran, utang, tagihan, target, zakat), template, dan pengaturan notifikasi</li>
+                </ul>
+                <p className="font-medium text-foreground">Bila terhubung dengan pasangan:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Catatan <strong className="text-foreground">bersama</strong> yang Anda buat dipindahkan ke akun pasangan agar riwayat keluarga tetap utuh. Nama Anda diganti menjadi "Pasangan (akun dihapus)".</li>
+                  <li>Transaksi yang masih menunggu persetujuan ikut dihapus, dan koneksi pasangan diputus.</li>
                 </ul>
               </div>
             </AlertDialogDescription>

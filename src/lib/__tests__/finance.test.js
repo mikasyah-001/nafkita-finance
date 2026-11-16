@@ -411,3 +411,10 @@ test("errorMessage: pesan asli dari backend, bukan 'status code 500'", async () 
   assert.equal(partialErrorText([{ source: "transaksi", message: "timeout" }]), "transaksi: timeout");
   assert.equal(partialErrorText([]), "");
 });
+
+test("knownBrokers: 'Bank BSI' dan 'BSI' tidak muncul ganda", async () => {
+  const { knownBrokers, canonicalBroker } = await import("../finance.js");
+  const list = knownBrokers([{ type: "bank", broker: "Bank BSI" }, { type: "bank", broker: "Bank BSI" }, { type: "bank", broker: "BSI" }], { type: "bank" });
+  assert.deepEqual(list, ["Bank BSI"]);
+  assert.equal(canonicalBroker("BSI", list), "Bank BSI");
+});

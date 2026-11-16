@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   Pencil, Trash2, History, ChevronRight, Lock, Users, Receipt, Maximize2, TrendingUp, TrendingDown,
-  Globe, Upload, Coins, CalendarDays, Building2, UserRound, NotebookPen, Hash, Scale, ShieldCheck, Ban,
+  Globe, Upload, Coins, CalendarDays, Building2, UserRound, NotebookPen, Hash, Scale, ShieldCheck, Ban, Copy, Eye, EyeOff,
 } from "lucide-react";
+import { maskAccount, accountLast4, formatAccountNumber, normalizeAccountNumber } from "@/lib/bankAccount";
 import PageHeader from "@/components/PageHeader";
 import AssetForm from "@/components/AssetForm";
 import ProofViewer from "@/components/ProofViewer";
@@ -108,7 +109,8 @@ export default function AssetDetail() {
     a.type === "investasi" && qty > 0 && g.cost > 0 && { icon: Coins, label: "Rata-rata beli", value: `${formatMoney(g.cost / qty, cur)}/${unit}` },
     perUnitMarket > 0 && (gold || a.type === "investasi") && { icon: TrendingUp, label: gold ? "Harga pasar /gram" : `Harga terakhir /${unit}`, value: formatMoney(perUnitMarket, cur) },
     (a.ticker || a.exchange) && { icon: Hash, label: "Kode", value: [a.ticker, a.exchange].filter(Boolean).join(" · ") },
-    a.broker && { icon: Building2, label: a.type === "investasi" ? "Broker / aplikasi" : "Tempat", value: a.broker },
+    a.broker && { icon: Building2, label: a.type === "investasi" ? "Broker / aplikasi" : a.type === "bank" ? "Bank" : "Tempat", value: a.broker },
+    a.type === "bank" && a.account_number && { icon: Hash, label: "No. rekening / IBAN", value: <AccountNumber number={a.account_number} />, wide: true },
     // Dibeli bertahap (DCA): tampilkan pertama & terakhir beli dari Riwayat DCA.
     ...(buyDates.length > 1
       ? [
@@ -122,7 +124,7 @@ export default function AssetDetail() {
 
   return (
     <div className="px-5 pt-6 pb-28">
-      <PageHeader title={assetDisplayName(a).name} subtitle={[catLabel || meta.label, assetDisplayName(a).ticker, a.broker].filter(Boolean).join(" · ")} back
+      <PageHeader title={assetDisplayName(a).name} subtitle={[catLabel || meta.label, assetDisplayName(a).ticker, a.broker, a.type === "bank" && a.account_number && !String(a.name || "").includes(accountLast4(a.account_number)) ? maskAccount(a.account_number) : ""].filter(Boolean).join(" · ")} back
         actions={<button onClick={() => setEditing(true)} aria-label="Ubah aset" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"><Pencil className="w-4 h-4" /></button>} />
 
       {/* Nilai */}
@@ -225,5 +227,27 @@ export default function AssetDetail() {
       {editing && <AssetForm asset={a} onClose={() => setEditing(false)} />}
       {viewProof && <ProofViewer url={a.purchase_proof_url} onClose={() => setViewProof(false)} />}
     </div>
+  );
+}
+
+// No. rekening: tersamar dulu (••1234); ketuk untuk melihat lengkap atau salin.
+function AccountNumber({ number }) {
+  const [show, setShow] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(normalizeAccountNumber(number)); toast.success("No. rekening disalin"); }
+    catch { toast.error("Gagal menyalin"); }
+  };
+  return (
+    <span className="inline-flex items-center gap-2 flex-wrap">
+      <span className="tracking-wide">{show ? formatAccountNumber(number) : maskAccount(number)}</span>
+      <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Sembunyikan no. rekening" : "Tampilkan no. rekening"}
+        className="h-7 px-2 rounded-full border border-border bg-card text-[11px] font-semibold inline-flex items-center gap-1">
+        {show ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />} {show ? "Sembunyikan" : "Tampilkan"}
+      </button>
+      <button type="button" onClick={copy} aria-label="Salin no. rekening"
+        className="h-7 px-2 rounded-full border border-border bg-card text-[11px] font-semibold inline-flex items-center gap-1">
+        <Copy className="w-3 h-3" /> Salin
+      </button>
+    </span>
   );
 }

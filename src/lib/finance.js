@@ -348,7 +348,8 @@ export function formatDuration(fromDate) {
 // ── Broker / aplikasi tersimpan ─────────────────────────────────────────────
 // Satu sumber: diambil dari aset yang sudah ada, agar tidak mengetik ulang &
 // tidak muncul ejaan ganda ("Al Rajhi Capital" vs "al rajhi capital").
-const brokerKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+// "Bank BSI" = "BSI": awalan "bank" diabaikan agar tidak muncul ganda.
+const brokerKey = (s) => String(s || "").toLowerCase().replace(/^\s*bank\s+/, "").replace(/[^a-z0-9\u0600-\u06ff]/g, "");
 const tidyBroker = (s) => String(s || "").replace(/\s+/g, " ").trim();
 
 // Daftar broker yang pernah dipakai, paling sering dulu. `type` → jenis aset itu

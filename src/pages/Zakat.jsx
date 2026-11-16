@@ -5,6 +5,7 @@ import { useAssets, useRefresh, useUserCurrencies } from "@/hooks/useFinance";
 import { useZakat } from "@/hooks/useZakat";
 import GoldPriceCard from "@/components/GoldPriceCard";
 import { formatMoney, formatMoneyShort, formatNumber, formatDate, isMoneyAsset, assetTypeLabels, formatMoneyPlain, convertTo, canConvert, currencySymbol } from "@/lib/finance";
+import { assetLabel } from "@/lib/bankAccount";
 import { ZAKAT_GROUP_LABEL, NISAB_GOLD_GRAM, formatHijri, HAUL_DAYS } from "@/lib/zakat";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import PageHeader from "@/components/PageHeader";
@@ -338,7 +339,7 @@ function PayZakatSheet({ z, onClose, onSaved }) {
           <FieldRow icon={Wallet} label="Dibayar dari (opsional)" htmlFor="zakat-pay-asset">
             <select id="zakat-pay-asset" value={assetId} onChange={(e) => setAssetId(e.target.value)} className={fieldInput}>
               <option value="">Tidak dipilih, saldo rekening tetap</option>
-              {moneyAssets.map((a) => <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>)}
+              {moneyAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
             </select>
           </FieldRow>
         )}

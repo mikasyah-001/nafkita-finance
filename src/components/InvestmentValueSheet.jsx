@@ -14,7 +14,7 @@ import { investmentCategory, CATEGORY_LABEL } from "@/lib/investmentCategory";
  * dari aplikasi broker). Impor screenshot & perkiraan online tersedia sebagai
  * cara lain, bukan tujuan tombol utama.
  */
-export default function InvestmentValueSheet({ assets = [], onClose, onSaved, onLive, livePricing = false }) {
+export default function InvestmentValueSheet({ assets = [], onClose, onSaved, onLive, livePricing = false, liveCount = 0 }) {
   const [drafts, setDrafts] = useState({});
   const [saving, setSaving] = useState(false);
   const changed = assets
@@ -81,12 +81,17 @@ export default function InvestmentValueSheet({ assets = [], onClose, onSaved, on
         <Link to="/impor-portofolio" className="h-11 rounded-2xl border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5">
           <Upload className="w-3.5 h-3.5" /> Impor screenshot
         </Link>
-        <button type="button" onClick={onLive} disabled={livePricing} title="Perkiraan dari sumber resmi bursa — bisa berbeda dari broker"
+        {/* Hanya aset yang belum diperbarui dari broker hari ini yang perlu dicek online */}
+        <button type="button" onClick={onLive} disabled={livePricing || liveCount === 0} title="Perkiraan dari sumber resmi bursa — bisa berbeda dari broker"
           className="h-11 rounded-2xl border border-border bg-card text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60">
-          {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} {livePricing ? "Mencari…" : "Perkiraan online"}
+          {livePricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+          {livePricing ? "Mencari…" : liveCount === 0 ? "Semua sudah terbaru" : `Perkiraan online (${liveCount})`}
         </button>
       </div>
-      <p className="text-[11px] text-muted-foreground px-1 -mt-2">Impor screenshot membaca banyak aset sekaligus. Perkiraan online hanya patokan — angka broker lebih tepat.</p>
+      <p className="text-[11px] text-muted-foreground px-1 -mt-2">
+        Impor screenshot membaca banyak aset sekaligus. Perkiraan online hanya patokan — angka broker lebih tepat
+        {liveCount === 0 && assets.length ? "; semua aset sudah diperbarui dari broker hari ini." : "."}
+      </p>
     </FormSheet>
   );
 }

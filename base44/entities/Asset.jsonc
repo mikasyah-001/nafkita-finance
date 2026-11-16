@@ -37,6 +37,10 @@
       "type": "string",
       "description": "Tempat pembelian/penyimpanan (mis. Bank Al Rajhi, Bank BSI, BCA)"
     },
+    "account_number": {
+      "type": "string",
+      "description": "No. rekening / IBAN untuk Tabungan/Bank (tanpa spasi). Satu bank bisa punya beberapa rekening."
+    },
     "purchase_date": {
       "type": "string",
       "format": "date"

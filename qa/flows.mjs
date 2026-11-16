@@ -304,6 +304,7 @@ try {
     await page.fill("#asset-gold-purchase-price", "1250000");
     await page.getByRole("radio", { name: /Tabungan/ }).click();
     await page.fill("#asset-name", "QA Bank");
+    await page.fill("#asset-account", "7000111222");
     await page.fill("#asset-value", "7000000");
     assert.equal(await page.locator("#asset-purchase-price").count(), 0, "Bank tidak menanyakan harga beli");
     await page.getByRole("button", { name: /Simpan aset/i }).click();
@@ -853,6 +854,84 @@ try {
     await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
     assert.ok(await page.getByRole("dialog", { name: "Perbarui nilai investasi" }).getByRole("link", { name: /Impor screenshot/ }).isVisible());
     await page.keyboard.press("Escape");
+  });
+
+  await step("Perkiraan online: hasil ringkas; nilai broker hari ini bukan error; tombol tahu jika semua sudah terbaru", async () => {
+    await page.evaluate(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      for (const a of window.__qa.assets) {
+        if (a.type !== "investasi" || a.created_by_id !== "u1") continue;
+        if (!(Number(a.quantity) > 0)) a.quantity = 1;
+        Object.assign(a, a.id === "qa-long2" ? { value_source: "manual", price_date: "2026-11-05" } : { value_source: "broker", price_date: today });
+      }
+      // Harga online yang ditemukan sudah lama → ditolak
+      window.__qaLLM = [({ prompt }) => ({ prices: prompt.split("\n").map((l) => l.match(/^(\d+)\. /)).filter(Boolean).map(([, i]) => ({ index: i, price: "1450", currency: "IDR", as_of: "2026-10-01", source: "Bareksa" })) })];
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    const sheet = page.getByRole("dialog", { name: "Perbarui nilai investasi" });
+    await sheet.getByRole("button", { name: "Perkiraan online (1)" }).click();
+    await page.waitForTimeout(1200);
+    const toastEl = page.locator("[data-sonner-toast]").filter({ hasText: "Belum ada harga online terbaru" }).first();
+    assert.ok(await toastEl.isVisible(), "Peringatan ringkas, bukan error");
+    const txt = (await toastEl.innerText()).replace(/\s+/g, " ");
+    assert.ok(/sudah terbaru dari broker hari ini/.test(txt) && /Mandiri Pasar Uang Syariah Ekstra belum terbaru/.test(txt), txt);
+    assert.equal(await page.getByText("Belum ada harga yang bisa dipakai").count(), 0);
+    assert.ok(txt.length < 220, `Tidak panjang (${txt.length})`);
+    await page.keyboard.press("Escape");
+    // Semua sudah dari broker hari ini → tombol nonaktif & jelas
+    await page.evaluate(() => { const a = window.__qa.assets.find((x) => x.id === "qa-long2"); Object.assign(a, { value_source: "broker", price_date: new Date().toISOString().slice(0, 10) }); });
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: "Perbarui nilai investasi" }).click();
+    const btn = page.getByRole("dialog", { name: "Perbarui nilai investasi" }).getByRole("button", { name: "Semua sudah terbaru" });
+    assert.ok(await btn.isDisabled(), "Tombol nonaktif bila semua sudah terbaru");
+    await page.keyboard.press("Escape");
+  });
+
+  await step("Tabungan/Bank: no. rekening membedakan rekening di bank yang sama; nama otomatis; duplikat dicegah", async () => {
+    await nav("/aset");
+    const addBca = async (acc, value) => {
+      await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+      await page.getByRole("radio", { name: /Tabungan/ }).click();
+      // Urutan: Bank → No. rekening → Nama
+      const order = await page.evaluate(() => ["asset-broker", "asset-account", "asset-name"].map((id) => document.getElementById(id)?.getBoundingClientRect().top || 0));
+      assert.ok(order[0] < order[1] && order[1] < order[2], `Urutan Bank → Rekening → Nama: ${order}`);
+      await page.fill("#asset-broker", "BCA");
+      await page.fill("#asset-account", acc);
+      await page.fill("#asset-value", value);
+    };
+    // Tanpa nomor → ditolak
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.fill("#asset-broker", "BCA"); await page.fill("#asset-value", "100");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.getByText("Isi no. rekening", { exact: true }).first().waitFor({ timeout: 3000 });
+    assert.equal(await page.evaluate(() => window.__qa.assets.filter((x) => x.type === "bank" && x.broker === "BCA" && !x.account_number && x.value === 100).length), 0, "Tidak tersimpan tanpa nomor");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    // Dua rekening BCA berbeda → keduanya tersimpan, nama otomatis
+    await addBca("1234 5678 90", "5000000");
+    assert.ok(await page.getByPlaceholder("Otomatis: BCA ••7890").isVisible(), "Nama otomatis ditawarkan");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    await addBca("5555666677", "2000000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    const banks = await page.evaluate(() => window.__qa.assets.filter((x) => x.type === "bank" && x.broker === "BCA").map((x) => [x.name, x.account_number]));
+    assert.deepEqual(banks.filter(([, n]) => n === "1234567890" || n === "5555666677"), [["BCA ••7890", "1234567890"], ["BCA ••6677", "5555666677"]]);
+    // Nomor sama → ditolak
+    await addBca("1234567890", "1");
+    assert.ok(await page.getByText(/Rekening ini sudah tercatat sebagai “BCA ••7890”/).isVisible(), "Peringatan duplikat");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(400);
+    assert.equal(await page.evaluate(() => window.__qa.assets.filter((x) => x.account_number === "1234567890").length), 1, "Tidak dobel");
+    await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+    // Pilihan rekening di Catat transaksi menampilkan ••4 digit
+    await nav("/add");
+    const opts = await page.locator("option").allInnerTexts();
+    assert.ok(opts.some((o) => /BCA ••7890/.test(o)) && opts.some((o) => /BCA ••6677/.test(o)), `Pilihan rekening terbedakan: ${opts.filter((o) => /BCA/.test(o))}`);
+    // Detail: tersamar dulu, bisa ditampilkan
+    const id = await page.evaluate(() => window.__qa.assets.find((x) => x.account_number === "1234567890").id);
+    await nav("/riwayat"); await nav(`/aset/${id}`);
+    assert.ok(await page.getByText("••7890").first().isVisible());
+    await page.getByRole("button", { name: "Tampilkan no. rekening" }).click();
+    assert.ok(await page.getByText("1234 5678 90").isVisible(), "Nomor lengkap setelah ditampilkan");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

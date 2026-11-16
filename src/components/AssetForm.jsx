@@ -7,8 +7,9 @@ import ProofViewer from "@/components/ProofViewer";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import { INVESTMENT_CATEGORIES, investmentCategory } from "@/lib/investmentCategory";
+import { normalizeAccountNumber, accountNumberError, defaultBankName, findDuplicateAccount, formatAccountNumber } from "@/lib/bankAccount";
 import { toast } from "sonner";
-import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes } from "lucide-react";
+import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes, Hash } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import CategoryIcon from "@/components/CategoryIcon";
 
@@ -21,7 +22,7 @@ const digitalGoldBrokers = {
 };
 
 const empty = {
-  name: "", type: "bank", value: "", quantity: "", unit: "", broker: "",
+  name: "", type: "bank", value: "", quantity: "", unit: "", broker: "", account_number: "",
   purchase_date: "", purchase_price: "", purchase_proof_url: "",
   owner: "", notes: "", visibility: "shared", currency: "",
 };
@@ -37,6 +38,7 @@ export default function AssetForm({ asset, onClose }) {
           value: String(asset.value || ""),
           quantity: String(asset.quantity || ""),
           purchase_price: String(asset.purchase_price || ""),
+          account_number: formatAccountNumber(asset.account_number || ""),
         }
       : empty
   );
@@ -79,8 +81,17 @@ export default function AssetForm({ asset, onClose }) {
 
   const handleSave = async () => {
     // Broker diseragamkan ke ejaan yang sudah tersimpan (tanpa ganda/salah ketik).
-    const { error, payload } = buildAssetPayload({ ...form, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
+    // Tabungan/Bank: rekening dibedakan oleh nomornya (satu bank bisa banyak rekening).
+    let name = form.name;
+    if (form.type === "bank") {
+      if (accountError) return toast.error(accountError);
+      if (accountRequired && !normalizeAccountNumber(form.account_number)) return toast.error("Isi no. rekening", { description: "Satu bank bisa punya beberapa rekening — nomornya yang membedakan." });
+      if (duplicateAccount) return toast.error("Rekening ini sudah tercatat", { description: `Sebagai "${duplicateAccount.name}".` });
+      if (!String(name || "").trim()) name = defaultBankName(canonicalBrokerFor(form.broker, allAssets, form.type), form.account_number);
+    }
+    const { error, payload } = buildAssetPayload({ ...form, name, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
     if (error) return toast.error(error);
+    payload.account_number = payload.type === "bank" ? normalizeAccountNumber(form.account_number) : "";
     // Jenis investasi: pilihan sendiri dikunci; selain itu tebakan otomatis dari nama/ticker.
     if (payload.type === "investasi") {
       payload.instrument = invCategory;
@@ -116,7 +127,12 @@ export default function AssetForm({ asset, onClose }) {
   const brokerTyped = (form.broker || "").trim();
   const brokerCanon = brokerTyped ? canonicalBrokerFor(brokerTyped, allAssets, form.type) : "";
   const brokerFix = brokerCanon && brokerCanon !== brokerTyped.replace(/\s+/g, " ") ? brokerCanon : "";
-  const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
+  // Rekening wajib untuk bank baru; rekening lama tanpa nomor tetap bisa disimpan.
+  const accountRequired = form.type === "bank" && (!isEdit || !!asset?.account_number);
+  const accountError = form.type === "bank" ? accountNumberError(form.account_number) : "";
+  const duplicateAccount = form.type === "bank" ? findDuplicateAccount(allAssets, form.account_number, asset?.id) : null;
+  const autoBankName = defaultBankName(form.broker, form.account_number);
+  const brokerLabel = form.type === "bank" ? "Bank" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
   const invCategory = investmentCategory({ ...form, ticker: form.ticker || asset?.ticker, exchange: form.exchange || asset?.exchange });
   const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
   // Nominal besar dalam mata uang asing yang tampak seperti Rupiah (mis. $1.008.000).
@@ -124,6 +140,13 @@ export default function AssetForm({ asset, onClose }) {
     ? (amountCurrencyHint(form.value, cur, rateMap) || (form.type !== "tanah" && amountCurrencyHint(form.purchase_price, cur, rateMap))) : null;
   const goldHint = isGoldType(form.type) ? goldPriceCurrencyHint(form.purchase_price, cur, userCurrencies.map((c) => c.code), rateMap) : null;
   const goldTotal = isGoldType(form.type) && form.quantity && form.purchase_price ? Number(form.quantity) * Number(form.purchase_price) : 0;
+
+  const nameRow = (
+    <FieldRow icon={Tag} label={form.type === "bank" ? "Nama (opsional)" : "Nama aset"} htmlFor="asset-name">
+      <input id="asset-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+        placeholder={form.type === "bank" ? (form.broker || form.account_number ? `Otomatis: ${autoBankName}` : "Mis. Tabungan keluarga, Gaji") : form.type === "tunai" ? "Mis. Dompet tunai, Riyal umrah" : "Mis. Tabungan BCA, Emas Antam"} className={fieldInput} />
+    </FieldRow>
+  );
 
   return (
     <FormSheet
@@ -171,9 +194,8 @@ export default function AssetForm({ asset, onClose }) {
       </section>
 
       <FieldGroup label="Identitas">
-        <FieldRow icon={Tag} label="Nama aset" htmlFor="asset-name">
-          <input id="asset-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={form.type === "tunai" ? "Mis. Dompet tunai, Riyal umrah" : "Mis. Tabungan BCA, Emas Antam"} className={fieldInput} />
-        </FieldRow>
+        {/* Tabungan/Bank: Bank → No. rekening → Nama (otomatis). Jenis lain: Nama → tempat. */}
+        {form.type !== "bank" && nameRow}
         {showBroker && (
           <FieldRow icon={Building2} label={brokerLabel} htmlFor="asset-broker">
             <input id="asset-broker" value={form.broker} onChange={(e) => setForm({ ...form, broker: e.target.value })} placeholder={brokerSuggestions.length ? "Pilih di bawah atau ketik baru" : "Opsional"} className={fieldInput} />
@@ -185,6 +207,17 @@ export default function AssetForm({ asset, onClose }) {
             )}
           </FieldRow>
         )}
+        {form.type === "bank" && (
+          <FieldRow icon={Hash} label={accountRequired ? "No. rekening / IBAN" : "No. rekening / IBAN (disarankan)"} htmlFor="asset-account">
+            <input id="asset-account" value={form.account_number || ""} onChange={(e) => setForm({ ...form, account_number: e.target.value })}
+              onBlur={() => setForm((f) => ({ ...f, account_number: formatAccountNumber(f.account_number) }))}
+              inputMode="text" autoCapitalize="characters" autoComplete="off" placeholder="Mis. 1234567890 atau SA03 8000 …" className={`${fieldInput} tabular-nums tracking-wide`} />
+            {accountError ? <p className="text-[11px] text-expense mt-1">{accountError}</p>
+              : duplicateAccount ? <p className="text-[11px] text-expense mt-1">Rekening ini sudah tercatat sebagai “{duplicateAccount.name}”.</p>
+              : <p className="text-[11px] text-muted-foreground mt-1">Pembeda rekening di bank yang sama. Di daftar tampil ••4 digit terakhir.</p>}
+          </FieldRow>
+        )}
+        {form.type === "bank" && nameRow}
         {form.type === "investasi" && (
           <FieldRow icon={Shapes} label={form.instrument_manual ? "Jenis investasi" : "Jenis investasi · otomatis"}>
             <div className="mt-1"><ChipChoice size="sm" ariaLabel="Jenis investasi" options={INVESTMENT_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))} value={invCategory}

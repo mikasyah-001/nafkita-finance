@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap, useMe } from "@/hooks/useFinance";
 import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
+import { assetLabel } from "@/lib/bankAccount";
 import { findDuplicate, dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
 import { ensureCategories } from "@/lib/categoryAuto";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -602,7 +603,7 @@ export default function AddTransaction() {
                 <label htmlFor="add-tx-linked-asset" className="block text-[11px] text-muted-foreground">{type === "income" ? "Masuk ke" : "Dibayar dari"} (opsional)</label>
                 <select id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
                   <option value="">Tidak dipilih, saldo rekening tetap</option>
-                  {bankAssets.map((a) => <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value, a.currency)})</option>)}
+                  {bankAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
                 </select>
               </div>
             </div>

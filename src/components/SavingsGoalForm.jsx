@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
 import { currencySymbol, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
+import { assetLabel } from "@/lib/bankAccount";
 import { useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
@@ -175,7 +176,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
             >
               <option value="">Tidak ada</option>
               {sourceAssets.map(a => (
-                <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
+                <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
             </select>
           </FieldRow>

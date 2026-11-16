@@ -785,6 +785,38 @@ try {
     assert.equal(a.currency, "IDR");
   });
 
+  await step("Kategori investasi otomatis (ETF, pasar uang, saham) + label Dana darurat dari target", async () => {
+    await page.evaluate(() => {
+      (window.__qaData.SavingsGoal ||= []).push({ id: "g-darurat", created_by_id: "u1", type: "darurat", name: "Dana darurat", target_amount: 30000000, current_amount: 0, currency: "IDR", linked_asset_id: "qa-long2", status: "active" });
+    });
+    await nav("/riwayat"); await nav("/aset");
+    await page.waitForTimeout(600);
+    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Investasi" }).click();
+    const cats = page.getByRole("group", { name: "Kategori investasi" });
+    for (const label of ["ETF", "Pasar uang", "Saham", "Reksa dana"]) {
+      assert.ok(await cats.getByRole("button", { name: new RegExp(`^${label} \\d+%$`) }).isVisible(), `Kategori ${label} tampil dengan porsi`);
+    }
+    await cats.getByRole("button", { name: /^Pasar uang/ }).click();
+    const list = (await page.locator("a.surface").allInnerTexts()).join(" | ").replace(/\s+/g, " ");
+    assert.ok(/Mandiri Pasar Uang Syariah Ekstra/.test(list) && !/SP FUNDS/.test(list), `Hanya pasar uang: ${list}`);
+    const mandiri = page.locator("a.surface", { hasText: "Mandiri Pasar Uang Syariah Ekstra" }).first();
+    assert.ok(/Pasar uang ·/.test(await mandiri.innerText()), "Label kategori di kartu");
+    assert.ok(/Dana darurat/.test(await mandiri.innerText()), "Ditautkan ke target darurat");
+    await cats.getByRole("button", { name: "Semua jenis" }).click();
+    assert.ok(/ETF ·/.test(await page.locator("a.surface", { hasText: "SP FUNDS" }).first().innerText()));
+    // Form: jenis ditebak otomatis dari nama; bisa diganti manual
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Investasi", exact: true }).click();
+    await page.fill("#asset-name", "Al Rajhi Saving and Liquidity Fund");
+    const jenis = page.getByRole("radiogroup", { name: "Jenis investasi" });
+    assert.equal(await jenis.getByRole("radio", { name: "Pasar uang" }).getAttribute("aria-checked"), "true", "Tebakan otomatis");
+    await page.fill("#asset-value", "5000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click();
+    await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "Al Rajhi Saving and Liquidity Fund"));
+    assert.equal(a.instrument, "pasar_uang"); assert.equal(a.instrument_manual, false);
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

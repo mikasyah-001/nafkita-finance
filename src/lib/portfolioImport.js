@@ -3,11 +3,13 @@
 // Logika murni (tanpa React/AI) agar bisa diuji: normalisasi, rekonsiliasi
 // angka, penggabungan antar-screenshot, pencocokan aset lama, dan payload.
 // ─────────────────────────────────────────────────────────────────────────
+import { investmentCategory } from "./investmentCategory.js";
 import { formatMoneyPlain } from "./finance.js";
 
 export const INSTRUMENTS = {
   saham: "Saham",
   reksadana: "Reksa dana",
+  pasar_uang: "Pasar uang",
   etf: "ETF",
   sukuk: "Sukuk/SBN",
   emas: "Emas digital",
@@ -65,12 +67,17 @@ const normName = (s) => String(s || "").toLowerCase().replace(/\.{2,}|…/g, "")
 /** Bersihkan satu baris hasil AI → bentuk standar. */
 export function normalizeHolding(raw, defaults = {}) {
   const kindRaw = String(raw.instrument || raw.kind || "").toLowerCase();
-  const instrument = /emas|gold/.test(kindRaw) ? "emas"
-    : /reksa|fund|mutual|pasar uang/.test(kindRaw) ? "reksadana"
+  const instrument0 = /emas|gold/.test(kindRaw) ? "emas"
+    : /pasar uang|money market/.test(kindRaw) ? "pasar_uang"
+    : /reksa|fund|mutual/.test(kindRaw) ? "reksadana"
     : /etf/.test(kindRaw) ? "etf"
     : /sukuk|sbn|bond|obligasi/.test(kindRaw) ? "sukuk"
     : /saham|stock|equity|share/.test(kindRaw) ? "saham"
     : (raw.ticker ? "saham" : "lainnya");
+  // Selain emas, label AI disempurnakan dengan aturan kategori yang sama
+  // dengan daftar aset (mis. dana pasar uang, ETF bertanda "saham").
+  const instrument = instrument0 === "emas" ? "emas"
+    : investmentCategory({ name: raw.name, ticker: raw.ticker, exchange: raw.exchange, instrument: instrument0 });
   const h = {
     name: String(raw.name || "").trim(),
     ticker: String(raw.ticker || "").trim().toUpperCase(),
@@ -237,7 +244,7 @@ Untuk tiap holding isi:
 - name: nama instrumen apa adanya (mis. "ALRAJHI", "SAUDI ARAMCO", "Mandiri Pasar Uang Syariah Kelas A", "Saving and Liquidity SAR", "Gold")
 - ticker: kode/simbol bila ada (mis. "1120", "2222", "SPUS"); kosongkan bila tidak ada
 - exchange: bursa bila ada (mis. "TASI", "ARCA")
-- instrument: salah satu saham | reksadana | etf | sukuk | emas | lainnya (dompet emas / Gold Wallet = emas; fund/reksa dana/pasar uang = reksadana)
+- instrument: salah satu saham | reksadana | pasar_uang | etf | sukuk | emas | lainnya (dompet emas / Gold Wallet = emas; dana pasar uang / money market / liquidity fund = pasar_uang; fund/reksa dana lain = reksadana)
 - currency: kode mata uang (SAR untuk simbol riyal ⃁/ر.س, USD untuk $, IDR untuk Rp)
 - quantity: jumlah unit/lembar/gram (angka)
 - avg_cost: harga rata-rata/Avg. Cost per unit (untuk emas: harga beli per gram)
@@ -406,12 +413,12 @@ export function attachLots(data = {}) {
 export function brokerPriceSource({ broker = "", exchange = "", instrument = "", currency = "" } = {}) {
   const b = broker.toLowerCase(), x = exchange.toUpperCase();
   if (/rajhi|derayah|snb|alinma|riyad|albilad|aljazira|sab invest|saudi fransi/.test(b) || x === "TASI" || x === "NOMU") {
-    if (instrument === "reksadana") return `NAV resmi dana di situs pengelola/${broker || "broker Saudi"} (bukan harga bursa)`;
+    if (instrument === "reksadana" || instrument === "pasar_uang") return `NAV resmi dana di situs pengelola/${broker || "broker Saudi"} (bukan harga bursa)`;
     if (x && x !== "TASI" && x !== "NOMU") return `harga penutupan bursa ${x} sebagaimana ditampilkan ${broker || "broker"}`;
     return "harga resmi Saudi Exchange (saudiexchange.sa / Tadawul) — sama dengan yang ditampilkan Al Rajhi Capital";
   }
   if (/bibit|bareksa|ajaib|ipot|stockbit|mandiri|bni|bca|bri/.test(b) || currency === "IDR") {
-    if (instrument === "reksadana") return `NAB/unit resmi terbaru (situs manajer investasi, Bibit/Bareksa, atau KSEI)`;
+    if (instrument === "reksadana" || instrument === "pasar_uang") return `NAB/unit resmi terbaru (situs manajer investasi, Bibit/Bareksa, atau KSEI)`;
     return "harga penutupan resmi Bursa Efek Indonesia (idx.co.id)";
   }
   if (x === "ARCA" || x === "NYSE" || x === "NASDAQ" || currency === "USD") return `harga penutupan resmi bursa AS (${x || "NYSE/NASDAQ"})`;

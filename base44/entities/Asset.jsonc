@@ -63,8 +63,12 @@
     },
     "instrument": {
       "type": "string",
-      "enum": ["saham", "reksadana", "etf", "sukuk", "lainnya"],
-      "description": "Jenis instrumen untuk aset investasi"
+      "enum": ["saham", "reksadana", "pasar_uang", "etf", "sukuk", "lainnya"],
+      "description": "Jenis instrumen untuk aset investasi (ditebak otomatis bila kosong)"
+    },
+    "instrument_manual": {
+      "type": "boolean",
+      "description": "true bila jenis instrumen dipilih sendiri oleh pengguna (tebakan otomatis tidak menimpa)"
     },
     "last_price": {
       "type": "number",

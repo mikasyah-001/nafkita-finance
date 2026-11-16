@@ -6,8 +6,9 @@ import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPay
 import ProofViewer from "@/components/ProofViewer";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
+import { INVESTMENT_CATEGORIES, investmentCategory } from "@/lib/investmentCategory";
 import { toast } from "sonner";
-import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight } from "lucide-react";
+import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import CategoryIcon from "@/components/CategoryIcon";
 
@@ -80,6 +81,11 @@ export default function AssetForm({ asset, onClose }) {
     // Broker diseragamkan ke ejaan yang sudah tersimpan (tanpa ganda/salah ketik).
     const { error, payload } = buildAssetPayload({ ...form, broker: canonicalBrokerFor(form.broker, allAssets, form.type) });
     if (error) return toast.error(error);
+    // Jenis investasi: pilihan sendiri dikunci; selain itu tebakan otomatis dari nama/ticker.
+    if (payload.type === "investasi") {
+      payload.instrument = invCategory;
+      payload.instrument_manual = !!form.instrument_manual;
+    }
     // Nilai yang diubah sendiri di form → asal nilai "manual" (tidak lagi "dari broker").
     if (payload.type === "investasi" && (!isEdit || Number(payload.value) !== Number(asset.value))) {
       payload.value_source = "manual";
@@ -111,6 +117,7 @@ export default function AssetForm({ asset, onClose }) {
   const brokerCanon = brokerTyped ? canonicalBrokerFor(brokerTyped, allAssets, form.type) : "";
   const brokerFix = brokerCanon && brokerCanon !== brokerTyped.replace(/\s+/g, " ") ? brokerCanon : "";
   const brokerLabel = form.type === "bank" ? "Bank / tempat simpan" : form.type === "investasi" ? "Broker / aplikasi" : "Tempat beli / simpan";
+  const invCategory = investmentCategory({ ...form, ticker: form.ticker || asset?.ticker, exchange: form.exchange || asset?.exchange });
   const showBroker = ["bank", "investasi", "emas_digital"].includes(form.type);
   // Nominal besar dalam mata uang asing yang tampak seperti Rupiah (mis. $1.008.000).
   const valueHint = !isGoldType(form.type) && userCurrencies.some((c) => c.code === "IDR")
@@ -175,6 +182,15 @@ export default function AssetForm({ asset, onClose }) {
             )}
             {brokerSuggestions.length > 0 && (
               <div className="mt-2"><ChipChoice size="sm" ariaLabel={savedBrokers.length ? "Broker tersimpan" : "Saran"} options={brokerSuggestions} value={brokerCanon || form.broker} onChange={(b) => setForm({ ...form, broker: b })} /></div>
+            )}
+          </FieldRow>
+        )}
+        {form.type === "investasi" && (
+          <FieldRow icon={Shapes} label={form.instrument_manual ? "Jenis investasi" : "Jenis investasi · otomatis"}>
+            <div className="mt-1"><ChipChoice size="sm" ariaLabel="Jenis investasi" options={INVESTMENT_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))} value={invCategory}
+              onChange={(k) => setForm({ ...form, instrument: k, instrument_manual: true })} /></div>
+            {form.instrument_manual && (
+              <button type="button" onClick={() => setForm({ ...form, instrument: "", instrument_manual: false })} className="text-[11px] font-semibold text-primary mt-1.5">Kembalikan ke otomatis</button>
             )}
           </FieldRow>
         )}

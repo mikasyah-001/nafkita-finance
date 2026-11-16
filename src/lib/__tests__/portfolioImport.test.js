@@ -16,7 +16,7 @@ test("Angka berformat lokal dibaca benar", () => {
   const h = normalizeHolding({ name: "Mandiri Pasar Uang Syariah Kelas A", instrument: "reksa dana", currency: "Rp", market_value: "22.287.562,64", gain: "537.562,64" });
   assert.equal(h.market_value, 22287562.64);
   assert.equal(h.total_cost, 21750000); // nilai − untung
-  assert.equal(h.instrument, "reksadana");
+  assert.equal(h.instrument, "pasar_uang"); // dana pasar uang dikategorikan khusus
 });
 
 test("Saham Al Rajhi: modal & untung terlengkapi dari jumlah × rata-rata", () => {

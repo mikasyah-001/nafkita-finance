@@ -1,4 +1,4 @@
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Home, ReceiptText, Plus, Landmark, LayoutGrid, X } from "lucide-react";
 import { moreGroups, moreItems, moreToneClasses, isNavHidden } from "@/lib/navConfig";
@@ -119,10 +119,21 @@ export default function BottomNav() {
 }
 
 function NavItem({ to, icon: Icon, label, end }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // Tab yang sedang aktif: ketuk lagi = kembali ke akar tab tersebut
+  // (mis. dari /aset/123 ke /aset) tanpa menumpuk riwayat.
+  const isCurrent = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
+
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={(e) => {
+        if (!isCurrent) return;
+        e.preventDefault();
+        navigate(to, { replace: true });
+      }}
       className={({ isActive }) =>
         `relative flex flex-col items-center justify-center gap-1 flex-1 h-[54px] my-1.5 mx-0.5 rounded-[20px] transition-colors ${isActive ? "text-primary bg-primary/10" : "text-muted-foreground"}`
       }

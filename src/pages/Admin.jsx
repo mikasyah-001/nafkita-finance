@@ -16,6 +16,7 @@ import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ChipChoice } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 
 // Urutan menu: gambaran umum dulu, lalu orang (pengguna → pasangan),
 // lalu data (transaksi → aset), terakhir jejak tindakan admin.
@@ -533,11 +534,11 @@ function FilterBar({ query, onQuery, queryLabel, placeholder, user, onUser, user
   return (
     <div className="space-y-2">
       <SearchBox value={query} onChange={onQuery} placeholder={placeholder} label={queryLabel} />
-      <select aria-label="Filter pengguna" value={user} onChange={(e) => onUser(e.target.value)}
+      <NativeSelect aria-label="Filter pengguna" sheetTitle="Filter pengguna" value={user} onChange={(e) => onUser(e.target.value)}
         className="w-full h-11 rounded-full border border-border bg-card px-4 text-sm outline-none focus:ring-2 ring-primary/30">
         <option value="all">Semua pengguna</option>
         {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-      </select>
+      </NativeSelect>
     </div>
   );
 }

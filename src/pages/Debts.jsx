@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, HandCoins, TrendingUp, TrendingDown, CalendarClock, Check, UserRound, CalendarDays, NotebookPen, Landmark } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 
@@ -321,12 +322,12 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
       <FieldGroup label="Detail pembayaran">
         {bankAssets.length > 0 && (
           <FieldRow icon={Landmark} label="Bayar dari rekening (opsional)" htmlFor="debt-payment-asset">
-            <select id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
+            <NativeSelect sheetTitle="Rekening pembayaran" id="debt-payment-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
               <option value="">Tidak ada — tanpa transaksi</option>
               {bankAssets.map((a) => (
                 <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
               ))}
-            </select>
+            </NativeSelect>
           </FieldRow>
         )}
         <FieldRow icon={CalendarDays} label="Tanggal bayar" htmlFor="debt-payment-date">

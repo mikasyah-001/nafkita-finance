@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { FieldRow, fieldInput } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 
 export default function Transfer() {
   const navigate = useNavigate();
@@ -134,20 +135,20 @@ export default function Transfer() {
           ) : (
             <section aria-label="Detail transfer" className="surface rounded-3xl divide-y divide-border">
               <FieldRow icon={ArrowUpFromLine} label="Dari rekening" htmlFor="transfer-from">
-                <select id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
+                <NativeSelect sheetTitle="Rekening asal" id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening asal</option>
                   {bankAssets.map((a) => (
                     <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
-                </select>
+                </NativeSelect>
               </FieldRow>
               <FieldRow icon={ArrowDownToLine} label="Ke rekening" htmlFor="transfer-to">
-                <select id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
+                <NativeSelect sheetTitle="Rekening tujuan" id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
                   <option value="">Pilih rekening tujuan</option>
                   {bankAssets.filter((a) => a.id !== fromAsset).map((a) => (
                     <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
                   ))}
-                </select>
+                </NativeSelect>
               </FieldRow>
               <FieldRow icon={CalendarDays} label="Tanggal & jam" htmlFor="transfer-date">
                 <input id="transfer-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className={fieldInput} />

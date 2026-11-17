@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useTemplates, useCategories, useRefresh, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
@@ -21,6 +22,7 @@ export default function TemplateManager() {
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
   const refresh = useRefresh();
+  const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tpl, setTpl] = useState({ name: "", type: "expense", amount: "", currency: "IDR", category: "", merchant: "", notes: "", visibility: "shared" });
@@ -65,11 +67,15 @@ export default function TemplateManager() {
 
   const handleDelete = async (id) => {
     if (!(await confirmAction({ title: "Hapus template ini?" }))) return;
+    const prev = qc.getQueryData(["templates"]);
+    // Optimistis: item hilang seketika, dikembalikan bila gagal.
+    qc.setQueryData(["templates"], (old = []) => old.filter((t) => t.id !== id));
     try {
       await base44.entities.TransactionTemplate.delete(id);
       refresh();
       toast.success("Template dihapus");
     } catch {
+      if (prev !== undefined) qc.setQueryData(["templates"], prev);
       toast.error("Gagal menghapus");
     }
   };

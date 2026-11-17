@@ -8,6 +8,7 @@ import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 
 const goalTypes = [
   { value: "darurat", label: "Dana darurat", icon: ShieldCheck },
@@ -168,7 +169,8 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
             />
           </FieldRow>
           <FieldRow icon={Landmark} label={`Aset sumber (opsional, ${form.currency})`} htmlFor="savings-goal-linked-asset" hint={sourceAssets.length === 0 ? `Belum ada rekening/dompet tunai bermata uang ${form.currency}.` : undefined}>
-            <select
+            <NativeSelect
+              sheetTitle="Aset sumber"
               id="savings-goal-linked-asset"
               value={form.linked_asset_id}
               onChange={e => setForm({ ...form, linked_asset_id: e.target.value })}
@@ -178,7 +180,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               {sourceAssets.map(a => (
                 <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
-            </select>
+            </NativeSelect>
           </FieldRow>
         </FieldGroup>
 

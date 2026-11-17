@@ -14,6 +14,7 @@ import { saveTransactionWithAsset, deleteTransactionWithAsset } from "@/lib/link
 import { confirmAction } from "@/components/ConfirmHost";
 import { scanReceipt } from "@/lib/scanReceipt";
 import MultiTransactionPreview from "@/components/MultiTransactionPreview";
+import NativeSelect from "@/components/NativeSelect";
 import { convertedFromLabel } from "@/components/CurrencySwitchNotice";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import { ArrowLeft, ScanLine, Loader2, Check, X, Users, Lock, CalendarDays, Store, Wallet, NotebookPen, Sparkles, ChevronDown, Trash2, AlertCircle } from "lucide-react";
@@ -601,10 +602,10 @@ export default function AddTransaction() {
               <Wallet className="w-4 h-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <label htmlFor="add-tx-linked-asset" className="block text-[11px] text-muted-foreground">{type === "income" ? "Masuk ke" : "Dibayar dari"} (opsional)</label>
-                <select id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
+                <NativeSelect sheetTitle="Rekening terkait" id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
                   <option value="">Tidak dipilih, saldo rekening tetap</option>
                   {bankAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
-                </select>
+                </NativeSelect>
               </div>
             </div>
           )}

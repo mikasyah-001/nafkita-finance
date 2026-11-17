@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
@@ -9,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import { Plus, Loader2, RefreshCw, Pause, Play, Check, CalendarClock, Tag, Repeat, CalendarDays, Landmark, NotebookPen } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 
@@ -27,17 +29,24 @@ export default function RecurringBills() {
   const { data: user = null } = useMe();
   const [showForm, setShowForm] = useState(false);
   const [toggling, setToggling] = useState(null);
+  const qc = useQueryClient();
 
   const myBills = bills.filter((b) => b.created_by_id === user?.id);
 
   const toggleStatus = async (bill) => {
+    const newStatus = bill.status === "active" ? "paused" : "active";
+    const prev = qc.getQueryData(["recurringBills"]);
     setToggling(bill.id);
+    // Optimistis: status berubah seketika, dikembalikan bila gagal.
+    qc.setQueryData(["recurringBills"], (old = []) =>
+      old.map((b) => (b.id === bill.id ? { ...b, status: newStatus } : b))
+    );
     try {
-      const newStatus = bill.status === "active" ? "paused" : "active";
       await base44.entities.RecurringBill.update(bill.id, { status: newStatus });
       refresh();
       toast.success(newStatus === "active" ? "Tagihan dilanjutkan" : "Tagihan dijeda");
     } catch {
+      if (prev !== undefined) qc.setQueryData(["recurringBills"], prev);
       toast.error("Gagal mengubah status");
     }
     setToggling(null);
@@ -229,12 +238,12 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
       <FieldGroup label="Lainnya">
         {bankAssets.length > 0 && (
           <FieldRow icon={Landmark} label="Rekening terkait (opsional)" htmlFor="recurring-linked-asset">
-            <select id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
+            <NativeSelect sheetTitle="Rekening terkait" id="recurring-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldInput} bg-background`}>
               <option value="">Tidak ada — saldo tidak diubah</option>
               {bankAssets.map((a) => (
                 <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
               ))}
-            </select>
+            </NativeSelect>
           </FieldRow>
         )}
         <FieldRow icon={NotebookPen} label="Catatan (opsional)" htmlFor="recurring-notes">

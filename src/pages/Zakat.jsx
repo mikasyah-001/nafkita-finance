@@ -11,6 +11,7 @@ import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import PageHeader from "@/components/PageHeader";
 import ZakatMethodNotice from "@/components/ZakatMethodNotice";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
+import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Coins, Wallet, CheckCircle2, Loader2, Mail, CalendarClock, HandCoins, TrendingUp, MinusCircle, Ban, Info, Check, Building2, CalendarDays, NotebookPen } from "lucide-react";
@@ -337,10 +338,10 @@ function PayZakatSheet({ z, onClose, onSaved }) {
         </FieldRow>
         {moneyAssets.length > 0 && (
           <FieldRow icon={Wallet} label="Dibayar dari (opsional)" htmlFor="zakat-pay-asset">
-            <select id="zakat-pay-asset" value={assetId} onChange={(e) => setAssetId(e.target.value)} className={fieldInput}>
+            <NativeSelect sheetTitle="Sumber pembayaran" id="zakat-pay-asset" value={assetId} onChange={(e) => setAssetId(e.target.value)} className={fieldInput}>
               <option value="">Tidak dipilih, saldo rekening tetap</option>
               {moneyAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
-            </select>
+            </NativeSelect>
           </FieldRow>
         )}
         <FieldRow icon={NotebookPen} label="Tercatat sebagai">

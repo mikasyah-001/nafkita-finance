@@ -1,7 +1,7 @@
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Home, ReceiptText, Plus, Landmark, LayoutGrid, X } from "lucide-react";
-import { moreGroups, moreItems, moreToneClasses } from "@/lib/navConfig";
+import { moreGroups, moreItems, moreToneClasses, isNavHidden } from "@/lib/navConfig";
 
 const items = [
   { to: "/", icon: Home, label: "Beranda", end: true },
@@ -22,7 +22,7 @@ export default function BottomNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, [showMore]);
 
-  const hideNav = location.pathname === "/add" || location.pathname === "/impor" || location.pathname === "/impor-portofolio" || /^\/transaksi\/[^/]+\/edit$/.test(location.pathname);
+  const hideNav = isNavHidden(location.pathname);
   if (hideNav) return null;
 
   // Tab "Lainnya" ikut menyala bila halaman aktif berada di dalam menunya.

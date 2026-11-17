@@ -977,6 +977,29 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await step("Scroll tidak melewati batas bawah: tanpa ruang kosong di bawah tombol/menu", async () => {
+    // Halaman tanpa menu bawah (Catat transaksi): tombol Simpan = dasar halaman.
+    await nav("/add");
+    const addGap = await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      const btn = [...document.querySelectorAll("button")].find((b) => /Simpan Transaksi/.test(b.textContent));
+      const bar = btn.closest("div.sticky");
+      return Math.round(document.documentElement.scrollHeight - (bar.getBoundingClientRect().bottom + window.scrollY));
+    });
+    assert.ok(addGap <= 2, `Catat transaksi: ruang kosong di bawah tombol ${addGap}px`);
+    // Halaman dengan menu bawah: konten berakhir tepat di atas menu (tanpa padding dobel).
+    for (const r of ["/aset/a3", "/admin", "/transaksi/t1"]) {
+      await nav("/riwayat"); await nav(r);
+      const extra = await page.evaluate(() => {
+        const main = document.querySelector("main");
+        const page = main.querySelector(".pt-safe > div > *") || main;
+        const pb = parseFloat(getComputedStyle(page.firstElementChild || page).paddingBottom) || 0;
+        return pb;
+      });
+      assert.ok(extra <= 96, `${r}: padding bawah halaman ${extra}px (maks 96)`);
+    }
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

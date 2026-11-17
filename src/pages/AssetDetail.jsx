@@ -130,7 +130,7 @@ export default function AssetDetail() {
   ].filter(Boolean);
 
   return (
-    <div className="px-5 pt-6 pb-28">
+    <div className="px-5 pt-6 pb-4">
       <PageHeader title={assetDisplayName(a).name} subtitle={[catLabel || meta.label, assetDisplayName(a).ticker, a.broker].filter(Boolean).join(" · ")} back
         actions={<button onClick={() => setEditing(true)} aria-label="Ubah aset" className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"><Pencil className="w-4 h-4" /></button>} />
 

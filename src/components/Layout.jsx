@@ -3,6 +3,7 @@ import { Suspense, useEffect, useRef } from "react";
 import PageTransition from "./PageTransition";
 import { base44 } from "@/api/base44Client";
 import BottomNav from "./BottomNav";
+import { isNavHidden } from "@/lib/navConfig";
 import Sidebar from "./Sidebar";
 import OfflineSyncManager from "./OfflineSyncManager";
 import NotificationToaster from "./NotificationToaster";
@@ -46,11 +47,13 @@ export default function Layout() {
 
   const location = useLocation();
   const outlet = useOutlet();
+  // Halaman tanpa menu bawah tidak butuh ruang 7rem untuknya.
+  const navHidden = isNavHidden(location.pathname);
 
   return (
     <div className={`min-h-screen flex ${scope === "private" ? "bg-scope-tint-private" : "bg-scope-tint-shared"}`}>
       <Sidebar />
-      <main className="flex-1 pb-28 md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0">
+      <main className={`flex-1 ${navHidden ? "pb-0" : "pb-28"} md:pb-8 min-h-screen w-full max-w-md md:max-w-3xl mx-auto px-0 md:px-6 py-0 md:py-6 min-w-0`}>
         {/* pt-safe: konten tidak tertutup notch / status bar saat dibuka di
             WebView native (viewport-fit=cover). Di desktop nilainya 0. */}
         <div className="pt-safe">

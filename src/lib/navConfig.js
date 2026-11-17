@@ -86,3 +86,12 @@ export const moreToneClasses = {
   teal: "bg-sedekah/10 text-sedekah",
   slate: "bg-muted text-muted-foreground",
 };
+
+/**
+ * Halaman layar-penuh dengan tombol aksi sendiri di bawah: menu bawah
+ * disembunyikan, dan wadah utama TIDAK memberi ruang untuknya (dulu tersisa
+ * ruang kosong di bawah tombol Simpan). Satu sumber untuk BottomNav & Layout.
+ */
+export function isNavHidden(pathname = "") {
+  return pathname === "/add" || pathname === "/impor" || pathname === "/impor-portofolio" || /^\/transaksi\/[^/]+\/edit$/.test(pathname);
+}

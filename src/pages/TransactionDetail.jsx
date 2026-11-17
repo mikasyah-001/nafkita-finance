@@ -156,7 +156,7 @@ export default function TransactionDetail() {
   const sign = isIncome ? "+" : "−";
 
   return (
-    <div className={`px-5 pt-6 ${showActions ? "pb-44 md:pb-10" : "pb-28"}`}>
+    <div className={`px-5 pt-6 ${showActions ? "pb-20 md:pb-10" : "pb-4"}`}>
       <PageHeader title="Detail transaksi" back />
 
       {/* Ringkasan */}

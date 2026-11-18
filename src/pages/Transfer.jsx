@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
-import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
-import { formatMoney, currencySymbol, isMoneyAsset, formatMoneyPlain } from "@/lib/finance";
+import { convertedFromLabel } from "@/components/CurrencySwitchNotice";
+import { currencySymbol, isMoneyAsset, formatMoneyPlain, conversionPreview } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
 import { toast } from "sonner";
 import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
@@ -118,8 +118,7 @@ export default function Transfer() {
                 className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
               />
             </div>
-            <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{amountNum > 0 ? formatMoney(amountNum, currency) : ""}</p>
-            <CurrencySwitchNotice guard={curGuard} />
+            <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{/* Angka besar sudah berpemisah ribuan; baris ini hanya untuk konversi kurs */}{curGuard.origin ? convertedFromLabel(curGuard) : amountNum > 0 && currency !== "IDR" ? conversionPreview(amountNum, currency, "IDR", rateMap) : ""}</p>
             <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 text-xs">
               <span className="truncate flex-1 min-w-0">{fromObj ? assetLabel(fromObj) : "Rekening asal"}</span>
               <ArrowRightLeft className="w-3.5 h-3.5 opacity-70 shrink-0" />

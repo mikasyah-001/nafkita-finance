@@ -435,3 +435,29 @@ test("placeSuggestions & withSavedBank: bank baru ditetapkan & tinggal klik di s
   assert.equal(withSavedBank(["Bank BSI"], "BSI"), null, "ejaan lain bank yang sama tidak ditambah");
   assert.equal(withSavedBank([], ""), null);
 });
+
+test("brokerSpellingGroups: ejaan ganda dikelompokkan, ejaan terbanyak jadi baku", async () => {
+  const { brokerSpellingGroups } = await import("../finance.js");
+  const g = brokerSpellingGroups([
+    { id: "1", broker: "Al Rajhi Capital" }, { id: "2", broker: "Al Rajhi Capital" }, { id: "3", broker: "al rajhi capital" },
+    { id: "4", broker: "Bank BSI" }, { id: "5", broker: "BSI" },
+    { id: "6", broker: "Bibit" }, { id: "7", broker: "" },
+  ]);
+  assert.deepEqual(g.map((x) => [x.canonical, x.total, x.variants.map((v) => v.name)]), [
+    ["Al Rajhi Capital", 3, ["Al Rajhi Capital", "al rajhi capital"]],
+    ["Bank BSI", 2, ["Bank BSI", "BSI"]],
+  ]);
+});
+
+test("savedBankUsage: bank tersimpan & jumlah aset pemakainya", async () => {
+  const { savedBankUsage } = await import("../finance.js");
+  assert.deepEqual(savedBankUsage(["Bank Ar-Rajhi", "Salah Ketik"], [{ type: "bank", broker: "bank ar-rajhi" }, { type: "investasi", broker: "Bank Ar-Rajhi" }]),
+    [{ name: "Bank Ar-Rajhi", usedBy: 1 }, { name: "Salah Ketik", usedBy: 0 }]);
+});
+
+test("ejaan seri: yang rapi (berhuruf besar) dipilih sebagai baku", async () => {
+  const { brokerSpellingGroups, knownBrokers } = await import("../finance.js");
+  const assets = [{ id: "1", type: "investasi", broker: "al rajhi capital" }, { id: "2", type: "investasi", broker: "Al Rajhi Capital" }];
+  assert.equal(brokerSpellingGroups(assets)[0].canonical, "Al Rajhi Capital");
+  assert.deepEqual(knownBrokers(assets, { type: "investasi" }), ["Al Rajhi Capital"]);
+});

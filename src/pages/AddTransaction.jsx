@@ -477,7 +477,7 @@ export default function AddTransaction() {
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
             />
           </div>
-          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{curGuard.origin ? convertedFromLabel(curGuard) : amountNum > 0 && currency !== "IDR" ? `${formatMoney(amountNum, currency)} ${conversionPreview(amountNum, currency, "IDR", rateMap)}`.trim() : ""}</p>
+          <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{curGuard.origin ? convertedFromLabel(curGuard) : amountNum > 0 && currency !== "IDR" ? conversionPreview(amountNum, currency, "IDR", rateMap) : ""}</p>
           {amountHint && userCurrencies.some((c) => c.code === "IDR") && (
             <div role="alert" className="mt-2 rounded-2xl bg-white/12 border border-white/25 px-3 py-2 text-xs flex items-center gap-2">
               <span className="flex-1 min-w-0 opacity-90">{amountHint.message}</span>

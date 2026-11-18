@@ -1068,6 +1068,35 @@ try {
     }
   });
 
+  await step("Kesehatan Data: seragamkan ejaan broker ganda; Pengaturan: kelola bank tersimpan", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      const mk = (id, broker) => ({ id, name: `QA ${id}`, type: "investasi", broker, currency: "IDR", value: 1000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now });
+      window.__qa.assets.push(mk("sp1", "QA Sekuritas"), mk("sp2", "QA Sekuritas"), mk("sp3", "qa  sekuritas"));
+    });
+    await nav("/riwayat"); await nav("/kesehatan-data");
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("Ejaan Bank/Broker Ganda").isVisible());
+    assert.ok(await page.getByText(/“qa {2}sekuritas” \(1\)/).isVisible(), "Varian ejaan ditampilkan");
+    await page.getByRole("button", { name: "Seragamkan QA Sekuritas" }).click();
+    await page.waitForTimeout(600);
+    const brokers = await page.evaluate(() => window.__qa.assets.filter((a) => /^sp\d$/.test(a.id)).map((a) => a.broker));
+    assert.deepEqual(brokers, ["QA Sekuritas", "QA Sekuritas", "QA Sekuritas"]);
+    assert.equal(await page.getByRole("button", { name: "Seragamkan QA Sekuritas" }).count(), 0, "Masalah hilang setelah diseragamkan");
+    // Pengaturan → Bank tersimpan
+    await nav("/riwayat"); await nav("/pengaturan");
+    await page.getByRole("button", { name: /Bank tersimpan/ }).first().click();
+    const list = page.getByRole("list", { name: "Bank tersimpan" });
+    assert.ok(await list.getByText("Bank Ar-Rajhi").isVisible(), "Bank dari alur sebelumnya tersimpan di profil");
+    await page.getByLabel("Nama bank baru").fill("Bnak Salah Ketik");
+    await page.getByRole("button", { name: "Tambah bank" }).click();
+    await page.waitForTimeout(400);
+    assert.ok(await list.getByText("Bnak Salah Ketik").isVisible());
+    await page.getByRole("button", { name: "Hapus Bnak Salah Ketik dari bank tersimpan" }).click();
+    await page.waitForTimeout(400);
+    assert.equal(await list.getByText("Bnak Salah Ketik").count(), 0, "Bank salah ketik bisa dihapus");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

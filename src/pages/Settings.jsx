@@ -5,6 +5,7 @@ import { ArrowRight, LogOut, User, ShieldCheck } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
 import PartnerManager from "@/components/PartnerManager";
 import CurrencyManager from "@/components/CurrencyManager";
+import SavedBanksManager from "@/components/SavedBanksManager";
 import TemplateManager from "@/components/TemplateManager";
 import LocalBackupRestore from "@/components/LocalBackupRestore";
 import DriveBackup from "@/components/DriveBackup";
@@ -75,7 +76,11 @@ export default function Settings() {
           <CurrencyManager />
         </SettingsAccordion>
 
-        <SettingsAccordion number="04" title="Data & Cadangan" subtitle="Cadangan lokal, Google Drive, template transaksi">
+        <SettingsAccordion number="04" title="Bank tersimpan" subtitle="Pilihan bank tinggal klik">
+          <SavedBanksManager />
+        </SettingsAccordion>
+
+        <SettingsAccordion number="05" title="Data & Cadangan" subtitle="Cadangan lokal, Google Drive, template transaksi">
           <LocalBackupRestore />
           <div className="border-t border-border pt-4">
             <DriveBackup />
@@ -87,7 +92,7 @@ export default function Settings() {
 
         {/* Menu Kategori/Impor/Catat dihapus dari sini: sudah ada di menu Lainnya & tombol Catat. */}
         {isAdmin && (
-          <SettingsAccordion number="05" title="Admin" subtitle="Khusus pengelola aplikasi">
+          <SettingsAccordion number="06" title="Admin" subtitle="Khusus pengelola aplikasi">
             <Link to="/admin" className="-mx-4 -my-4 flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-muted/50 active:bg-muted transition-colors">
               <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><ShieldCheck className="w-4 h-4" /></span>
               <span className="flex-1 min-w-0">Panel Admin</span>

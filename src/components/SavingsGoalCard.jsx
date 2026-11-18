@@ -4,6 +4,7 @@ import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Tr
 import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
 import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
+import MoneyInput from "@/components/MoneyInput";
 
 // Kartu pastel serupa "Rencana kita" di Beranda; warna target dipetakan ke nada pastel.
 const TYPE_ICON = { darurat: ShieldCheck, pendidikan: GraduationCap, rumah: HomeIcon, perjalanan: Plane, lainnya: Target };
@@ -138,12 +139,10 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
                 ))}
               </select>
             )}
-            <input
+            <MoneyInput currency={goal.currency || "IDR"}
               aria-label="Nominal"
-              type="number"
-              inputMode="decimal"
               value={progressAmount}
-              onChange={(e) => setProgressAmount(e.target.value)}
+              onChange={(v) => setProgressAmount(v)}
               placeholder={`Nominal (${goal.currency || "IDR"})`}
               className={`${panelInput} tabular-nums`}
             />

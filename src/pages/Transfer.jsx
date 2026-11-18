@@ -11,6 +11,7 @@ import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDown
 import PageHeader from "@/components/PageHeader";
 import { FieldRow, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function Transfer() {
   const navigate = useNavigate();
@@ -109,12 +110,10 @@ export default function Transfer() {
             </div>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-xl font-semibold opacity-70">{currencySymbol(currency)}</span>
-              <input
+              <MoneyInput currency={currency}
                 id="transfer-amount"
-                type="number"
-                inputMode="numeric"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(v) => setAmount(v)}
                 placeholder="0"
                 className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
               />

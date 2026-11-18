@@ -10,6 +10,7 @@ import { ListSkeleton } from "@/components/LoadingSkeleton";
 import { confirmAction } from "@/components/ConfirmHost";
 import { toast } from "sonner";
 import { Wallet, ArrowDownToLine, ReceiptText, Scale, Plus, Loader2, CheckCircle2, Info } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 // Audit kas tunai: membandingkan uang fisik di dompet dengan catatan.
 // Kunci logika: "seharusnya di tangan" = saldo aset dompet tunai, yang hanya
@@ -191,7 +192,7 @@ export default function AuditKas() {
                 </div>
                 <div className="mt-3 flex items-center rounded-2xl border border-border bg-card px-4 focus-within:ring-2 ring-primary/30">
                   <span className="text-sm text-muted-foreground mr-1">{cur}</span>
-                  <input id="audit-physical" aria-label="Jumlah uang fisik" type="number" inputMode="decimal" value={physical} onChange={(e) => setPhysical(e.target.value)} placeholder="0" className="flex-1 py-3 text-lg font-bold outline-none bg-transparent tabular-nums" />
+                  <MoneyInput currency={cur} id="audit-physical" aria-label="Jumlah uang fisik" value={physical} onChange={(v) => setPhysical(v)} placeholder="0" className="flex-1 py-3 text-lg font-bold outline-none bg-transparent tabular-nums" />
                 </div>
                 {diff != null && (
                   <div className={`mt-3 rounded-2xl p-3 ${matched ? "bg-success/10" : diff < 0 ? "bg-destructive/10" : "bg-warning/10"}`}>

@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { BellOff, Mail, Inbox, Layers, EyeOff, Clock, Filter, ShieldCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MoneyInput from "@/components/MoneyInput";
 
 // Panel preferensi notifikasi antar-pasangan.
 // Disimpan di entity NotificationPreference (satu record per user).
@@ -116,14 +117,11 @@ export default function NotificationPreferences() {
           <p className="text-xs font-medium">Ambang nominal minimum</p>
         </div>
         <p className="text-[11px] text-muted-foreground mb-2">Hanya kirim notifikasi transaksi bila nominal ≥ ambang ini (0 = semua).</p>
-        <input
+        <MoneyInput currency={"IDR"}
           aria-label="Ambang nominal minimum"
-          type="number"
-          inputMode="numeric"
           value={amountDraft}
-          min="0"
           disabled={saving}
-          onChange={(e) => setAmountDraft(e.target.value)}
+          onChange={(v) => setAmountDraft(v)}
           onBlur={saveAmount}
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"
@@ -137,14 +135,11 @@ export default function NotificationPreferences() {
         </div>
         <p className="text-[11px] text-muted-foreground mb-2">Transaksi bersama dengan nominal ≥ ambang ini (dikonversi ke mata uang acuan) wajib disetujui pasangan sebelum saldo berubah.</p>
         <div className="flex gap-2">
-          <input
+          <MoneyInput currency={threshCurDraft}
             aria-label="Ambang persetujuan pasangan"
-            type="number"
-            inputMode="numeric"
             value={thresholdDraft}
-            min="0"
             disabled={saving}
-            onChange={(e) => setThresholdDraft(e.target.value)}
+            onChange={(v) => setThresholdDraft(v)}
             onBlur={saveThreshold}
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
             className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:ring-2 ring-primary/30 bg-transparent"

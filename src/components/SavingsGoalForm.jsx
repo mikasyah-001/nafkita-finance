@@ -9,6 +9,7 @@ import CurrencySwitchNotice from "@/components/CurrencySwitchNotice";
 import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
+import MoneyInput from "@/components/MoneyInput";
 
 const goalTypes = [
   { value: "darurat", label: "Dana darurat", icon: ShieldCheck },
@@ -143,12 +144,10 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
           </div>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-lg font-semibold opacity-70">{currencySymbol(form.currency)}</span>
-            <input
+            <MoneyInput currency={form.currency}
               id="savings-goal-target-amount"
-              type="number"
-              inputMode="decimal"
               value={form.target_amount}
-              onChange={e => setForm({ ...form, target_amount: e.target.value })}
+              onChange={(v) => setForm({ ...form, target_amount: v })}
               placeholder="0"
               required
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"

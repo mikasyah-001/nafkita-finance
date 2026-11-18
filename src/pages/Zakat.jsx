@@ -15,6 +15,7 @@ import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import { toast } from "sonner";
 import { Coins, Wallet, CheckCircle2, Loader2, Mail, CalendarClock, HandCoins, TrendingUp, MinusCircle, Ban, Info, Check, Building2, CalendarDays, NotebookPen } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 // Halaman Zakat mal. Semua angka dari useZakat() → lib/zakat.js (sumber tunggal).
 export default function Zakat() {
@@ -324,7 +325,7 @@ function PayZakatSheet({ z, onClose, onSaved }) {
         </div>
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-lg font-semibold opacity-70">{currencySymbol(payCur)}</span>
-          <input id="zakat-pay-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[30px] leading-none font-extrabold tabular-nums text-[hsl(var(--hero-foreground))]" />
+          <MoneyInput currency={payCur} id="zakat-pay-amount" value={amount} onChange={(v) => setAmount(v)} className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[30px] leading-none font-extrabold tabular-nums text-[hsl(var(--hero-foreground))]" />
         </div>
         {payCur !== z.currency && <p className="text-xs opacity-85 mt-1 tabular-nums">≈ {formatMoneyPlain(Math.round(amountIdr), z.currency)} · sisa {formatMoneyPlain(toPay(z.remaining), payCur)}</p>}
         <p className="text-[11px] opacity-75 mt-1">Boleh dicicil; sisa tetap terlihat di halaman Zakat.</p>

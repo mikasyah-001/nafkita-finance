@@ -12,6 +12,7 @@ import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSh
 import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function Debts() {
   const { data: debts = [], isLoading } = useDebts();
@@ -234,7 +235,7 @@ function DebtForm({ user, userCurrencies, onClose, onSaved }) {
         </div>
         <div className="flex items-baseline gap-2 mt-2">
           <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
-          <input id="debt-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
+          <MoneyInput currency={currency} id="debt-amount" value={amount} onChange={(v) => setAmount(v)} placeholder="0" className={heroAmountInput} />
         </div>
         <CurrencySwitchNotice guard={curGuard} />
       </section>
@@ -310,7 +311,7 @@ function PaymentForm({ debt, assets, onClose, onSaved }) {
         </div>
         <div className="flex items-baseline gap-2 mt-2">
           <span className="text-lg font-semibold opacity-70">{currencySymbol(debt.currency)}</span>
-          <input id="debt-payment-amount" type="number" inputMode="numeric" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" className={heroAmountInput} />
+          <MoneyInput currency={debt.currency || "IDR"} id="debt-payment-amount" value={paymentAmount} onChange={(v) => setPaymentAmount(v)} placeholder="0" className={heroAmountInput} />
         </div>
         {outstanding > 0 && (
           <button type="button" onClick={() => setPaymentAmount(String(outstanding))} className="mt-3 h-7 px-2.5 rounded-full text-[11px] font-bold bg-gold text-gold-foreground">

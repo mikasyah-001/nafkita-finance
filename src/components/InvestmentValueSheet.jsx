@@ -8,6 +8,7 @@ import Money from "@/components/Money";
 import { currencySymbol, formatDate, assetDisplayName } from "@/lib/finance";
 import { manualValuePatch, valueSourceInfo } from "@/lib/portfolioImport";
 import { investmentCategory, CATEGORY_LABEL } from "@/lib/investmentCategory";
+import MoneyInput from "@/components/MoneyInput";
 
 /**
  * "Perbarui nilai" investasi — isi nilai terkini langsung per aset (angka
@@ -68,8 +69,8 @@ export default function InvestmentValueSheet({ assets = [], onClose, onSaved, on
               </div>
               <label className="mt-2 flex items-center gap-2 h-10 rounded-xl border border-border bg-card px-3 focus-within:border-primary">
                 <span className="text-xs text-muted-foreground shrink-0">{currencySymbol(cur)}</span>
-                <input type="number" inputMode="decimal" aria-label={`Nilai baru ${dn.name}`} value={drafts[a.id] ?? ""}
-                  onChange={(e) => setDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                <MoneyInput currency={cur} aria-label={`Nilai baru ${dn.name}`} value={drafts[a.id] ?? ""}
+                  onChange={(v) => setDrafts((d) => ({ ...d, [a.id]: v }))}
                   placeholder="Nilai sekarang" className="flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums" />
               </label>
             </li>

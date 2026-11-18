@@ -748,7 +748,7 @@ try {
     if (process.env.QA_SHOT_DIR) { const sec = page.locator("section.card-gradient-primary").first(); await page.getByText(/Dikonversi dari/).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); void sec; await page.screenshot({ path: `${process.env.QA_SHOT_DIR}/ganti-mata-uang.png` }); }
     // Kembali ke IDR → tepat angka semula
     await curs.getByRole("radio", { name: "IDR" }).click();
-    assert.equal(await page.inputValue("#asset-value"), "1008000");
+    assert.equal(await page.inputValue("#asset-value"), "1.008.000");
     assert.equal(await page.getByText(/Dikonversi dari/).count(), 0);
     await curs.getByRole("radio", { name: "SAR" }).click();
     await page.getByRole("button", { name: "Simpan perubahan" }).click();
@@ -998,6 +998,35 @@ try {
       });
       assert.ok(extra <= 96, `${r}: padding bawah halaman ${extra}px (maks 96)`);
     }
+  });
+
+  await step("Titik ribuan di semua kotak nominal (IDR 1.008.000 · SAR 1,785.54); nilai tersimpan tetap angka murni", async () => {
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Investasi", exact: true }).click();
+    await page.fill("#asset-name", "QA Ribuan");
+    await page.locator("#asset-value").pressSequentially("1008000");
+    assert.equal(await page.inputValue("#asset-value"), "1.008.000", "Diformat saat diketik");
+    // Mengetik di tengah angka: kursor tidak melompat ke akhir
+    await page.locator("#asset-value").evaluate((el) => el.setSelectionRange(1, 1));
+    await page.keyboard.type("2");
+    assert.equal(await page.inputValue("#asset-value"), "12.008.000");
+    await page.keyboard.type("3");
+    assert.equal(await page.inputValue("#asset-value"), "123.008.000", "Kursor tetap di posisi ketik");
+    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "IDR" }).click();
+    await page.fill("#asset-value", "1008000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Ribuan"));
+    assert.equal(a.value, 1008000, "Tersimpan sebagai angka murni");
+    // SAR: koma ribuan, titik desimal
+    await nav("/add");
+    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "SAR" }).click();
+    await page.locator("#add-tx-amount").pressSequentially("1785.54");
+    assert.equal(await page.inputValue("#add-tx-amount"), "1,785.54");
+    // Kotak lain ikut berpemisah: Transfer, Tagihan rutin
+    await nav("/transfer");
+    await page.locator("#transfer-amount").pressSequentially("2500000");
+    assert.equal(await page.inputValue("#transfer-amount"), "2.500.000");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

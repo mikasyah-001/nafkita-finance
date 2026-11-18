@@ -13,6 +13,7 @@ import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/compo
 import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import MoneyInput from "@/components/MoneyInput";
 
 const frequencyLabels = {
   daily: "Harian",
@@ -214,7 +215,7 @@ function BillForm({ user, userCurrencies, assets, onClose, onSaved }) {
         </div>
         <div className="flex items-baseline gap-2 mt-2">
           <span className="text-lg font-semibold opacity-70">{currencySymbol(currency)}</span>
-          <input id="recurring-amount" type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
+          <MoneyInput currency={currency} id="recurring-amount" value={amount} onChange={(v) => setAmount(v)} placeholder="0"
             className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
         </div>
         <CurrencySwitchNotice guard={curGuard} />

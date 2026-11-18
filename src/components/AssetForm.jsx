@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes, Hash } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import CategoryIcon from "@/components/CategoryIcon";
+import MoneyInput from "@/components/MoneyInput";
 
 const types = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"];
 
@@ -271,17 +272,17 @@ export default function AssetForm({ asset, onClose }) {
         {isGoldType(form.type) || form.type === "tanah" ? (
           <div className="grid grid-cols-2 gap-2 mt-3">
             <HeroInput id={isGoldType(form.type) ? "asset-gold-quantity" : "asset-land-quantity"} label={isGoldType(form.type) ? "Gram" : "Luas (m²)"} value={form.quantity} onChange={(v) => setForm({ ...form, quantity: v })} />
-            <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${cur})`}
+            <HeroInput id={isGoldType(form.type) ? "asset-gold-purchase-price" : "asset-land-purchase-price"} label={`Harga beli / ${isGoldType(form.type) ? "gr" : "m²"} (${cur})`} currency={cur}
               value={form.purchase_price}
               onChange={(v) => setForm({ ...form, purchase_price: v })} />
             {form.type === "tanah" && (
-              <div className="col-span-2"><HeroInput id="asset-land-value" label={`Perkiraan harga sekarang (${cur}, opsional)`} value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
+              <div className="col-span-2"><HeroInput id="asset-land-value" currency={cur} label={`Perkiraan harga sekarang (${cur}, opsional)`} value={form.value} onChange={(v) => setForm({ ...form, value: v })} /></div>
             )}
           </div>
         ) : (
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-lg font-semibold opacity-70">{sym}</span>
-            <input id="asset-value" aria-label={`Nilai saat ini (${sym})`} type="number" inputMode="decimal" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="0"
+            <MoneyInput currency={cur} id="asset-value" aria-label={`Nilai saat ini (${sym})`} value={form.value} onChange={(v) => setForm({ ...form, value: v })} placeholder="0"
               className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[32px] leading-none font-extrabold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
           </div>
         )}
@@ -321,7 +322,7 @@ export default function AssetForm({ asset, onClose }) {
         </FieldRow>
         {!isGoldType(form.type) && form.type !== "tanah" && (
           <FieldRow icon={Receipt} label={`Harga beli (${sym})`} htmlFor="asset-purchase-price" hint="Untuk menghitung pertumbuhan nilai aset.">
-            <input id="asset-purchase-price" type="number" inputMode="decimal" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} placeholder="0" className={`${fieldInput} tabular-nums`} />
+            <MoneyInput currency={cur} id="asset-purchase-price" value={form.purchase_price} onChange={(v) => setForm({ ...form, purchase_price: v })} placeholder="0" className={`${fieldInput} tabular-nums`} />
           </FieldRow>
         )}
         <FieldRow icon={ImageIcon} label="Bukti pembelian">
@@ -362,12 +363,15 @@ export default function AssetForm({ asset, onClose }) {
   );
 }
 
-function HeroInput({ id, label, value, onChange }) {
+// `currency` diisi = kotak nominal (berpemisah ribuan); kosong = jumlah (gram, m²).
+function HeroInput({ id, label, value, onChange, currency }) {
+  const cls = "w-full bg-transparent outline-none text-lg font-bold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]";
   return (
     <div className="rounded-2xl bg-white/[0.08] border border-white/10 px-3 py-2">
       <label htmlFor={id} className="block text-[11px] opacity-75">{label}</label>
-      <input id={id} type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder="0"
-        className="w-full bg-transparent outline-none text-lg font-bold tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]" />
+      {currency
+        ? <MoneyInput id={id} currency={currency} value={value} onChange={onChange} placeholder="0" className={cls} />
+        : <input id={id} type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder="0" className={cls} />}
     </div>
   );
 }

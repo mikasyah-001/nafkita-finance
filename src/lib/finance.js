@@ -352,6 +352,13 @@ export function formatDuration(fromDate) {
 const brokerKey = (s) => String(s || "").toLowerCase().replace(/^\s*bank\s+/, "").replace(/[^a-z0-9\u0600-\u06ff]/g, "");
 const tidyBroker = (s) => String(s || "").replace(/\s+/g, " ").trim();
 
+// Ejaan mana yang lebih rapi bila jumlah pemakaian seri: ada huruf besar
+// ("Al Rajhi Capital" > "al rajhi capital"), lalu lebih lengkap ("Bank BSI" > "BSI").
+const spellingRank = (x, y) => {
+  const cap = (t) => (/[A-Z]/.test(t) ? 0 : 1);
+  return cap(x) - cap(y) || y.length - x.length || x.localeCompare(y);
+};
+
 // Daftar broker yang pernah dipakai, paling sering dulu. `type` → jenis aset itu
 // diutamakan; jenis lain hanya bila `includeOtherTypes`.
 export function knownBrokers(assets = [], { type, includeOtherTypes = false } = {}) {
@@ -369,7 +376,7 @@ export function knownBrokers(assets = [], { type, includeOtherTypes = false } = 
     by.set(k, e);
   }
   return [...by.values()]
-    .map((e) => ({ name: [...e.spellings.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0][0], count: e.count, sameType: e.sameType }))
+    .map((e) => ({ name: [...e.spellings.entries()].sort((x, y) => y[1] - x[1] || spellingRank(x[0], y[0]))[0][0], count: e.count, sameType: e.sameType }))
     .sort((x, y) => y.sameType - x.sameType || y.count - x.count || x.name.localeCompare(y.name, "id"))
     .map((e) => e.name);
 }
@@ -433,6 +440,40 @@ export function withSavedBank(savedBanks = [], name) {
   const n = tidyBroker(name);
   if (!brokerKey(n) || savedBanks.some((b) => brokerKey(b) === brokerKey(n))) return null;
   return [...savedBanks, n];
+}
+
+/**
+ * Ejaan ganda bank/broker yang telanjur tersimpan ("Al Rajhi Capital" vs
+ * "al rajhi capital", "Bank BSI" vs "BSI"). Ejaan terbanyak = baku.
+ * → [{ canonical, total, variants: [{ name, ids }] }] hanya bila > 1 ejaan.
+ */
+export function brokerSpellingGroups(assets = []) {
+  const by = new Map();
+  for (const a of assets || []) {
+    const name = tidyBroker(a?.broker);
+    const k = brokerKey(name);
+    if (!k) continue;
+    const g = by.get(k) || new Map();
+    const v = g.get(a.broker) || { name: a.broker, tidy: name, ids: [] };
+    v.ids.push(a.id);
+    g.set(a.broker, v);
+    by.set(k, g);
+  }
+  const out = [];
+  for (const g of by.values()) {
+    const variants = [...g.values()].sort((x, y) => y.ids.length - x.ids.length || spellingRank(x.tidy, y.tidy));
+    if (variants.length < 2) continue;
+    out.push({ canonical: variants[0].tidy, total: variants.reduce((n, v) => n + v.ids.length, 0), variants: variants.map(({ name, ids }) => ({ name, ids })) });
+  }
+  return out.sort((x, y) => y.total - x.total);
+}
+
+/** Daftar bank tersimpan untuk dikelola: dari profil, plus jumlah aset yang memakainya. */
+export function savedBankUsage(savedBanks = [], assets = []) {
+  return (savedBanks || []).map((name) => ({
+    name,
+    usedBy: (assets || []).filter((a) => BANK_LIKE_TYPES.includes(a.type) && brokerKey(a.broker) === brokerKey(name)).length,
+  }));
 }
 
 // Nama aset untuk tampilan: spasi dirapikan, dan kode ticker di akhir nama

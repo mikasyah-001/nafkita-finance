@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Check, Scale, History, AlertCircle, Landmark, ReceiptText, CalendarDays } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { FieldRow, fieldInput } from "@/components/FormSheet";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function Reconciliation() {
   const { data: assets = [] } = useAssets();
@@ -101,7 +102,7 @@ export default function Reconciliation() {
               </select>
             </FieldRow>
             <FieldRow icon={ReceiptText} label="Saldo per statement" htmlFor="recon-statement-balance">
-              <input id="recon-statement-balance" type="number" inputMode="numeric" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} placeholder="0" className="w-full bg-transparent outline-none py-1 font-heading text-xl font-extrabold tabular-nums placeholder:text-muted-foreground/60" />
+              <MoneyInput currency={selectedAsset?.currency || "IDR"} id="recon-statement-balance" value={statementBalance} onChange={(v) => setStatementBalance(v)} placeholder="0" className="w-full bg-transparent outline-none py-1 font-heading text-xl font-extrabold tabular-nums placeholder:text-muted-foreground/60" />
             </FieldRow>
             <FieldRow icon={CalendarDays} label="Per tanggal" htmlFor="recon-as-of-date">
               <input id="recon-as-of-date" type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className={fieldInput} />

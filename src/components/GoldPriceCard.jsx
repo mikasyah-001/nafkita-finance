@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Coins, Loader2, RefreshCw, Check, ExternalLink } from "lucide-react";
 import { useGoldPrice, isPlausibleGoldPrice, GOLD_PRICE_MIN, GOLD_PRICE_MAX } from "@/hooks/useGoldPrice";
 import { formatMoney, formatMoneyShort } from "@/lib/finance";
+import MoneyInput from "@/components/MoneyInput";
 
 // Kartu harga emas acuan — dipakai di Aset, Dashboard Aset, dan Zakat.
 // Mengubah harga di sini berlaku untuk seluruh aplikasi.
@@ -41,7 +42,7 @@ export default function GoldPriceCard({ grams = 0, className = "mb-5", title = "
       <div className="flex gap-2 mt-3">
         <div className="flex-1 flex items-center rounded-2xl bg-white/70 dark:bg-white/10 px-3">
           <span className="text-xs opacity-70 mr-1">Rp</span>
-          <input aria-label="Harga emas per gram (Rp)" id="gold-price-input" type="number" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)}
+          <MoneyInput currency={"IDR"} decimals={0} aria-label="Harga emas per gram (Rp)" id="gold-price-input" value={draft} onChange={(v) => setDraft(v)}
             placeholder={g.price ? String(g.price) : "1500000"} className="flex-1 min-w-0 py-2.5 text-sm bg-transparent outline-none tabular-nums" />
         </div>
         <button onClick={() => apply(Number(draft), "Harga emas acuan disimpan")} disabled={!draft || saving} className="btn-primary btn-sm">

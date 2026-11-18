@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useSavingsGoals } from "@/hooks/useFinance";
+import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { formatMoneyShort, formatDate } from "@/lib/finance";
 import { ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Plus, CalendarDays } from "lucide-react";
 
@@ -9,6 +10,7 @@ const TYPE_ICON = { darurat: ShieldCheck, pendidikan: GraduationCap, rumah: Home
 const TONES = ["card-pastel-mint", "card-pastel-butter", "card-pastel-lime", "card-pastel-peach", "card-pastel-sage"];
 
 export default function GoalsCarousel() {
+  const progressOf = useGoalProgress();
   const { data: goals = [], isLoading } = useSavingsGoals();
   const active = goals.filter((g) => (g.status || "active") === "active");
   if (isLoading) return null;
@@ -26,10 +28,8 @@ export default function GoalsCarousel() {
       <div className="-mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
         {active.map((g, i) => {
           const Icon = TYPE_ICON[g.type] || Target;
-          const target = Number(g.target_amount) || 0;
-          const current = Number(g.current_amount) || 0;
-          const pct = target > 0 ? Math.min(100, (current / target) * 100) : 0;
-          const remaining = Math.max(0, target - current);
+          // Satu sumber hitung: nilai aset "Disimpan di", atau setoran manual.
+          const { target, current, pct, remaining } = progressOf(g);
           return (
             <Link
               key={g.id}

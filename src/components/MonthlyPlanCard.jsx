@@ -4,6 +4,7 @@ import { useTransactions, useBudgets, useMe, useRefresh, useRateMap } from "@/ho
 import { formatMoney, formatMoneyShort, monthlyPlan, planProgress, PLAN_KINDS, PLAN_CATEGORY, summarizeConsolidated, filterReportableTx, inScope, isInMonth } from "@/lib/finance";
 import { toast } from "sonner";
 import { TrendingUp, Vault, CheckCircle2 } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 // Rencana bulanan: target pemasukan & target menabung ("sisihkan dulu").
 // Capaian memakai logika yang sama dengan Beranda: transaksi reportable,
@@ -69,11 +70,10 @@ export default function MonthlyPlanCard({ period, year, month, scope, currency }
                 <label htmlFor={`plan-${key}`} className="flex items-center gap-2 text-sm font-semibold"><Icon className="w-4 h-4" /> {label}</label>
                 <div className="flex items-center rounded-xl bg-white/70 dark:bg-white/10 px-2.5 w-[46%]">
                   <span className="text-xs opacity-70 mr-1">{currency}</span>
-                  <input
-                    id={`plan-${key}`}
-                    type="number" inputMode="numeric" min="0" placeholder="0"
+                  <MoneyInput currency={currency}
+                    id={`plan-${key}`} placeholder="0"
                     value={value(key)}
-                    onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                    onChange={(v) => setDraft((d) => ({ ...d, [key]: v }))}
                     onBlur={() => save(key)}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     className="w-full py-1.5 text-sm font-bold bg-transparent outline-none tabular-nums text-right"

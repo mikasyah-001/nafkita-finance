@@ -9,6 +9,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { Upload, FileText, Loader2, Check, AlertCircle, Trash2, FileSearch } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function ImportReport() {
   const navigate = useNavigate();
@@ -339,7 +340,7 @@ export default function ImportReport() {
                   <div className="grid grid-cols-2 gap-2">
                     <input aria-label="Tanggal" type="date" value={r.date} onChange={(e) => updateRow(r.id, "date", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
                     <input aria-label="Jam" type="time" value={r.time || ""} onChange={(e) => updateRow(r.id, "time", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none" />
-                    <input aria-label="Nominal" type="number" value={r.amount} onChange={(e) => updateRow(r.id, "amount", Number(e.target.value))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
+                    <MoneyInput currency={r.currency || "IDR"} aria-label="Nominal" value={r.amount} onChange={(v) => updateRow(r.id, "amount", Number(v))} placeholder="Nominal" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
                     <input aria-label="Merchant / No Transaksi" value={r.merchant} onChange={(e) => updateRow(r.id, "merchant", e.target.value)} placeholder="Merchant / No Transaksi" className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none col-span-2" />
                     <select aria-label="Mata uang" value={r.currency} onChange={(e) => updateRow(r.id, "currency", e.target.value)} className="rounded-lg border border-border px-2 py-1.5 text-xs outline-none bg-background">
                       {userCurrencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}

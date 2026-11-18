@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { fetchAll } from "../../shared/fetchAll.ts";
 import { createNotificationIdempotent } from "../../shared/notifyCommon.ts";
 import { formatMoney } from "../../shared/notifyCommon.ts";
+import { goalCurrentAmount, buildRateMapFromRates, allocatedIds } from "../../shared/goalProgress.ts";
 
 // Dipanggil workflow terjadwal mingguan.
 // Memeriksa semua target tabungan aktif dengan target_date:
@@ -15,6 +16,15 @@ export default async function (req) {
     const goals = await fetchAll(base44.asServiceRole.entities.SavingsGoal, {
       status: "active",
     });
+
+    // Target yang dialokasikan ke aset: progres = nilai aset (bukan setoran manual).
+    let rateMap = { IDR: 1 };
+    try { rateMap = buildRateMapFromRates(await fetchAll(base44.asServiceRole.entities.ExchangeRate)); } catch { /* tanpa kurs: hanya mata uang sama */ }
+    const assetCache = new Map();
+    const assetsOf = async (ownerId) => {
+      if (!assetCache.has(ownerId)) assetCache.set(ownerId, await fetchAll(base44.asServiceRole.entities.Asset, { created_by_id: ownerId }).catch(() => []));
+      return assetCache.get(ownerId);
+    };
 
     const results = [];
     for (const goal of goals || []) {
@@ -33,9 +43,12 @@ export default async function (req) {
       const expectedProgress = Math.min(1, elapsedDuration / totalDuration);
       const expectedAmount = (goal.target_amount || 0) * expectedProgress;
 
-      // Bila current_amount < 80% expected, kirim pengingat.
-      if ((goal.current_amount || 0) < expectedAmount * 0.8) {
-        const shortfall = expectedAmount - (goal.current_amount || 0);
+      const current = allocatedIds(goal).length
+        ? goalCurrentAmount(goal, await assetsOf(goal.created_by_id), rateMap)
+        : Number(goal.current_amount) || 0;
+      // Bila progres < 80% dari yang diharapkan, kirim pengingat.
+      if (current < expectedAmount * 0.8) {
+        const shortfall = expectedAmount - current;
         const cur = goal.currency || "IDR";
 
         await createNotificationIdempotent(base44, {
@@ -45,7 +58,7 @@ export default async function (req) {
           entity_kind: "bulk",
           event_key: `goal_reminder:${goal.id}:${now.toISOString().slice(0, 10)}`,
           title: `Target tabungan tertinggal: ${goal.name}`,
-          body: `Progress ${formatMoney(goal.current_amount || 0, cur)} di bawah target. Perlu ${formatMoney(shortfall, cur)} lagi untuk sesuai jadwal.`,
+          body: `Progress ${formatMoney(current, cur)} di bawah target. Perlu ${formatMoney(shortfall, cur)} lagi untuk sesuai jadwal.`,
           ref_id: goal.id,
         });
 

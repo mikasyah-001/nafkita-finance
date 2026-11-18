@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import { confirmAction } from "@/components/ConfirmHost";
 import PageHeader from "@/components/PageHeader";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
+import { useGoalProgress } from "@/hooks/useGoalProgress";
 
 const filters = [
   { key: "active", label: "Aktif" },
@@ -19,6 +20,7 @@ const filters = [
 export default function SavingsGoals() {
   const { data: goals = [], isLoading } = useSavingsGoals();
   const { data: assets = [] } = useAssets();
+  const progressOf = useGoalProgress();
   const refresh = useRefresh();
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
@@ -33,12 +35,12 @@ export default function SavingsGoals() {
     active.forEach((g) => {
       const c = g.currency || "IDR";
       byCur[c] = byCur[c] || { current: 0, target: 0 };
-      byCur[c].current += Number(g.current_amount) || 0;
+      byCur[c].current += progressOf(g).current;
       byCur[c].target += Number(g.target_amount) || 0;
     });
     const completed = goals.filter((g) => g.status === "completed").length;
     return { activeCount: active.length, completed, byCur: Object.entries(byCur) };
-  }, [goals]);
+  }, [goals, progressOf]);
 
   const handleDelete = async (id) => {
     if (!(await confirmAction({ title: "Hapus target tabungan ini?", description: "Progres yang sudah tercatat di target ini ikut terhapus." }))) return;

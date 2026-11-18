@@ -39,6 +39,12 @@
       "type": "string",
       "description": "ID aset bank sumber untuk top-up"
     },
+    "allocated_asset_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Aset tempat dana target disimpan (boleh beberapa, jenis apa saja). Bila diisi, progres = nilai aset-aset ini."
+    },
     "icon": {
       "type": "string",
       "default": "PiggyBank"

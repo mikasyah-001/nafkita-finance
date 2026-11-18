@@ -12,6 +12,7 @@ import { useScope } from "@/lib/ScopeContext";
 import MonthlyPlanCard from "@/components/MonthlyPlanCard";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function Budget() {
   const { data: transactions = [] } = useTransactions();
@@ -203,11 +204,10 @@ export default function Budget() {
                   <div className="flex items-center gap-1.5">
                     <div className="flex items-center rounded-xl border border-border px-2 focus-within:ring-2 ring-primary/30">
                       <span className="text-xs text-muted-foreground">{currencySymbol(currency)}</span>
-                      <input
+                      <MoneyInput currency={currency}
                         aria-label={`Batas anggaran ${c.name}`}
-                        type="number"
                         value={getLimit(c.name)}
-                        onChange={(e) => setLimits({ ...limits, [c.name]: e.target.value })}
+                        onChange={(v) => setLimits({ ...limits, [c.name]: v })}
                         onBlur={() => saveLimit(c.name)}
                         placeholder="0"
                         className="w-20 px-1 py-2 text-sm outline-none bg-transparent"

@@ -8,6 +8,7 @@ import { fetchLivePrices } from "@/lib/livePrice";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Layers, Check, Upload, Calendar, X, Globe, ChevronDown } from "lucide-react";
 import { confirmAction } from "@/components/ConfirmHost";
+import MoneyInput from "@/components/MoneyInput";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Bagian investasi di halaman Detail aset: perbarui nilai pasar + Riwayat DCA.
@@ -153,7 +154,7 @@ export default function InvestmentDca({ asset, readOnly = false }) {
         <div className="flex gap-2 mt-2.5">
           <label className="flex-1 min-w-0 flex items-center h-10 rounded-full border border-border bg-card px-3.5">
             <span className="sr-only">Harga terakhir per {unit}</span>
-            <input id="investment-current-price" type="number" inputMode="decimal" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} placeholder={lastPrice ? `Harga /${unit}: ${r4(lastPrice)}` : `Harga /${unit}`} className="flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums" />
+            <MoneyInput currency={cur} decimals={4} id="investment-current-price" value={priceDraft} onChange={(v) => setPriceDraft(v)} placeholder={lastPrice ? `Harga /${unit}: ${r4(lastPrice)}` : `Harga /${unit}`} className="flex-1 min-w-0 bg-transparent outline-none text-sm tabular-nums" />
             <span className="text-[11px] text-muted-foreground">{cur}</span>
           </label>
           <button onClick={savePrice} disabled={!(Number(priceDraft) > 0)} className="btn-primary btn-sm shrink-0 disabled:opacity-50">Simpan</button>
@@ -233,7 +234,7 @@ export default function InvestmentDca({ asset, readOnly = false }) {
               </label>
               <label className="block">
                 <span className="text-[11px] text-muted-foreground">Harga /{unit} ({cur})</span>
-                <input id="investment-lot-price" type="number" inputMode="decimal" value={lot.price_per_unit} onChange={(e) => setLot({ ...lot, price_per_unit: e.target.value })} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5 tabular-nums" />
+                <MoneyInput currency={cur} decimals={4} id="investment-lot-price" value={lot.price_per_unit} onChange={(v) => setLot({ ...lot, price_per_unit: v })} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm mt-0.5 tabular-nums" />
               </label>
               <label className="col-span-2 block">
                 <span className="text-[11px] text-muted-foreground">Catatan (opsional)</span>

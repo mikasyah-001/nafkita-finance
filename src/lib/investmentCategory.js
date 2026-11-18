@@ -54,9 +54,20 @@ export function investmentCategory(a = {}) {
   return set;
 }
 
-/** Id aset yang ditautkan ke target tabungan berjenis "Dana darurat". */
+/**
+ * Id aset tempat dana darurat disimpan: "Disimpan di" pada target berjenis
+ * Dana darurat (boleh beberapa aset). Target lama tanpa alokasi memakai
+ * rekening sumbernya sebagai cadangan agar label lama tidak hilang.
+ */
 export function emergencyAssetIds(goals = []) {
-  return new Set((goals || []).filter((g) => g?.type === "darurat" && g.linked_asset_id).map((g) => g.linked_asset_id));
+  const ids = new Set();
+  for (const g of goals || []) {
+    if (g?.type !== "darurat") continue;
+    const alloc = Array.isArray(g.allocated_asset_ids) ? g.allocated_asset_ids.filter(Boolean) : [];
+    if (alloc.length) alloc.forEach((id) => ids.add(id));
+    else if (g.linked_asset_id) ids.add(g.linked_asset_id);
+  }
+  return ids;
 }
 
 /**

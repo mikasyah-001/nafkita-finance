@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane } from "lucide-react";
+import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Wallet } from "lucide-react";
 import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
 import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
+import MoneyInput from "@/components/MoneyInput";
+import { useGoalProgress } from "@/hooks/useGoalProgress";
+import { assetLabel } from "@/lib/bankAccount";
 
 // Kartu pastel serupa "Rencana kita" di Beranda; warna target dipetakan ke nada pastel.
 const TYPE_ICON = { darurat: ShieldCheck, pendidikan: GraduationCap, rumah: HomeIcon, perjalanan: Plane, lainnya: Target };
@@ -22,8 +25,11 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const [sourceAssetId, setSourceAssetId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const progress = goal.target_amount > 0 ? Math.min(100, (goal.current_amount / goal.target_amount)  * 100) : 0;
-  const remaining = Math.max(0, (goal.target_amount || 0) - (goal.current_amount || 0));
+  // Satu sumber hitung (lib/savingsGoal): nilai aset "Disimpan di" atau setoran manual.
+  const gp = useGoalProgress()(goal);
+  const progress = gp.pct;
+  const remaining = gp.remaining;
+  const byAssets = gp.mode === "assets";
   const isCompleted = goal.status === "completed";
   const Icon = isCompleted ? CheckCircle2 : (TYPE_ICON[goal.type] || Target);
   const tone = TONE[goal.color] || TONE.green;
@@ -93,7 +99,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         <div className="flex items-end justify-between gap-3 mt-3">
           <p className="font-heading font-extrabold text-3xl tabular-nums leading-none">{progress.toFixed(0)}<span className="text-base font-bold">%</span><span className="sr-only"> tercapai</span></p>
           <div className="text-right min-w-0">
-            <p className="text-sm font-bold tabular-nums truncate">{formatMoney(goal.current_amount || 0, goal.currency)}</p>
+            <p className="text-sm font-bold tabular-nums truncate">{formatMoney(gp.current, goal.currency)}</p>
             <p className="text-[11px] opacity-75 tabular-nums truncate">dari {formatMoney(goal.target_amount || 0, goal.currency)}</p>
           </div>
         </div>
@@ -104,8 +110,23 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           {isCompleted ? "Target tercapai" : remaining > 0 ? `Sisa ${formatMoney(remaining, goal.currency)}` : `${progress.toFixed(0)}% tercapai`}
         </p>
 
+        {/* Disimpan di beberapa aset → progres otomatis, tanpa setoran manual */}
+        {byAssets && (
+          <div className="mt-3 rounded-2xl bg-white/50 dark:bg-white/10 px-3 py-2.5 text-xs">
+            <p className="font-semibold flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Disimpan di {gp.assets.length} aset · otomatis</p>
+            <ul className="mt-1 space-y-0.5 opacity-85">
+              {gp.assets.map((a) => (
+                <li key={a.id} className="flex justify-between gap-2"><span className="truncate">{assetLabel(a)}</span><span className="tabular-nums shrink-0">{formatMoneyPlain(a.value || 0, a.currency)}</span></li>
+              ))}
+            </ul>
+            {(gp.missing > 0 || gp.unconverted.length > 0) && (
+              <p className="mt-1 text-warning font-semibold">{gp.missing > 0 ? `${gp.missing} aset sudah tidak ada. ` : ""}{gp.unconverted.length ? `${gp.unconverted.length} aset belum ada kurs — belum dihitung.` : ""}</p>
+            )}
+          </div>
+        )}
+
         {/* Action button */}
-        {!isCompleted && (
+        {!isCompleted && !byAssets && (
           <button
             onClick={() => setShowProgress(!showProgress)}
             aria-expanded={showProgress}
@@ -116,7 +137,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         )}
 
         {/* Progress form */}
-        {showProgress && !isCompleted && (
+        {showProgress && !isCompleted && !byAssets && (
           <div className="mt-3 p-3 rounded-2xl bg-background/85 text-foreground space-y-2.5">
             <ChipChoice
               size="sm"
@@ -138,12 +159,10 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
                 ))}
               </select>
             )}
-            <input
+            <MoneyInput currency={goal.currency || "IDR"}
               aria-label="Nominal"
-              type="number"
-              inputMode="decimal"
               value={progressAmount}
-              onChange={(e) => setProgressAmount(e.target.value)}
+              onChange={(v) => setProgressAmount(v)}
               placeholder={`Nominal (${goal.currency || "IDR"})`}
               className={`${panelInput} tabular-nums`}
             />

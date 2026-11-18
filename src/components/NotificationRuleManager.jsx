@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function NotificationRuleManager() {
   const { data: rules = [], isLoading } = useNotificationRules();
@@ -91,11 +92,11 @@ export default function NotificationRuleManager() {
             </div>
             <div>
               <label htmlFor="notif-rule-min-amount" className="text-xs font-medium mb-1 block">Min. Nominal</label>
-              <input id="notif-rule-min-amount" type="number" value={form.min_amount} onChange={e => setForm({ ...form, min_amount: e.target.value })} placeholder="0" className="input text-sm" />
+              <MoneyInput currency={"IDR"} id="notif-rule-min-amount" value={form.min_amount} onChange={(v) => setForm({ ...form, min_amount: v })} placeholder="0" className="input text-sm" />
             </div>
             <div>
               <label htmlFor="notif-rule-max-amount" className="text-xs font-medium mb-1 block">Max. Nominal</label>
-              <input id="notif-rule-max-amount" type="number" value={form.max_amount} onChange={e => setForm({ ...form, max_amount: e.target.value })} placeholder="Tanpa batas" className="input text-sm" />
+              <MoneyInput currency={"IDR"} id="notif-rule-max-amount" value={form.max_amount} onChange={(v) => setForm({ ...form, max_amount: v })} placeholder="Tanpa batas" className="input text-sm" />
             </div>
           </div>
           <div className="flex items-center gap-4">

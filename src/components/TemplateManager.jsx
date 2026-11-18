@@ -9,6 +9,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Users, Lock } from "lucide-react";
 import { confirmAction } from "@/components/ConfirmHost";
+import MoneyInput from "@/components/MoneyInput";
 
 const typeOptions = [
   { k: "expense", l: "Pengeluaran" },
@@ -104,7 +105,7 @@ export default function TemplateManager() {
           </div>
           <div className="flex items-center rounded-lg border border-border px-3">
             <span className="text-xs text-muted-foreground mr-1">{currencySymbol(tpl.currency)}</span>
-            <input aria-label="Nominal" type="number" value={tpl.amount} onChange={(e) => setTpl({ ...tpl, amount: e.target.value })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
+            <MoneyInput currency={tpl.currency} aria-label="Nominal" value={tpl.amount} onChange={(v) => setTpl({ ...tpl, amount: v })} placeholder="Nominal" className="flex-1 py-2 text-sm outline-none bg-transparent" />
           </div>
           <CurrencySwitchNotice guard={curGuard} tone="plain" />
           {tpl.type !== "sedekah" && (

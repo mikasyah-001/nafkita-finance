@@ -33,3 +33,12 @@ test("emergencyAssetIds & categoryBreakdown", () => {
   ]);
   assert.deepEqual(rows.map((r) => [r.key, r.count, r.value, Math.round(r.pct)]), [["etf", 1, 600, 60], ["pasar_uang", 2, 400, 40]]);
 });
+
+test("emergencyAssetIds: beberapa aset 'Disimpan di' pada target Dana darurat", () => {
+  const ids = emergencyAssetIds([
+    { type: "darurat", allocated_asset_ids: ["mpu", "sal"], linked_asset_id: "bca" },
+    { type: "darurat", linked_asset_id: "lama" },
+    { type: "haji", allocated_asset_ids: ["x"] },
+  ]);
+  assert.deepEqual([...ids].sort(), ["lama", "mpu", "sal"]);
+});

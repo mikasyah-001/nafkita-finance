@@ -748,7 +748,7 @@ try {
     if (process.env.QA_SHOT_DIR) { const sec = page.locator("section.card-gradient-primary").first(); await page.getByText(/Dikonversi dari/).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); void sec; await page.screenshot({ path: `${process.env.QA_SHOT_DIR}/ganti-mata-uang.png` }); }
     // Kembali ke IDR → tepat angka semula
     await curs.getByRole("radio", { name: "IDR" }).click();
-    assert.equal(await page.inputValue("#asset-value"), "1008000");
+    assert.equal(await page.inputValue("#asset-value"), "1.008.000");
     assert.equal(await page.getByText(/Dikonversi dari/).count(), 0);
     await curs.getByRole("radio", { name: "SAR" }).click();
     await page.getByRole("button", { name: "Simpan perubahan" }).click();
@@ -998,6 +998,103 @@ try {
       });
       assert.ok(extra <= 96, `${r}: padding bawah halaman ${extra}px (maks 96)`);
     }
+  });
+
+  await step("Titik ribuan di semua kotak nominal (IDR 1.008.000 · SAR 1,785.54); nilai tersimpan tetap angka murni", async () => {
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("button", { name: /Tambah aset/i }).first().click();
+    await page.getByRole("radio", { name: "Investasi", exact: true }).click();
+    await page.fill("#asset-name", "QA Ribuan");
+    await page.locator("#asset-value").pressSequentially("1008000");
+    assert.equal(await page.inputValue("#asset-value"), "1.008.000", "Diformat saat diketik");
+    // Mengetik di tengah angka: kursor tidak melompat ke akhir
+    await page.locator("#asset-value").evaluate((el) => el.setSelectionRange(1, 1));
+    await page.keyboard.type("2");
+    assert.equal(await page.inputValue("#asset-value"), "12.008.000");
+    await page.keyboard.type("3");
+    assert.equal(await page.inputValue("#asset-value"), "123.008.000", "Kursor tetap di posisi ketik");
+    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "IDR" }).click();
+    await page.fill("#asset-value", "1008000");
+    await page.getByRole("button", { name: /Simpan aset/i }).click(); await page.waitForTimeout(600);
+    const a = await page.evaluate(() => window.__qa.assets.find((x) => x.name === "QA Ribuan"));
+    assert.equal(a.value, 1008000, "Tersimpan sebagai angka murni");
+    // SAR: koma ribuan, titik desimal
+    await nav("/add");
+    await page.getByRole("radiogroup", { name: "Mata uang" }).getByRole("radio", { name: "SAR" }).click();
+    await page.locator("#add-tx-amount").pressSequentially("1785.54");
+    assert.equal(await page.inputValue("#add-tx-amount"), "1,785.54");
+    // Kotak lain ikut berpemisah: Transfer, Tagihan rutin
+    await nav("/transfer");
+    await page.locator("#transfer-amount").pressSequentially("2500000");
+    assert.equal(await page.inputValue("#transfer-amount"), "2.500.000");
+  });
+
+  await step("Dana darurat di beberapa aset: progres otomatis dari nilai aset; label di semua aset itu", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push(
+        { id: "dd-mpu", name: "Pasar Uang Darurat", type: "investasi", currency: "IDR", quantity: 100, value: 20000000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+        { id: "dd-sar", name: "Liquidity SAR Darurat", type: "investasi", currency: "SAR", quantity: 10, value: 1000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+      );
+    });
+    await nav("/riwayat"); await nav("/target-tabungan");
+    await page.getByRole("button", { name: "Tambah", exact: true }).click();
+    await page.fill("#savings-goal-name", "QA Darurat Gabungan");
+    await page.fill("#savings-goal-target-amount", "50000000");
+    const group = page.getByRole("group", { name: "Disimpan di" });
+    await group.getByRole("button", { name: /Pasar Uang Darurat/ }).click();
+    await group.getByRole("button", { name: /Liquidity SAR Darurat/ }).click();
+    // Pratinjau: 20.000.000 + 1.000 SAR × 4.250 = 24.250.000
+    assert.ok(await page.getByText(/Progres mengikuti nilai 2 aset ini: Rp\s?24\.250\.000/).isVisible(), "Pratinjau progres dari aset");
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
+    await page.waitForTimeout(700);
+    const g = await page.evaluate(() => (window.__qaData.SavingsGoal || []).find((x) => x.name === "QA Darurat Gabungan"));
+    assert.deepEqual(g.allocated_asset_ids, ["dd-mpu", "dd-sar"]);
+    await nav("/riwayat"); await nav("/target-tabungan");
+    await page.waitForTimeout(500);
+    const card = page.locator(".card-pastel", { hasText: "QA Darurat Gabungan" }).first();
+    const t = (await card.innerText()).replace(/\s+/g, " ");
+    assert.ok(/49%/.test(t) && /Disimpan di 2 aset · otomatis/.test(t), `Kartu: ${t}`);
+    assert.equal(await card.getByRole("button", { name: /Tambah Progress/ }).count(), 0, "Tanpa setoran manual");
+    // Nilai aset naik → progres ikut naik
+    await page.evaluate(() => { window.__qa.assets.find((x) => x.id === "dd-mpu").value = 25750000; });
+    await nav("/riwayat"); await nav("/target-tabungan"); await page.waitForTimeout(500);
+    assert.ok(/60%/.test(await page.locator(".card-pastel", { hasText: "QA Darurat Gabungan" }).first().innerText()), "Progres mengikuti nilai aset");
+    // Label Dana darurat di kedua aset
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Investasi" }).click();
+    for (const n of ["Pasar Uang Darurat", "Liquidity SAR Darurat"]) {
+      assert.ok(/Dana darurat/.test(await page.locator("a.surface", { hasText: n }).first().innerText()), `${n} berlabel Dana darurat`);
+    }
+  });
+
+  await step("Kesehatan Data: seragamkan ejaan broker ganda; Pengaturan: kelola bank tersimpan", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      const mk = (id, broker) => ({ id, name: `QA ${id}`, type: "investasi", broker, currency: "IDR", value: 1000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now });
+      window.__qa.assets.push(mk("sp1", "QA Sekuritas"), mk("sp2", "QA Sekuritas"), mk("sp3", "qa  sekuritas"));
+    });
+    await nav("/riwayat"); await nav("/kesehatan-data");
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("Ejaan Bank/Broker Ganda").isVisible());
+    assert.ok(await page.getByText(/“qa {2}sekuritas” \(1\)/).isVisible(), "Varian ejaan ditampilkan");
+    await page.getByRole("button", { name: "Seragamkan QA Sekuritas" }).click();
+    await page.waitForTimeout(600);
+    const brokers = await page.evaluate(() => window.__qa.assets.filter((a) => /^sp\d$/.test(a.id)).map((a) => a.broker));
+    assert.deepEqual(brokers, ["QA Sekuritas", "QA Sekuritas", "QA Sekuritas"]);
+    assert.equal(await page.getByRole("button", { name: "Seragamkan QA Sekuritas" }).count(), 0, "Masalah hilang setelah diseragamkan");
+    // Pengaturan → Bank tersimpan
+    await nav("/riwayat"); await nav("/pengaturan");
+    await page.getByRole("button", { name: /Bank tersimpan/ }).first().click();
+    const list = page.getByRole("list", { name: "Bank tersimpan" });
+    assert.ok(await list.getByText("Bank Ar-Rajhi").isVisible(), "Bank dari alur sebelumnya tersimpan di profil");
+    await page.getByLabel("Nama bank baru").fill("Bnak Salah Ketik");
+    await page.getByRole("button", { name: "Tambah bank" }).click();
+    await page.waitForTimeout(400);
+    assert.ok(await list.getByText("Bnak Salah Ketik").isVisible());
+    await page.getByRole("button", { name: "Hapus Bnak Salah Ketik dari bank tersimpan" }).click();
+    await page.waitForTimeout(400);
+    assert.equal(await list.getByText("Bnak Salah Ketik").count(), 0, "Bank salah ketik bisa dihapus");
   });
 
   await step("Tidak ada error JavaScript selama alur", async () => {

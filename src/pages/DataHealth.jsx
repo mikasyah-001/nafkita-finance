@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useTransactions, useAssets, useCategories, useUserCurrencies, useRateMap, useRefresh } from "@/hooks/useFinance";
-import { formatDate, assetCurrencyIssue } from "@/lib/finance";
+import { useTransactions, useAssets, useCategories, useUserCurrencies, useRateMap, useRefresh, useMe } from "@/hooks/useFinance";
+import { formatDate, assetCurrencyIssue, brokerSpellingGroups } from "@/lib/finance";
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2, Coins } from "lucide-react";
+import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2, Coins, SpellCheck } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const STALE_DAYS = 90;
@@ -20,6 +20,7 @@ export default function DataHealth() {
   const userCurrencies = useUserCurrencies();
   const { map: rateMap } = useRateMap();
   const refresh = useRefresh();
+  const { data: me } = useMe();
   const [fixing, setFixing] = useState(null);
   const codes = userCurrencies.map((c) => c.code);
 
@@ -46,8 +47,28 @@ export default function DataHealth() {
       .map((a) => ({ asset: a, issue: assetCurrencyIssue(a, codes, rateMap) }))
       .filter((x) => x.issue);
 
-    return { noCategory, negativeAssets, staleAssets, currencyMismatch };
-  }, [transactions, assets, codes.join(","), rateMap]);
+    // 5. Ejaan bank/broker ganda pada aset milik sendiri ("al rajhi capital"
+    //    vs "Al Rajhi Capital") — membuat daftar pilihan & pengelompokan ganda.
+    const own = assets.filter((a) => !a.created_by_id || !me?.id || a.created_by_id === me.id);
+    const brokerSpelling = brokerSpellingGroups(own);
+
+    return { noCategory, negativeAssets, staleAssets, currencyMismatch, brokerSpelling };
+  }, [transactions, assets, codes.join(","), rateMap, me?.id]);
+
+  // Seragamkan ejaan: semua aset di grup memakai ejaan baku.
+  const unifyBroker = async (group) => {
+    const key = `spell:${group.canonical}`;
+    setFixing(key);
+    const ids = group.variants.filter((v) => v.name !== group.canonical).flatMap((v) => v.ids);
+    let ok = 0;
+    for (const id of ids) {
+      try { await base44.entities.Asset.update(id, { broker: group.canonical }); ok++; } catch { /* lanjut */ }
+    }
+    refresh();
+    setFixing(null);
+    if (ok === ids.length) toast.success(`${ok} aset diseragamkan menjadi "${group.canonical}"`);
+    else toast.error(`${ids.length - ok} aset gagal diseragamkan`);
+  };
 
   // Perbaikan satu ketuk: hanya label mata uang yang diganti — angka yang
   // diketik pengguna memang dalam mata uang yang disarankan.
@@ -63,7 +84,7 @@ export default function DataHealth() {
     setFixing(null);
   };
 
-  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length + issues.currencyMismatch.length;
+  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length + issues.currencyMismatch.length + issues.brokerSpelling.length;
   const isHealthy = totalIssues === 0;
   const loading = txLoading || assetLoading;
 
@@ -129,6 +150,32 @@ export default function DataHealth() {
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{issue.message}</p>
+                </div>
+              ))}
+            </IssueSection>
+          )}
+
+          {/* Ejaan bank/broker ganda */}
+          {issues.brokerSpelling.length > 0 && (
+            <IssueSection
+              icon={SpellCheck}
+              title="Ejaan Bank/Broker Ganda"
+              subtitle="Bank yang sama tertulis berbeda — daftar pilihan & laporan jadi dobel"
+              tone="warning"
+            >
+              {issues.brokerSpelling.map((g) => (
+                <div key={g.canonical} className="px-4 py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{g.canonical}</p>
+                    <p className="text-xs text-muted-foreground leading-snug">
+                      {g.variants.map((v) => `“${v.name}” (${v.ids.length})`).join(" · ")}
+                    </p>
+                  </div>
+                  <button onClick={() => unifyBroker(g)} disabled={fixing === `spell:${g.canonical}`}
+                    aria-label={`Seragamkan ${g.canonical}`}
+                    className="h-8 px-3.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0 active:scale-95 transition-transform disabled:opacity-60">
+                    {fixing === `spell:${g.canonical}` ? "Menyimpan..." : "Seragamkan"}
+                  </button>
                 </div>
               ))}
             </IssueSection>

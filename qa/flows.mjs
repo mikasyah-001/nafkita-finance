@@ -1029,6 +1029,45 @@ try {
     assert.equal(await page.inputValue("#transfer-amount"), "2.500.000");
   });
 
+  await step("Dana darurat di beberapa aset: progres otomatis dari nilai aset; label di semua aset itu", async () => {
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      window.__qa.assets.push(
+        { id: "dd-mpu", name: "Pasar Uang Darurat", type: "investasi", currency: "IDR", quantity: 100, value: 20000000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+        { id: "dd-sar", name: "Liquidity SAR Darurat", type: "investasi", currency: "SAR", quantity: 10, value: 1000, visibility: "shared", created_by_id: "u1", created_date: now, updated_date: now },
+      );
+    });
+    await nav("/riwayat"); await nav("/target-tabungan");
+    await page.getByRole("button", { name: "Tambah", exact: true }).click();
+    await page.fill("#savings-goal-name", "QA Darurat Gabungan");
+    await page.fill("#savings-goal-target-amount", "50000000");
+    const group = page.getByRole("group", { name: "Disimpan di" });
+    await group.getByRole("button", { name: /Pasar Uang Darurat/ }).click();
+    await group.getByRole("button", { name: /Liquidity SAR Darurat/ }).click();
+    // Pratinjau: 20.000.000 + 1.000 SAR × 4.250 = 24.250.000
+    assert.ok(await page.getByText(/Progres mengikuti nilai 2 aset ini: Rp\s?24\.250\.000/).isVisible(), "Pratinjau progres dari aset");
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
+    await page.waitForTimeout(700);
+    const g = await page.evaluate(() => (window.__qaData.SavingsGoal || []).find((x) => x.name === "QA Darurat Gabungan"));
+    assert.deepEqual(g.allocated_asset_ids, ["dd-mpu", "dd-sar"]);
+    await nav("/riwayat"); await nav("/target-tabungan");
+    await page.waitForTimeout(500);
+    const card = page.locator(".card-pastel", { hasText: "QA Darurat Gabungan" }).first();
+    const t = (await card.innerText()).replace(/\s+/g, " ");
+    assert.ok(/49%/.test(t) && /Disimpan di 2 aset · otomatis/.test(t), `Kartu: ${t}`);
+    assert.equal(await card.getByRole("button", { name: /Tambah Progress/ }).count(), 0, "Tanpa setoran manual");
+    // Nilai aset naik → progres ikut naik
+    await page.evaluate(() => { window.__qa.assets.find((x) => x.id === "dd-mpu").value = 25750000; });
+    await nav("/riwayat"); await nav("/target-tabungan"); await page.waitForTimeout(500);
+    assert.ok(/60%/.test(await page.locator(".card-pastel", { hasText: "QA Darurat Gabungan" }).first().innerText()), "Progres mengikuti nilai aset");
+    // Label Dana darurat di kedua aset
+    await nav("/riwayat"); await nav("/aset");
+    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Investasi" }).click();
+    for (const n of ["Pasar Uang Darurat", "Liquidity SAR Darurat"]) {
+      assert.ok(/Dana darurat/.test(await page.locator("a.surface", { hasText: n }).first().innerText()), `${n} berlabel Dana darurat`);
+    }
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

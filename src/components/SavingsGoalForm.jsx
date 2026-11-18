@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target } from "lucide-react";
+import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Wallet } from "lucide-react";
 import { currencySymbol, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
 import { useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
 import MoneyInput from "@/components/MoneyInput";
+import { goalProgress, ALLOCATABLE_TYPES } from "@/lib/savingsGoal";
 
 const goalTypes = [
   { value: "darurat", label: "Dana darurat", icon: ShieldCheck },
@@ -35,6 +36,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
     currency: goal?.currency || me?.default_currency || "IDR",
     target_date: goal?.target_date || "",
     linked_asset_id: goal?.linked_asset_id || "",
+    allocated_asset_ids: Array.isArray(goal?.allocated_asset_ids) ? goal.allocated_asset_ids : [],
     color: goal?.color || "green",
     visibility: goal?.visibility || "shared",
   });
@@ -52,6 +54,15 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
     currency: form.currency, amounts: { target_amount: form.target_amount }, rateMap,
     setCurrency, setAmounts: (a) => setForm((f) => ({ ...f, ...a })),
   });
+  // "Disimpan di": aset tempat dana target berada (boleh beberapa, jenis &
+  // mata uang apa saja — dikonversi). Rumah/tanah tidak ditawarkan.
+  const allocatable = assets.filter((a) => ALLOCATABLE_TYPES.includes(a.type));
+  const allocated = form.allocated_asset_ids || [];
+  const toggleAllocated = (id) => setForm((f) => {
+    const cur = f.allocated_asset_ids || [];
+    return { ...f, allocated_asset_ids: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] };
+  });
+  const allocPreview = goalProgress({ ...form, target_amount: Number(form.target_amount) || 0 }, assets, { rateMap });
   // Aset sumber harus bermata uang sama dengan target (tidak ada konversi kurs).
   const sourceAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === form.currency);
 
@@ -64,6 +75,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
         ...form,
         target_amount: Number(form.target_amount),
         linked_asset_id: form.linked_asset_id || undefined,
+        allocated_asset_ids: allocated.filter((id) => assets.some((a) => a.id === id)),
       };
       if (goal?.id) {
         await base44.entities.SavingsGoal.update(goal.id, data);
@@ -167,7 +179,7 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
               className={fieldInput}
             />
           </FieldRow>
-          <FieldRow icon={Landmark} label={`Aset sumber (opsional, ${form.currency})`} htmlFor="savings-goal-linked-asset" hint={sourceAssets.length === 0 ? `Belum ada rekening/dompet tunai bermata uang ${form.currency}.` : undefined}>
+          <FieldRow icon={Landmark} label={`Rekening sumber setoran (opsional, ${form.currency})`} htmlFor="savings-goal-linked-asset" hint={sourceAssets.length === 0 ? `Belum ada rekening/dompet tunai bermata uang ${form.currency}.` : undefined}>
             <NativeSelect
               sheetTitle="Aset sumber"
               id="savings-goal-linked-asset"
@@ -180,6 +192,24 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
                 <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
               ))}
             </NativeSelect>
+          </FieldRow>
+          <FieldRow icon={Wallet} label="Disimpan di (opsional, boleh beberapa)"
+            hint={allocated.length ? `Progres mengikuti nilai ${allocated.length} aset ini: ${formatMoneyPlain(allocPreview.current, form.currency)}${allocPreview.unconverted.length ? ` · ${allocPreview.unconverted.length} aset belum ada kurs` : ""}.` : "Pilih aset tempat dana ini berada (mis. pasar uang + tabungan). Progres lalu mengikuti nilainya otomatis — tanpa mencatat setoran."}>
+            {allocatable.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-1">Belum ada aset.</p>
+            ) : (
+              <div role="group" aria-label="Disimpan di" className="mt-1.5 flex flex-wrap gap-1.5">
+                {allocatable.map((a) => {
+                  const on = allocated.includes(a.id);
+                  return (
+                    <button key={a.id} type="button" aria-pressed={on} onClick={() => toggleAllocated(a.id)}
+                      className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors max-w-full truncate ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/80"}`}>
+                      {on ? "✓ " : ""}{assetLabel(a)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </FieldRow>
         </FieldGroup>
 

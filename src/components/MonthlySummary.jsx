@@ -10,9 +10,7 @@ import { TrendingUp, TrendingDown, ArrowRight, AlertTriangle } from "lucide-reac
 const HEX = { rose: "#f43f5e", orange: "#f97316", amber: "#f59e0b", green: "#10b981", emerald: "#10b981", teal: "#14b8a6", blue: "#3b82f6", indigo: "#6366f1", violet: "#8b5cf6", pink: "#ec4899", cyan: "#06b6d4", red: "#ef4444", slate: "#94a3b8" };
 const FALLBACK = ["#157A5A", "#E8B23A", "#3b82f6", "#f97316", "#8b5cf6", "#94a3b8"];
 
-// `currency` (opsional): dikendalikan halaman induk (Beranda) agar satu pilihan
-// mata uang berlaku untuk semua kartu — tab mata uang di sini disembunyikan.
-export default function MonthlySummary({ scope = "shared", currency: controlled }) {
+export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
   const { data: me } = useMe();
@@ -27,12 +25,11 @@ export default function MonthlySummary({ scope = "shared", currency: controlled 
     // Mata uang aktif = mata uang pengeluaran bulan ini + default user.
     const monthCurs = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: "IDR", rateMap }).currencies;
     const activeCurs = [...new Set([...monthCurs, (me?.default_currency || "IDR").toUpperCase()])];
-    const want = controlled || currency;
-    const cur = controlled ? want : activeCurs.length && !activeCurs.includes(want) ? activeCurs[0] : want;
+    const cur = activeCurs.length && !activeCurs.includes(currency) ? activeCurs[0] : currency;
     const r = monthlyExpenseBreakdown(transactions, { year: y, month: m, scope, currency: cur, rateMap });
     return { rows: r.rows, total: r.total, prevTotal: r.prevTotal, activeCurs, cur, unconverted: r.unconverted };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, scope, currency, controlled, rateMap, me?.default_currency]);
+  }, [transactions, scope, currency, rateMap, me?.default_currency]);
 
   if (total === 0 && activeCurs.length === 0) return null;
 
@@ -52,7 +49,7 @@ export default function MonthlySummary({ scope = "shared", currency: controlled 
         <Link to="/laporan?tab=bulanan" className="text-xs font-medium text-primary flex items-center gap-1 active:scale-95 transition-transform">Detail <ArrowRight className="w-3 h-3" /></Link>
       </div>
 
-      {!controlled && activeCurs.length > 0 && (
+      {activeCurs.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-2">
           <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} />
           {rateMissing && (

@@ -33,7 +33,7 @@
       "type": "array",
       "items": { "type": "string" },
       "default": [],
-      "description": "ID rekening yang disembunyikan dari Dompet keluarga di Beranda (rekening baru otomatis tampil)"
+      "description": "ID rekening yang disembunyikan dari halaman Dompet (rekening baru otomatis tampil)"
     },
     "saved_banks": {
       "type": "array",

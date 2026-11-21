@@ -16,7 +16,7 @@ import FormSheet from "@/components/FormSheet";
 // motif bintang delapan). Geser ke ATAS = rekening berikutnya, ke BAWAH =
 // sebelumnya (atau tombol ▲▼). Semua kartu tetap terpasang dan hanya
 // posisinya yang dianimasikan — tidak ada bongkar-pasang, jadi tidak berkedip.
-// Rekening yang tampil bisa diatur lewat "Atur" (User.wallet_hidden_ids).
+// Dipakai di halaman /dompet. Rekening yang tampil diatur lewat "Atur" (User.wallet_hidden_ids).
 
 const TONES = [
   ["168 62% 15%", "160 55% 23%"],
@@ -109,7 +109,7 @@ function WalletCard({ account, meId, tone }) {
   );
 }
 
-export default function AccountWallet({ scope = "shared" }) {
+export default function AccountWallet({ scope = "shared", recent = 5 }) {
   const { data: me } = useMe();
   const { data: assets = [], isLoading } = useAssets();
   const { data: transactions = [] } = useTransactions();
@@ -128,7 +128,7 @@ export default function AccountWallet({ scope = "shared" }) {
   const n = accounts.length;
 
   useEffect(() => { if (current?.id) saveSelected(current.id); }, [current?.id]);
-  const activity = useMemo(() => (current ? accountActivity(transactions, current.id) : null), [transactions, current]);
+  const activity = useMemo(() => (current ? accountActivity(transactions, current.id, { recent }) : null), [transactions, current, recent]);
 
   const go = (step) => { if (n > 1) setSelectedId(accounts[wrapIndex(idx + step, n)].id); };
 
@@ -137,8 +137,8 @@ export default function AccountWallet({ scope = "shared" }) {
   const header = (
     <div className="flex items-end justify-between gap-2 mb-2.5">
       <div className="min-w-0">
-        <h2 id="dompet-title" className="font-semibold text-[17px] leading-tight">Dompet keluarga</h2>
-        <p className="text-xs text-muted-foreground truncate">{n > 1 ? "Geser kartu ke atas untuk ganti" : "Saldo rekening Anda"}</p>
+        <h2 id="dompet-title" className="font-semibold text-[17px] leading-tight">{n > 1 ? `${n} rekening` : "Rekening"}</h2>
+        <p className="text-xs text-muted-foreground truncate">{n > 1 ? "Geser kartu ke atas untuk ganti" : "Bank & uang tunai"}</p>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {n > 1 && (
@@ -149,7 +149,7 @@ export default function AccountWallet({ scope = "shared" }) {
           </div>
         )}
         {candidates.length > 0 && (
-          <button type="button" onClick={() => setSettingsOpen(true)} className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1 hover:bg-muted" aria-label="Atur rekening yang tampil di Beranda">
+          <button type="button" onClick={() => setSettingsOpen(true)} className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1 hover:bg-muted" aria-label="Atur rekening yang tampil di Dompet">
             <SlidersHorizontal className="w-3.5 h-3.5" /> Atur
           </button>
         )}
@@ -168,13 +168,13 @@ export default function AccountWallet({ scope = "shared" }) {
         {candidates.length ? (
           <button type="button" onClick={() => setSettingsOpen(true)} className="w-full surface rounded-3xl p-4 text-left text-sm">
             <span className="font-semibold block">Semua rekening disembunyikan</span>
-            <span className="text-xs text-muted-foreground">Ketuk untuk memilih rekening yang tampil di Beranda.</span>
+            <span className="text-xs text-muted-foreground">Ketuk untuk memilih rekening yang tampil di Dompet.</span>
           </button>
         ) : (
           <Link to="/aset" className="surface rounded-3xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
             <span className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0"><Plus className="w-5 h-5" /></span>
             <span className="text-sm">
-              <span className="font-semibold block">{scope === "private" ? "Belum ada rekening pribadi" : "Isi dompet keluarga"}</span>
+              <span className="font-semibold block">{scope === "private" ? "Belum ada rekening pribadi" : "Belum ada rekening"}</span>
               <span className="text-xs text-muted-foreground">Tambahkan rekening bank atau uang tunai — tiap rekening jadi satu kartu.</span>
             </span>
           </Link>
@@ -262,7 +262,7 @@ export default function AccountWallet({ scope = "shared" }) {
   );
 }
 
-// Pilih rekening yang tampil di Beranda. Disimpan di profil (ikut di semua
+// Pilih rekening yang tampil di halaman Dompet. Disimpan di profil (ikut di semua
 // perangkat). Yang disimpan adalah yang DISEMBUNYIKAN, jadi rekening baru
 // otomatis tampil.
 function WalletSettingsSheet({ candidates, tones, hiddenIds, meId, onClose }) {
@@ -289,7 +289,7 @@ function WalletSettingsSheet({ candidates, tones, hiddenIds, meId, onClose }) {
   };
 
   return (
-    <FormSheet title="Atur dompet" subtitle="Pilih rekening yang tampil di Beranda" onClose={onClose}
+    <FormSheet title="Atur dompet" subtitle="Pilih rekening yang tampil sebagai kartu" onClose={onClose}
       footer={<button type="button" className="btn-primary w-full" disabled={saving} onClick={save}>{saving ? "Menyimpan…" : `Simpan · ${shownCount} tampil`}</button>}>
       <ul className="surface rounded-3xl divide-y divide-border" aria-label="Rekening">
         {candidates.map((a) => {

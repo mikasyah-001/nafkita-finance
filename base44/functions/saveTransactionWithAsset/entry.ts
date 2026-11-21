@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { txEffect, roundForCurrency, currencyMismatch, CURRENCY_MISMATCH } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
 import { needsApproval, createApprovalRequest, notifyApprovalRequest } from "../../shared/transactionApproval.ts";
 import { resolvePartnerId } from "../../shared/partnerResolve.ts";
@@ -16,6 +16,10 @@ import { resolvePartnerId } from "../../shared/partnerResolve.ts";
 // Hanya aset milik sendiri (created_by_id === me.id) yang boleh ditautkan.
 // Saldo negatif diizinkan; pembulatan per mata uang (IDR 0, SAR/USD 2 desimal).
 export default async function (req) {
+  // Klaim item kotak masuk (Catat Otomatis): dilepas lagi bila penyimpanan gagal.
+  let incomingClaim = null;
+  let incomingDone = false;
+  let releaseIncoming = null;
   try {
     const base44 = createClientFromRequest(req);
     let me;
@@ -37,9 +41,21 @@ export default async function (req) {
         return Response.json({ error: "incoming_not_found" }, { status: 404 });
       if (incoming.status !== "new")
         return Response.json({ error: "incoming_already_processed" }, { status: 409 });
+      // Klaim sebelum menyentuh saldo: tulis klaim unik lalu baca ulang. Hanya
+      // pemegang klaim terakhir yang lanjut — dua sesi yang menekan "Simpan"
+      // bersamaan tidak sama-sama membuat transaksi.
+      const svcIncoming = base44.asServiceRole.entities.IncomingTransaction;
+      const claim = crypto.randomUUID();
+      await svcIncoming.update(incoming.id, { status: "processing", claim_id: claim });
+      const check = await svcIncoming.get(incoming.id).catch(() => null);
+      if (!check || check.claim_id !== claim)
+        return Response.json({ error: "incoming_already_processed" }, { status: 409 });
+      incomingClaim = claim;
+      releaseIncoming = () => svcIncoming.update(incoming.id, { status: "new", claim_id: null });
     }
     const markIncoming = async (txId) => {
       if (!incoming) return;
+      incomingDone = true; // transaksi sudah ada → jangan dilepas walau penandaan gagal
       try {
         await base44.asServiceRole.entities.IncomingTransaction.update(incoming.id, { status: "saved", transaction_id: txId });
       } catch (e) { console.error("[saveTransactionWithAsset] gagal menandai kotak masuk", incoming.id, e); }
@@ -124,6 +140,8 @@ export default async function (req) {
       for (const adj of adjustments) {
         const asset = await base44.entities.Asset.get(adj.assetId);
         if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
+        if (adj.assetId === newLinked && currencyMismatch(asset, { currency: transaction.currency ?? oldTx.currency }))
+          return Response.json(CURRENCY_MISMATCH, { status: 409 });
         if (asset.created_by_id !== me.id)
           return Response.json({ error: "forbidden" }, { status: 403 });
         const newValue = roundForCurrency((asset.value || 0) + adj.delta, asset.currency);
@@ -157,6 +175,10 @@ export default async function (req) {
     // --- CREATE ---
     // Cek apakah transaksi memerlukan persetujuan pasangan.
     const requireApproval = await needsApproval(base44, me, transaction);
+    if (requireApproval && linkedAssetId) {
+      const asset = await base44.entities.Asset.get(linkedAssetId).catch(() => null);
+      if (asset && currencyMismatch(asset, transaction)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
+    }
     if (requireApproval) {
       const partnerId = await resolvePartnerId(base44, me.id);
       let pendingTx;
@@ -185,6 +207,7 @@ export default async function (req) {
       if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
       if (asset.created_by_id !== me.id)
         return Response.json({ error: "forbidden" }, { status: 403 });
+      if (currencyMismatch(asset, transaction)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
       assetPrevValue = asset.value;
       assetCurrency = asset.currency || "IDR";
       const delta = txEffect(transaction);
@@ -224,5 +247,9 @@ export default async function (req) {
     return Response.json({ ok: true, transaction: created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
+  } finally {
+    if (incomingClaim && !incomingDone && releaseIncoming) {
+      try { await releaseIncoming(); } catch (e) { console.error("[saveTransactionWithAsset] gagal melepas klaim kotak masuk", e); }
+    }
   }
 }

@@ -67,22 +67,35 @@ export default async function (req) {
     if (!link) {
       // Batasi jumlah label tercatat agar token bocor tidak bisa membanjiri daftar.
       const known = list(await db.CardLabel.filter({ owner_id: ownerId }, "-created_date", 31));
-      if (known.length >= 30) return reply(202, { ok: true, result: "unknown_label", message: `Label "${label}" belum terhubung` });
+      if (known.length >= 30) return reply(202, { ok: true, result: "unknown_label", message: "Label belum terhubung" });
       await db.CardLabel.create({ owner_id: ownerId, label, status: "unmapped", last_seen_at: nowIso, seen_count: 1 });
-      return reply(202, { ok: true, result: "unknown_label", message: `Label "${label}" belum terhubung. Hubungkan di Nafkita → Catat Otomatis.` });
+      return reply(202, { ok: true, result: "unknown_label", message: "Label belum terhubung. Hubungkan di Nafkita → Catat Otomatis." });
     }
+    // Respons sengaja generik: token hanya untuk MENGIRIM, tidak boleh
+    // membocorkan nama rekening atau status label ke pemegang token.
     if (link.status !== "active") {
       await touch(link);
-      const msg = link.status === "unmapped" ? `Label "${label}" belum terhubung ke rekening`
-        : link.status === "paused" ? `Label "${label}" sedang dijeda` : `Label "${label}" diabaikan`;
-      return reply(202, { ok: true, result: link.status, message: msg });
+      return reply(202, { ok: true, result: "not_recorded", message: "Tidak dicatat (label tidak aktif)" });
     }
 
-    const asset = link.asset_id ? await db.Asset.get(link.asset_id).catch(() => null) : null;
+    // Bedakan "aset benar-benar tidak ada" dari gangguan sementara: hanya yang
+    // pertama yang boleh memutus pemetaan label.
+    let asset = null;
+    if (link.asset_id) {
+      try {
+        asset = await db.Asset.get(link.asset_id);
+      } catch (e) {
+        const status = e?.response?.status ?? e?.status;
+        if (status !== 404) {
+          console.error("[ingestTransaction] gagal membaca aset", e?.message);
+          return reply(503, { ok: false, message: "Server sibuk, coba lagi" });
+        }
+      }
+    }
     if (!asset || asset.created_by_id !== ownerId) {
       // Aset terhapus / bukan milik pemilik → kembalikan ke "unmapped".
       await db.CardLabel.update(link.id, { status: "unmapped", asset_id: null, last_seen_at: nowIso });
-      return reply(202, { ok: true, result: "unmapped", message: `Rekening untuk label "${label}" tidak ditemukan` });
+      return reply(202, { ok: true, result: "not_recorded", message: "Tidak dicatat (label tidak aktif)" });
     }
     await touch(link);
 
@@ -95,10 +108,10 @@ export default async function (req) {
     const currency = asset.currency || "IDR";
     const candidate = { label, amount, merchant, occurred_at: occurredAt };
 
-    const recent = list(await db.IncomingTransaction.filter({ owner_id: ownerId, label }, "-occurred_at", 20));
-    if (isDuplicate(candidate, recent)) {
-      return reply(200, { ok: true, result: "duplicate", message: "Transaksi ini sudah tercatat" });
-    }
+    // Mirip transaksi lain (nominal & merchant sama, ±10 menit) TIDAK dibuang:
+    // bisa jadi memang dua pembelian. Item tetap masuk, ditandai untuk dicek.
+    const recentOf = async () => list(await db.IncomingTransaction.filter({ owner_id: ownerId, label }, "-occurred_at", 20));
+    const possibleDup = isDuplicate(candidate, await recentOf());
 
     let suggested = null;
     if (merchant) {
@@ -110,7 +123,8 @@ export default async function (req) {
       }
     }
 
-    await db.IncomingTransaction.create({
+    const DUP_REASON = "Mirip transaksi lain dalam 10 menit — pastikan bukan dobel";
+    const created = await db.IncomingTransaction.create({
       owner_id: ownerId,
       device_id: device.id,
       label,
@@ -123,12 +137,21 @@ export default async function (req) {
       card_name: String(body?.card ?? "").slice(0, 80) || undefined,
       occurred_at: occurredAt,
       suggested_category: suggested || undefined,
-      review_reason: reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency }) || undefined,
+      review_reason: (possibleDup ? DUP_REASON : reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency })) || undefined,
       source: "apple_pay",
       status: "new",
     });
 
-    return reply(201, { ok: true, result: "queued", message: `Masuk ke Nafkita: ${merchant || "transaksi"} (${asset.name})` });
+    // Pengiriman ganda yang bersamaan bisa lolos cek di atas. Cek ulang setelah
+    // tersimpan: bila ada kembaran, tandai item ini agar tidak ikut "Simpan semua".
+    if (!possibleDup) {
+      try {
+        const twins = (await recentOf()).filter((r) => r.id !== created.id);
+        if (isDuplicate(candidate, twins)) await db.IncomingTransaction.update(created.id, { review_reason: DUP_REASON });
+      } catch (e) { console.error("[ingestTransaction] cek kembaran", e?.message); }
+    }
+
+    return reply(201, { ok: true, result: "queued", message: "Masuk ke kotak masuk Nafkita" });
   } catch (error) {
     console.error("[ingestTransaction]", error?.message);
     return reply(500, { ok: false, message: "Gagal memproses, coba lagi" });

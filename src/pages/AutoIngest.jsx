@@ -98,12 +98,19 @@ function InboxTab() {
     amount: drafts[it.id]?.amount ?? (it.amount > 0 ? String(it.amount) : ""),
   });
   const setDraft = (id, patch) => setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
-  const isReady = (it) => { const d = draftOf(it); return !!d.category && Number(d.amount) > 0 && !it.review_reason; };
+  // Mata uang rekening diubah setelah item masuk → nominal tidak bisa dipakai apa adanya.
+  const curMismatch = (it) => {
+    const a = assetById[it.asset_id];
+    return !!a && String(a.currency || "IDR").toUpperCase() !== String(it.currency || "IDR").toUpperCase();
+  };
+  const isReady = (it) => { const d = draftOf(it); return !!d.category && Number(d.amount) > 0 && !it.review_reason && !curMismatch(it); };
 
   const saveOne = async (it) => {
     const d = draftOf(it);
     if (!d.category) throw new Error("Pilih kategori dulu");
     if (!(Number(d.amount) > 0)) throw new Error("Isi nominal");
+    if (curMismatch(it)) throw new Error("Mata uang rekening sudah berubah — abaikan item ini dan catat manual");
+    const asset = assetById[it.asset_id];
     const res = await saveTransactionWithAsset({
       type: "expense",
       amount: Number(d.amount),
@@ -113,7 +120,8 @@ function InboxTab() {
       merchant: it.merchant || "",
       notes: `Otomatis dari Apple Pay (${it.label})`,
       tags: ["apple-pay"],
-      visibility: "shared",
+      // Rekening pribadi → transaksinya juga pribadi (tidak terlihat pasangan).
+      visibility: asset?.visibility === "private" ? "private" : "shared",
       linked_asset_id: it.asset_id || undefined,
     }, undefined, { incoming_id: it.id });
     return res;
@@ -188,6 +196,12 @@ function InboxTab() {
               <p className="font-heading font-extrabold tabular-nums shrink-0">{Number(d.amount) > 0 ? `−${formatMoney(Number(d.amount), cur)}` : "—"}</p>
             </div>
 
+            {curMismatch(it) && (
+              <div className="mt-3 rounded-2xl bg-destructive/10 text-destructive px-3 py-2 text-xs flex gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Mata uang rekening {assetLabel(asset)} kini {String(asset.currency || "IDR").toUpperCase()}, sedangkan transaksi ini {cur}. Abaikan item ini lalu catat manual dengan nominal yang benar.</span>
+              </div>
+            )}
             {it.review_reason && (
               <div className="mt-3 rounded-2xl bg-warning/10 text-warning px-3 py-2 text-xs flex gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -213,7 +227,7 @@ function InboxTab() {
 
             <div className="mt-3 flex gap-2">
               <button type="button" className="btn-secondary btn-sm" disabled={!!busy} onClick={() => onDismiss(it)}>Abaikan</button>
-              <button type="button" className="btn-primary btn-sm flex-1" disabled={!!busy || !d.category || !(Number(d.amount) > 0)} onClick={() => onSave(it)}>
+              <button type="button" className="btn-primary btn-sm flex-1" disabled={!!busy || !d.category || !(Number(d.amount) > 0) || curMismatch(it)} onClick={() => onSave(it)}>
                 {busy === it.id ? "Menyimpan…" : "Simpan"}
               </button>
             </div>

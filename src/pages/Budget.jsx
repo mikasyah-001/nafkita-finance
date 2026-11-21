@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AffordCheckCard } from "@/components/AffordCheck";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useBudgets, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap, currencySymbol, isExpenseBudget } from "@/lib/finance";
@@ -145,6 +146,8 @@ export default function Budget() {
       <ScopeToggle className="mb-4" />
 
       <MonthlyPlanCard period={period} year={year} month={month} scope={scope} currency={currency} />
+
+      <AffordCheckCard className="mb-4" />
 
       <div className="mb-4"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={currency} onChange={setCurrency} /></div>
 

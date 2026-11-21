@@ -27,7 +27,7 @@ const TONES = [
 ];
 // Warna kartu tetap per rekening: urut tanggal dibuat dari semua rekening
 // kandidat — tidak bergeser saat rekening disembunyikan atau saldo berubah.
-const toneMap = (list) => Object.fromEntries(
+export const toneMap = (list) => Object.fromEntries(
   [...list].sort((a, b) => String(a.created_date || a.id).localeCompare(String(b.created_date || b.id))).map((a, i) => [a.id, i]),
 );
 const cardBg = (i) => {
@@ -38,22 +38,25 @@ const STORE_KEY = "nafkita.wallet.selected";
 const SWIPE_PX = 36;
 const CARD_H = 176;
 const PEEK = 9;
-const SPRING = { type: "spring", stiffness: 340, damping: 34, mass: 0.9 };
+// Pegas teredam penuh: gerak lembut tanpa memantul.
+const SPRING = { type: "spring", stiffness: 260, damping: 32, mass: 1 };
 
 const readSaved = () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } };
-const saveSelected = (id) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* penyimpanan diblokir */ } };
+export const saveSelected = (id) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* penyimpanan diblokir */ } };
 
-// Posisi kartu menurut jaraknya dari kartu terdepan (d = 0).
-// d = 1, 2 mengintip di bawah; kartu yang baru ditinggalkan (d = n-1) naik
-// & memudar; sisanya menunggu tak terlihat di belakang tumpukan.
-function slot(d, n) {
+// Posisi kartu menurut jaraknya dari kartu terdepan (d = 0). Kartu yang
+// terlihat selalu buram penuh (tanpa fase transparan = tanpa kedip). Kartu
+// tersembunyi menunggu tepat di belakang kartu ke-3, jadi tidak pernah
+// melintas di area yang terlihat.
+function slot(d) {
   if (d === 0) return { y: 0, scale: 1, opacity: 1, zIndex: 30 };
-  if (n > 2 && d === n - 1) return { y: -22, scale: 1.02, opacity: 0, zIndex: 31 };
-  // Kartu di belakang tetap buram penuh (opacity 1): saat naik ke depan tidak
-  // ada fase tembus pandang yang terlihat seperti kedipan.
   if (d <= 2) return { y: d * PEEK, scale: 1 - d * 0.045, opacity: 1, zIndex: 30 - d };
-  return { y: 2 * PEEK, scale: 0.91, opacity: 0, zIndex: 1 };
+  // Sama persis dengan posisi kartu ke-3 tapi di belakangnya → tertutup penuh,
+  // tanpa animasi opasitas sama sekali.
+  return { y: 2 * PEEK, scale: 0.91, opacity: 1, zIndex: 1 };
 }
+// Di luar tepi atas tumpukan (terpotong rapi oleh wadah).
+const OUT = { y: -(CARD_H + 24), scale: 1, opacity: 1, zIndex: 40 };
 
 function StarPattern({ id }) {
   return (
@@ -71,7 +74,7 @@ function StarPattern({ id }) {
   );
 }
 
-function WalletCard({ account, meId, tone }) {
+export function WalletCard({ account, meId, tone }) {
   const Icon = account.type === "tunai" ? Banknote : Landmark;
   const cur = (account.currency || "IDR").toUpperCase();
   const mine = account.created_by_id === meId;
@@ -130,7 +133,27 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
   useEffect(() => { if (current?.id) saveSelected(current.id); }, [current?.id]);
   const activity = useMemo(() => (current ? accountActivity(transactions, current.id, { recent }) : null), [transactions, current, recent]);
 
-  const go = (step) => { if (n > 1) setSelectedId(accounts[wrapIndex(idx + step, n)].id); };
+  // Gerak kartu fisik:
+  //  - maju (geser ke atas): kartu depan meluncur keluar lewat tepi atas, lalu
+  //    turun di belakang tumpukan; kartu berikutnya naik ke depan.
+  //  - mundur (geser ke bawah): kartu sebelumnya dipindah diam-diam ke atas
+  //    (di luar area terlihat), lalu turun menutup tumpukan.
+  const [leaving, setLeaving] = useState(null);
+  const [entering, setEntering] = useState(null); // { id, phase: "place" | "drop" }
+  const busy = !!leaving || !!entering;
+  // Pengaman: bila event selesai-animasi tidak datang, jangan sampai tombol terkunci.
+  useEffect(() => {
+    if (!leaving && !entering) return undefined;
+    const t = setTimeout(() => { setLeaving(null); setEntering(null); }, 900);
+    return () => clearTimeout(t);
+  }, [leaving, entering]);
+  const go = (step) => {
+    if (n < 2 || busy) return;
+    const target = accounts[wrapIndex(idx + step, n)];
+    if (step > 0) setLeaving(current.id);
+    else setEntering({ id: target.id, phase: "place" });
+    setSelectedId(target.id);
+  };
 
   if (isLoading) return null;
 
@@ -194,8 +217,8 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
 
       {/* Lapisan gestur: geser vertikal di atas tumpukan kartu */}
       <motion.div
-        className="relative select-none cursor-grab active:cursor-grabbing"
-        style={{ height: stackH, touchAction: n > 1 ? "none" : "auto" }}
+        className="relative select-none cursor-grab active:cursor-grabbing overflow-hidden -mx-4 -mb-10"
+        style={{ height: stackH + 40, touchAction: n > 1 ? "none" : "auto" }}
         onPanEnd={(_, info) => {
           if (n < 2) return;
           if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
@@ -207,15 +230,31 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
       >
         {accounts.map((a, i) => {
           const d = wrapIndex(i - idx, n);
-          const s = slot(d, n);
+          let target = slot(d);
+          let transition = SPRING;
+          let onDone;
+          if (a.id === leaving) {
+            target = OUT;
+            onDone = () => setLeaving(null); // sudah di luar area terlihat → aman turun ke belakang
+          } else if (entering?.id === a.id) {
+            if (entering.phase === "place") {
+              target = OUT;
+              transition = { duration: 0 };
+              onDone = () => setEntering({ id: a.id, phase: "drop" });
+            } else {
+              target = { ...slot(0), zIndex: 40 };
+              onDone = () => setEntering(null);
+            }
+          }
           return (
             <motion.div
               key={a.id}
-              className="absolute inset-x-0 top-0 rounded-[26px] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
-              style={{ height: CARD_H, zIndex: s.zIndex, transformOrigin: "bottom center", willChange: "transform, opacity", pointerEvents: d === 0 ? "auto" : "none" }}
+              className="absolute left-4 right-4 top-0 rounded-[26px] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
+              style={{ height: CARD_H, zIndex: target.zIndex, transformOrigin: "bottom center", willChange: "transform", pointerEvents: d === 0 ? "auto" : "none" }}
               initial={false}
-              animate={{ y: s.y, scale: s.scale, opacity: s.opacity }}
-              transition={SPRING}
+              animate={{ y: target.y, scale: target.scale, opacity: target.opacity }}
+              transition={transition}
+              onAnimationComplete={onDone}
               aria-hidden={d !== 0}
             >
               <WalletCard account={a} meId={me?.id} tone={tones[a.id] ?? 0} />

@@ -11,8 +11,9 @@ import {
 // dibuat di manageAutoIngest; disimpan sebagai hash SHA-256).
 //
 // Body JSON:
-//   { label: "rajhi-harian", amount: "SAR 12.50", merchant: "Panda",
+//   { label?: "rajhi-harian", amount: "SAR 12.50", merchant: "Panda",
 //     card?: "Al Rajhi Visa", occurred_at?: ISO, ping?: true }
+//   label kosong → nama kartu (card) dipakai sebagai label.
 //
 // Aturan pencatatan:
 //   - Label harus dipetakan ke aset milik pemilik token (CardLabel status active).
@@ -57,8 +58,12 @@ export default async function (req) {
 
     if (body?.ping) return reply(200, { ok: true, result: "connected", message: `Terhubung: ${device.name}` });
 
-    const label = normalizeLabel(body?.label);
-    if (!label) return reply(400, { ok: false, message: "Label kosong — isi label kartu di shortcut" });
+    // Label opsional: shortcut siap pakai ("Kirim ke Nafkita") tidak mengirim
+    // label, jadi nama kartu dari Wallet dipakai sebagai label (mis.
+    // "Classic Debit Card" → "classic-debit-card"). Kartu baru muncul di
+    // Nafkita sebagai "Belum terhubung" untuk dihubungkan sekali.
+    const label = normalizeLabel(body?.label) || normalizeLabel(body?.card);
+    if (!label) return reply(400, { ok: false, message: "Label & nama kartu kosong — kirim label atau Input Pintasan → Kartu" });
 
     // --- Label → aset ---
     const link = first(await db.CardLabel.filter({ owner_id: ownerId, label }, "-created_date", 1));

@@ -27,6 +27,9 @@ import { ListSkeleton } from "@/components/LoadingSkeleton";
 // Tab "Sambungan": perangkat (token), label kartu → rekening, panduan setup.
 
 const LINKABLE_TYPES = ["bank", "tunai", "emas_digital", "lainnya"];
+// Tautan iCloud shortcut siap pakai "Kirim ke Nafkita" (dibuat sekali oleh admin
+// di iPhone, lalu diisi di variabel lingkungan). Kosong → panduan manual saja.
+const SHORTCUT_URL = import.meta.env.VITE_NAFKITA_SHORTCUT_URL || "";
 const STATUS_TEXT = { active: "Aktif", paused: "Dijeda", unmapped: "Belum terhubung", ignored: "Diabaikan" };
 
 const msg = (e, fallback) => e?.response?.data?.message || e?.response?.data?.error || e?.message || fallback;
@@ -389,7 +392,14 @@ function TokenSheet({ token, onClose }) {
         <span>Siapa pun yang memegang token ini bisa menambah item ke kotak masuk Anda (tidak bisa membaca data). Jangan bagikan shortcut yang berisi token.</span>
       </div>
       <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Header Authorization</p>
+        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Token (tempel saat memasang shortcut "Kirim ke Nafkita")</p>
+        <div className="flex gap-2 items-center">
+          <code className="flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2">{token}</code>
+          <CopyButton text={token} />
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Header Authorization (hanya untuk cara manual)</p>
         <div className="flex gap-2 items-center">
           <code className="flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2">Bearer {token}</code>
           <CopyButton text={`Bearer ${token}`} />
@@ -461,34 +471,54 @@ function LabelSheet({ initial, assets, onClose, onSaved }) {
   );
 }
 
+function GuideSteps({ steps }) {
+  return (
+    <ol className="surface rounded-3xl divide-y divide-border">
+      {steps.map(([t, d], i) => (
+        <li key={t} className="flex gap-3 px-4 py-3">
+          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{t}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{d}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function SetupGuide({ hasToken, exampleLabel }) {
   const label = exampleLabel || "rajhi-harian";
-  const steps = [
+  // Cara cepat: satu shortcut siap pakai + satu otomasi untuk semua kartu.
+  // Label otomatis = nama kartu di Wallet; kartu baru muncul di bagian 2 untuk dihubungkan.
+  const quick = [
+    ["Buat token", hasToken ? "Sudah ada token. Bila lupa menyalin, buat token baru lalu cabut yang lama." : "Di bagian 1 tekan Tambah, lalu salin Token."],
+    ["Pasang shortcut \"Kirim ke Nafkita\"", SHORTCUT_URL ? "Tekan tombol di bawah → Tambah Pintasan → tempel token saat ditanya." : "Tautan shortcut belum tersedia — gunakan cara manual di bawah, atau minta admin menyiapkan tautannya."],
+    ["Buat SATU otomasi untuk semua kartu", "Pintasan → Otomasi → + → Wallet (iOS 17–18: \"Transaksi\"). Centang semua kartu yang ingin dicatat → Jalankan Segera."],
+    ["Isi aksinya", "Tambah aksi \"Jalankan Pintasan\" → pilih \"Kirim ke Nafkita\" → masukan: Input Pintasan."],
+    ["Bayar sekali, lalu hubungkan", "Setelah pembayaran pertama, tiap kartu muncul di bagian 2 sebagai \"Belum terhubung\" (nama kartu jadi label). Ketuk Hubungkan → pilih rekeningnya. Pembayaran berikutnya langsung masuk Kotak Masuk."],
+  ];
+  const manual = [
     ["Buat label", `Di bagian 2, buat label untuk tiap kartu (mis. "${label}") dan pilih rekeningnya.`],
-    ["Buat token", hasToken ? "Sudah ada token. Bila lupa menyalin, buat token baru lalu cabut yang lama." : "Di bagian 1, tekan Tambah, lalu salin URL & header Authorization."],
-    ["Buka Shortcuts → Automation → +", "Pilih pemicu Wallet (iOS 17–18: \"Transaction\"). Pilih SATU kartu, lalu \"Run Immediately\" dan matikan \"Notify When Run\"."],
-    ["Tambah aksi \"Get Contents of URL\"", "Tempel URL. Method: POST. Headers: Authorization = (tempel \"Bearer nfk_…\")."],
-    ["Isi Request Body (JSON)", `label = ${label} (teks tetap) · amount = Shortcut Input → Amount · merchant = Shortcut Input → Merchant · card = Shortcut Input → Card.`],
-    ["Ulangi per kartu", "Satu otomasi per kartu, masing-masing dengan label berbeda. Kartu tanpa otomasi tidak akan pernah terkirim."],
-    ["Uji", "Bayar dengan Apple Pay. Dalam beberapa detik item muncul di Kotak Masuk. Label yang belum dibuat muncul di bagian 2 sebagai \"Belum terhubung\"."],
+    ["Buka Pintasan → Otomasi → +", "Pilih pemicu Wallet. Pilih SATU kartu, lalu Jalankan Segera."],
+    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_… (dari layar token)."],
+    ["Isi Minta Isi (JSON), semua jenis Teks", `label = ${label} · amount = Input Pintasan (Jenis: Transaksi) → Jumlah · merchant = Input Pintasan → Pedagang.`],
+    ["Ulangi per kartu", "Satu otomasi per kartu dengan label berbeda."],
   ];
   return (
-    <section aria-labelledby="ai-guide">
-      <div className="mb-2.5">
-        <h2 id="ai-guide" className="font-semibold text-[17px] leading-tight"><BookOpen className="w-4 h-4 inline -mt-1 mr-1" />3. Panduan pemasangan (±2 menit per kartu)</h2>
+    <section aria-labelledby="ai-guide" className="space-y-3">
+      <div>
+        <h2 id="ai-guide" className="font-semibold text-[17px] leading-tight"><BookOpen className="w-4 h-4 inline -mt-1 mr-1" />3. Pasang di iPhone (±3 menit, sekali saja)</h2>
         <p className="text-xs text-muted-foreground">Hanya untuk iPhone dengan Apple Pay. Transfer, QRIS & kartu fisik tidak tertangkap.</p>
       </div>
-      <ol className="surface rounded-3xl divide-y divide-border">
-        {steps.map(([t, d], i) => (
-          <li key={t} className="flex gap-3 px-4 py-3">
-            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{t}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{d}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {SHORTCUT_URL && (
+        <a href={SHORTCUT_URL} target="_blank" rel="noreferrer" className="btn-primary w-full"><Smartphone className="w-4 h-4" /> Pasang shortcut &quot;Kirim ke Nafkita&quot;</a>
+      )}
+      <GuideSteps steps={quick} />
+      <details className="surface rounded-3xl">
+        <summary className="px-4 py-3 text-sm font-semibold cursor-pointer select-none">Cara manual (tanpa tautan shortcut)</summary>
+        <div className="px-1 pb-1"><GuideSteps steps={manual} /></div>
+      </details>
     </section>
   );
 }

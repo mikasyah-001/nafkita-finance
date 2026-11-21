@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { billDue, sortByDue, upcomingTotal } from "@/lib/recurring";
+import { DUE_TONE } from "@/components/UpcomingBills";
+import Money from "@/components/Money";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useRecurringBills, useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
@@ -8,12 +11,20 @@ import { formatMoney, currencySymbol, formatDate, formatMoneyPlain } from "@/lib
 import { assetLabel } from "@/lib/bankAccount";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
-import { Plus, Loader2, RefreshCw, Pause, Play, Check, CalendarClock, Tag, Repeat, CalendarDays, Landmark, NotebookPen } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Pause, Play, Check, Tag, Repeat, CalendarDays, Landmark, NotebookPen } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
 import MoneyInput from "@/components/MoneyInput";
+
+const BADGE = {
+  overdue: { label: "Terlambat", cls: "bg-destructive/10 text-destructive" },
+  today: { label: "Jatuh tempo", cls: "bg-destructive/10 text-destructive" },
+  soon: { label: "Segera", cls: "bg-warning/15 text-warning" },
+  upcoming: { label: "Akan datang", cls: "bg-success/15 text-success" },
+  paused: { label: "Jeda", cls: "bg-muted text-muted-foreground" },
+};
 
 const frequencyLabels = {
   daily: "Harian",
@@ -54,6 +65,15 @@ export default function RecurringBills() {
   };
 
   const activeCount = myBills.filter((b) => b.status === "active").length;
+  const [tab, setTab] = useState("upcoming");
+  const { map: rateMap } = useRateMap();
+  const viewCur = user?.default_currency || "IDR";
+  const upcoming = useMemo(() => upcomingTotal(myBills, { currency: viewCur, rateMap }), [myBills, viewCur, rateMap]);
+  const shown = tab === "upcoming"
+    ? sortByDue(myBills)
+    : tab === "paused"
+      ? myBills.filter((b) => b.status !== "active")
+      : [...sortByDue(myBills), ...myBills.filter((b) => b.status !== "active")];
 
   return (
     <div className="px-5 pt-6 pb-6 space-y-5">
@@ -68,59 +88,62 @@ export default function RecurringBills() {
         </>}
       />
 
-      <section className="card-pastel card-pastel-mint rounded-3xl p-4 flex items-start gap-3">
-        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
-          <RefreshCw className="w-5 h-5" />
-        </span>
-        <div className="min-w-0">
-          {!isLoading && myBills.length > 0 && (
-            <p className="font-heading font-bold text-[15px] leading-tight mb-0.5">{activeCount} aktif · {myBills.length - activeCount} dijeda</p>
-          )}
-          <p className="text-xs opacity-80">
-            Tagihan berulang membuat transaksi otomatis sesuai frekuensi. Pastikan saldo rekening mencukupi pada tanggal berikutnya.
-          </p>
-        </div>
+      {/* Ringkasan: berapa yang harus disiapkan 30 hari ke depan */}
+      <section className="card-gradient-primary rounded-[28px] p-5">
+        <p className="text-xs opacity-75">30 hari ke depan</p>
+        <p className="font-heading text-[30px] leading-tight font-extrabold tabular-nums"><Money value={upcoming.total} currency={viewCur} /></p>
+        {Object.keys(upcoming.unconverted).length > 0 && (
+          <p className="text-[11px] opacity-75">+ {Object.entries(upcoming.unconverted).map(([c, v]) => formatMoney(v, c)).join(", ")} (kurs belum tersedia)</p>
+        )}
+        <p className="text-xs opacity-80 mt-1">
+          {upcoming.count} kali tagih · {upcoming.dueThisWeek > 0 ? `${upcoming.dueThisWeek} dalam 7 hari` : "tidak ada minggu ini"}
+          {!isLoading && myBills.length > 0 && ` · ${activeCount} aktif, ${myBills.length - activeCount} dijeda`}
+        </p>
+        <p className="text-[11px] opacity-65 mt-2 leading-snug">Dicatat otomatis sesuai frekuensi. Pastikan saldo rekening cukup pada tanggalnya.</p>
       </section>
 
       <section>
-        <div className="mb-2.5">
-          <h2 className="font-semibold text-[17px] leading-tight">Daftar tagihan</h2>
-          <p className="text-xs text-muted-foreground">Jeda kapan saja tanpa menghapus</p>
+        <div role="tablist" aria-label="Saring tagihan" className="flex gap-1 p-1 rounded-2xl bg-muted mb-3">
+          {[["upcoming", "Akan datang"], ["paused", "Dijeda"], ["all", "Semua"]].map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+              className={`flex-1 h-9 rounded-xl text-sm font-semibold transition-colors ${tab === k ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {isLoading ? (
           <ListSkeleton rows={3} />
         ) : myBills.length === 0 ? (
           <EmptyState icon={RefreshCw} title="Belum ada tagihan berulang" subtitle="Atur tagihan otomatis seperti listrik, internet, atau sewa untuk dicatat tanpa perlu input manual." />
+        ) : shown.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">{tab === "paused" ? "Tidak ada tagihan yang dijeda." : "Tidak ada tagihan aktif."}</p>
         ) : (
           <div className="surface rounded-3xl divide-y divide-border">
-            {myBills.map((b) => {
+            {shown.map((b) => {
               const isActive = b.status === "active";
               const asset = assets.find((a) => a.id === b.linked_asset_id);
-              const isOverdue = b.status === "active" && b.next_date && new Date(b.next_date + "T00:00:00.000Z") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z");
+              const due = billDue(b);
+              const badge = BADGE[due.kind];
               return (
-                <div key={b.id} className="flex items-start gap-3 px-4 py-3.5">
-                  <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${b.type === "sedekah" ? "bg-sedekah/15 text-sedekah" : "bg-expense/10 text-expense"} ${isActive ? "" : "opacity-60"}`}>
+                <div key={b.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${DUE_TONE[due.kind]}`}>
                     <RefreshCw className="w-4 h-4" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">{b.category}</p>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${isActive ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
-                        {isActive ? "Aktif" : "Jeda"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground tabular-nums">{formatMoney(b.amount, b.currency)} • {frequencyLabels[b.frequency] || b.frequency}</p>
+                    <p className="font-semibold text-sm truncate">{b.category}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {frequencyLabels[b.frequency] || b.frequency}
+                      {isActive && b.next_date ? ` · ${formatDate(b.next_date, "d MMM yyyy")}` : ""}
+                    </p>
                     {asset && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Dari: {asset.name}</p>}
-                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
-                      <CalendarClock className={`w-3.5 h-3.5 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
-                      <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        {isOverdue ? "Jatuh tempo — akan diproses" : `Berikutnya: ${formatDate(b.next_date, "dd MMM yyyy")}`}
-                      </span>
-                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold tabular-nums">{formatMoney(b.amount, b.currency)}</p>
+                    {badge && <span className={`inline-block mt-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${badge.cls}`}>{due.kind === "paused" ? badge.label : due.label}</span>}
                   </div>
                   <button onClick={() => toggleStatus(b)} disabled={toggling === b.id} aria-label={isActive ? `Jeda tagihan ${b.category}` : `Lanjutkan tagihan ${b.category}`} className="disabled:opacity-50 btn-icon btn-icon-sm shrink-0">
-                    {toggling === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : b.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {toggling === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
                 </div>
               );

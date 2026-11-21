@@ -27,6 +27,16 @@ export default function SavingsGoals() {
   const [filter, setFilter] = useState("active");
 
   const filtered = goals.filter(g => filter === "all" ? true : (g.status || "active") === filter);
+  // Label "Hampir tercapai" untuk satu target aktif dengan progres tertinggi (<100%).
+  const closestId = useMemo(() => {
+    let best = null;
+    for (const g of goals) {
+      if ((g.status || "active") !== "active") continue;
+      const pct = progressOf(g).pct;
+      if (pct > 0 && pct < 100 && (!best || pct > best.pct)) best = { id: g.id, pct };
+    }
+    return best?.id || null;
+  }, [goals, progressOf]);
 
   // Ringkasan tampilan saja: total terkumpul vs target untuk target aktif, per mata uang.
   const summary = useMemo(() => {
@@ -127,6 +137,7 @@ export default function SavingsGoals() {
           {filtered.map(goal => (
             <SavingsGoalCard
               key={goal.id}
+              closest={goal.id === closestId}
               goal={goal}
               assets={assets}
               onEdit={() => handleEdit(goal)}

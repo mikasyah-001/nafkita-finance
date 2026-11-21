@@ -45,3 +45,38 @@ export function goalProgress(goal = {}, assets = [], { rateMap = {}, goldPrice =
     unconverted,
   };
 }
+
+// ── Proyeksi: kapan target tercapai dengan laju setoran saat ini ─────────
+// Laju = rata-rata setoran per bulan dari contribution_history dalam 90 hari
+// terakhir (rentang sejak setoran pertama di jendela itu + 1 periode).
+// neededPerMonth = setoran per bulan yang dibutuhkan agar tepat waktu.
+const MONTH_MS = 30.44 * 864e5;
+export function goalProjection(goal = {}, current = 0, { now = new Date() } = {}) {
+  const target = Number(goal.target_amount) || 0;
+  const remaining = Math.max(0, target - (Number(current) || 0));
+  const targetDate = goal.target_date ? new Date(`${String(goal.target_date).slice(0, 10)}T00:00:00`) : null;
+  const monthsLeft = targetDate ? (targetDate - now) / MONTH_MS : null;
+  const neededPerMonth = targetDate && remaining > 0 ? remaining / Math.max(1, monthsLeft) : null;
+  if (remaining <= 0) return { done: true, remaining: 0, perMonth: 0, eta: null, onTrack: true, neededPerMonth: null };
+
+  const since = now.getTime() - 90 * 864e5;
+  const recent = (goal.contribution_history || [])
+    .filter((c) => c && Number(c.amount) > 0 && c.date && new Date(c.date).getTime() >= since && new Date(c.date) <= now);
+  let perMonth = 0;
+  if (recent.length) {
+    const first = Math.min(...recent.map((c) => new Date(c.date).getTime()));
+    // n setoran bulanan = n periode, jadi rentang + 1 bulan; dibatasi jendela 90 hari.
+    const spanMonths = Math.min(90 * 864e5 / MONTH_MS, (now.getTime() - first) / MONTH_MS + 1);
+    perMonth = recent.reduce((s, c) => s + Number(c.amount), 0) / spanMonths;
+  }
+  const eta = perMonth > 0 ? new Date(now.getTime() + (remaining / perMonth) * MONTH_MS) : null;
+  const onTrack = targetDate && eta ? eta <= targetDate : null;
+  return { done: false, remaining, perMonth, eta, onTrack, neededPerMonth, targetDate };
+}
+
+// Nominal setoran cepat yang wajar per mata uang.
+export function quickDepositAmounts(currency = "IDR") {
+  const c = String(currency).toUpperCase();
+  if (c === "IDR") return [100_000, 500_000, 1_000_000];
+  return [50, 100, 500];
+}

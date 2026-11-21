@@ -592,6 +592,33 @@ export function planProgress(actual, target) {
   return { pct, reached: actual >= target, remaining: Math.max(0, target - actual) };
 }
 
+// ── Jatah belanja harian ──────────────────────────────────────────
+// "Sisa yang boleh dibelanjakan bulan ini, dibagi hari tersisa (termasuk
+// hari ini)". Dasar anggaran: rencana pemasukan bila diatur, kalau tidak
+// pemasukan nyata bulan ini; rencana menabung selalu disisihkan dulu.
+// Sumber tunggal untuk Beranda, menu Lainnya, dan "Bisakah saya beli ini?".
+export function spendingPace({ income = 0, expense = 0, sedekah = 0, planIncome = 0, planSavings = 0, now = new Date(), extraSpend = 0 } = {}) {
+  const y = now.getFullYear(), m = now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+  const base = planIncome > 0 ? planIncome : income;
+  const budget = Math.max(0, base - (planSavings || 0));
+  const spent = (Number(expense) || 0) + (Number(sedekah) || 0) + (Number(extraSpend) || 0);
+  if (budget <= 0 && spent <= 0) return null;
+  const remaining = budget - spent;
+  return {
+    source: planIncome > 0 ? "plan" : "income",
+    budget,
+    spent,
+    remaining,
+    over: remaining < 0,
+    pct: budget > 0 ? Math.min(100, (spent / budget) * 100) : 100,
+    daysLeft,
+    daysInMonth,
+    perDay: Math.max(0, remaining) / daysLeft,
+  };
+}
+
 // ── Aturan input aset per jenis (sumber tunggal untuk form & test) ─────
 // emas/emas_digital: jumlah gram × harga beli/gram. tanah: luas m² × harga/m².
 // bank/tunai: hanya nilai saldo (tanpa harga beli). Lainnya: nilai + harga beli total.

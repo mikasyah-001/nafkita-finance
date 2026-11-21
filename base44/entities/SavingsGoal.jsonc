@@ -45,6 +45,10 @@
       "default": [],
       "description": "Aset tempat dana target disimpan (boleh beberapa, jenis apa saja). Bila diisi, progres = nilai aset-aset ini."
     },
+    "cover_url": {
+      "type": "string",
+      "description": "Foto sampul target (opsional), mis. foto Ka'bah untuk target Umrah"
+    },
     "icon": {
       "type": "string",
       "default": "PiggyBank"

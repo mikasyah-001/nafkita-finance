@@ -461,3 +461,32 @@ test("ejaan seri: yang rapi (berhuruf besar) dipilih sebagai baku", async () => 
   assert.equal(brokerSpellingGroups(assets)[0].canonical, "Al Rajhi Capital");
   assert.deepEqual(knownBrokers(assets, { type: "investasi" }), ["Al Rajhi Capital"]);
 });
+
+// ── Jatah belanja harian ─────────────────────────────────────────
+import { spendingPace } from "../finance.js";
+
+test("spendingPace: rencana pemasukan dikurangi rencana menabung, dibagi hari tersisa", () => {
+  const p = spendingPace({ planIncome: 10_000_000, planSavings: 2_000_000, expense: 3_000_000, sedekah: 500_000, now: new Date(2026, 10, 21) });
+  assert.equal(p.source, "plan");
+  assert.equal(p.budget, 8_000_000);
+  assert.equal(p.remaining, 4_500_000);
+  assert.equal(p.daysLeft, 10); // 21–30 November
+  assert.equal(p.perDay, 450_000);
+  assert.equal(p.over, false);
+});
+
+test("spendingPace: tanpa rencana memakai pemasukan nyata; lewat anggaran → jatah 0", () => {
+  const p = spendingPace({ income: 5_000_000, expense: 6_000_000, now: new Date(2026, 1, 28) });
+  assert.equal(p.source, "income");
+  assert.equal(p.daysLeft, 1);
+  assert.equal(p.over, true);
+  assert.equal(p.perDay, 0);
+  assert.equal(p.pct, 100);
+});
+
+test("spendingPace: extraSpend mensimulasikan pembelian; tanpa data → null", () => {
+  const base = { planIncome: 3_000_000, now: new Date(2026, 10, 1) };
+  assert.equal(spendingPace(base).perDay, 100_000);
+  assert.equal(spendingPace({ ...base, extraSpend: 1_500_000 }).perDay, 50_000);
+  assert.equal(spendingPace({ now: new Date() }), null);
+});

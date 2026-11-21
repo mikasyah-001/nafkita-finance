@@ -71,7 +71,7 @@ export default function Layout() {
                 halaman lama sampai halaman baru siap — tanpa skeleton sesaat. */}
             {me && (
               <Suspense fallback={<PageFallback />}>
-                <PageTransition key={location.pathname}>{outlet}</PageTransition>
+                <PageTransition key={location.pathname} variant={isNavHidden(location.pathname) ? "sheet" : "push"}>{outlet}</PageTransition>
               </Suspense>
             )}
           </div>

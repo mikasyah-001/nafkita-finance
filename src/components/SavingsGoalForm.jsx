@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Wallet } from "lucide-react";
+import { Image as ImageIcon, Check, Loader2, Tag, CalendarDays, Landmark, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Wallet } from "lucide-react";
 import { currencySymbol, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
 import { useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
@@ -38,9 +38,24 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
     linked_asset_id: goal?.linked_asset_id || "",
     allocated_asset_ids: Array.isArray(goal?.allocated_asset_ids) ? goal.allocated_asset_ids : [],
     color: goal?.color || "green",
+    cover_url: goal?.cover_url || "",
     visibility: goal?.visibility || "shared",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const uploadCover = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm((f) => ({ ...f, cover_url: file_url }));
+    } catch {
+      toast.error("Gagal mengunggah foto");
+    }
+    setUploading(false);
+  };
   // Target baru: ikuti mata uang utama begitu profil termuat.
   useEffect(() => {
     if (!goal?.id && me?.default_currency) setForm((f) => (f.target_amount || f.linked_asset_id ? f : { ...f, currency: me.default_currency }));
@@ -214,6 +229,21 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
         </FieldGroup>
 
         <FieldGroup label="Tampilan">
+          <FieldRow icon={ImageIcon} label="Foto sampul (opsional)">
+            <div className="flex items-center gap-3 mt-1.5">
+              {form.cover_url
+                ? <img src={form.cover_url} alt="Foto sampul" className="w-20 h-14 rounded-xl object-cover border border-border" />
+                : <div className="w-20 h-14 rounded-xl bg-muted flex items-center justify-center text-muted-foreground"><ImageIcon className="w-5 h-5" /></div>}
+              <div className="flex flex-col items-start gap-1">
+                <label className="btn-secondary btn-sm cursor-pointer">
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {form.cover_url ? "Ganti foto" : "Pilih foto"}
+                  <input type="file" accept="image/*" className="hidden" onChange={uploadCover} disabled={uploading} />
+                </label>
+                {form.cover_url && <button type="button" onClick={() => setForm((f) => ({ ...f, cover_url: "" }))} className="text-xs text-destructive font-medium">Hapus foto</button>}
+              </div>
+            </div>
+          </FieldRow>
           <FieldRow icon={Palette} label="Warna">
             <div role="radiogroup" aria-label="Warna" className="flex gap-2 flex-wrap mt-1.5">
               {colors.map(c => (

@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Wallet } from "lucide-react";
-import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset } from "@/lib/finance";
+import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset, formatMoneyShort } from "@/lib/finance";
+
+const formatMoneyShortSafe = (v, c) => formatMoneyShort(v, c).replace(/^Rp\s?/, "");
 import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
 import MoneyInput from "@/components/MoneyInput";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { assetLabel } from "@/lib/bankAccount";
+import { goalProjection, quickDepositAmounts } from "@/lib/savingsGoal";
 
 // Kartu pastel serupa "Rencana kita" di Beranda; warna target dipetakan ke nada pastel.
 const TYPE_ICON = { darurat: ShieldCheck, pendidikan: GraduationCap, rumah: HomeIcon, perjalanan: Plane, lainnya: Target };
@@ -17,7 +20,7 @@ const TONE = {
 };
 const panelInput = "w-full h-10 rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none focus:ring-2 ring-primary/30";
 
-export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefresh }) {
+export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefresh, closest = false }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [progressAmount, setProgressAmount] = useState("");
@@ -33,6 +36,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const isCompleted = goal.status === "completed";
   const Icon = isCompleted ? CheckCircle2 : (TYPE_ICON[goal.type] || Target);
   const tone = TONE[goal.color] || TONE.green;
+  const proj = isCompleted ? null : goalProjection(goal, gp.current);
 
   const handleAddProgress = async () => {
     const amt = Number(progressAmount);
@@ -60,6 +64,17 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   return (
     <div className={`card-pastel ${tone} relative rounded-3xl p-4 overflow-hidden`}>
       <div className="absolute -right-6 -bottom-8 w-28 h-28 rounded-full bg-white/25 dark:bg-white/5 pointer-events-none" aria-hidden="true" />
+
+      {/* Foto sampul (opsional): target terasa nyata, mis. Ka'bah untuk Umrah */}
+      {goal.cover_url && (
+        <div className="relative -mx-4 -mt-4 mb-3 h-32 overflow-hidden">
+          <img src={goal.cover_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" aria-hidden="true" />
+        </div>
+      )}
+      {closest && !isCompleted && (
+        <span className={`${goal.cover_url ? "absolute top-3 left-3" : "relative inline-flex mb-2"} z-10 items-center text-[11px] font-semibold bg-white/85 dark:bg-black/50 rounded-full px-2.5 py-1`}>Hampir tercapai</span>
+      )}
 
       {/* Header */}
       <div className="relative z-10 flex items-start justify-between gap-2">
@@ -110,6 +125,22 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           {isCompleted ? "Target tercapai" : remaining > 0 ? `Sisa ${formatMoney(remaining, goal.currency)}` : `${progress.toFixed(0)}% tercapai`}
         </p>
 
+        {/* Proyeksi dari laju setoran 90 hari terakhir */}
+        {proj && (proj.eta || proj.neededPerMonth) && (
+          <p className="text-[11px] mt-1 leading-snug">
+            {proj.eta ? (
+              <>
+                Laju {formatMoney(proj.perMonth, goal.currency)}/bln → tercapai ±{formatDate(proj.eta, "MMM yyyy")}
+                {proj.onTrack === true && <span className="font-semibold"> · tepat waktu ✓</span>}
+                {proj.onTrack === false && <span className="font-semibold text-destructive"> · lewat target</span>}
+              </>
+            ) : "Belum ada setoran 3 bulan terakhir"}
+            {proj.neededPerMonth && proj.onTrack !== true && (
+              <span className="block opacity-80">Perlu {formatMoney(proj.neededPerMonth, goal.currency)}/bln agar tepat waktu</span>
+            )}
+          </p>
+        )}
+
         {/* Disimpan di beberapa aset → progres otomatis, tanpa setoran manual */}
         {byAssets && (
           <div className="mt-3 rounded-2xl bg-white/50 dark:bg-white/10 px-3 py-2.5 text-xs">
@@ -159,6 +190,14 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
                 ))}
               </select>
             )}
+            <div className="flex gap-1.5" role="group" aria-label="Setoran cepat">
+              {quickDepositAmounts(goal.currency).map((v) => (
+                <button key={v} type="button" onClick={() => setProgressAmount(String(v))}
+                  className={`flex-1 h-9 rounded-full border text-xs font-semibold tabular-nums ${Number(progressAmount) === v ? "bg-foreground text-background border-foreground" : "bg-card border-border"}`}>
+                  +{formatMoneyShortSafe(v, goal.currency)}
+                </button>
+              ))}
+            </div>
             <MoneyInput currency={goal.currency || "IDR"}
               aria-label="Nominal"
               value={progressAmount}

@@ -21,7 +21,7 @@ const rupiah = (s) => Number(String(s).replace(/[^\d-]/g, "")) * (/^-|−/.test(
 const homeNumbers = async () => {
   await nav("/");
   const saldo = rupiah(await page.locator("section[aria-labelledby=bulan-ini-title] p.tabular-nums").first().innerText());
-  const belanja = Number(await page.locator("[data-stat=expense]").getAttribute("data-value"));
+  const belanja = rupiah(await page.getByText("Total pengeluaran", { exact: true }).locator("xpath=following-sibling::p[1]").innerText());
   return { saldo, belanja };
 };
 const laporanTotal = async () => {

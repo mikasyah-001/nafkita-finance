@@ -11,10 +11,11 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
+import { CalendarClock, CheckCheck, TrendingUp, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import AccountWallet from "@/components/AccountWallet";
+import MonthlySummary from "@/components/MonthlySummary";
 import { usePartnership } from "@/hooks/usePartnership";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/hooks/usePullToRefresh";
@@ -222,10 +223,9 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className="grid grid-cols-2 gap-2 mt-3">
             {[
               { key: "income", raw: s.income, icon: TrendingUp, label: "Masuk", value: <Money value={s.income} format="short" currency={cur} /> },
-              { key: "expense", raw: s.expense, icon: TrendingDown, label: "Keluar", value: <Money value={s.expense} format="short" currency={cur} /> },
               // Ada rencana menabung (diatur di Anggaran) → tampilkan progresnya; bila tidak, rasio menabung.
               plan.savings > 0
                 ? { key: "savings", to: "/anggaran", icon: Banknote, label: "Rencana menabung", value: savingsPlan.reached ? "Tercapai ✓" : `${Math.round(savingsPlan.pct)}%` }
@@ -248,6 +248,9 @@ export default function Home() {
           )}
         </section>
       )}
+
+      {/* Total pengeluaran + komposisi per kategori (donat) */}
+      <MonthlySummary scope={scope} currency={cur} />
 
       <div className="flex items-end justify-between mb-2.5 mt-2">
         <div>

@@ -29,6 +29,12 @@
       ],
       "description": "Daftar kode mata uang yang diaktifkan pengguna (bawaan maupun kustom)"
     },
+    "wallet_hidden_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "ID rekening yang disembunyikan dari Dompet keluarga di Beranda (rekening baru otomatis tampil)"
+    },
     "saved_banks": {
       "type": "array",
       "items": { "type": "string" },

@@ -5,7 +5,15 @@ import { isMoneyAsset } from "./finance.js";
 
 // Rekening bank/tunai sesuai cakupan Bersama/Pribadi. Urutan: milik sendiri
 // dulu, lalu saldo terbesar (urutan stabil per mata uang tidak dijamin).
-export function walletAccounts(assets = [], { scope = "shared", meId } = {}) {
+// `hiddenIds`: rekening yang disembunyikan pengguna dari Beranda (User.wallet_hidden_ids).
+export function walletAccounts(assets = [], { scope = "shared", meId, hiddenIds = [] } = {}) {
+  const hidden = new Set(hiddenIds || []);
+  return walletCandidates(assets, { scope, meId }).filter((a) => !hidden.has(a.id));
+}
+
+// Semua rekening yang BISA tampil di dompet untuk cakupan ini (dipakai juga
+// oleh lembar pengaturan "Atur dompet").
+export function walletCandidates(assets = [], { scope = "shared", meId } = {}) {
   return assets
     .filter(isMoneyAsset)
     .filter((a) => (scope === "private"

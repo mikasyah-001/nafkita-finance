@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ArrowRight, ChevronUp, ChevronDown, Landmark, Banknote, Plus, Users, Lock } from "lucide-react";
+import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ArrowRight, ChevronUp, ChevronDown, Landmark, Banknote, Plus, Users, Lock, SlidersHorizontal, Check } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { useAssets, useTransactions, useCategories, useMe } from "@/hooks/useFinance";
 import { maskAccount } from "@/lib/bankAccount";
-import { walletAccounts, accountActivity, wrapIndex } from "@/lib/wallet";
+import { walletAccounts, walletCandidates, accountActivity, wrapIndex } from "@/lib/wallet";
 import Money from "@/components/Money";
 import TransactionItem from "@/components/TransactionItem";
+import FormSheet from "@/components/FormSheet";
 
-// "Dompet keluarga" — tumpukan kartu rekening khas Nafkita: kartu hijau-emas
-// bermotif bintang delapan, saldo langsung di kartu. Geser kartu ke ATAS
-// untuk rekening berikutnya, ke BAWAH untuk sebelumnya (atau tombol ▲▼).
-// Tombol catat & transaksi di bawah tumpukan mengikuti kartu terdepan.
+// "Dompet keluarga" — tumpukan kartu rekening khas Nafkita (hijau-emas,
+// motif bintang delapan). Geser ke ATAS = rekening berikutnya, ke BAWAH =
+// sebelumnya (atau tombol ▲▼). Semua kartu tetap terpasang dan hanya
+// posisinya yang dianimasikan — tidak ada bongkar-pasang, jadi tidak berkedip.
+// Dipakai di halaman /dompet. Rekening yang tampil diatur lewat "Atur" (User.wallet_hidden_ids).
 
-// Nuansa kartu: semua gelap & hangat agar teks terang selalu terbaca, dibedakan
-// oleh warna dasarnya (hutan, laut, zaitun, kurma, malam).
 const TONES = [
   ["168 62% 15%", "160 55% 23%"],
   ["192 55% 15%", "184 45% 24%"],
@@ -22,6 +25,11 @@ const TONES = [
   ["24 38% 15%", "30 34% 23%"],
   ["232 32% 18%", "222 28% 27%"],
 ];
+// Warna kartu tetap per rekening: urut tanggal dibuat dari semua rekening
+// kandidat — tidak bergeser saat rekening disembunyikan atau saldo berubah.
+const toneMap = (list) => Object.fromEntries(
+  [...list].sort((a, b) => String(a.created_date || a.id).localeCompare(String(b.created_date || b.id))).map((a, i) => [a.id, i]),
+);
 const cardBg = (i) => {
   const [a, b] = TONES[i % TONES.length];
   return `radial-gradient(80% 60% at 100% 0%, hsl(var(--gold) / 0.20), transparent 60%), linear-gradient(155deg, hsl(${a}), hsl(${b}))`;
@@ -29,11 +37,24 @@ const cardBg = (i) => {
 const STORE_KEY = "nafkita.wallet.selected";
 const SWIPE_PX = 36;
 const CARD_H = 176;
+const PEEK = 9;
+const SPRING = { type: "spring", stiffness: 340, damping: 34, mass: 0.9 };
 
 const readSaved = () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } };
 const saveSelected = (id) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* penyimpanan diblokir */ } };
 
-// Motif bintang delapan (dua persegi berputar 45°) — ornamen halus khas Nafkita.
+// Posisi kartu menurut jaraknya dari kartu terdepan (d = 0).
+// d = 1, 2 mengintip di bawah; kartu yang baru ditinggalkan (d = n-1) naik
+// & memudar; sisanya menunggu tak terlihat di belakang tumpukan.
+function slot(d, n) {
+  if (d === 0) return { y: 0, scale: 1, opacity: 1, zIndex: 30 };
+  if (n > 2 && d === n - 1) return { y: -22, scale: 1.02, opacity: 0, zIndex: 31 };
+  // Kartu di belakang tetap buram penuh (opacity 1): saat naik ke depan tidak
+  // ada fase tembus pandang yang terlihat seperti kedipan.
+  if (d <= 2) return { y: d * PEEK, scale: 1 - d * 0.045, opacity: 1, zIndex: 30 - d };
+  return { y: 2 * PEEK, scale: 0.91, opacity: 0, zIndex: 1 };
+}
+
 function StarPattern({ id }) {
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
@@ -50,15 +71,56 @@ function StarPattern({ id }) {
   );
 }
 
-export default function AccountWallet({ scope = "shared" }) {
+function WalletCard({ account, meId, tone }) {
+  const Icon = account.type === "tunai" ? Banknote : Landmark;
+  const cur = (account.currency || "IDR").toUpperCase();
+  const mine = account.created_by_id === meId;
+  const subtitle = [account.broker, maskAccount(account.account_number)].filter(Boolean).join(" · ") || (account.type === "tunai" ? "Uang tunai" : "Rekening");
+  return (
+    <div className="absolute inset-0 rounded-[26px] overflow-hidden p-5 text-[hsl(var(--hero-foreground))]" style={{ background: cardBg(tone) }}>
+      <StarPattern id={`nk-star-${account.id}`} />
+      <div className="absolute left-5 right-5 top-0 h-[3px] rounded-b-full bg-gold/80" aria-hidden="true" />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0"><Icon className="w-[18px] h-[18px]" /></span>
+          <div className="min-w-0">
+            <p className="font-heading font-bold text-[16px] leading-tight truncate">{account.name}</p>
+            <p className="text-[11px] opacity-65 truncate">{subtitle}</p>
+          </div>
+        </div>
+        <span className="text-[11px] font-bold tracking-widest rounded-full px-2.5 py-1 border border-gold/50 text-gold shrink-0">{cur}</span>
+      </div>
+      {/* Isi selalu dirender (juga di kartu belakang) agar tidak ada konten yang muncul-hilang saat berpindah */}
+      <>
+          <div className="relative mt-5">
+            <p className="text-[11px] opacity-65">Saldo</p>
+            <p className="font-heading text-[30px] leading-[1.1] font-extrabold tracking-tight tabular-nums break-words">
+              <Money value={account.value || 0} currency={cur} />
+            </p>
+          </div>
+          <div className="absolute left-5 right-5 bottom-3.5 flex items-center justify-between text-[11px] opacity-70">
+            <span className="inline-flex items-center gap-1">
+              {account.visibility === "private" ? <><Lock className="w-3 h-3" /> Pribadi</> : mine ? <><Users className="w-3 h-3" /> Bersama</> : <><Users className="w-3 h-3" /> Milik pasangan</>}
+            </span>
+            <span className="font-heading font-bold tracking-wide opacity-80">NAFKITA</span>
+          </div>
+      </>
+    </div>
+  );
+}
+
+export default function AccountWallet({ scope = "shared", recent = 5 }) {
   const { data: me } = useMe();
   const { data: assets = [], isLoading } = useAssets();
   const { data: transactions = [] } = useTransactions();
   const { data: categories = [] } = useCategories();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const accounts = useMemo(() => walletAccounts(assets, { scope, meId: me?.id }), [assets, scope, me?.id]);
+  const hiddenIds = useMemo(() => (Array.isArray(me?.wallet_hidden_ids) ? me.wallet_hidden_ids : []), [me?.wallet_hidden_ids]);
+  const candidates = useMemo(() => walletCandidates(assets, { scope, meId: me?.id }), [assets, scope, me?.id]);
+  const tones = useMemo(() => toneMap(candidates), [candidates]);
+  const accounts = useMemo(() => walletAccounts(assets, { scope, meId: me?.id, hiddenIds }), [assets, scope, me?.id, hiddenIds]);
   const [selectedId, setSelectedId] = useState(readSaved);
-  const [dir, setDir] = useState(1);
 
   const found = accounts.findIndex((a) => a.id === selectedId);
   const idx = found >= 0 ? found : 0;
@@ -66,122 +128,102 @@ export default function AccountWallet({ scope = "shared" }) {
   const n = accounts.length;
 
   useEffect(() => { if (current?.id) saveSelected(current.id); }, [current?.id]);
-  const activity = useMemo(() => (current ? accountActivity(transactions, current.id) : null), [transactions, current]);
+  const activity = useMemo(() => (current ? accountActivity(transactions, current.id, { recent }) : null), [transactions, current, recent]);
 
-  const go = (step) => {
-    if (n < 2) return;
-    setDir(step > 0 ? 1 : -1);
-    setSelectedId(accounts[wrapIndex(idx + step, n)].id);
-  };
+  const go = (step) => { if (n > 1) setSelectedId(accounts[wrapIndex(idx + step, n)].id); };
 
   if (isLoading) return null;
 
+  const header = (
+    <div className="flex items-end justify-between gap-2 mb-2.5">
+      <div className="min-w-0">
+        <h2 id="dompet-title" className="font-semibold text-[17px] leading-tight">{n > 1 ? `${n} rekening` : "Rekening"}</h2>
+        <p className="text-xs text-muted-foreground truncate">{n > 1 ? "Geser kartu ke atas untuk ganti" : "Bank & uang tunai"}</p>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {n > 1 && (
+          <div className="flex items-center gap-0.5 rounded-full border border-border bg-card pl-2.5 pr-1 h-8">
+            <span className="text-xs font-semibold tabular-nums mr-0.5" aria-live="polite">{idx + 1}<span className="text-muted-foreground">/{n}</span></span>
+            <button type="button" onClick={() => go(-1)} aria-label="Rekening sebelumnya" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-muted"><ChevronUp className="w-4 h-4" /></button>
+            <button type="button" onClick={() => go(1)} aria-label="Rekening berikutnya" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-muted"><ChevronDown className="w-4 h-4" /></button>
+          </div>
+        )}
+        {candidates.length > 0 && (
+          <button type="button" onClick={() => setSettingsOpen(true)} className="h-8 px-3 rounded-full border border-border bg-card text-xs font-semibold inline-flex items-center gap-1 hover:bg-muted" aria-label="Atur rekening yang tampil di Dompet">
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Atur
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const sheet = settingsOpen && (
+    <WalletSettingsSheet candidates={candidates} tones={tones} hiddenIds={hiddenIds} meId={me?.id} onClose={() => setSettingsOpen(false)} />
+  );
+
   if (!n) {
     return (
-      <Link to="/aset" className="surface rounded-3xl p-4 mb-6 flex items-center gap-3 active:scale-[0.99] transition-transform">
-        <span className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0"><Plus className="w-5 h-5" /></span>
-        <span className="text-sm">
-          <span className="font-semibold block">{scope === "private" ? "Belum ada rekening pribadi" : "Isi dompet keluarga"}</span>
-          <span className="text-xs text-muted-foreground">Tambahkan rekening bank atau uang tunai — tiap rekening jadi satu kartu.</span>
-        </span>
-      </Link>
+      <section className="mb-6" aria-labelledby="dompet-title">
+        {header}
+        {candidates.length ? (
+          <button type="button" onClick={() => setSettingsOpen(true)} className="w-full surface rounded-3xl p-4 text-left text-sm">
+            <span className="font-semibold block">Semua rekening disembunyikan</span>
+            <span className="text-xs text-muted-foreground">Ketuk untuk memilih rekening yang tampil di Dompet.</span>
+          </button>
+        ) : (
+          <Link to="/aset" className="surface rounded-3xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+            <span className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0"><Plus className="w-5 h-5" /></span>
+            <span className="text-sm">
+              <span className="font-semibold block">{scope === "private" ? "Belum ada rekening pribadi" : "Belum ada rekening"}</span>
+              <span className="text-xs text-muted-foreground">Tambahkan rekening bank atau uang tunai — tiap rekening jadi satu kartu.</span>
+            </span>
+          </Link>
+        )}
+        {sheet}
+      </section>
     );
   }
 
   const mine = current.created_by_id === me?.id;
   const cur = (current.currency || "IDR").toUpperCase();
-  const Icon = current.type === "tunai" ? Banknote : Landmark;
-  const subtitle = [current.broker, maskAccount(current.account_number)].filter(Boolean).join(" · ") || (current.type === "tunai" ? "Uang tunai" : "Rekening");
-  const behind = [1, 2].filter((k) => k < n);
+  const stackH = CARD_H + Math.min(n - 1, 2) * PEEK;
 
   return (
     <section className="mb-6" aria-labelledby="dompet-title">
-      <div className="flex items-end justify-between mb-2.5">
-        <div>
-          <h2 id="dompet-title" className="font-semibold text-[17px] leading-tight">Dompet keluarga</h2>
-          <p className="text-xs text-muted-foreground">{n > 1 ? "Geser kartu ke atas untuk rekening berikutnya" : "Saldo rekening Anda"}</p>
-        </div>
-        {n > 1 && (
-          <div className="flex items-center gap-1 rounded-full border border-border bg-card pl-2.5 pr-1 h-8">
-            <span className="text-xs font-semibold tabular-nums" aria-live="polite">{idx + 1}<span className="text-muted-foreground">/{n}</span></span>
-            <button type="button" onClick={() => go(-1)} aria-label="Rekening sebelumnya" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-muted"><ChevronUp className="w-4 h-4" /></button>
-            <button type="button" onClick={() => go(1)} aria-label="Rekening berikutnya" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-muted"><ChevronDown className="w-4 h-4" /></button>
-          </div>
-        )}
-      </div>
+      {header}
 
-      {/* Tumpukan: kartu berikutnya mengintip di BAWAH kartu terdepan */}
-      <div className="relative" style={{ height: CARD_H + behind.length * 9 }}>
-        {behind.slice().reverse().map((k) => (
-          <div
-            key={k}
-            aria-hidden="true"
-            className="absolute inset-x-0 rounded-[26px]"
-            style={{
-              top: k * 9, height: CARD_H, background: cardBg(idx + k),
-              transform: `scale(${1 - k * 0.045})`, transformOrigin: "bottom center",
-              opacity: 1 - k * 0.2,
-            }}
-          />
-        ))}
+      {/* Lapisan gestur: geser vertikal di atas tumpukan kartu */}
+      <motion.div
+        className="relative select-none cursor-grab active:cursor-grabbing"
+        style={{ height: stackH, touchAction: n > 1 ? "none" : "auto" }}
+        onPanEnd={(_, info) => {
+          if (n < 2) return;
+          if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
+          else if (info.offset.y > SWIPE_PX || info.velocity.y > 400) go(-1);
+        }}
+        role="group"
+        aria-roledescription="tumpukan kartu rekening"
+        aria-label={`${current.name}, kartu ${idx + 1} dari ${n}`}
+      >
+        {accounts.map((a, i) => {
+          const d = wrapIndex(i - idx, n);
+          const s = slot(d, n);
+          return (
+            <motion.div
+              key={a.id}
+              className="absolute inset-x-0 top-0 rounded-[26px] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
+              style={{ height: CARD_H, zIndex: s.zIndex, transformOrigin: "bottom center", willChange: "transform, opacity", pointerEvents: d === 0 ? "auto" : "none" }}
+              initial={false}
+              animate={{ y: s.y, scale: s.scale, opacity: s.opacity }}
+              transition={SPRING}
+              aria-hidden={d !== 0}
+            >
+              <WalletCard account={a} meId={me?.id} tone={tones[a.id] ?? 0} />
+            </motion.div>
+          );
+        })}
+      </motion.div>
 
-        <AnimatePresence initial={false} custom={dir} mode="popLayout">
-          <motion.article
-            key={current.id}
-            custom={dir}
-            variants={{
-              enter: (d) => (d > 0 ? { y: 18, scale: 0.955, opacity: 0.6 } : { y: -26, scale: 1.03, opacity: 0 }),
-              center: { y: 0, scale: 1, opacity: 1 },
-              exit: (d) => (d > 0 ? { y: -26, opacity: 0, scale: 1.03 } : { y: 18, scale: 0.955, opacity: 0 }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            drag={n > 1 ? "y" : false}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.3}
-            onDragEnd={(_, info) => {
-              if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
-              else if (info.offset.y > SWIPE_PX || info.velocity.y > 400) go(-1);
-            }}
-            className="absolute inset-x-0 top-0 rounded-[26px] overflow-hidden p-5 select-none cursor-grab active:cursor-grabbing text-[hsl(var(--hero-foreground))] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
-            style={{ height: CARD_H, background: cardBg(idx), touchAction: n > 1 ? "none" : "auto" }}
-            aria-roledescription="kartu rekening"
-            aria-label={`${current.name}, kartu ${idx + 1} dari ${n}`}
-          >
-            <StarPattern id={`nk-star-${current.id}`} />
-            <div className="absolute left-5 right-5 top-0 h-[3px] rounded-b-full bg-gold/80" aria-hidden="true" />
-
-            <div className="relative flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0"><Icon className="w-[18px] h-[18px]" /></span>
-                <div className="min-w-0">
-                  <p className="font-heading font-bold text-[16px] leading-tight truncate">{current.name}</p>
-                  <p className="text-[11px] opacity-65 truncate">{subtitle}</p>
-                </div>
-              </div>
-              <span className="text-[11px] font-bold tracking-widest rounded-full px-2.5 py-1 border border-gold/50 text-gold shrink-0">{cur}</span>
-            </div>
-
-            <div className="relative mt-5">
-              <p className="text-[11px] opacity-65">Saldo</p>
-              <p className="font-heading text-[30px] leading-[1.1] font-extrabold tracking-tight tabular-nums break-words">
-                <Money value={current.value || 0} currency={cur} />
-              </p>
-            </div>
-
-            <div className="absolute left-5 right-5 bottom-3.5 flex items-center justify-between text-[11px] opacity-70">
-              <span className="inline-flex items-center gap-1">
-                {current.visibility === "private" ? <><Lock className="w-3 h-3" /> Pribadi</> : mine ? <><Users className="w-3 h-3" /> Bersama</> : <><Users className="w-3 h-3" /> Milik pasangan</>}
-              </span>
-              <span className="font-heading font-bold tracking-wide opacity-80">NAFKITA</span>
-            </div>
-          </motion.article>
-        </AnimatePresence>
-      </div>
-
-      {/* Aksi untuk kartu terdepan */}
       {mine ? (
         <div className="grid grid-cols-3 gap-2 mt-3.5">
           <Link to={`/add?type=income&asset=${current.id}`} className="btn-secondary btn-sm"><ArrowDownLeft className="w-4 h-4 text-income" /> Masuk</Link>
@@ -192,12 +234,11 @@ export default function AccountWallet({ scope = "shared" }) {
         <Link to={`/aset/${current.id}`} className="btn-secondary btn-sm w-full mt-3.5">Lihat rekening pasangan <ArrowRight className="w-4 h-4" /></Link>
       )}
 
-      {/* Aktivitas rekening terdepan: ringkasan + 3 transaksi dalam satu kartu */}
       {activity && (
         <div className="surface mt-3.5" aria-live="polite">
           <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 border-b border-border">
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-muted-foreground">Bulan ini</p>
+              <p className="text-[11px] text-muted-foreground">Bulan ini di {current.name}</p>
               <p className="text-sm font-semibold tabular-nums flex flex-wrap gap-x-3">
                 <span className="text-income inline-flex items-center gap-0.5"><ArrowDownLeft className="w-3.5 h-3.5" /><Money value={activity.masuk} currency={cur} format="short" /></span>
                 <span className="text-expense inline-flex items-center gap-0.5"><ArrowUpRight className="w-3.5 h-3.5" /><Money value={activity.keluar} currency={cur} format="short" /></span>
@@ -216,6 +257,62 @@ export default function AccountWallet({ scope = "shared" }) {
           )}
         </div>
       )}
+      {sheet}
     </section>
+  );
+}
+
+// Pilih rekening yang tampil di halaman Dompet. Disimpan di profil (ikut di semua
+// perangkat). Yang disimpan adalah yang DISEMBUNYIKAN, jadi rekening baru
+// otomatis tampil.
+function WalletSettingsSheet({ candidates, tones, hiddenIds, meId, onClose }) {
+  const qc = useQueryClient();
+  const [hidden, setHidden] = useState(() => new Set(hiddenIds));
+  const [saving, setSaving] = useState(false);
+  const toggle = (id) => setHidden((h) => { const next = new Set(h); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const shownCount = candidates.filter((a) => !hidden.has(a.id)).length;
+
+  const save = async () => {
+    setSaving(true);
+    // Pertahankan ID tersembunyi dari cakupan lain (Bersama/Pribadi) yang tidak ada di daftar ini.
+    const inList = new Set(candidates.map((a) => a.id));
+    const next = [...hiddenIds.filter((id) => !inList.has(id)), ...[...hidden].filter((id) => inList.has(id))];
+    try {
+      await base44.auth.updateMe({ wallet_hidden_ids: next });
+      qc.setQueryData(["me"], (m) => (m ? { ...m, wallet_hidden_ids: next } : m));
+      toast.success("Dompet diperbarui");
+      onClose();
+    } catch (e) {
+      toast.error("Gagal menyimpan", { description: e?.message });
+      setSaving(false);
+    }
+  };
+
+  return (
+    <FormSheet title="Atur dompet" subtitle="Pilih rekening yang tampil sebagai kartu" onClose={onClose}
+      footer={<button type="button" className="btn-primary w-full" disabled={saving} onClick={save}>{saving ? "Menyimpan…" : `Simpan · ${shownCount} tampil`}</button>}>
+      <ul className="surface rounded-3xl divide-y divide-border" aria-label="Rekening">
+        {candidates.map((a) => {
+          const on = !hidden.has(a.id);
+          return (
+            <li key={a.id}>
+              <button type="button" role="switch" aria-checked={on} onClick={() => toggle(a.id)} className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                <span className="w-9 h-9 rounded-xl shrink-0" style={{ background: cardBg(tones[a.id] ?? 0) }} aria-hidden="true" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold truncate">{a.name}</span>
+                  <span className="block text-xs text-muted-foreground truncate">
+                    {(a.currency || "IDR").toUpperCase()}{a.created_by_id !== meId ? " · milik pasangan" : ""}{a.visibility === "private" ? " · pribadi" : ""}
+                  </span>
+                </span>
+                <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${on ? "bg-primary border-primary text-primary-foreground" : "border-border"}`}>
+                  {on && <Check className="w-3.5 h-3.5" />}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-muted-foreground">Rekening yang disembunyikan tetap ada di halaman Aset dan saldonya tetap dihitung. Rekening baru otomatis tampil.</p>
+    </FormSheet>
   );
 }

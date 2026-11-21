@@ -14,6 +14,8 @@ test("kartu dompet sesuai cakupan & urutan", () => {
   assert.deepEqual(walletAccounts(assets, { scope: "shared", meId: "me" }).map((a) => a.id), ["c", "a", "b"]);
   assert.deepEqual(walletAccounts(assets, { scope: "private", meId: "me" }).map((a) => a.id), ["d"]);
   assert.deepEqual(walletAccounts([], { meId: "me" }), []);
+  assert.deepEqual(walletAccounts(assets, { scope: "shared", meId: "me", hiddenIds: ["c", "b"] }).map((a) => a.id), ["a"]);
+  assert.deepEqual(walletAccounts(assets, { scope: "shared", meId: "me", hiddenIds: null }).map((a) => a.id), ["c", "a", "b"]);
 });
 
 test("aktivitas rekening bulan berjalan", () => {

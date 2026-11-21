@@ -16,7 +16,7 @@ import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/errorMessage";
-import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Calendar, Layers, ShieldCheck, RefreshCw } from "lucide-react";
+import { Landmark, Coins, TrendingUp, TrendingDown, BarChart3, Lock, ArrowUpDown, Eye, EyeOff, ChevronDown, Globe, X, Upload, AlertTriangle, Plus, ChevronRight, Calendar, Layers, ShieldCheck, RefreshCw, CreditCard } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
@@ -153,6 +153,9 @@ export default function Assets() {
           <button onClick={toggle} className="btn-icon" aria-label="Sembunyikan angka">
             {hidden ? <EyeOff className="w-5 h-5 text-muted-foreground" /> : <Eye className="w-5 h-5 text-muted-foreground" />}
           </button>
+          <Link to="/dompet" className="btn-icon" aria-label="Dompet: saldo & transaksi per rekening">
+            <CreditCard className="w-5 h-5 text-muted-foreground" />
+          </Link>
           <Link to="/aset-dashboard" className="btn-icon">
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           </Link>

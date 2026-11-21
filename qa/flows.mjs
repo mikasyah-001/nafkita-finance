@@ -20,8 +20,8 @@ const nav = async (p) => {
 const rupiah = (s) => Number(String(s).replace(/[^\d-]/g, "")) * (/^-|−/.test(String(s).trim()) ? 1 : 1);
 const homeNumbers = async () => {
   await nav("/");
-  const saldo = rupiah(await page.locator("section[aria-labelledby=bulan-ini-title] p.tabular-nums").first().innerText());
-  const belanja = Number(await page.locator("[data-stat=expense]").getAttribute("data-value"));
+  const saldo = rupiah(await page.locator(".card-gradient-primary p.tabular-nums").first().innerText());
+  const belanja = rupiah(await page.getByText("Total pengeluaran", { exact: true }).locator("xpath=following-sibling::p[1]").innerText());
   return { saldo, belanja };
 };
 const laporanTotal = async () => {
@@ -206,7 +206,7 @@ try {
     await page.locator("#plan-savings").blur();
     await page.waitForTimeout(800);
     const home = await homeNumbers();
-    const text = await page.locator("[data-stat=savings]").innerText();
+    const text = await page.getByText(/Rencana menabung/).locator("xpath=..").innerText();
     const expectedPct = Math.min(100, Math.round((home.saldo / 5000000) * 100));
     assert.ok(text.includes(expectedPct >= 100 ? "Tercapai" : `${expectedPct}%`), `Progres tampil (${text.replace(/\s+/g, " ")})`);
   });

@@ -4,7 +4,7 @@ import {
   Home, ReceiptText, Landmark, BarChart3, Wallet,
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, CheckCheck,
   Upload, Tags, Activity, Coins, User, Settings, MessageSquare,
-  Shield, BookOpen, Banknote, Zap,
+  Shield, BookOpen, Banknote, Zap, CreditCard,
 } from "lucide-react";
 
 // Item utama (Sidebar) — Beranda, Riwayat, Aset, Laporan (termasuk ringkasan bulanan), Anggaran.
@@ -18,6 +18,7 @@ export const mainItems = [
 
 // Item Alat — dipakai Sidebar (section "Alat") & BottomNav (menu "Lainnya").
 export const toolItems = [
+  { to: "/dompet", icon: CreditCard, label: "Dompet", color: "emerald" },
   { to: "/transfer", icon: ArrowRightLeft, label: "Transfer", color: "blue" },
   { to: "/audit-kas", icon: Banknote, label: "Audit Kas", color: "emerald" },
   { to: "/utang", icon: HandCoins, label: "Utang & Piutang", color: "rose" },
@@ -56,6 +57,7 @@ export const moreGroups = [
     title: "Kelola uang",
     tone: "teal",
     items: [
+      { to: "/dompet", icon: CreditCard, label: "Dompet", desc: "Saldo & transaksi tiap rekening" },
       { to: "/transfer", icon: ArrowRightLeft, label: "Transfer", desc: "Pindah saldo antar rekening" },
       { to: "/audit-kas", icon: Banknote, label: "Audit Kas", desc: "Cocokkan uang tunai di tangan" },
       { to: "/utang", icon: HandCoins, label: "Utang & Piutang", desc: "Pinjaman, cicilan & jatuh tempo" },

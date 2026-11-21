@@ -3,18 +3,23 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets, useIncomingTransactions } from "@/hooks/useFinance";
 import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress, spendingPace } from "@/lib/finance";
+import UpcomingBills from "@/components/UpcomingBills";
+import { AffordCheckCard } from "@/components/AffordCheck";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
+import BudgetBars from "@/components/BudgetBars";
+import MonthlySummary from "@/components/MonthlySummary";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
+import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import BrandLogo from "@/components/BrandLogo";
-import AccountWallet from "@/components/AccountWallet";
+import GoalsCarousel from "@/components/GoalsCarousel";
+import HomeNudges from "@/components/HomeNudges";
 import { usePartnership } from "@/hooks/usePartnership";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 import { usePullToRefresh, PullToRefreshIndicator } from "@/hooks/usePullToRefresh";
@@ -23,7 +28,7 @@ import { usePullToRefresh, PullToRefreshIndicator } from "@/hooks/usePullToRefre
 export default function Home() {
   const { data: me } = useMe();
   const user = me;
-  const { scope } = useScope();
+  const { scope, setScope } = useScope();
   const { hidden, toggle } = usePrivacy();
   const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
   const { data: categories = [] } = useCategories();
@@ -79,7 +84,13 @@ export default function Home() {
   );
   const hasMultiCurrency = monthCurrencies.length > 1;
 
-  const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 3);
+  const scopeRecent = transactions.filter((t) => (scope === "private" ? t.visibility === "private" : t.visibility !== "private")).slice(0, 5);
+
+  const hasTodayTx = transactions.some((t) => {
+    const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
+    const d = new Date(t.date);
+    return inScope && d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
 
   const noTransactionsAtAll = !transactionsLoading && transactions.length === 0;
 
@@ -124,12 +135,14 @@ export default function Home() {
   const partnerName = firstName(partners?.[0]?.full_name);
   const hello = partnerName ? `Hai, ${myName} & ${partnerName}` : `Hai, ${myName}`;
   const initials = [myName, partnerName].filter(Boolean).map((n) => n[0].toUpperCase());
-  // Hal yang menunggu tindakan — menggantikan banner terpisah & chip aksi cepat.
-  const attention = [
-    pendingApprovals > 0 && { to: "/persetujuan", icon: CheckCheck, tone: "bg-gold/20 text-foreground", label: `${pendingApprovals} menunggu persetujuan Anda` },
-    incoming.length > 0 && { to: "/catat-otomatis", icon: Zap, tone: "bg-primary/10 text-primary", label: `${incoming.length} transaksi Apple Pay baru` },
-    dueBills.length > 0 && { to: "/tagihan-berulang", icon: CalendarClock, tone: overdueBills.length ? "bg-destructive/10 text-destructive" : "bg-warning/15 text-warning", label: overdueBills.length ? `${overdueBills.length} tagihan terlambat` : `${dueBills.length} tagihan segera jatuh tempo` },
-  ].filter(Boolean);
+  const quickChips = [
+    { to: "/add?scan=1", icon: ScanLine, label: "Scan struk" },
+    { to: "/add?type=income", icon: TrendingUp, label: "Pemasukan" },
+    { to: "/add?type=sedekah", icon: Heart, label: "Sedekah" },
+    { to: "/transfer", icon: ArrowLeftRight, label: "Transfer" },
+    { to: "/audit-kas", icon: Banknote, label: "Audit kas" },
+    { to: "/tagihan-berulang", icon: CalendarClock, label: overdueBills.length ? `Tagihan · ${overdueBills.length} terlambat` : dueBills.length ? `Tagihan · ${dueBills.length} segera` : "Tagihan", alert: overdueBills.length > 0 },
+  ];
 
   return (
     <div className="px-5 pt-6 pb-6">
@@ -152,22 +165,44 @@ export default function Home() {
       <div className="mb-4">
         <p className="text-xs font-medium text-muted-foreground">{greeting} · {formatDate(now, "EEEE, d MMMM")}</p>
         <h1 className="font-heading text-[26px] leading-tight font-extrabold tracking-tight">{hello} <span aria-hidden="true">👋</span></h1>
+        <p className="text-sm text-muted-foreground">Nafkah kita, berkah bersama. Ini cerita {monthLabel}.</p>
       </div>
 
-      {/* Perlu tindakan: satu daftar ringkas, hanya muncul bila ada */}
-      {attention.length > 0 && (
-        <div className="surface divide-y divide-border mb-4" role="list" aria-label="Perlu tindakan">
-          {attention.map((a) => {
-            const Icon = a.icon;
-            return (
-              <Link key={a.to} to={a.to} role="listitem" className="flex items-center gap-3 px-3.5 py-3 active:bg-muted/60 transition-colors">
-                <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${a.tone}`}><Icon className="w-4 h-4" /></span>
-                <span className="flex-1 min-w-0 text-sm font-semibold truncate">{a.label}</span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              </Link>
-            );
-          })}
-        </div>
+      <nav aria-label="Aksi cepat" className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar mb-4">
+        {quickChips.map((q) => {
+          const Icon = q.icon;
+          return (
+            <Link key={q.to} to={q.to} className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-[13px] font-semibold transition-colors ${q.alert ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-card text-foreground/85 hover:bg-muted"}`}>
+              <Icon className="w-4 h-4" /> {q.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {pendingApprovals > 0 && (
+        <Link to="/persetujuan" className="flex items-center gap-3 surface p-3.5 mb-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-gold/20 flex items-center justify-center shrink-0">
+            <CheckCheck className="w-4 h-4 text-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">{pendingApprovals} transaksi menunggu persetujuan Anda</p>
+            <p className="text-xs text-muted-foreground">Belum dihitung di saldo sampai Anda setujui.</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        </Link>
+      )}
+
+      {incoming.length > 0 && (
+        <Link to="/catat-otomatis" className="flex items-center gap-3 surface p-3.5 mb-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">{incoming.length} transaksi Apple Pay baru</p>
+            <p className="text-xs text-muted-foreground">Konfirmasi agar masuk ke saldo & laporan.</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        </Link>
       )}
 
       {noTransactionsAtAll && (
@@ -185,69 +220,107 @@ export default function Home() {
         </div>
       )}
 
-      <ScopeToggle className="mb-4" />
+      <ScopeToggle className="mb-3" />
 
-      <AccountWallet scope={scope} />
-
-      {/* Bulan ini — ringkas; rincian ada di Laporan & Anggaran */}
-      {transactionsLoading ? <CardSkeleton className="h-36 mb-6" /> : (
-        <section className="surface rounded-3xl p-4 mb-6" aria-labelledby="bulan-ini-title">
-          <div className="flex items-center justify-between mb-1">
-            <h2 id="bulan-ini-title" className="text-xs font-semibold text-muted-foreground inline-flex items-center gap-1.5">
-              {scope === "private" ? <Lock className="w-3 h-3" /> : <Wallet className="w-3 h-3" />} Sisa uang {monthLabel}
-            </h2>
-            <Link to="/laporan" className="text-xs font-medium text-primary inline-flex items-center gap-1">Laporan <ArrowRight className="w-3 h-3" /></Link>
+      {hasMultiCurrency && cur !== defaultCur && (
+        <div className="surface p-4 mb-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Globe className="w-5 h-5 text-primary" />
           </div>
-          <p className="font-heading text-[26px] leading-tight font-extrabold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
-          {hasMultiCurrency && cur !== defaultCur && (
-            <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Globe className="w-3 h-3" /> Semua mata uang: <Money value={consolidatedBalance} currency={defaultCur} format="short" /></p>
-          )}
-          {excludedCurs.length > 0 && (
-            <p className="mt-1 text-[11px] font-medium text-warning inline-flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> Belum termasuk {excludedCurs.join(", ")} (kurs belum tersedia)
-            </p>
-          )}
-          {pace && (
-            <div className="mt-2.5">
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden" aria-hidden="true">
-                <div className={`h-full rounded-full ${pace.over ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pace.pct}%` }} />
-              </div>
-              <div className="flex items-center justify-between gap-2 mt-1.5 text-[11px]">
-                <span className={pace.over ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                  {pace.over
-                    ? <>Lewat <Money value={-pace.remaining} currency={cur} format="short" /></>
-                    : <>Jatah <b className="text-foreground"><Money value={pace.perDay} currency={cur} format="short" /></b>/hari</>}
-                </span>
-                <span className="text-muted-foreground">{pace.daysLeft} hari lagi</span>
-              </div>
-            </div>
-          )}
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {[
-              { key: "income", raw: s.income, icon: TrendingUp, label: "Masuk", value: <Money value={s.income} format="short" currency={cur} /> },
-              { key: "expense", raw: s.expense, icon: TrendingDown, label: "Keluar", value: <Money value={s.expense} format="short" currency={cur} /> },
-              // Ada rencana menabung (diatur di Anggaran) → tampilkan progresnya; bila tidak, rasio menabung.
-              plan.savings > 0
-                ? { key: "savings", to: "/anggaran", icon: Banknote, label: "Rencana menabung", value: savingsPlan.reached ? "Tercapai ✓" : `${Math.round(savingsPlan.pct)}%` }
-                : { key: "savings", icon: Banknote, label: "Menabung", value: savings.label ? savings.label : `${savings.rate}%` },
-            ].map(({ key, raw, to, icon: Icon, label, value }) => {
-              const Tile = to ? Link : "div";
-              return (
-                <Tile key={key} {...(to ? { to } : {})} data-stat={key} data-value={raw} className="rounded-2xl bg-muted/60 px-2.5 py-2 min-w-0">
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground min-w-0"><Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span></div>
-                  <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{value}</p>
-                </Tile>
-              );
-            })}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">Saldo bulan ini dalam {defaultCur} (semua mata uang)</p>
+            <p className="text-xl font-bold tabular-nums break-words"><Money value={consolidatedBalance} currency={defaultCur} /></p>
           </div>
-          {activeCurs.length > 1 && (
-            <div className="mt-3 flex items-center gap-2">
-              <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} />
-              {rateMissing && <span className="text-[11px] text-warning inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Kurs belum ada</span>}
-            </div>
-          )}
-        </section>
+        </div>
       )}
+
+      {transactionsLoading ? <CardSkeleton className="h-48 mb-6" /> : <div className="card-gradient-primary rounded-[28px] p-5 mb-6 relative overflow-hidden">
+        <img src="/brand/mark.png" alt="" aria-hidden="true" className="absolute -right-5 -top-3 w-28 opacity-[0.16] rotate-[-8deg] pointer-events-none select-none" />
+        <div className="flex items-center justify-between mb-3">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/10 border border-white/10 rounded-full px-2.5 py-1">
+            {scope === "private" ? <Lock className="w-3 h-3" /> : <Wallet className="w-3 h-3" />} {scope === "private" ? "Saldo pribadi" : "Saldo bersama"}
+          </span>
+          <span className="text-[11px] opacity-70">{monthLabel}</span>
+        </div>
+        <p className="text-xs opacity-75">Sisa uang bulan ini</p>
+        <p className="font-heading text-[34px] leading-[1.1] font-extrabold tracking-tight tabular-nums break-words"><Money value={s.balance} currency={cur} /></p>
+        {excludedCurs.length > 0 && (
+          <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium bg-white/15 rounded-full px-2 py-0.5">
+            <AlertTriangle className="w-3 h-3" /> Belum termasuk transaksi {excludedCurs.join(", ")} (kurs belum tersedia)
+          </p>
+        )}
+        {pace && (
+          <div className="mt-3">
+            <div className="h-1.5 rounded-full bg-white/15 overflow-hidden" aria-hidden="true">
+              <div className={`h-full rounded-full ${pace.over ? "bg-destructive" : "bg-gold"}`} style={{ width: `${pace.pct}%` }} />
+            </div>
+            <p className="text-[11px] opacity-75 mt-1">
+              <Money value={pace.spent} currency={cur} format="short" /> terpakai dari <Money value={pace.budget} currency={cur} format="short" />
+              {pace.source === "plan" ? " rencana belanja" : " pemasukan"}
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <span className={`inline-flex items-center gap-1 text-[12px] font-semibold rounded-full px-2.5 py-1 ${pace.over ? "bg-destructive/90 text-white" : "bg-white/15 border border-white/10"}`}>
+                {pace.over
+                  ? <>Lewat <Money value={-pace.remaining} currency={cur} format="short" /></>
+                  : <>Jatah <Money value={pace.perDay} currency={cur} format="short" />/hari</>}
+              </span>
+              <span className="inline-flex items-center text-[12px] font-medium rounded-full px-2.5 py-1 bg-white/[0.07] border border-white/10">{pace.daysLeft} hari lagi</span>
+            </div>
+          </div>
+        )}
+        {activeCurs.length > 1 && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] font-medium opacity-65">Mata uang yang ditampilkan</p>
+              {rateMissing && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gold bg-gold/15 border border-gold/30 rounded-full px-2 py-0.5">
+                  <AlertTriangle className="w-3 h-3" /> Kurs belum tersedia
+                </span>
+              )}
+            </div>
+            <CurrencyTabs currencies={activeCurs} value={cur} onChange={setCurrency} variant="inverse" />
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {[
+            { icon: TrendingUp, label: "Pemasukan", value: <Money value={s.income} format="short" currency={cur} /> },
+            { icon: TrendingDown, label: "Pengeluaran", value: <Money value={s.expense} format="short" currency={cur} /> },
+            { icon: Banknote, label: "Menabung", value: savings.label ? savings.label : `${savings.rate}%` },
+          ].map(({ icon: Icon, label, value }) => (
+            <div key={label} className="rounded-2xl bg-white/[0.07] border border-white/10 px-2.5 py-2 min-w-0">
+              <div className="flex items-center gap-1 text-[11px] opacity-75"><Icon className="w-3 h-3" /> {label}</div>
+              <p className="font-semibold text-sm mt-0.5 tabular-nums truncate">{value}</p>
+            </div>
+          ))}
+        </div>
+        {plan.savings > 0 ? (
+          <Link to="/anggaran" className="mt-3 block rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="opacity-80">Rencana menabung <Money value={plan.savings} format="short" currency={cur} /></span>
+              <span className="font-semibold">{savingsPlan.reached ? "Tercapai ✓" : `${Math.round(savingsPlan.pct)}%`}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+              <div className="h-full rounded-full bg-gold" style={{ width: `${savingsPlan.pct}%` }} />
+            </div>
+          </Link>
+        ) : (
+          <Link to="/anggaran" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gold">Atur rencana menabung bulan ini <ArrowRight className="w-3 h-3" /></Link>
+        )}
+      </div>}
+
+      <UpcomingBills />
+
+      <GoalsCarousel />
+
+      {!noTransactionsAtAll && <AffordCheckCard className="mb-5" />}
+
+      {!transactionsLoading && !noTransactionsAtAll && (
+        <HomeNudges scope={scope} income={s.income} expense={s.expense} sedekah={s.sedekah} hasExpense={s.expense > 0} hasTodayTx={hasTodayTx} />
+      )}
+
+      <MonthlySummary scope={scope} />
+
+      <BudgetBars scope={scope} />
 
       <div className="flex items-end justify-between mb-2.5 mt-2">
         <div>

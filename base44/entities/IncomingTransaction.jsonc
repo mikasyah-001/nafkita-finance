@@ -55,6 +55,7 @@
       "type": "string",
       "enum": [
         "new",
+        "processing",
         "saved",
         "dismissed"
       ],
@@ -63,6 +64,10 @@
     "transaction_id": {
       "type": "string",
       "description": "Transaksi yang dibuat saat dikonfirmasi"
+    },
+    "claim_id": {
+      "type": "string",
+      "description": "Klaim sementara saat dikonfirmasi (mencegah simpan ganda)"
     }
   },
   "required": [

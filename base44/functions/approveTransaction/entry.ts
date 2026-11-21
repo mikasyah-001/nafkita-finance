@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { currencyMismatch, CURRENCY_MISMATCH, txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
 import { notifyApprovalResult } from "../../shared/transactionApproval.ts";
 
@@ -33,6 +33,9 @@ export default async function (req) {
     // Sesuaikan saldo aset bila ditautkan.
     if (tx.linked_asset_id) {
       const asset = await base44.asServiceRole.entities.Asset.get(tx.linked_asset_id);
+      // Mata uang rekening berubah sejak transaksi diajukan → jangan ubah saldo
+      // dengan angka mata uang lain; minta pengaju memperbaiki atau tolak.
+      if (asset && currencyMismatch(asset, tx)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
       if (asset) {
         const prevValue = asset.value || 0;
         const delta = txEffect(tx);

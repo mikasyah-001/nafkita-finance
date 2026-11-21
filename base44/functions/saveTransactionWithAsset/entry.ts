@@ -23,9 +23,27 @@ export default async function (req) {
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { transaction, transaction_id } = body;
+    const { transaction, transaction_id, incoming_id } = body;
     if (!transaction)
       return Response.json({ error: "missing_transaction" }, { status: 400 });
+
+    // Konfirmasi item kotak masuk "Catat Otomatis": hanya milik sendiri & belum
+    // diproses. Ditandai "saved" setelah transaksi berhasil dibuat.
+    let incoming = null;
+    if (incoming_id) {
+      if (transaction_id) return Response.json({ error: "incoming_create_only" }, { status: 400 });
+      incoming = await base44.asServiceRole.entities.IncomingTransaction.get(incoming_id).catch(() => null);
+      if (!incoming || incoming.owner_id !== me.id)
+        return Response.json({ error: "incoming_not_found" }, { status: 404 });
+      if (incoming.status !== "new")
+        return Response.json({ error: "incoming_already_processed" }, { status: 409 });
+    }
+    const markIncoming = async (txId) => {
+      if (!incoming) return;
+      try {
+        await base44.asServiceRole.entities.IncomingTransaction.update(incoming.id, { status: "saved", transaction_id: txId });
+      } catch (e) { console.error("[saveTransactionWithAsset] gagal menandai kotak masuk", incoming.id, e); }
+    };
 
     const linkedAssetId = transaction.linked_asset_id || null;
     const isUpdate = !!transaction_id;
@@ -154,6 +172,7 @@ export default async function (req) {
       }
       const approval = await createApprovalRequest(base44, me, pendingTx, partnerId);
       await notifyApprovalRequest(base44, me, pendingTx, approval, partnerId);
+      await markIncoming(pendingTx.id);
       return Response.json({ ok: true, transaction: pendingTx, approval, needs_approval: true });
     }
 
@@ -201,6 +220,7 @@ export default async function (req) {
       });
     }
 
+    await markIncoming(created.id);
     return Response.json({ ok: true, transaction: created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

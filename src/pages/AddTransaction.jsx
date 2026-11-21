@@ -84,7 +84,8 @@ export default function AddTransaction() {
   }, [highlightScan]);
 
   useEffect(() => {
-    if (user?.default_currency && !isEdit) setCurrency(user.default_currency);
+    // Jangan timpa mata uang rekening yang dipilih lewat kartu rekening (?asset=).
+    if (user?.default_currency && !isEdit && !assetPrefillDone.current) setCurrency(user.default_currency);
   }, [user?.default_currency, isEdit]);
 
   // Isi form dari transaksi yang diedit (sekali saja).
@@ -108,6 +109,15 @@ export default function AddTransaction() {
   }, [editTx, editLoaded]);
 
   const availableCategories = categories.filter((c) => c.type === type);
+  // Datang dari kartu rekening (/add?asset=…): ikuti mata uang rekening itu
+  // sekali di awal, agar rekening tetap terpilih (daftar disaring per mata uang).
+  const assetPrefillDone = useRef(false);
+  useEffect(() => {
+    if (assetPrefillDone.current || isEdit || !linkedAssetId || !assets.length) return;
+    assetPrefillDone.current = true;
+    const a = assets.find((x) => x.id === linkedAssetId);
+    if (a?.currency && a.currency !== currency) setCurrency(a.currency);
+  }, [assets, linkedAssetId, isEdit, currency]);
   const bankAssets = assets.filter((a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id);
 
   const applyTemplate = (t) => {

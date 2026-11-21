@@ -1,0 +1,70 @@
+{
+  "name": "CardLabel",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string",
+      "description": "Label ternormalisasi: huruf kecil, angka, tanda -"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Aset bank/tunai milik owner yang menerima transaksi"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "unmapped",
+        "ignored"
+      ],
+      "default": "active",
+      "description": "active = dicatat; paused = dijeda; unmapped = terdeteksi tapi belum dipetakan (transaksi tidak disimpan); ignored = selalu diabaikan"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seen_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "owner_id",
+    "label",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

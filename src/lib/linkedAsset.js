@@ -9,8 +9,9 @@ export const txEffect = (tx) => {
 
 // Menyimpan transaksi + menyesuaikan saldo aset terkait secara atomik (backend).
 // Bila transaction_id diberikan → update; jika tidak → create.
-export const saveTransactionWithAsset = async (transaction, transaction_id) => {
-  const res = await base44.functions.invoke("saveTransactionWithAsset", { transaction, transaction_id });
+// `incoming_id` (opsional): item kotak masuk Catat Otomatis yang dikonfirmasi.
+export const saveTransactionWithAsset = async (transaction, transaction_id, { incoming_id } = {}) => {
+  const res = await base44.functions.invoke("saveTransactionWithAsset", { transaction, transaction_id, incoming_id });
   return res.data;
 };
 

@@ -1,0 +1,76 @@
+{
+  "name": "IngestDevice",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string",
+      "description": "ID user pemilik perangkat"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nama perangkat, mis. iPhone Mika"
+    },
+    "token_hash": {
+      "type": "string",
+      "description": "SHA-256 hex dari token; token asli hanya ditampilkan sekali saat dibuat"
+    },
+    "token_hint": {
+      "type": "string",
+      "description": "4 karakter terakhir token untuk identifikasi"
+    },
+    "last_used_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked": {
+      "type": "boolean",
+      "default": false
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rate_window": {
+      "type": "string",
+      "description": "Menit berjalan (ISO, dipotong ke menit) untuk pembatasan laju"
+    },
+    "rate_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "owner_id",
+    "name",
+    "token_hash"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

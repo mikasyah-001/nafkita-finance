@@ -1,0 +1,103 @@
+{
+  "name": "IncomingTransaction",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "asset_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "description": "Mata uang aset tujuan"
+    },
+    "raw_amount": {
+      "type": "string",
+      "description": "Nominal persis seperti dikirim shortcut"
+    },
+    "raw_currency": {
+      "type": "string",
+      "description": "Mata uang yang terbaca di teks nominal (bila ada)"
+    },
+    "merchant": {
+      "type": "string"
+    },
+    "card_name": {
+      "type": "string",
+      "description": "Nama kartu dari Wallet (informasi saja, tidak dipakai untuk pemetaan)"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "suggested_category": {
+      "type": "string"
+    },
+    "review_reason": {
+      "type": "string",
+      "description": "Kosong = siap simpan; terisi = perlu dicek manual"
+    },
+    "source": {
+      "type": "string",
+      "default": "apple_pay"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "saved",
+        "dismissed"
+      ],
+      "default": "new"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Transaksi yang dibuat saat dikonfirmasi"
+    }
+  },
+  "required": [
+    "owner_id",
+    "label",
+    "amount",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

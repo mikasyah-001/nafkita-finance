@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Plus, CalendarDays } from "lucide-react";
+import { ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, CalendarDays } from "lucide-react";
 import { useSavingsGoals, useAssets, useMe } from "@/hooks/useFinance";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { walletAccounts, walletCandidates } from "@/lib/wallet";
@@ -101,11 +101,16 @@ export default function PlansWalletCarousel({ scope = "shared" }) {
           );
         })}
 
-        <Link to="/target-tabungan" data-section={active.length ? undefined : "rencana"}
-          className={`snap-center shrink-0 ${active.length ? "w-[38%] max-w-[150px]" : "w-[86%] max-w-[360px]"} h-[176px] rounded-[26px] border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground p-4 text-center`}>
-          <span className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"><Plus className="w-5 h-5" /></span>
-          <span className="text-xs font-semibold">{active.length ? "Tambah rencana" : "Buat rencana pertama, mis. Umrah keluarga"}</span>
-        </Link>
+        {/* Tambah rencana ada di halaman Target Tabungan; di sini hanya kartu
+            pengganti saat belum ada rencana sama sekali. */}
+        {active.length === 0 && (
+          <Link to="/target-tabungan" data-section="rencana"
+            className={`${CARD} border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground p-4 text-center`}>
+            <Target className="w-6 h-6" />
+            <span className="text-sm font-semibold text-foreground">Belum ada rencana</span>
+            <span className="text-xs">Buat di Target Tabungan, mis. Umrah keluarga</span>
+          </Link>
+        )}
 
         {accounts.map((a, i) => (
           <button key={a.id} type="button" onClick={() => openAccount(a.id)} data-section={i === 0 ? "dompet" : undefined}

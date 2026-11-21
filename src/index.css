@@ -334,6 +334,22 @@ button, [role="button"], [role="tab"] {
   .pt-safe { padding-top: env(safe-area-inset-top); }
 }
 
+/* iOS (Safari & WebView) otomatis memperbesar halaman saat kolom isian
+   bertulisan < 16px diketuk, dan zoom itu tidak kembali setelah pindah layar.
+   Di layar HP, kolom isian kecil dinaikkan ke 16px. Kelas teks besar
+   (mis. nominal text-[32px]) tidak tersentuh; pinch-zoom manual tetap aktif. */
+@media (max-width: 767px) {
+  /* Spesifisitas elemen (0,0,1): mengalahkan preflight "font-size: 100%"
+     (urutan file), tetapi kalah dari kelas utilitas seperti text-[32px]. */
+  input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"])), textarea, select {
+    font-size: 16px;
+  }
+  input.text-sm, input.text-xs, textarea.text-sm, textarea.text-xs, select.text-sm, select.text-xs,
+  input.input, textarea.input, select.input {
+    font-size: 16px;
+  }
+}
+
 /* Input angka tanpa panah spinner (mengganggu di layar sentuh, tak berguna untuk nominal). */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

@@ -18,7 +18,7 @@ import { useScope } from "@/lib/ScopeContext";
 import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import BrandLogo from "@/components/BrandLogo";
-import GoalsCarousel from "@/components/GoalsCarousel";
+import PlansWalletCarousel from "@/components/PlansWalletCarousel";
 import HomeNudges from "@/components/HomeNudges";
 import { usePartnership } from "@/hooks/usePartnership";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
@@ -310,7 +310,7 @@ export default function Home() {
 
       <UpcomingBills />
 
-      <GoalsCarousel />
+      <PlansWalletCarousel scope={scope} />
 
       {!noTransactionsAtAll && <AffordCheckCard className="mb-5" />}
 

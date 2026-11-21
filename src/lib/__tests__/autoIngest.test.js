@@ -90,3 +90,20 @@ test("ekstraksi token", () => {
   assert.equal(looksLikeToken("nfk_" + "a".repeat(43)), true);
   assert.equal(looksLikeToken("abc"), false);
 });
+
+test("kamus merchant → kategori", async () => {
+  const { keywordCategory } = await import("../../../base44/shared/autoIngest.js");
+  assert.equal(keywordCategory("ALBAIK #1234 MAKKAH"), "Makanan");
+  assert.equal(keywordCategory("Al Baik"), "Makanan");
+  assert.equal(keywordCategory("PANDA RETAIL CO"), "Belanja");
+  assert.equal(keywordCategory("ALDREES PETROLEUM"), "Transportasi");
+  assert.equal(keywordCategory("STC PAY"), "Tagihan");
+  assert.equal(keywordCategory("NAHDI MEDICAL"), "Kesehatan");
+  assert.equal(keywordCategory("Indomaret Point"), "Belanja");
+  assert.equal(keywordCategory("Toko XYZ"), "Belanja");
+  assert.equal(keywordCategory("Perusahaan Tak Dikenal"), null);
+  assert.equal(keywordCategory(""), null);
+  // hanya kategori yang dimiliki pengguna
+  assert.equal(keywordCategory("Al Baik", ["makanan", "Belanja"]), "makanan");
+  assert.equal(keywordCategory("Al Baik", ["Belanja"]), null);
+});

@@ -137,3 +137,29 @@ export function extractToken(authHeader, body) {
   if (m) return m[1];
   return typeof body?.token === "string" ? body.token.trim() : "";
 }
+
+// Kamus merchant umum (Saudi & Indonesia) → kategori bawaan Nafkita. Dipakai
+// bila riwayat merchant belum ada, agar kategori terisi sejak pembayaran
+// pertama. Pola dicocokkan ke nama merchant yang sudah dinormalisasi.
+// Kategori hanya disarankan bila ada di daftar kategori pengguna.
+export const MERCHANT_KEYWORDS = [
+  ["Makanan", /\b(al ?baik|albaik|kudu|herfy|maestro|shawarma|mandi|kabsa|restaurant|restoran|resto|cafe|caf[eé]|coffee|kopi|starbucks|dunkin|tim hortons|barns|half million|dr ?cafe|mcdonald|kfc|burger|pizza|domino|hardee|subway|baskin|bakery|roti|warung|warteg|rumah makan|padang|bakso|mie|ayam|sate|nasi|gofood|grabfood|hungerstation|jahez|mrsool|marsool|talabat|careem food|keeta|chefz|shawarmer|kunafa|knafeh|juice|jus)\b/],
+  ["Belanja", /\b(panda|danube|tamimi|othaim|al ?othaim|carrefour|lulu|hyper|bin dawood|nesto|farm superstore|supermarket|minimarket|indomaret|alfamart|alfamidi|hypermart|superindo|transmart|giant|lotte mart|hero|ikea|jarir|extra|centrepoint|max fashion|h ?& ?m|zara|shein|noon|amazon|namshi|tokopedia|shopee|lazada|blibli|bukalapak|uniqlo|mall|market|store|shop|toko)\b/],
+  ["Transportasi", /\b(uber|careem|bolt|jeeny|kaiian|gojek|grab|maxim|bluebird|taxi|taksi|aldrees|al ?drees|petromin|sasco|naft|adnoc|aramco|fuel|petrol|gas station|pertamina|shell|bp akr|vivo energy|saptco|haramain|sar train|metro|krl|mrt|transjakarta|tol|parking|parkir|flynas|flyadeal|saudia|garuda|lion air|citilink|airasia|traveloka|tiket\.com)\b/],
+  ["Tagihan", /\b(stc|mobily|zain|virgin mobile|lebara|salam|sec|saudi electricity|nwc|national water|telkomsel|indosat|xl|axis|smartfren|tri|by\.u|pln|pdam|indihome|biznet|first media|myrepublic|bpjs|netflix|spotify|apple\.com|icloud|google|youtube|disney|shahid|osn|vidio)\b/],
+  ["Kesehatan", /\b(nahdi|al ?dawaa|whites|pharmacy|farmasi|apotek|apotik|kimia farma|k ?24|guardian|watsons|hospital|rumah sakit|rs |klinik|clinic|dr\.?|dental|lab|laboratorium|halodoc|alodokter|sehhaty)\b/],
+  ["Pendidikan", /\b(school|sekolah|madrasah|pesantren|university|universitas|kampus|course|kursus|bimbel|ruangguru|zenius|udemy|coursera|gramedia|kinokuniya|bookstore|toko buku)\b/],
+  ["Hiburan", /\b(cinema|bioskop|xxi|cgv|cinepolis|vox|muvi|amc|playstation|steam|nintendo|game|timezone|funland|boulevard|riyadh season|winter wonderland)\b/],
+];
+
+export function keywordCategory(merchant, categoryNames = null) {
+  const m = normalizeMerchant(merchant);
+  if (!m) return null;
+  for (const [cat, re] of MERCHANT_KEYWORDS) {
+    if (!re.test(m)) continue;
+    if (!categoryNames) return cat;
+    const hit = categoryNames.find((c) => String(c).toLowerCase() === cat.toLowerCase());
+    if (hit) return hit;
+  }
+  return null;
+}

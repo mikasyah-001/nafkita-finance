@@ -220,7 +220,7 @@ function InboxTab() {
                 </label>
               )}
               <label className="block">
-                <span className="text-[11px] text-muted-foreground">Kategori{it.suggested_category && d.category === it.suggested_category ? " · dari riwayat merchant ini" : ""}</span>
+                <span className="text-[11px] text-muted-foreground">Kategori{it.suggested_category && d.category === it.suggested_category ? (it.suggested_source === "keyword" ? " · ditebak dari nama toko" : " · dari riwayat merchant ini") : ""}</span>
                 <NativeSelect className="input" value={d.category} sheetTitle="Kategori" aria-label="Kategori" onChange={(e) => setDraft(it.id, { category: e.target.value })}>
                   <option value="">Pilih kategori…</option>
                   {catOptions.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -502,7 +502,7 @@ function SetupGuide({ hasToken, exampleLabel }) {
     ["Buat label", `Di bagian 2, buat label untuk tiap kartu (mis. "${label}") dan pilih rekeningnya.`],
     ["Buka Pintasan → Otomasi → +", "Pilih pemicu Wallet. Pilih SATU kartu, lalu Jalankan Segera."],
     ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_… (dari layar token)."],
-    ["Isi Minta Isi (JSON), semua jenis Teks", `label = ${label} · amount = Input Pintasan (Jenis: Transaksi) → Jumlah · merchant = Input Pintasan → Pedagang.`],
+    ["Isi Minta Isi (JSON), semua jenis Teks", `label = ${label} · amount = Input Pintasan (Jenis: Transaksi) → Jumlah · merchant = Input Pintasan → Penjual · name = Input Pintasan → Nama (cadangan bila Penjual kosong).`],
     ["Ulangi per kartu", "Satu otomasi per kartu dengan label berbeda."],
   ];
   return (

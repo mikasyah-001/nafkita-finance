@@ -4,7 +4,6 @@ import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets, useIncomingTransactions } from "@/hooks/useFinance";
 import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress, spendingPace } from "@/lib/finance";
 import UpcomingBills from "@/components/UpcomingBills";
-import { AffordCheckCard } from "@/components/AffordCheck";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
@@ -312,8 +311,7 @@ export default function Home() {
 
       <PlansWalletCarousel scope={scope} />
 
-      {!noTransactionsAtAll && <AffordCheckCard className="mb-5" />}
-
+      {/* Cek bulan ini: saran + "Bisakah saya beli ini?" — hanya bila sudah ada transaksi */}
       {!transactionsLoading && !noTransactionsAtAll && (
         <HomeNudges scope={scope} income={s.income} expense={s.expense} sedekah={s.sedekah} hasExpense={s.expense > 0} hasTodayTx={hasTodayTx} />
       )}

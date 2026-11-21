@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { HelpCircle, CheckCircle2, AlertTriangle, XCircle, ArrowRight } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, ArrowRight } from "lucide-react";
 import { useBudgets, useCategories, useTransactions } from "@/hooks/useFinance";
 import { useMonthPace } from "@/hooks/useMonthPace";
 import { useScope } from "@/lib/ScopeContext";
@@ -12,23 +12,6 @@ import Money from "@/components/Money";
 
 // "Bisakah saya beli ini?" — simulasi dampak sebuah pembelian ke jatah
 // harian & anggaran kategori SEBELUM dicatat. Tidak menyimpan apa pun.
-export function AffordCheckCard({ className = "" }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button type="button" onClick={() => setOpen(true)} className={`w-full card-pastel card-pastel-butter rounded-3xl p-4 text-left flex items-center gap-3 active:scale-[0.99] transition-transform ${className}`}>
-        <span className="w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0"><HelpCircle className="w-5 h-5" /></span>
-        <span className="flex-1 min-w-0">
-          <span className="block font-semibold text-sm leading-tight">Bisakah saya beli ini?</span>
-          <span className="block text-xs opacity-75 mt-0.5">Cek dampaknya ke jatah harian sebelum belanja</span>
-        </span>
-        <ArrowRight className="w-4 h-4 opacity-70 shrink-0" />
-      </button>
-      {open && <AffordCheckSheet onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
 export function AffordCheckSheet({ onClose }) {
   const { scope } = useScope();
   const { pace, currency, plan, summary, now } = useMonthPace({ scope });

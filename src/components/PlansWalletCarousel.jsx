@@ -53,7 +53,7 @@ export default function PlansWalletCarousel({ scope = "shared" }) {
       <div className="flex items-end justify-between gap-2 mb-2.5">
         <div className="min-w-0">
           <h2 id="rencana-title" className="font-semibold text-[17px] leading-tight">{section === "rencana" ? "Rencana kita" : "Dompet"}</h2>
-          <p className="text-xs text-muted-foreground truncate">{section === "rencana" ? "Geser ke samping untuk melihat rekening" : "Ketuk kartu untuk detail rekening"}</p>
+          <p className="text-xs text-muted-foreground truncate">{section === "rencana" ? "Geser untuk lihat rekening" : "Ketuk kartu untuk detail rekening"}</p>
         </div>
         {accounts.length > 0 && (
           <div role="tablist" aria-label="Bagian" className="flex p-0.5 rounded-full bg-muted shrink-0">

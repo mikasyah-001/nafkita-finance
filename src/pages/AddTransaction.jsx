@@ -290,7 +290,7 @@ export default function AddTransaction() {
       return;
     }
     try {
-      await saveTransactionWithAsset({
+      const res = await saveTransactionWithAsset({
         type,
         amount: amt,
         currency,
@@ -319,7 +319,33 @@ export default function AddTransaction() {
         } catch {}
       }
       refresh();
-      toast.success("Transaksi tersimpan!");
+      // Toast dengan "Batalkan": salah catat cukup sekali ketuk, tanpa harus
+      // membuka detail lalu menghapus. Transaksi yang menunggu persetujuan
+      // pasangan tidak bisa dihapus, jadi tanpa tombol batal.
+      const txId = res?.transaction?.id;
+      const label = `${formatMoney(amt, currency)} · ${type === "sedekah" ? "Sedekah" : merchant || category}`;
+      if (res?.needs_approval) {
+        toast.success("Tersimpan, menunggu persetujuan pasangan", { description: label });
+      } else if (txId) {
+        toast.success("Transaksi tersimpan", {
+          description: label,
+          duration: 6000,
+          action: {
+            label: "Batalkan",
+            onClick: async () => {
+              try {
+                await deleteTransactionWithAsset(txId);
+                refresh();
+                toast("Pencatatan dibatalkan", { description: label });
+              } catch {
+                toast.error("Gagal membatalkan", { description: "Hapus lewat Riwayat bila perlu." });
+              }
+            },
+          },
+        });
+      } else {
+        toast.success("Transaksi tersimpan!");
+      }
       navigate("/");
     } catch (err) {
       toast.error("Gagal menyimpan transaksi");
@@ -601,11 +627,24 @@ export default function AddTransaction() {
             <div className="flex items-center gap-3 px-4 py-3">
               <Wallet className="w-4 h-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
-                <label htmlFor="add-tx-linked-asset" className="block text-[11px] text-muted-foreground">{type === "income" ? "Masuk ke" : "Dibayar dari"} (opsional)</label>
-                <NativeSelect sheetTitle="Rekening terkait" id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
-                  <option value="">Tidak dipilih, saldo rekening tetap</option>
-                  {bankAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
-                </NativeSelect>
+                <label htmlFor={bankAssets.length > 3 ? "add-tx-linked-asset" : undefined} className="block text-[11px] text-muted-foreground">{type === "income" ? "Masuk ke" : "Dibayar dari"} (opsional)</label>
+                {bankAssets.length <= 3 ? (
+                  // Sedikit rekening → chip sekali ketuk (pola "Bayar dengan").
+                  <div id="add-tx-linked-asset" role="radiogroup" aria-label={type === "income" ? "Masuk ke" : "Dibayar dari"} className="flex flex-wrap gap-1.5 mt-1.5">
+                    {[{ id: "", label: "Tidak dipilih" }, ...bankAssets.map((a) => ({ id: a.id, label: assetLabel(a) }))].map((o) => (
+                      <button key={o.id || "none"} type="button" role="radio" aria-checked={linkedAssetId === o.id} onClick={() => setLinkedAssetId(o.id)}
+                        className={`h-8 px-3 rounded-full text-xs font-semibold border max-w-full truncate transition-colors ${linkedAssetId === o.id ? "bg-foreground text-background border-foreground" : "bg-card border-border text-foreground/75"}`}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <NativeSelect sheetTitle="Rekening terkait" id="add-tx-linked-asset" value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)} className={`${fieldCls} -ml-0.5`}>
+                    <option value="">Tidak dipilih, saldo rekening tetap</option>
+                    {bankAssets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>)}
+                  </NativeSelect>
+                )}
+                {linkedAsset && bankAssets.length <= 3 && <p className="text-[11px] text-muted-foreground mt-1">Saldo {formatMoneyPlain(linkedAsset.value, linkedAsset.currency)}</p>}
               </div>
             </div>
           )}

@@ -6,11 +6,13 @@ import { formatDate, formatMoney, formatMoneyShort, summarizeConsolidated, filte
 import TransactionItem from "@/components/TransactionItem";
 import CalendarView from "@/components/CalendarView";
 import EmptyState from "@/components/EmptyState";
-import { ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw, TrendingUp, TrendingDown, Scale, List, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, ReceiptText, Search, Upload, SlidersHorizontal, X, RotateCcw, TrendingUp, TrendingDown, Scale, List, CalendarDays } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import { useScope } from "@/lib/ScopeContext";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import PageHeader from "@/components/PageHeader";
+
+const toMonthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
 const typeFilters = [
   { key: "all", label: "Semua" },
@@ -31,6 +33,9 @@ export default function Transactions() {
   const [toDate, setToDate] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [view, setView] = useState("list");
+  // Navigator bulan: default bulan berjalan; null = semua waktu. Filter
+  // tanggal manual (dari/sampai) mengambil alih dan mengosongkan bulan.
+  const [monthKey, setMonthKey] = useState(() => toMonthKey(new Date()));
   const { scope } = useScope();
 
   const filtered = useMemo(() => {
@@ -39,6 +44,7 @@ export default function Transactions() {
       if (scope === "shared" && t.visibility === "private") return false;
       if (active !== "all" && t.type !== active) return false;
       if (category !== "all" && t.category !== category) return false;
+      if (monthKey && formatDate(t.date, "yyyy-MM") !== monthKey) return false;
       if (fromDate && new Date(t.date) < new Date(fromDate + "T00:00:00")) return false;
       if (toDate && new Date(t.date) > new Date(toDate + "T23:59:59")) return false;
       if (search) {
@@ -52,7 +58,7 @@ export default function Transactions() {
       }
       return true;
     });
-  }, [transactions, active, category, search, fromDate, toDate, scope]);
+  }, [transactions, active, category, search, fromDate, toDate, scope, monthKey]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -83,11 +89,19 @@ export default function Transactions() {
   const summary = useMemo(() => summarizeConsolidated(filtered, viewCur, rateMap), [filtered, viewCur, rateMap]);
   const periodLabel = fromDate || toDate
     ? `${fromDate ? formatDate(fromDate, "d MMM") : "awal"} – ${toDate ? formatDate(toDate, "d MMM yyyy") : "sekarang"}`
-    : "Semua waktu";
+    : monthKey ? formatDate(`${monthKey}-01T00:00:00`, "MMMM yyyy") : "Semua waktu";
+  const shiftMonth = (delta) => {
+    const base = monthKey ? new Date(`${monthKey}-01T00:00:00`) : new Date();
+    base.setMonth(base.getMonth() + (monthKey ? delta : 0));
+    setMonthKey(toMonthKey(base));
+    setFromDate(""); setToDate("");
+  };
+  const isCurrentMonth = monthKey === toMonthKey(new Date());
   const resetFilter = () => {
     setCategory("all");
     setFromDate("");
     setToDate("");
+    setMonthKey(toMonthKey(new Date()));
   };
 
   const pill = (on) => `h-8 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/75 hover:bg-muted"}`;
@@ -97,9 +111,24 @@ export default function Transactions() {
       <PullToRefreshIndicator pull={ptr.pull} refreshing={ptr.refreshing} threshold={ptr.threshold} />
       <PageHeader
         title="Riwayat transaksi"
-        subtitle={`${filtered.length} catatan · ${periodLabel}`}
+        subtitle={`${filtered.length} catatan`}
         actions={<Link to="/impor" aria-label="Impor data" className="btn-icon btn-icon-sm"><Upload className="w-4 h-4" /></Link>}
       />
+
+      {/* Navigator bulan */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <button onClick={() => shiftMonth(-1)} aria-label="Bulan sebelumnya" className="btn-icon btn-icon-sm"><ChevronLeft className="w-4 h-4" /></button>
+        <div className="text-center min-w-0">
+          <p className="font-heading font-bold text-[17px] leading-tight truncate">{periodLabel}</p>
+          <button
+            onClick={() => { if (monthKey || fromDate || toDate) { setMonthKey(null); setFromDate(""); setToDate(""); } else shiftMonth(0); }}
+            className="text-[11px] font-semibold text-primary"
+          >
+            {monthKey || fromDate || toDate ? "Lihat semua waktu" : "Kembali ke bulan ini"}
+          </button>
+        </div>
+        <button onClick={() => shiftMonth(1)} disabled={isCurrentMonth} aria-label="Bulan berikutnya" className="btn-icon btn-icon-sm disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+      </div>
 
       {/* Ringkasan tampilan saat ini */}
       <div className="card-gradient-primary rounded-[24px] p-4 mb-4 grid grid-cols-3 gap-2">
@@ -178,14 +207,14 @@ export default function Transactions() {
           <div>
             <p className="text-[11px] text-muted-foreground mb-2">Rentang tanggal</p>
             <div className="flex items-center gap-2">
-              <input aria-label="Dari tanggal" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 h-10 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <input aria-label="Dari tanggal" type="date" value={fromDate} onChange={(e) => { setMonthKey(null); setFromDate(e.target.value); }} className="flex-1 h-10 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 ring-primary/30" />
               <span className="text-muted-foreground text-xs">s.d.</span>
-              <input aria-label="Sampai tanggal" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 h-10 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 ring-primary/30" />
+              <input aria-label="Sampai tanggal" type="date" value={toDate} onChange={(e) => { setMonthKey(null); setToDate(e.target.value); }} className="flex-1 h-10 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div className="flex gap-1.5 mt-2">
-              <QuickDate label="Hari ini" onClick={() => { const d = new Date().toISOString().slice(0, 10); setFromDate(d); setToDate(d); }} />
-              <QuickDate label="Bulan ini" onClick={() => { const n = new Date(); const st = new Date(n.getFullYear(), n.getMonth(), 1).toISOString().slice(0, 10); setFromDate(st); setToDate(""); }} />
-              <QuickDate label="Tahun ini" onClick={() => { const n = new Date(); setFromDate(`${n.getFullYear()}-01-01`); setToDate(""); }} />
+              <QuickDate label="Hari ini" onClick={() => { setMonthKey(null); const d = new Date().toISOString().slice(0, 10); setFromDate(d); setToDate(d); }} />
+              <QuickDate label="Bulan ini" onClick={() => { setFromDate(""); setToDate(""); setMonthKey(toMonthKey(new Date())); }} />
+              <QuickDate label="Tahun ini" onClick={() => { setMonthKey(null); const n = new Date(); setFromDate(`${n.getFullYear()}-01-01`); setToDate(""); }} />
             </div>
           </div>
         </div>

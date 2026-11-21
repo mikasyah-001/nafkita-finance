@@ -9,7 +9,7 @@ import { useNavigationType } from "react-router-dom";
 // viewport, bukan ke pembungkus ini.
 const EASE = [0.22, 0.8, 0.3, 1];
 
-export default function PageTransition({ children, className }) {
+export default function PageTransition({ children, className, variant = "push" }) {
   const navType = useNavigationType();
   const reduce = useReducedMotion();
   const dir = navType === "POP" ? -1 : 1;
@@ -17,6 +17,19 @@ export default function PageTransition({ children, className }) {
 
   // Hanya geser (transform), TANPA opacity: memudarkan halaman membuat layar
   // tampak berkedip dua kali (keluar-pudar → kosong → masuk-pudar).
+  // Layar formulir penuh (Catat transaksi dll.) naik dari bawah seperti
+  // sheet, sehingga terasa sebagai "tindakan", bukan pindah halaman.
+  if (variant === "sheet") {
+    return (
+      <motion.div
+        className={className}
+        initial={reduce ? false : { y: 48 }}
+        animate={{ y: 0, transition: { duration: 0.26, ease: EASE } }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
   return (
     <motion.div
       className={className}

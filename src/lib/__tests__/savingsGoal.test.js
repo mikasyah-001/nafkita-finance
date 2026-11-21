@@ -44,3 +44,31 @@ test("paritas frontend ↔ backend (pengingat memakai angka yang sama)", () => {
     assert.equal(goalCurrentAmount(goal, assets, backendMap), goalProgress(goal, assets, { rateMap }).current, JSON.stringify(goal));
   }
 });
+
+import { goalProjection, quickDepositAmounts } from "../savingsGoal.js";
+
+test("goalProjection: laju 90 hari → perkiraan tercapai & status tepat waktu", () => {
+  const now = new Date(2026, 10, 21);
+  const goal = {
+    target_amount: 12_000_000, target_date: "2027-06-01",
+    contribution_history: [
+      { date: "2026-09-21", amount: 1_000_000 },
+      { date: "2026-10-21", amount: 1_000_000 },
+      { date: "2026-11-20", amount: 1_000_000 },
+      { date: "2026-01-01", amount: 9_000_000 }, // di luar 90 hari
+    ],
+  };
+  const p = goalProjection(goal, 6_000_000, { now });
+  assert.equal(p.remaining, 6_000_000);
+  assert.ok(Math.abs(p.perMonth - 1_000_000) < 20_000, `perMonth ${p.perMonth}`);
+  assert.equal(p.eta.getFullYear(), 2027);
+  assert.equal(p.eta.getMonth(), 4); // ±Mei 2027
+  assert.equal(p.onTrack, true);
+  assert.ok(p.neededPerMonth > 0);
+});
+
+test("goalProjection: tanpa setoran → tanpa ETA; tercapai → done", () => {
+  assert.equal(goalProjection({ target_amount: 100 }, 0).eta, null);
+  assert.equal(goalProjection({ target_amount: 100 }, 100).done, true);
+  assert.deepEqual(quickDepositAmounts("SAR"), [50, 100, 500]);
+});

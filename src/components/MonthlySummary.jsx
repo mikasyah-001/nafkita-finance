@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatDate, colorMap, hasRate, monthlyExpenseBreakdown, formatUnconverted } from "@/lib/finance";
+import { formatDate, hasRate, monthlyExpenseBreakdown, formatUnconverted } from "@/lib/finance";
 import Money from "@/components/Money";
 import CurrencyTabs from "@/components/CurrencyTabs";
-import CategoryIcon from "@/components/CategoryIcon";
 import { TrendingUp, TrendingDown, ArrowRight, AlertTriangle } from "lucide-react";
+
+// Warna SVG (stroke) per warna kategori — padanan tailwind *-500.
+const HEX = { rose: "#f43f5e", orange: "#f97316", amber: "#f59e0b", green: "#10b981", emerald: "#10b981", teal: "#14b8a6", blue: "#3b82f6", indigo: "#6366f1", violet: "#8b5cf6", pink: "#ec4899", cyan: "#06b6d4", red: "#ef4444", slate: "#94a3b8" };
+const FALLBACK = ["#157A5A", "#E8B23A", "#3b82f6", "#f97316", "#8b5cf6", "#94a3b8"];
 
 export default function MonthlySummary({ scope = "shared" }) {
   const { data: transactions = [] } = useTransactions();
@@ -33,7 +36,6 @@ export default function MonthlySummary({ scope = "shared" }) {
   const excludedText = formatUnconverted(unconverted);
   const rateMissing = !!excludedText || !hasRate(cur, rateMap);
   const monthLabel = formatDate(now, "MMMM yyyy");
-  const max = rows.length ? rows[0].value : 0;
   const delta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
   const top = rows[0] || null;
 
@@ -72,35 +74,63 @@ export default function MonthlySummary({ scope = "shared" }) {
         )}
       </div>
 
-      <div className="space-y-2.5">
-        {rows.slice(0, 4).map((r) => {
-          const cat = categories.find((c) => c.name === r.name);
-          const cm = colorMap[cat?.color] || colorMap.slate;
-          const pct = max > 0 ? (r.value / max) * 100 : 0;
-          const share = total > 0 ? (r.value / total) * 100 : 0;
-          return (
-            <div key={r.name}>
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${cm.bg}`}>
-                  <CategoryIcon name={cat?.icon || "Wallet"} className={`w-3.5 h-3.5 ${cm.text}`} />
-                </div>
-                <span className="text-xs font-medium flex-1 truncate">{r.name}</span>
-                <span className="text-xs font-semibold tabular-nums shrink-0"><Money value={r.value} format="short" currency={cur} /></span>
-                <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right shrink-0">{share.toFixed(0)}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full ${cm.solid}`} style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <CategoryDonut rows={rows} total={total} cur={cur} categories={categories} />
 
       {top && (
         <p className="text-[11px] text-muted-foreground mt-3">
           Pengeluaran terbesar <span className="font-medium text-foreground">{top.name}</span> ({((top.value / total) * 100).toFixed(0)}% dari total).
         </p>
       )}
+    </div>
+  );
+}
+
+// Donut 5 kategori terbesar + "Lainnya". Warna mengikuti warna kategori;
+// bila dua kategori berwarna sama, warna cadangan dipakai agar tetap terbedakan.
+function CategoryDonut({ rows, total, cur, categories }) {
+  if (!rows.length || total <= 0) return null;
+  const top = rows.slice(0, 5);
+  const rest = rows.slice(5).reduce((sum, r) => sum + r.value, 0);
+  const used = new Set();
+  const slices = [...top.map((r, i) => {
+    const cat = categories.find((c) => c.name === r.name);
+    let color = HEX[cat?.color] || FALLBACK[i % FALLBACK.length];
+    if (used.has(color)) color = FALLBACK.find((c) => !used.has(c)) || color;
+    used.add(color);
+    return { name: r.name, value: r.value, color, cat };
+  }), ...(rest > 0 ? [{ name: "Lainnya", value: rest, color: "#cbd5e1" }] : [])];
+
+  const R = 42, C = 2 * Math.PI * R, GAP = slices.length > 1 ? 2 : 0;
+  let offset = 0;
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-[116px] h-[116px] shrink-0">
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" role="img" aria-label="Komposisi pengeluaran per kategori">
+          <circle cx="50" cy="50" r={R} fill="none" className="stroke-muted" strokeWidth="12" />
+          {slices.map((sl) => {
+            const len = (sl.value / total) * C;
+            const el = (
+              <circle key={sl.name} cx="50" cy="50" r={R} fill="none" stroke={sl.color} strokeWidth="12"
+                strokeDasharray={`${Math.max(0, len - GAP)} ${C}`} strokeDashoffset={-offset} strokeLinecap="butt" />
+            );
+            offset += len;
+            return el;
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-[13px] font-bold tabular-nums leading-tight"><Money value={total} currency={cur} format="short" /></span>
+          <span className="text-[10px] text-muted-foreground">terpakai</span>
+        </div>
+      </div>
+      <ul className="flex-1 min-w-0 space-y-1.5">
+        {slices.map((sl) => (
+          <li key={sl.name} className="flex items-center gap-2 text-xs">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: sl.color }} />
+            <span className="flex-1 truncate">{sl.name}</span>
+            <span className="tabular-nums text-muted-foreground shrink-0">{((sl.value / total) * 100).toFixed(0)}%</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

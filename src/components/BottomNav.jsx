@@ -1,149 +1,75 @@
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Home, ReceiptText, Plus, Landmark, LayoutGrid, X } from "lucide-react";
-import { moreGroups, moreItems, moreToneClasses, isNavHidden } from "@/lib/navConfig";
+import { motion } from "framer-motion";
+import { Home, ReceiptText, Plus, Landmark, LayoutGrid } from "lucide-react";
+import { moreItems, isNavHidden } from "@/lib/navConfig";
 
+// Nav bawah: pil mengambang di kiri berisi 4 tujuan, tombol Catat bulat
+// terpisah di KANAN — mudah dijangkau jempol kanan tanpa menggeser
+// genggaman (dulu tombol Catat di tengah). Tab aktif melebar dengan label;
+// tab lain hanya ikon (label tetap dibacakan pembaca layar).
 const items = [
   { to: "/", icon: Home, label: "Beranda", end: true },
   { to: "/riwayat", icon: ReceiptText, label: "Riwayat" },
   { to: "/aset", icon: Landmark, label: "Aset" },
+  { to: "/lainnya", icon: LayoutGrid, label: "Lainnya" },
 ];
 
 export default function BottomNav() {
   const location = useLocation();
-  const [showMore, setShowMore] = useState(false);
-
-  // Tutup sheet saat rute berubah & saat tombol Escape ditekan.
-  useEffect(() => { setShowMore(false); }, [location.pathname]);
-  useEffect(() => {
-    if (!showMore) return;
-    const onKey = (e) => { if (e.key === "Escape") setShowMore(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showMore]);
-
-  const hideNav = isNavHidden(location.pathname);
-  if (hideNav) return null;
-
-  // Tab "Lainnya" ikut menyala bila halaman aktif berada di dalam menunya.
-  const moreActive = moreItems.some((it) => location.pathname.startsWith(it.to));
+  if (isNavHidden(location.pathname)) return null;
 
   return (
-    <>
-      <nav
-        aria-label="Navigasi utama"
-        className="no-select md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom))] pointer-events-none"
-      >
-        <div className="pointer-events-auto flex items-end justify-around h-[66px] px-1 rounded-[26px] bg-card/90 backdrop-blur-xl border border-border shadow-[0_14px_40px_-18px_hsl(var(--hero-from)/0.55)]">
-          {items.slice(0, 2).map((it) => (
-            <NavItem key={it.to} {...it} />
-          ))}
-          <Link
-            to="/add"
-            aria-label="Tambah transaksi"
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-          >
-            <span className="w-[52px] h-[52px] rounded-full bg-gold text-gold-foreground flex items-center justify-center shadow-[0_10px_22px_-8px_hsl(var(--gold)/0.9)] ring-4 ring-background active:scale-95 transition-transform -mt-6">
-              <Plus className="w-6 h-6" strokeWidth={2.5} />
-            </span>
-            <span className="text-[11px] font-medium text-foreground/80 mt-0.5">Catat</span>
-          </Link>
-          {items.slice(2).map((it) => (
-            <NavItem key={it.to} {...it} />
-          ))}
-          <button
-            onClick={() => setShowMore(true)}
-            aria-haspopup="dialog"
-            aria-expanded={showMore}
-            className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-[54px] my-1.5 mx-0.5 rounded-[20px] transition-colors ${moreActive ? "text-primary bg-primary/10" : "text-muted-foreground"}`}
-          >
-            <LayoutGrid className="w-5 h-5" />
-            <span className={`text-[11px] ${moreActive ? "font-semibold" : ""}`}>Lainnya</span>
-          </button>
+    <nav
+      aria-label="Navigasi utama"
+      className="no-select md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 px-4 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pointer-events-none"
+    >
+      <div className="flex items-center gap-3">
+        <div className="pointer-events-auto flex-1 flex items-center justify-between h-[62px] px-1.5 rounded-full bg-card/90 backdrop-blur-xl border border-border shadow-[0_14px_40px_-18px_hsl(var(--hero-from)/0.55)]">
+          {items.map((it) => <NavItem key={it.to} {...it} />)}
         </div>
-      </nav>
-
-      {showMore && (
-        <div
-          className="md:hidden fixed inset-0 z-[60] bg-foreground/20 backdrop-blur-[2px] animate-in fade-in-0 duration-150"
-          onClick={() => setShowMore(false)}
+        <Link
+          to="/add"
+          aria-label="Catat transaksi"
+          className="pointer-events-auto shrink-0 w-[62px] h-[62px] rounded-full bg-gold text-gold-foreground flex items-center justify-center shadow-[0_12px_26px_-10px_hsl(var(--gold)/0.95)] ring-4 ring-background/70 active:scale-95 transition-transform"
         >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu lainnya"
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md max-h-[85vh] overflow-y-auto bg-card rounded-t-3xl border-t border-border px-5 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-base">Menu lainnya</h2>
-              <button
-                onClick={() => setShowMore(false)}
-                aria-label="Tutup menu"
-                className="btn-icon btn-icon-sm"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {moreGroups.map((g) => (
-              <section key={g.title} className="mt-4">
-                <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-1">{g.title}</h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {g.items.map((it) => {
-                    const Icon = it.icon;
-                    return (
-                      <NavLink
-                        key={it.to}
-                        to={it.to}
-                        className={({ isActive }) =>
-                          `flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl transition-colors ${isActive ? "bg-primary/10" : "active:bg-muted"}`
-                        }
-                      >
-                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${moreToneClasses[g.tone]}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] text-center leading-tight text-foreground/85">{it.label}</span>
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+          <Plus className="w-7 h-7" strokeWidth={2.5} />
+        </Link>
+      </div>
+    </nav>
   );
 }
 
 function NavItem({ to, icon: Icon, label, end }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  // Tab yang sedang aktif: ketuk lagi = kembali ke akar tab tersebut
-  // (mis. dari /aset/123 ke /aset) tanpa menumpuk riwayat.
+  // "Lainnya" juga menyala saat berada di salah satu halaman di dalam menunya.
+  const inMore = to === "/lainnya" && moreItems.some((it) => pathname === it.to || pathname.startsWith(`${it.to}/`));
   const isCurrent = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
+  const active = isCurrent || inMore;
 
   return (
     <NavLink
       to={to}
       end={end}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      // Ketuk tab yang sedang aktif = kembali ke akar tab tanpa menumpuk riwayat.
       onClick={(e) => {
         if (!isCurrent) return;
         e.preventDefault();
         navigate(to, { replace: true });
       }}
-      className={({ isActive }) =>
-        `relative flex flex-col items-center justify-center gap-1 flex-1 h-[54px] my-1.5 mx-0.5 rounded-[20px] transition-colors ${isActive ? "text-primary bg-primary/10" : "text-muted-foreground"}`
-      }
+      className={`relative flex items-center justify-center gap-1.5 h-[50px] rounded-full transition-colors ${active ? "px-4 text-primary" : "w-[50px] text-muted-foreground active:text-foreground"}`}
     >
-      {({ isActive }) => (
-        <>
-          <Icon className="w-5 h-5" strokeWidth={isActive ? 2.25 : 2} />
-          <span className={`text-[11px] ${isActive ? "font-semibold" : ""}`}>{label}</span>
-        </>
+      {active && (
+        <motion.span
+          layoutId="bottomnav-active"
+          className="absolute inset-0 rounded-full bg-primary/10"
+          transition={{ type: "spring", stiffness: 500, damping: 38 }}
+        />
       )}
+      <Icon className="relative w-5 h-5 shrink-0" strokeWidth={active ? 2.3 : 2} />
+      {active && <span className="relative text-[13px] font-semibold whitespace-nowrap">{label}</span>}
     </NavLink>
   );
 }

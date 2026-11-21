@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets } from "@/hooks/useFinance";
-import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress } from "@/lib/finance";
+import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress, spendingPace } from "@/lib/finance";
+import UpcomingBills from "@/components/UpcomingBills";
+import { AffordCheckCard } from "@/components/AffordCheck";
 import { toast } from "sonner";
 import TransactionItem from "@/components/TransactionItem";
 import EmptyState from "@/components/EmptyState";
@@ -68,6 +70,8 @@ export default function Home() {
   const savings = computeSavingsRate(s.income, s.expense, s.sedekah);
   const plan = monthlyPlan(budgets, { period: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`, scope, currency: cur });
   const savingsPlan = planProgress(s.balance, plan.savings);
+  // Jatah belanja per hari: sisa anggaran ÷ hari tersisa (lihat spendingPace).
+  const pace = spendingPace({ income: s.income, expense: s.expense, sedekah: s.sedekah, planIncome: plan.income, planSavings: plan.savings, now });
   // Mata uang yang transaksinya tidak ikut dijumlahkan karena kurs belum ada.
   const excludedCurs = Object.keys(s.unconverted || {});
   const rateMissing = excludedCurs.length > 0 || !hasRate(cur, rateMap);
@@ -231,6 +235,25 @@ export default function Home() {
             <AlertTriangle className="w-3 h-3" /> Belum termasuk transaksi {excludedCurs.join(", ")} (kurs belum tersedia)
           </p>
         )}
+        {pace && (
+          <div className="mt-3">
+            <div className="h-1.5 rounded-full bg-white/15 overflow-hidden" aria-hidden="true">
+              <div className={`h-full rounded-full ${pace.over ? "bg-destructive" : "bg-gold"}`} style={{ width: `${pace.pct}%` }} />
+            </div>
+            <p className="text-[11px] opacity-75 mt-1">
+              <Money value={pace.spent} currency={cur} format="short" /> terpakai dari <Money value={pace.budget} currency={cur} format="short" />
+              {pace.source === "plan" ? " rencana belanja" : " pemasukan"}
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <span className={`inline-flex items-center gap-1 text-[12px] font-semibold rounded-full px-2.5 py-1 ${pace.over ? "bg-destructive/90 text-white" : "bg-white/15 border border-white/10"}`}>
+                {pace.over
+                  ? <>Lewat <Money value={-pace.remaining} currency={cur} format="short" /></>
+                  : <>Jatah <Money value={pace.perDay} currency={cur} format="short" />/hari</>}
+              </span>
+              <span className="inline-flex items-center text-[12px] font-medium rounded-full px-2.5 py-1 bg-white/[0.07] border border-white/10">{pace.daysLeft} hari lagi</span>
+            </div>
+          </div>
+        )}
         {activeCurs.length > 1 && (
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
@@ -271,7 +294,11 @@ export default function Home() {
         )}
       </div>}
 
+      <UpcomingBills />
+
       <GoalsCarousel />
+
+      {!noTransactionsAtAll && <AffordCheckCard className="mb-5" />}
 
       {!transactionsLoading && !noTransactionsAtAll && (
         <HomeNudges scope={scope} income={s.income} expense={s.expense} sedekah={s.sedekah} hasExpense={s.expense > 0} hasTodayTx={hasTodayTx} />

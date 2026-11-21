@@ -19,6 +19,7 @@ import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, TrendingUp, Trendi
 import ScopeToggle from "@/components/ScopeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import GoalsCarousel from "@/components/GoalsCarousel";
+import AccountCarousel from "@/components/AccountCarousel";
 import HomeNudges from "@/components/HomeNudges";
 import { usePartnership } from "@/hooks/usePartnership";
 import { ListSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
@@ -307,6 +308,8 @@ export default function Home() {
           <Link to="/anggaran" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gold">Atur rencana menabung bulan ini <ArrowRight className="w-3 h-3" /></Link>
         )}
       </div>}
+
+      {!noTransactionsAtAll && <AccountCarousel scope={scope} />}
 
       <UpcomingBills />
 

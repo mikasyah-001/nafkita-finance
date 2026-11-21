@@ -68,6 +68,14 @@
     "claim_id": {
       "type": "string",
       "description": "Klaim sementara saat dikonfirmasi (mencegah simpan ganda)"
+    },
+    "suggested_source": {
+      "type": "string",
+      "enum": [
+        "history",
+        "keyword"
+      ],
+      "description": "Asal saran kategori: riwayat merchant pengguna atau kamus merchant umum"
     }
   },
   "required": [

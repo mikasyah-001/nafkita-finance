@@ -67,7 +67,7 @@ export default function PlansWalletCarousel({ scope = "shared" }) {
         )}
       </div>
 
-      <div ref={track} onScroll={onScroll} className="-mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3">
+      <div ref={track} onScroll={onScroll} className="relative -mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3">
         {active.map((g, i) => {
           const Icon = TYPE_ICON[g.type] || Target;
           const { target, current, pct, remaining } = progressOf(g);

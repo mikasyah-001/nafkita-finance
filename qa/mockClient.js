@@ -67,6 +67,7 @@ const DATA = {
     { id: "in1", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 18.5, currency: "SAR", merchant: "Al Baik Makkah", occurred_at: d(14, 0, 9), suggested_category: "Makanan", status: "new" },
     { id: "in2", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 0, currency: "SAR", raw_amount: "", merchant: "Jarir Bookstore", occurred_at: d(14, 0, 8), review_reason: "Nominal tidak terbaca", status: "new" },
     { id: "in3", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 42, currency: "SAR", merchant: "Panda Retail", occurred_at: d(13, 0, 20), status: "new" },
+    { id: "in4", owner_id: "u1", label: "visa-debit", asset_id: "a1", amount: 45000, currency: "IDR", merchant: "Indomaret Point", occurred_at: d(13, 0, 19), suggested_category: "Belanja", suggested_source: "keyword", status: "new" },
   ],
 };
 // Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.

@@ -85,6 +85,7 @@ export default function AutoIngest() {
 /* ---------------------------- Kotak Masuk ---------------------------- */
 
 function InboxTab() {
+  const { data: me } = useMe();
   const { data: items = [], isLoading } = useIncomingTransactions();
   const { data: assets = [] } = useAssets();
   const { data: categories = [] } = useCategories();
@@ -94,16 +95,20 @@ function InboxTab() {
   const [busy, setBusy] = useState(null);
 
   const assetById = useMemo(() => Object.fromEntries(assets.map((a) => [a.id, a])), [assets]);
+  const accountsFor = (cur) => assets.filter((a) => a.created_by_id === me?.id && LINKABLE_TYPES.includes(a.type || "bank")
+    && String(a.currency || "IDR").toUpperCase() === String(cur || "IDR").toUpperCase());
   const expenseCats = useMemo(() => categories.filter((c) => (c.type || "expense") === "expense").map((c) => c.name), [categories]);
 
   const draftOf = (it) => ({
     category: drafts[it.id]?.category ?? it.suggested_category ?? "",
     amount: drafts[it.id]?.amount ?? (it.amount > 0 ? String(it.amount) : ""),
+    // Rekening bisa dikoreksi (mis. dua kartu Wallet bernama sama → label sama).
+    asset_id: drafts[it.id]?.asset_id ?? it.asset_id ?? "",
   });
   const setDraft = (id, patch) => setDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   // Mata uang rekening diubah setelah item masuk → nominal tidak bisa dipakai apa adanya.
   const curMismatch = (it) => {
-    const a = assetById[it.asset_id];
+    const a = assetById[draftOf(it).asset_id];
     return !!a && String(a.currency || "IDR").toUpperCase() !== String(it.currency || "IDR").toUpperCase();
   };
   const isReady = (it) => { const d = draftOf(it); return !!d.category && Number(d.amount) > 0 && !it.review_reason && !curMismatch(it); };
@@ -113,7 +118,7 @@ function InboxTab() {
     if (!d.category) throw new Error("Pilih kategori dulu");
     if (!(Number(d.amount) > 0)) throw new Error("Isi nominal");
     if (curMismatch(it)) throw new Error("Mata uang rekening sudah berubah — abaikan item ini dan catat manual");
-    const asset = assetById[it.asset_id];
+    const asset = assetById[d.asset_id];
     const res = await saveTransactionWithAsset({
       type: "expense",
       amount: Number(d.amount),
@@ -125,7 +130,7 @@ function InboxTab() {
       tags: ["apple-pay"],
       // Rekening pribadi → transaksinya juga pribadi (tidak terlihat pasangan).
       visibility: asset?.visibility === "private" ? "private" : "shared",
-      linked_asset_id: it.asset_id || undefined,
+      linked_asset_id: d.asset_id || undefined,
     }, undefined, { incoming_id: it.id });
     return res;
   };
@@ -184,8 +189,9 @@ function InboxTab() {
       </div>
       {items.map((it) => {
         const d = draftOf(it);
-        const asset = assetById[it.asset_id];
+        const asset = assetById[d.asset_id];
         const cur = it.currency || asset?.currency || "IDR";
+        const accountOptions = accountsFor(cur);
         const catOptions = d.category && !expenseCats.includes(d.category) ? [d.category, ...expenseCats] : expenseCats;
         return (
           <article key={it.id} className="surface rounded-3xl p-4" aria-label={`Transaksi ${it.merchant || "tanpa nama"}`}>
@@ -217,6 +223,14 @@ function InboxTab() {
                 <label className="block">
                   <span className="text-[11px] text-muted-foreground">Nominal ({cur})</span>
                   <MoneyInput className="input" currency={cur} value={d.amount} onChange={(v) => setDraft(it.id, { amount: v })} aria-label="Nominal" />
+                </label>
+              )}
+              {accountOptions.length > 1 && (
+                <label className="block">
+                  <span className="text-[11px] text-muted-foreground">Rekening · label {it.label}</span>
+                  <NativeSelect className="input" value={d.asset_id} sheetTitle="Rekening" aria-label="Rekening" onChange={(e) => setDraft(it.id, { asset_id: e.target.value })}>
+                    {accountOptions.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)}</option>)}
+                  </NativeSelect>
                 </label>
               )}
               <label className="block">

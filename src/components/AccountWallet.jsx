@@ -216,14 +216,12 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
       {header}
 
       {/* Lapisan gestur: geser vertikal di atas tumpukan kartu */}
-      <motion.div
-        className="relative select-none cursor-grab active:cursor-grabbing overflow-hidden -mx-4 -mb-10"
-        style={{ height: stackH + 40, touchAction: n > 1 ? "none" : "auto" }}
-        onPanEnd={(_, info) => {
-          if (n < 2) return;
-          if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
-          else if (info.offset.y > SWIPE_PX || info.velocity.y > 400) go(-1);
-        }}
+      {/* Wadah pemotong (40px ekstra untuk bayangan) TIDAK menangkap sentuhan,
+          agar tombol Masuk/Keluar/Transfer di bawahnya tetap bisa diketuk.
+          Gestur ditangani lapisan transparan seukuran tumpukan kartu saja. */}
+      <div
+        className="relative select-none overflow-hidden -mx-4 -mb-10 pointer-events-none"
+        style={{ height: stackH + 40 }}
         role="group"
         aria-roledescription="tumpukan kartu rekening"
         aria-label={`${current.name}, kartu ${idx + 1} dari ${n}`}
@@ -250,7 +248,7 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
             <motion.div
               key={a.id}
               className="absolute left-4 right-4 top-0 rounded-[26px] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
-              style={{ height: CARD_H, zIndex: target.zIndex, transformOrigin: "bottom center", willChange: "transform", pointerEvents: d === 0 ? "auto" : "none" }}
+              style={{ height: CARD_H, zIndex: target.zIndex, transformOrigin: "bottom center", willChange: "transform", pointerEvents: "none" }}
               initial={false}
               animate={{ y: target.y, scale: target.scale, opacity: target.opacity }}
               transition={transition}
@@ -261,7 +259,17 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
             </motion.div>
           );
         })}
-      </motion.div>
+        <motion.div
+          aria-hidden="true"
+          className="absolute left-4 right-4 top-0 pointer-events-auto cursor-grab active:cursor-grabbing"
+          style={{ height: stackH, zIndex: 50, touchAction: n > 1 ? "none" : "auto" }}
+          onPanEnd={(_, info) => {
+            if (n < 2) return;
+            if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
+            else if (info.offset.y > SWIPE_PX || info.velocity.y > 400) go(-1);
+          }}
+        />
+      </div>
 
       {mine ? (
         <div className="grid grid-cols-3 gap-2 mt-3.5">

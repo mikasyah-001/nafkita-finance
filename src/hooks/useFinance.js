@@ -159,6 +159,25 @@ export function usePendingApprovals() {
   });
 }
 
+// --- Catat Otomatis (Apple Pay via Shortcuts) ---
+// Dibaca langsung dari entity (RLS: data.owner_id = user); penulisan lewat
+// function manageAutoIngest / saveTransactionWithAsset.
+function useOwnerQuery(key, entity, extra = {}, sort = "-created_date") {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const me = await qc.ensureQueryData({ queryKey: ["me"], queryFn: () => base44.auth.me() });
+      if (!me?.id) return [];
+      return base44.entities[entity].filter({ owner_id: me.id, ...extra }, sort, 200);
+    },
+  });
+}
+export const useIncomingTransactions = () =>
+  useOwnerQuery(["autoIngest", "incoming"], "IncomingTransaction", { status: "new" }, "-occurred_at");
+export const useIngestDevices = () => useOwnerQuery(["autoIngest", "devices"], "IngestDevice");
+export const useCardLabels = () => useOwnerQuery(["autoIngest", "labels"], "CardLabel");
+
 export function useAssetMutations(assetId) {
   return useQuery({
     queryKey: ["assetMutations", assetId],
@@ -284,6 +303,7 @@ export function useRefresh() {
     qc.invalidateQueries({ queryKey: ["pendingApprovals"] }),
     qc.invalidateQueries({ queryKey: ["assetMutations"] }),
     qc.invalidateQueries({ queryKey: ["notificationRules"] }),
+    qc.invalidateQueries({ queryKey: ["autoIngest"] }),
     qc.invalidateQueries({ queryKey: ["exchangeRates"] }),
   ]);
 }

@@ -56,6 +56,18 @@ const DATA = {
     { id: id(), actor_name: "Ahmad Fauzi", action: "export_data", target_label: "Laporan November", details: "", created_date: d(14) },
   ],
   TransactionTemplate: [{ id: id(), name: "Belanja mingguan", type: "expense", amount: 400000, category: "Belanja", currency: "IDR" }],
+  // Catat Otomatis (Apple Pay via Shortcuts)
+  IngestDevice: [{ id: "dev1", owner_id: "u1", name: "iPhone Ahmad", token_hint: "x9Qa", revoked: false, last_used_at: d(14, 0, 9) }],
+  CardLabel: [
+    { id: "cl1", owner_id: "u1", label: "riyal-harian", asset_id: "a4", status: "active", last_seen_at: d(14, 0, 9), seen_count: 4 },
+    { id: "cl2", owner_id: "u1", label: "bca-debit", asset_id: "a1", status: "paused", seen_count: 0 },
+    { id: "cl3", owner_id: "u1", label: "kartu-kantor", status: "unmapped", last_seen_at: d(13, 0, 18), seen_count: 1 },
+  ],
+  IncomingTransaction: [
+    { id: "in1", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 18.5, currency: "SAR", merchant: "Al Baik Makkah", occurred_at: d(14, 0, 9), suggested_category: "Makanan", status: "new" },
+    { id: "in2", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 0, currency: "SAR", raw_amount: "", merchant: "Jarir Bookstore", occurred_at: d(14, 0, 8), review_reason: "Nominal tidak terbaca", status: "new" },
+    { id: "in3", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 42, currency: "SAR", merchant: "Panda Retail", occurred_at: d(13, 0, 20), status: "new" },
+  ],
 };
 // Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.
 // Simulasi jaringan lambat untuk QA: localStorage.qaLag = "400" (ms).
@@ -116,7 +128,17 @@ const FN = {
   listExchangeRates: () => ({ rates: [{ base_currency: "SAR", quote_currency: "IDR", rate: 4250 }, { base_currency: "USD", quote_currency: "IDR", rate: 16100 }] }),
   getPartnerProfile: () => ({ partner: null }),
   // ── Mutasi ──
-  saveTransactionWithAsset: ({ transaction, transaction_id }) => {
+  manageAutoIngest: (args) => {
+    const L = DATA.CardLabel, I = DATA.IncomingTransaction, D = DATA.IngestDevice;
+    if (args.action === "create_device") { const tok = "nfk_" + "QaToken".repeat(6).slice(0, 43); const dev = { id: id(), owner_id: "u1", name: args.name, token_hint: tok.slice(-4), revoked: false }; D.push(dev); return { ok: true, device: dev, token: tok }; }
+    if (args.action === "revoke_device") { Object.assign(D.find((x) => x.id === args.device_id), { revoked: true }); return { ok: true }; }
+    if (args.action === "save_label") { const data = { label: args.label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), status: args.status, asset_id: args.asset_id || null }; const t = L.find((x) => x.id === args.label_id); if (t) Object.assign(t, data); else L.push({ id: id(), owner_id: "u1", ...data }); return { ok: true }; }
+    if (args.action === "delete_label") { DATA.CardLabel = L.filter((x) => x.id !== args.label_id); return { ok: true }; }
+    if (args.action === "dismiss_incoming") { I.forEach((x) => { if (args.ids.includes(x.id)) x.status = "dismissed"; }); return { ok: true }; }
+    return {};
+  },
+  saveTransactionWithAsset: ({ transaction, transaction_id, incoming_id }) => {
+    if (incoming_id) { const it = DATA.IncomingTransaction.find((x) => x.id === incoming_id); if (it) it.status = "saved"; }
     if (transaction_id) { const t = db.tx.find((x) => x.id === transaction_id); Object.assign(t, transaction); return { ok: true, transaction: t }; }
     const t = T(transaction); db.tx.push(t);
     const a = db.assets.find((x) => x.id === t.linked_asset_id);

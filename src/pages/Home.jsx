@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets } from "@/hooks/useFinance";
+import { useTransactions, useCategories, useMe, useRefresh, useUserCurrencies, useRateMap, usePendingApprovals, useRecurringBills, useBudgets, useIncomingTransactions } from "@/hooks/useFinance";
 import { formatDate, summarizeConsolidated, computeSavingsRate, hasRate, monthlyPlan, planProgress, spendingPace } from "@/lib/finance";
 import UpcomingBills from "@/components/UpcomingBills";
 import { AffordCheckCard } from "@/components/AffordCheck";
@@ -15,7 +15,7 @@ import Money from "@/components/Money";
 import NotificationBell from "@/components/NotificationBell";
 import { usePrivacy } from "@/lib/PrivacyContext";
 import { useScope } from "@/lib/ScopeContext";
-import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle } from "lucide-react";
+import { ScanLine, ArrowLeftRight, CalendarClock, CheckCheck, TrendingUp, TrendingDown, Heart, ArrowRight, Wallet, Lock, Banknote, Eye, EyeOff, Check, Globe, AlertTriangle, Zap } from "lucide-react";
 import ScopeToggle from "@/components/ScopeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import GoalsCarousel from "@/components/GoalsCarousel";
@@ -40,6 +40,7 @@ export default function Home() {
   const { data: bills = [] } = useRecurringBills();
   const { data: budgets = [] } = useBudgets();
   const pendingApprovals = approvals?.pending_approvals?.length || 0;
+  const { data: incoming = [] } = useIncomingTransactions();
   const { partners } = usePartnership();
 
   const defaultCur = user?.default_currency || "IDR";
@@ -186,6 +187,19 @@ export default function Home() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">{pendingApprovals} transaksi menunggu persetujuan Anda</p>
             <p className="text-xs text-muted-foreground">Belum dihitung di saldo sampai Anda setujui.</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+        </Link>
+      )}
+
+      {incoming.length > 0 && (
+        <Link to="/catat-otomatis" className="flex items-center gap-3 surface p-3.5 mb-4 active:scale-[0.98] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">{incoming.length} transaksi Apple Pay baru</p>
+            <p className="text-xs text-muted-foreground">Konfirmasi agar masuk ke saldo & laporan.</p>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground" />
         </Link>

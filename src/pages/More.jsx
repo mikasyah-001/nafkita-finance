@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, User, MessageSquare, Shield, ArrowRight } from "lucide-react";
-import { useMe, usePendingApprovals, useRecurringBills } from "@/hooks/useFinance";
+import { useMe, usePendingApprovals, useRecurringBills, useIncomingTransactions } from "@/hooks/useFinance";
 import { usePartnership } from "@/hooks/usePartnership";
 import { useMonthPace } from "@/hooks/useMonthPace";
 import { useScope } from "@/lib/ScopeContext";
@@ -20,11 +20,12 @@ export default function More() {
   const { pace, currency, now } = useMonthPace({ scope });
   const { data: approvals } = usePendingApprovals();
   const { data: bills = [] } = useRecurringBills();
+  const { data: incoming = [] } = useIncomingTransactions();
 
   const pending = approvals?.pending_approvals?.length || 0;
   const soon = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
   const dueBills = bills.filter((b) => b.created_by_id === me?.id && b.status === "active" && b.next_date && b.next_date <= soon).length;
-  const badges = { "/persetujuan": pending, "/tagihan-berulang": dueBills };
+  const badges = { "/persetujuan": pending, "/tagihan-berulang": dueBills, "/catat-otomatis": incoming.length };
   const partnerName = partners?.[0]?.full_name;
 
   return (

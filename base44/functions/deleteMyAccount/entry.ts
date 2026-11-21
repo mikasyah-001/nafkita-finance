@@ -23,6 +23,9 @@ const ANON_NAME = "Pasangan (akun dihapus)";
 
 // [entity, field kepemilikan]. Urutan: anak dulu, induk belakangan.
 const OWNED: Array<[string, string]> = [
+  ["IncomingTransaction", "owner_id"],
+  ["CardLabel", "owner_id"],
+  ["IngestDevice", "owner_id"],
   ["InvestmentLot", "created_by_id"],
   ["AssetMutation", "created_by_id"],
   ["AssetMutation", "owner_id"],

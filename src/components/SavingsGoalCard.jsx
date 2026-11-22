@@ -25,7 +25,8 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const [showProgress, setShowProgress] = useState(false);
   const [progressAmount, setProgressAmount] = useState("");
   const [progressMethod, setProgressMethod] = useState("manual");
-  const [sourceAssetId, setSourceAssetId] = useState("");
+  // Rekening sumber default dari data lama (field "Rekening sumber setoran" yang dulu ada di form).
+  const [sourceAssetId, setSourceAssetId] = useState(goal.linked_asset_id || "");
   const [submitting, setSubmitting] = useState(false);
 
   // Satu sumber hitung (lib/savingsGoal): nilai aset "Disimpan di" atau setoran manual.

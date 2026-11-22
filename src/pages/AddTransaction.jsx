@@ -37,6 +37,10 @@ export default function AddTransaction() {
   const { data: templates = [] } = useTemplates();
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
   const editTx = isEdit ? transactions.find((t) => t.id === editId) : null;
+  // Transfer & setoran target tidak diedit di form ini — kembali ke detail.
+  useEffect(() => {
+    if (editTx?.transfer_pair_id || editTx?.savings_goal_id) navigate(`/transaksi/${editTx.id}`, { replace: true });
+  }, [editTx?.transfer_pair_id, editTx?.savings_goal_id, editTx?.id, navigate]);
   const [editLoaded, setEditLoaded] = useState(false);
   const { data: assets = [] } = useAssets();
   // Profil dari cache login (useMe) — tidak mengambil ulang, tidak berkedip.

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { isReportable } from "../../base44/shared/reportable.js";
 
 export function formatRupiah(n) {
   return new Intl.NumberFormat("id-ID", {
@@ -163,10 +164,8 @@ export function summarizeByCurrency(txs, currencyList = []) {
   const ensure = (c) => { if (!out[c]) out[c] = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0 }; };
   (currencyList || []).forEach((c) => ensure((c || "IDR").toUpperCase()));
   (txs || []).forEach((t) => {
-    // Transfer antar-rekening tidak dihitung sebagai pemasukan/pengeluaran.
-    if (t.transfer_pair_id) return;
-    // Transaksi pending/rejected tidak dihitung dalam ringkasan.
-    if (t.approval_status && t.approval_status !== "approved") return;
+    // Aturan bersama: transfer, pending, penyesuaian & setoran target tidak dihitung.
+    if (!isReportable(t)) return;
     const c = (t.currency || "IDR").toUpperCase();
     ensure(c);
     const amt = Number(t.amount) || 0;
@@ -188,8 +187,7 @@ export function summarizeConsolidated(txs, displayCurrency = "IDR", rateMap = {}
   const out = { income: 0, expense: 0, sedekah: 0, balance: 0, count: 0, currencies: new Set(), unconverted: {} };
   (currencyList || []).forEach((c) => out.currencies.add((c || "IDR").toUpperCase()));
   (txs || []).forEach((t) => {
-    if (t.transfer_pair_id) return;
-    if (t.approval_status && t.approval_status !== "approved") return;
+    if (!isReportable(t)) return;
     const from = (t.currency || "IDR").toUpperCase();
     out.currencies.add(from);
     if (!canConvert(from, to, rateMap)) {
@@ -213,15 +211,9 @@ export function filterTransfers(txs) {
   return (txs || []).filter((t) => !t.transfer_pair_id);
 }
 
-// Filter transaksi yang layak masuk laporan/ringkasan:
-// - eksklusikan transfer antar-rekening (bukan pengeluaran riil)
-// - eksklusikan transaksi pending/rejected (belum disetujui pasangan)
-export function filterReportableTx(t) {
-  if (!t) return false;
-  if (t.transfer_pair_id) return false;
-  if (t.approval_status && t.approval_status !== "approved") return false;
-  return true;
-}
+// Filter transaksi yang layak masuk laporan/ringkasan — aturan bersama
+// frontend & backend, lihat base44/shared/reportable.js.
+export const filterReportableTx = isReportable;
 
 // Filter transaksi berdasarkan rentang tanggal (inclusive).
 // startDate/endDate dapat berupa Date, ISO string, atau null (tanpa batas).
@@ -512,6 +504,10 @@ export const assetTypeLabels = {
 export function inScope(t, scope) {
   return scope === "private" ? t.visibility === "private" : t.visibility !== "private";
 }
+
+// Batas anggaran efektif = limit + sisa/kelebihan bulan lalu (rollover).
+// Dipakai halaman Anggaran, bar anggaran Beranda, dan "Bisakah saya beli?".
+export const effectiveLimit = (b) => (Number(b?.limit_amount) || 0) + (Number(b?.rollover_amount) || 0);
 
 export function isInMonth(t, year, month) {
   const d = new Date(t.date);
@@ -853,4 +849,25 @@ export function assetGain(a, goldPriceIdr = 0, rateMap = {}) {
   const available = cost > 0 && goldPriced && !currencySuspect;
   const gain = available ? value - cost : 0;
   return { cost, value, gain, pct: available ? (gain / cost) * 100 : 0, available, needsGoldPrice: isGoldType(a?.type) && !goldPriced, currencySuspect };
+}
+
+// Untung/rugi gabungan beberapa aset: dihitung PER ASET dalam mata uangnya
+// sendiri (assetGain), lalu nilai & modal tiap aset dikonversi ke mata uang
+// tampilan dengan kurs masing-masing sebelum dijumlahkan. Aset yang untung/
+// ruginya tidak bisa dihitung (tanpa harga beli, harga emas belum ada, mata
+// uang mencurigakan, atau kurs belum tersedia) tidak ikut.
+export function portfolioGain(assets = [], displayCurrency = "IDR", { goldPrice = 0, rateMap = {} } = {}) {
+  const to = String(displayCurrency || "IDR").toUpperCase();
+  let cost = 0, value = 0, count = 0;
+  for (const a of assets) {
+    const g = assetGain(a, goldPrice, rateMap);
+    if (!g.available) continue;
+    const from = String(a.currency || "IDR").toUpperCase();
+    if (from !== to && !canConvert(from, to, rateMap)) continue;
+    cost += convertTo(g.cost, from, to, rateMap);
+    value += convertTo(g.value, from, to, rateMap);
+    count += 1;
+  }
+  const gain = value - cost;
+  return { cost, value, gain, pct: cost > 0 ? (gain / cost) * 100 : 0, count };
 }

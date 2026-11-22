@@ -54,8 +54,8 @@ test("Utang jatuh tempo ≤12 bulan dikurangkan; utang jangka panjang tidak", ()
   const r = computeZakatMal({
     assets: [A({ type: "bank", value: 200_000_000 })],
     debts: [
-      { type: "utang", amount: 50_000_000, paid_amount: 10_000_000, currency: "IDR", due_date: "2027-03-01", status: "active" },
-      { type: "utang", amount: 300_000_000, currency: "IDR", due_date: "2035-01-01", status: "active" },
+      { type: "utang", amount: 50_000_000, paid_amount: 10_000_000, currency: "IDR", due_date: "2027-03-01", status: "unpaid" },
+      { type: "utang", amount: 300_000_000, currency: "IDR", due_date: "2035-01-01", status: "unpaid" },
       { type: "utang", amount: 9_000_000, currency: "IDR", status: "paid" },
     ],
     goldPrice: GOLD, rateMap: RATES, now,
@@ -66,7 +66,7 @@ test("Utang jatuh tempo ≤12 bulan dikurangkan; utang jangka panjang tidak", ()
 });
 
 test("Piutang lancar ikut dihitung (bisa dimatikan)", () => {
-  const args = { assets: [A({ type: "bank", value: 100_000_000 })], debts: [{ type: "piutang", amount: 40_000_000, currency: "IDR", status: "active" }], goldPrice: GOLD, rateMap: RATES };
+  const args = { assets: [A({ type: "bank", value: 100_000_000 })], debts: [{ type: "piutang", amount: 40_000_000, currency: "IDR", status: "unpaid" }], goldPrice: GOLD, rateMap: RATES };
   assert.equal(computeZakatMal(args).reachesNisab, true);
   assert.equal(computeZakatMal({ ...args, includeReceivables: false }).reachesNisab, false);
 });

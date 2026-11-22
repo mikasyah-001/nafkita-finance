@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useAssetSnapshots, useMe, useUserCurrencies, useRateMap } from "@/hooks/useFinance";
-import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType, formatAxis, assetMarketValue, assetCost, assetGain } from "@/lib/finance";
+import { formatRupiah, formatNumber, assetTypeLabels, colorMap, formatMoneyShort, convertTo, formatDate, hasRate, isGoldType, formatAxis, assetMarketValue, assetGain, portfolioGain } from "@/lib/finance";
 import { toast } from "sonner";
 import { Coins, TrendingUp, TrendingDown, Loader2, RefreshCw, BarChart3, PieChart as PieChartIcon, ExternalLink, Layers, Globe, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
@@ -16,7 +16,7 @@ import PageHeader from "@/components/PageHeader";
 export default function AssetDashboard() {
   const { data: allAssets = [] } = useAssets();
   const { data: snapshots = [], refetch } = useAssetSnapshots();
-  const { scope, setScope } = useScope();
+  const { scope } = useScope();
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
   const { map: rateMap, date: rateDate, source: rateSource } = useRateMap();
@@ -53,13 +53,8 @@ export default function AssetDashboard() {
 
   const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
-  const emasValue = emasAssets.reduce((s, a) => s + displayValue(a), 0);
 
-  const investasiAssets = scopedAssets.filter((a) => a.type === "investasi");
-  const investasiValue = investasiAssets.reduce((s, a) => s + displayValue(a), 0);
-  const investasiPurchase = investasiAssets.reduce((s, a) => s + convertTo(a.purchase_price || 0, (a.currency || "IDR"), displayCurrency, rateMap), 0);
 
-  const nonEmasValue = scopedAssets.filter((a) => !isGoldType(a.type)).reduce((s, a) => s + displayValue(a), 0);
 
 
   const totalCurrent = scopedAssets.reduce((s, a) => s + displayValue(a), 0);
@@ -68,10 +63,11 @@ export default function AssetDashboard() {
   // Pertumbuhan hanya untuk aset yang punya harga beli. Sebelumnya nilai
   // SEMUA aset (termasuk tabungan bank tanpa harga beli) dibandingkan dengan
   // harga beli sebagian aset, sehingga muncul angka semu seperti +133%.
-  const withPurchase = scopedAssets.filter((a) => (a.purchase_price || 0) > 0);
-  const totalPurchase = withPurchase.reduce((s, a) => s + convertTo(assetCost(a), (a.currency || "IDR"), displayCurrency, rateMap), 0);
-  const purchasedCurrent = withPurchase.reduce((s, a) => s + displayValue(a), 0);
-  const totalGrowth = totalPurchase > 0 ? ((purchasedCurrent - totalPurchase) / totalPurchase) * 100 : 0;
+  // Untung/rugi: per aset dalam mata uangnya sendiri, lalu dikonversi dengan
+  // kurs masing-masing dan dijumlahkan (portfolioGain — satu logika dengan halaman Aset).
+  const totalGain = portfolioGain(scopedAssets, displayCurrency, { goldPrice: goldPriceNum, rateMap });
+  const totalPurchase = totalGain.cost;
+  const totalGrowth = totalGain.pct;
 
   const allocColors = { "Tabungan/Bank": "#3b82f6", "Uang Tunai": "#157A5A", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
   const allocation = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
@@ -87,12 +83,8 @@ export default function AssetDashboard() {
       const value = list.reduce((s, a) => s + displayValue(a), 0);
       // Pertumbuhan hanya dari aset yang untung/ruginya bisa dihitung (ada harga
       // beli; emas butuh harga acuan) — aset lain tidak ikut dibandingkan.
-      const conv = (v, a) => (isConsolidated ? convertTo(v, (a.currency || "IDR"), displayCurrency, rateMap) : v);
-      const gains = list.map((a) => ({ a, g: assetGain(a, goldPriceNum, rateMap) })).filter((x) => x.g.available);
-      const purchase = gains.reduce((s, x) => s + conv(x.g.cost, x.a), 0);
-      const gained = gains.reduce((s, x) => s + conv(x.g.value, x.a), 0);
-      const growth = purchase > 0 ? ((gained - purchase) / purchase) * 100 : 0;
-      return { type, value, purchase, growth, count: list.length };
+      const g = portfolioGain(list, displayCurrency, { goldPrice: goldPriceNum, rateMap });
+      return { type, value, purchase: g.cost, growth: g.pct, count: list.length };
     })
     .filter((t) => t.count > 0);
 
@@ -213,7 +205,7 @@ export default function AssetDashboard() {
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words">{formatMoneyShort(totalCurrent, displayCurrency)}</p>
         <div className="flex gap-4 mt-2 text-xs">
           <div>
-            <p className="opacity-80">Nilai beli ({withPurchase.length} aset)</p>
+            <p className="opacity-80">Nilai beli ({totalGain.count} aset)</p>
             <p className="font-semibold tabular-nums">{formatMoneyShort(totalPurchase, displayCurrency)}</p>
           </div>
           <div>
@@ -282,10 +274,11 @@ export default function AssetDashboard() {
             const meta = assetTypeLabels[a.type] || assetTypeLabels.lainnya;
             const cm = colorMap[meta.color] || colorMap.slate;
             const curVal = displayValue(a);
-            const hasPurchase = a.purchase_price && a.purchase_price > 0;
-            const totalPurchase = hasPurchase ? (a.quantity && (isGoldType(a.type) || a.type === "tanah") ? a.purchase_price * a.quantity : a.purchase_price) : 0;
-            const gain = hasPurchase ? curVal - totalPurchase : 0;
-            const gainPct = hasPurchase && totalPurchase > 0 ? (gain / totalPurchase) * 100 : 0;
+            // Persentase dihitung dalam mata uang aset itu sendiri (tidak tercampur kurs).
+            const ag = assetGain(a, goldPriceNum, rateMap);
+            const hasPurchase = ag.available;
+            const gain = ag.gain;
+            const gainPct = ag.pct;
             return (
               <div key={a.id} className="surface p-3.5 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cm.bg}`}>

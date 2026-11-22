@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
-import { useSavingsGoals, useAssets, useRefresh } from "@/hooks/useFinance";
+import { useSavingsGoals, useAssets, useRefresh, useMe } from "@/hooks/useFinance";
+import { useScope } from "@/lib/ScopeContext";
+import ScopeToggle from "@/components/ScopeToggle";
+import { goalsInScope, goalsSummary } from "@/lib/savingsGoal";
 import { base44 } from "@/api/base44Client";
 import { Target, Plus } from "lucide-react";
 import { formatMoneyShort } from "@/lib/finance";
@@ -18,7 +21,11 @@ const filters = [
 ];
 
 export default function SavingsGoals() {
-  const { data: goals = [], isLoading } = useSavingsGoals();
+  const { data: allGoals = [], isLoading } = useSavingsGoals();
+  const { data: me } = useMe();
+  const { scope } = useScope();
+  // Ikut pilihan Bersama/Pribadi, sama dengan Beranda & Dompet.
+  const goals = useMemo(() => goalsInScope(allGoals, { scope, meId: me?.id }), [allGoals, scope, me?.id]);
   const { data: assets = [] } = useAssets();
   const progressOf = useGoalProgress();
   const refresh = useRefresh();
@@ -41,13 +48,8 @@ export default function SavingsGoals() {
   // Ringkasan tampilan saja: total terkumpul vs target untuk target aktif, per mata uang.
   const summary = useMemo(() => {
     const active = goals.filter((g) => (g.status || "active") === "active");
-    const byCur = {};
-    active.forEach((g) => {
-      const c = g.currency || "IDR";
-      byCur[c] = byCur[c] || { current: 0, target: 0 };
-      byCur[c].current += progressOf(g).current;
-      byCur[c].target += Number(g.target_amount) || 0;
-    });
+    // Aset yang dipakai beberapa target (data lama) hanya dihitung sekali.
+    const byCur = goalsSummary(active, progressOf);
     const completed = goals.filter((g) => g.status === "completed").length;
     return { activeCount: active.length, completed, byCur: Object.entries(byCur) };
   }, [goals, progressOf]);
@@ -78,6 +80,8 @@ export default function SavingsGoals() {
           </button>
         </>}
       />
+
+      <ScopeToggle className="mb-4" />
 
       {/* Ringkasan */}
       {isLoading ? <CardSkeleton className="h-32 mb-5" /> : (

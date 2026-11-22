@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { deleteAssetFlow } from "@/lib/assetDelete";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
 import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, canonicalBrokerFor, canonicalBroker, placeSuggestions, withSavedBank, BANK_LIKE_TYPES, DEFAULT_BANKS } from "@/lib/finance";
@@ -31,6 +32,7 @@ const empty = {
 
 export default function AssetForm({ asset, onClose }) {
   const refresh = useRefresh();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!asset;
   const [form, setForm] = useState(() =>
@@ -170,16 +172,39 @@ export default function AssetForm({ asset, onClose }) {
     </FieldRow>
   );
 
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      if (!(await deleteAssetFlow(asset))) { setSaving(false); return; }
+      refresh();
+      toast.success("Aset dihapus");
+      onClose();
+      // Bila form dibuka dari halaman detail aset yang kini sudah tidak ada.
+      if (window.location.pathname === `/aset/${asset.id}`) navigate("/aset", { replace: true });
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Gagal menghapus aset");
+      setSaving(false);
+    }
+  };
+
   return (
     <FormSheet
       title={isEdit ? "Edit aset" : "Tambah aset"}
       subtitle="Catat tabungan, dompet tunai, emas, investasi, dan properti keluarga."
       onClose={onClose}
       footer={
-        <button onClick={handleSave} disabled={saving} className="w-full btn-primary">
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          {saving ? "Menyimpan..." : isEdit ? "Simpan perubahan" : "Simpan aset"}
-        </button>
+        <div className="flex gap-2">
+          {/* Hapus juga bisa dari form edit (alurnya sama dengan halaman detail aset) */}
+          {isEdit && asset.created_by_id === me?.id && (
+            <button type="button" onClick={handleDelete} disabled={saving} aria-label="Hapus aset" className="btn-secondary px-4 text-destructive">
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+          <button onClick={handleSave} disabled={saving} className="flex-1 btn-primary">
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+            {saving ? "Menyimpan..." : isEdit ? "Simpan perubahan" : "Simpan aset"}
+          </button>
+        </div>
       }
     >
       {/* Jenis */}

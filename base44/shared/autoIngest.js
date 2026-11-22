@@ -163,3 +163,21 @@ export function keywordCategory(merchant, categoryNames = null) {
   }
   return null;
 }
+
+// Pembayaran Apple Pay yang kemungkinan SUDAH dicatat manual: transaksi
+// pengeluaran milik pengguna dengan nominal & mata uang sama, dalam ±hours
+// jam, dan (bila keduanya punya rekening) rekening sama. Merchant tidak wajib
+// sama — nama yang diketik manual sering berbeda dengan nama dari Wallet.
+export function findManualTwin(candidate, txs = [], { hours = 3, assetId = null, currency = null } = {}) {
+  const t = new Date(candidate.occurred_at).getTime();
+  const amt = Number(candidate.amount) || 0;
+  if (!(amt > 0) || Number.isNaN(t)) return null;
+  return txs.find((x) => {
+    if (x.type !== "expense" || x.transfer_pair_id) return false;
+    if (Math.abs((Number(x.amount) || 0) - amt) > 0.005) return false;
+    if (currency && String(x.currency || "IDR").toUpperCase() !== String(currency).toUpperCase()) return false;
+    if (assetId && x.linked_asset_id && x.linked_asset_id !== assetId) return false;
+    const xt = new Date(x.date).getTime();
+    return !Number.isNaN(xt) && Math.abs(xt - t) <= hours * 3600 * 1000;
+  }) || null;
+}

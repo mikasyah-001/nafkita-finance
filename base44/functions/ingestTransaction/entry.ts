@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   normalizeLabel, parseAmount, detectCurrency, parseOccurredAt, suggestCategory,
-  isDuplicate, reviewReason, extractToken, looksLikeToken, keywordCategory,
+  isDuplicate, reviewReason, extractToken, looksLikeToken, keywordCategory, findManualTwin,
 } from "../../shared/autoIngest.js";
 
 // Endpoint publik untuk "Catat Otomatis" — dipanggil Shortcuts iOS (pemicu
@@ -121,11 +121,18 @@ export default async function (req) {
 
     // Kategori: 1) riwayat merchant yang sama milik pengguna, 2) kamus merchant
     // umum (hanya bila kategorinya ada di daftar kategori pengguna).
+    // Riwayat pengeluaran pengguna: dipakai untuk saran kategori & cek
+    // "mungkin sudah dicatat manual" (Apple Pay + input manual = dobel).
+    let history = [];
+    try {
+      history = list(await db.Transaction.filter({ created_by_id: ownerId, type: "expense" }, "-date", 300));
+    } catch (e) { console.error("[ingestTransaction] riwayat", e?.message); }
+    const manualTwin = findManualTwin(candidate, history, { currency, assetId: asset.id });
+
     let suggested = null;
     let suggestedSource = null;
     if (merchant) {
       try {
-        const history = list(await db.Transaction.filter({ created_by_id: ownerId, type: "expense" }, "-date", 300));
         suggested = suggestCategory(merchant, history);
         if (suggested) suggestedSource = "history";
         else {
@@ -154,7 +161,9 @@ export default async function (req) {
       occurred_at: occurredAt,
       suggested_category: suggested || undefined,
       suggested_source: suggestedSource || undefined,
-      review_reason: (possibleDup ? DUP_REASON : reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency })) || undefined,
+      review_reason: (possibleDup ? DUP_REASON
+        : manualTwin ? `Mungkin sudah dicatat manual: "${manualTwin.merchant || manualTwin.category || "transaksi"}" dengan nominal sama — abaikan bila dobel`
+        : reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency })) || undefined,
       source: "apple_pay",
       status: "new",
     });

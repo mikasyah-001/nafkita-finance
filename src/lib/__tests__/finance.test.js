@@ -490,3 +490,20 @@ test("spendingPace: extraSpend mensimulasikan pembelian; tanpa data → null", (
   assert.equal(spendingPace({ ...base, extraSpend: 1_500_000 }).perDay, 50_000);
   assert.equal(spendingPace({ now: new Date() }), null);
 });
+
+test("untung/rugi gabungan: per aset, lalu dikonversi dengan kurs masing-masing", async () => {
+  const { portfolioGain } = await import("../finance.js");
+  const rateMap = { SAR: 4250 }; // 1 SAR = 4.250 IDR
+  const assets = [
+    { type: "investasi", currency: "IDR", value: 12_000_000, purchase_price: 10_000_000 },  // +2 jt
+    { type: "investasi", currency: "SAR", value: 1_100, purchase_price: 1_000 },             // +100 SAR
+    { type: "bank", currency: "IDR", value: 5_000_000 },                                     // tanpa harga beli → tidak ikut
+  ];
+  const r = portfolioGain(assets, "IDR", { rateMap });
+  assert.equal(r.count, 2);
+  assert.equal(Math.round(r.cost), 10_000_000 + 1_000 * 4250);
+  assert.equal(Math.round(r.gain), 2_000_000 + 100 * 4250);
+  // Persentase SAR sendiri tetap 10% (tidak tercampur nilai IDR)
+  const sar = portfolioGain([assets[1]], "SAR", { rateMap });
+  assert.equal(Math.round(sar.pct), 10);
+});

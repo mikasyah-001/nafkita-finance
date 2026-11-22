@@ -214,7 +214,7 @@ function InboxTab() {
             {it.review_reason && (
               <div className="mt-3 rounded-2xl bg-warning/10 text-warning px-3 py-2 text-xs flex gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{it.review_reason}{it.raw_amount ? ` — terkirim: "${it.raw_amount}"` : ""}. Periksa nominal sebelum menyimpan.</span>
+                <span>{it.review_reason}{/^Nominal/.test(it.review_reason) ? `${it.raw_amount ? ` — terkirim: "${it.raw_amount}"` : ""}. Periksa nominal sebelum menyimpan.` : ""}</span>
               </div>
             )}
 

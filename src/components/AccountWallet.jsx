@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ArrowRight, ChevronUp, ChevronDown, Landmark, Banknote, Plus, Users, Lock, SlidersHorizontal, Check } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useTransactions, useCategories, useMe } from "@/hooks/useFinance";
 import { maskAccount } from "@/lib/bankAccount";
-import { walletAccounts, walletCandidates, accountActivity, wrapIndex } from "@/lib/wallet";
+import { walletAccounts, walletCandidates, accountActivity } from "@/lib/wallet";
+import CardStack, { useCardStack } from "@/components/CardStack";
 import Money from "@/components/Money";
 import TransactionItem from "@/components/TransactionItem";
 import FormSheet from "@/components/FormSheet";
@@ -35,28 +35,8 @@ const cardBg = (i) => {
   return `radial-gradient(80% 60% at 100% 0%, hsl(var(--gold) / 0.20), transparent 60%), linear-gradient(155deg, hsl(${a}), hsl(${b}))`;
 };
 const STORE_KEY = "nafkita.wallet.selected";
-const SWIPE_PX = 36;
-const CARD_H = 176;
-const PEEK = 9;
-// Pegas teredam penuh: gerak lembut tanpa memantul.
-const SPRING = { type: "spring", stiffness: 260, damping: 32, mass: 1 };
-
 const readSaved = () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } };
 export const saveSelected = (id) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* penyimpanan diblokir */ } };
-
-// Posisi kartu menurut jaraknya dari kartu terdepan (d = 0). Kartu yang
-// terlihat selalu buram penuh (tanpa fase transparan = tanpa kedip). Kartu
-// tersembunyi menunggu tepat di belakang kartu ke-3, jadi tidak pernah
-// melintas di area yang terlihat.
-function slot(d) {
-  if (d === 0) return { y: 0, scale: 1, opacity: 1, zIndex: 30 };
-  if (d <= 2) return { y: d * PEEK, scale: 1 - d * 0.045, opacity: 1, zIndex: 30 - d };
-  // Sama persis dengan posisi kartu ke-3 tapi di belakangnya → tertutup penuh,
-  // tanpa animasi opasitas sama sekali.
-  return { y: 2 * PEEK, scale: 0.91, opacity: 1, zIndex: 1 };
-}
-// Di luar tepi atas tumpukan (terpotong rapi oleh wadah).
-const OUT = { y: -(CARD_H + 24), scale: 1, opacity: 1, zIndex: 40 };
 
 function StarPattern({ id }) {
   return (
@@ -125,35 +105,11 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
   const accounts = useMemo(() => walletAccounts(assets, { scope, meId: me?.id, hiddenIds }), [assets, scope, me?.id, hiddenIds]);
   const [selectedId, setSelectedId] = useState(readSaved);
 
-  const found = accounts.findIndex((a) => a.id === selectedId);
-  const idx = found >= 0 ? found : 0;
-  const current = accounts[idx];
-  const n = accounts.length;
+  const stack = useCardStack(accounts, selectedId, setSelectedId);
+  const { n, idx, current, go } = stack;
 
   useEffect(() => { if (current?.id) saveSelected(current.id); }, [current?.id]);
   const activity = useMemo(() => (current ? accountActivity(transactions, current.id, { recent }) : null), [transactions, current, recent]);
-
-  // Gerak kartu fisik:
-  //  - maju (geser ke atas): kartu depan meluncur keluar lewat tepi atas, lalu
-  //    turun di belakang tumpukan; kartu berikutnya naik ke depan.
-  //  - mundur (geser ke bawah): kartu sebelumnya dipindah diam-diam ke atas
-  //    (di luar area terlihat), lalu turun menutup tumpukan.
-  const [leaving, setLeaving] = useState(null);
-  const [entering, setEntering] = useState(null); // { id, phase: "place" | "drop" }
-  const busy = !!leaving || !!entering;
-  // Pengaman: bila event selesai-animasi tidak datang, jangan sampai tombol terkunci.
-  useEffect(() => {
-    if (!leaving && !entering) return undefined;
-    const t = setTimeout(() => { setLeaving(null); setEntering(null); }, 900);
-    return () => clearTimeout(t);
-  }, [leaving, entering]);
-  const go = (step) => {
-    if (n < 2 || busy) return;
-    const target = accounts[wrapIndex(idx + step, n)];
-    if (step > 0) setLeaving(current.id);
-    else setEntering({ id: target.id, phase: "place" });
-    setSelectedId(target.id);
-  };
 
   if (isLoading) return null;
 
@@ -209,67 +165,18 @@ export default function AccountWallet({ scope = "shared", recent = 5 }) {
 
   const mine = current.created_by_id === me?.id;
   const cur = (current.currency || "IDR").toUpperCase();
-  const stackH = CARD_H + Math.min(n - 1, 2) * PEEK;
 
   return (
     <section className="mb-6" aria-labelledby="dompet-title">
       {header}
 
       {/* Lapisan gestur: geser vertikal di atas tumpukan kartu */}
-      {/* Wadah pemotong (40px ekstra untuk bayangan) TIDAK menangkap sentuhan,
-          agar tombol Masuk/Keluar/Transfer di bawahnya tetap bisa diketuk.
-          Gestur ditangani lapisan transparan seukuran tumpukan kartu saja. */}
-      <div
-        className="relative select-none overflow-hidden -mx-4 -mb-10 pointer-events-none"
-        style={{ height: stackH + 40 }}
-        role="group"
-        aria-roledescription="tumpukan kartu rekening"
-        aria-label={`${current.name}, kartu ${idx + 1} dari ${n}`}
-      >
-        {accounts.map((a, i) => {
-          const d = wrapIndex(i - idx, n);
-          let target = slot(d);
-          let transition = SPRING;
-          let onDone;
-          if (a.id === leaving) {
-            target = OUT;
-            onDone = () => setLeaving(null); // sudah di luar area terlihat → aman turun ke belakang
-          } else if (entering?.id === a.id) {
-            if (entering.phase === "place") {
-              target = OUT;
-              transition = { duration: 0 };
-              onDone = () => setEntering({ id: a.id, phase: "drop" });
-            } else {
-              target = { ...slot(0), zIndex: 40 };
-              onDone = () => setEntering(null);
-            }
-          }
-          return (
-            <motion.div
-              key={a.id}
-              className="absolute left-4 right-4 top-0 rounded-[26px] shadow-[0_18px_36px_-20px_rgba(0,0,0,0.55)]"
-              style={{ height: CARD_H, zIndex: target.zIndex, transformOrigin: "bottom center", willChange: "transform", pointerEvents: "none" }}
-              initial={false}
-              animate={{ y: target.y, scale: target.scale, opacity: target.opacity }}
-              transition={transition}
-              onAnimationComplete={onDone}
-              aria-hidden={d !== 0}
-            >
-              <WalletCard account={a} meId={me?.id} tone={tones[a.id] ?? 0} />
-            </motion.div>
-          );
-        })}
-        <motion.div
-          aria-hidden="true"
-          className="absolute left-4 right-4 top-0 pointer-events-auto cursor-grab active:cursor-grabbing"
-          style={{ height: stackH, zIndex: 50, touchAction: n > 1 ? "none" : "auto" }}
-          onPanEnd={(_, info) => {
-            if (n < 2) return;
-            if (info.offset.y < -SWIPE_PX || info.velocity.y < -400) go(1);
-            else if (info.offset.y > SWIPE_PX || info.velocity.y > 400) go(-1);
-          }}
-        />
-      </div>
+      <CardStack
+        stack={stack}
+        items={accounts}
+        ariaLabel={`${current.name}, kartu ${idx + 1} dari ${n}`}
+        renderCard={(a) => <WalletCard account={a} meId={me?.id} tone={tones[a.id] ?? 0} />}
+      />
 
       {mine ? (
         <div className="grid grid-cols-3 gap-2 mt-3.5">
@@ -359,7 +266,7 @@ function WalletSettingsSheet({ candidates, tones, hiddenIds, meId, onClose }) {
           );
         })}
       </ul>
-      <p className="text-xs text-muted-foreground">Rekening yang disembunyikan tetap ada di halaman Aset dan saldonya tetap dihitung. Rekening baru otomatis tampil.</p>
+      <p className="text-xs text-muted-foreground">Rekening yang disembunyikan tetap ada di halaman Aset dan saldonya tetap dihitung. Rekening baru otomatis tampil. Untuk menghapus rekening: buka Riwayat rekening → ikon pensil → tombol hapus.</p>
     </FormSheet>
   );
 }

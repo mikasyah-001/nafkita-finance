@@ -19,7 +19,7 @@ export default function More() {
   const { data: me } = useMe();
   const { partners } = usePartnership();
   const { scope } = useScope();
-  const { pace, currency, now, plan, summary } = useMonthPace({ scope });
+  const { pace, currency, now, plan, summary, ready } = useMonthPace({ scope });
   const [editPlan, setEditPlan] = useState(false);
   const { data: approvals } = usePendingApprovals();
   const { data: bills = [] } = useRecurringBills();
@@ -59,7 +59,7 @@ export default function More() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {pace && <p className="text-sm font-bold tabular-nums"><Money value={pace.budget} currency={currency} format="short" /></p>}
-            <button type="button" onClick={() => setEditPlan(true)} className="btn-secondary btn-sm h-8 px-3"><Pencil className="w-3.5 h-3.5" /> {pace ? "Ubah" : "Atur"}</button>
+            <button type="button" onClick={() => setEditPlan(true)} disabled={!ready} className="btn-secondary btn-sm h-8 px-3 disabled:opacity-50"><Pencil className="w-3.5 h-3.5" /> {pace ? "Ubah" : "Atur"}</button>
           </div>
         </div>
         {pace ? (
@@ -83,7 +83,7 @@ export default function More() {
         )}
         <Link to="/anggaran" className="mt-2.5 text-xs font-medium text-primary inline-flex items-center gap-1">Batas per kategori <ArrowRight className="w-3 h-3" /></Link>
       </section>
-      {editPlan && <PlanEditSheet plan={plan} period={`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`} scope={scope} currency={currency} onClose={() => setEditPlan(false)} />}
+      {editPlan && <PlanEditSheet plan={plan} period={`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`} scope={scope} currency={currency} actualIncome={summary.income} onClose={() => setEditPlan(false)} />}
 
       {moreGroups.map((g) => (
         <section key={g.title} className="mb-5">

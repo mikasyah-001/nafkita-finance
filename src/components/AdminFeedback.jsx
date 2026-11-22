@@ -35,7 +35,14 @@ export default function AdminFeedback({ initialId = null }) {
     return c;
   }, [items]);
   const shown = items.filter((f) => (status === "all" || (f.status || "open") === status) && (type === "all" || f.type === type));
-  const current = items.find((f) => f.id === openId) || null;
+  // Tautan dari notifikasi bisa menunjuk laporan di luar 300 terbaru → ambil per ID.
+  const inList = items.find((f) => f.id === openId) || null;
+  const { data: fetched = null } = useQuery({
+    queryKey: ["adminFeedback", "one", openId],
+    enabled: !!openId && !isLoading && !inList,
+    queryFn: () => base44.entities.Feedback.get(openId).catch(() => null),
+  });
+  const current = inList || fetched;
 
   return (
     <div>
@@ -143,11 +150,7 @@ function FeedbackDetail({ fb, onClose }) {
       {/* Pesan */}
       <section className="surface p-4">
         <p className="text-sm whitespace-pre-line leading-relaxed">{fb.message}</p>
-        {fb.screenshot_url && (
-          <a href={fb.screenshot_url} target="_blank" rel="noreferrer" className="block mt-3">
-            <img src={fb.screenshot_url} alt="Tangkapan layar" className="max-h-72 rounded-xl border border-border object-contain" />
-          </a>
-        )}
+        {fb.screenshot_url && <Attachment url={fb.screenshot_url} />}
         {fb.contact && <p className="text-xs text-muted-foreground mt-3">Kontak lain: {fb.contact}</p>}
       </section>
 
@@ -184,5 +187,29 @@ function FeedbackDetail({ fb, onClose }) {
           className="w-full rounded-2xl border border-border bg-card px-3.5 py-3 text-sm outline-none focus:ring-2 ring-primary/30 resize-none" />
       </section>
     </FormSheet>
+  );
+}
+
+// Lampiran tidak dimuat otomatis: URL berasal dari pengirim, sehingga memuat
+// gambar dari host tak dikenal bisa membocorkan IP admin. Admin mengetuk
+// untuk memuat; host unggahan Base44 ditandai sebagai tepercaya.
+const TRUSTED_HOSTS = [/\.base44\.app$/i, /\.base44\.com$/i, /\.supabase\.co$/i];
+function Attachment({ url }) {
+  const [show, setShow] = useState(false);
+  let host = "";
+  try { host = new URL(url).hostname; } catch { /* abaikan */ }
+  const trusted = TRUSTED_HOSTS.some((re) => re.test(host));
+  if (!show) {
+    return (
+      <button type="button" onClick={() => setShow(true)} className="mt-3 w-full rounded-xl border border-dashed border-border px-3 py-3 text-left text-xs flex items-center gap-2 active:bg-muted">
+        <ImageIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="flex-1 min-w-0"><span className="font-semibold text-foreground">Tampilkan lampiran</span><span className="block text-muted-foreground truncate">{host || "tautan tidak valid"}{trusted ? " · unggahan aplikasi" : " · host luar"}</span></span>
+      </button>
+    );
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer" className="block mt-3">
+      <img src={url} alt="Tangkapan layar" referrerPolicy="no-referrer" className="max-h-72 rounded-xl border border-border object-contain" />
+    </a>
   );
 }

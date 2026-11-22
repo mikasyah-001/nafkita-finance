@@ -33,7 +33,8 @@ export default function MonthlyPlanCard({ period, year, month, scope, currency }
       setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
       toast.success("Rencana disimpan");
     } catch (e) {
-      toast.error(e?.message === "Nominal rencana tidak valid" ? e.message : "Gagal menyimpan rencana");
+      toast.error(e?.message === "Nominal rencana tidak valid" || e?.code === "not_owner" ? e.message : "Gagal menyimpan rencana");
+      if (e?.code === "not_owner") setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
     }
   };
 

@@ -1,56 +1,69 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { roundForCurrency } from "../../shared/assetAdjust.ts";
+import { recordAssetMutation } from "../../shared/assetMutation.ts";
+import { canDeleteTransfer } from "../../shared/transferRules.js";
 
-// Menghapus sepasang transaksi transfer dan membalik penyesuaian saldo aset.
-// Menerima transaction_id salah satu leg transfer; akan menemukan pasangannya
-// via transfer_pair_id dan menghapus keduanya.
+// Menghapus sepasang transaksi transfer dan mengembalikan saldo KEDUA rekening
+// (termasuk rekening pasangan — lewat service role). Boleh dilakukan oleh
+// pembuat transfer atau pemilik salah satu rekening (mis. pasangan penerima).
+// Tiap sisi dikembalikan dalam mata uangnya sendiri (aman untuk beda kurs).
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     let me;
-    try { me = await base44.auth.me(); } catch {}
+    try { me = await base44.auth.me(); } catch { /* tanpa sesi */ }
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const { transaction_id } = body;
-    if (!transaction_id)
-      return Response.json({ error: "transaction_id wajib diisi" }, { status: 400 });
+    if (!transaction_id) return Response.json({ error: "transaction_id wajib diisi" }, { status: 400 });
 
-    const tx = await base44.entities.Transaction.get(transaction_id);
+    const svc = base44.asServiceRole.entities;
+    const tx = await svc.Transaction.get(transaction_id).catch(() => null);
     if (!tx) return Response.json({ error: "tx_not_found" }, { status: 404 });
-    if (tx.created_by_id !== me.id)
-      return Response.json({ error: "forbidden" }, { status: 403 });
-    if (!tx.transfer_pair_id)
-      return Response.json({ error: "bukan_transfer" }, { status: 400 });
+    if (!tx.transfer_pair_id) return Response.json({ error: "bukan_transfer" }, { status: 400 });
 
     const pairId = tx.transfer_pair_id;
+    const res = await svc.Transaction.filter({ transfer_pair_id: pairId }, "-created_date", 10);
+    const legs = (res?.items || res || []).filter((t) => t.transfer_pair_id === pairId);
 
-    // Cari pasangan transfer (leg lain dengan transfer_pair_id yang sama).
-    const pair = await base44.entities.Transaction.filter({ transfer_pair_id: pairId });
-    const legs = (pair || []).filter((t) => t.transfer_pair_id === pairId);
-
-    // Balik penyesuaian saldo aset untuk setiap leg.
+    const assetsById = {};
     for (const leg of legs) {
-      if (leg.linked_asset_id) {
-        try {
-          const asset = await base44.entities.Asset.get(leg.linked_asset_id);
-          if (asset) {
-            // Balik efek: income -> kurangi, expense -> tambah.
-            const reverse = leg.type === "income" ? -(leg.amount) : leg.amount;
-            const newVal = roundForCurrency((asset.value || 0) + reverse, asset.currency);
-            await base44.entities.Asset.update(leg.linked_asset_id, { value: newVal });
-          }
-        } catch (e) {
-          console.error("[deleteTransferPair] rollback asset failed", leg.linked_asset_id, e);
-        }
+      if (leg.linked_asset_id && !assetsById[leg.linked_asset_id])
+        assetsById[leg.linked_asset_id] = await svc.Asset.get(leg.linked_asset_id).catch(() => null);
+    }
+    if (!canDeleteTransfer(legs, assetsById, me.id))
+      return Response.json({ error: "forbidden", message: "Hanya pengirim atau pemilik rekening yang bisa menghapus transfer ini" }, { status: 403 });
+
+    // Kembalikan saldo tiap sisi (keluar → tambah, masuk → kurangi).
+    const restored = [];
+    try {
+      for (const leg of legs) {
+        const asset = assetsById[leg.linked_asset_id];
+        if (!asset) continue;
+        const reverse = leg.type === "income" ? -(Number(leg.amount) || 0) : (Number(leg.amount) || 0);
+        const prev = Number(asset.value) || 0;
+        const next = roundForCurrency(prev + reverse, asset.currency);
+        await svc.Asset.update(asset.id, { value: next });
+        asset.value = next;
+        restored.push({ asset, prev, next, leg });
       }
+    } catch (e) {
+      for (const r of restored.reverse()) { try { await svc.Asset.update(r.asset.id, { value: r.prev }); } catch { /* biarkan */ } }
+      return Response.json({ error: "restore_failed", message: "Gagal mengembalikan saldo, transfer tidak dihapus" }, { status: 500 });
     }
 
-    // Hapus kedua leg.
     for (const leg of legs) {
-      try { await base44.entities.Transaction.delete(leg.id); } catch (e) {
-        console.error("[deleteTransferPair] delete tx failed", leg.id, e);
-      }
+      try { await svc.Transaction.delete(leg.id); } catch (e) { console.error("[deleteTransferPair] hapus", leg.id, e?.message); }
+    }
+    for (const r of restored) {
+      try {
+        await recordAssetMutation(base44, {
+          asset_id: r.asset.id, previous_value: r.prev, new_value: r.next, change_type: "transfer", source_ref: pairId,
+          source_description: `Transfer dibatalkan: ${r.leg.merchant || ""}`, actor_id: me.id, actor_name: me.full_name || me.email,
+          currency: r.asset.currency || "IDR",
+        });
+      } catch { /* jejak opsional */ }
     }
 
     return Response.json({ ok: true, deleted: legs.length });

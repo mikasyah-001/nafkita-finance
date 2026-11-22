@@ -3,6 +3,7 @@
 // Stateful di memori: simpan/transfer/setujui benar-benar mengubah data,
 // sehingga alur input bisa diuji end-to-end. Reset saat halaman dimuat ulang.
 import { defaultCategories } from "@/lib/finance";
+import { planTransfer } from "../base44/shared/transferRules.js";
 
 const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
 try { const c = localStorage.getItem("qaDefaultCur"); if (c) ME.default_currency = c; } catch { /* abaikan */ }
@@ -43,6 +44,13 @@ const db = {
   ],
   approvals: [{ id: "ap1", transaction_id: "tx-pending", requester_name: "Siti", amount: 3200000, currency: "IDR", status: "pending" }],
 };
+// Mode QA pasangan (opt-in): localStorage.qaPartner = "1" → Siti (u2) aktif + rekening bersamanya.
+let QA_PARTNER = false;
+try { QA_PARTNER = !!localStorage.getItem("qaPartner"); } catch { /* abaikan */ }
+if (QA_PARTNER) {
+  db.assets.push({ id: "p1a", name: "BSI Siti", type: "bank", value: 2_000_000, currency: "IDR", visibility: "shared", created_by_id: "u2" });
+  db.assets.push({ id: "p1b", name: "Rahasia Siti", type: "bank", value: 9_000_000, currency: "IDR", visibility: "private", created_by_id: "u2" });
+}
 const ym = `${Y}-${String(M + 1).padStart(2, "0")}`;
 const DATA = {
   Category: defaultCategories.map((c) => ({ id: id(), created_by_id: "u1", ...c })),
@@ -70,6 +78,7 @@ const DATA = {
     { id: "in4", owner_id: "u1", label: "visa-debit", asset_id: "a1", amount: 45000, currency: "IDR", merchant: "Indomaret Point", occurred_at: d(13, 0, 19), suggested_category: "Belanja", suggested_source: "keyword", status: "new" },
   ],
 };
+if (QA_PARTNER) DATA.Partnership = [{ id: "pp1", inviter_id: "u1", invitee_id: "u2", status: "active", created_by_id: "u1" }];
 // Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.
 // Simulasi jaringan lambat untuk QA: localStorage.qaLag = "400" (ms).
 const lag = (label = "") => { try { if (localStorage.getItem("qaTrace")) console.log("REQ", Math.round(performance.now()), label); } catch { /* abaikan */ } let ms = 0; try { ms = Number(localStorage.getItem("qaLag")) || 0; } catch { /* abaikan */ } return ms ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve(); };
@@ -127,7 +136,7 @@ const FN = {
     my_requests: [],
   }),
   listExchangeRates: () => ({ rates: [{ base_currency: "SAR", quote_currency: "IDR", rate: 4250 }, { base_currency: "USD", quote_currency: "IDR", rate: 16100 }] }),
-  getPartnerProfile: () => ({ partner: null }),
+  getPartnerProfile: () => ({ partner: QA_PARTNER ? { id: "u2", full_name: "Siti Aminah", email: "siti@contoh.id" } : null }),
   // ── Mutasi ──
   manageAutoIngest: (args) => {
     const L = DATA.CardLabel, I = DATA.IncomingTransaction, D = DATA.IngestDevice;
@@ -168,13 +177,16 @@ const FN = {
     db.tx = db.tx.filter((x) => x.transfer_pair_id !== t.transfer_pair_id);
     return { ok: true };
   },
-  saveTransfer: ({ from_asset_id, to_asset_id, amount, currency, date }) => {
+  // Meniru backend: aturan sama (shared/transferRules.js), tiap sisi dalam mata uangnya.
+  saveTransfer: ({ from_asset_id, to_asset_id, amount, received_amount, date, visibility }) => {
     const from = db.assets.find((a) => a.id === from_asset_id), to = db.assets.find((a) => a.id === to_asset_id);
-    from.value -= amount; to.value += amount;
+    const plan = planTransfer({ from, to, meId: "u1", partnerId: QA_PARTNER ? "u2" : null, amount, receivedAmount: received_amount, visibility });
+    if (plan.error) return { error: "invalid_transfer", message: plan.error };
+    from.value -= plan.amount; to.value += plan.received;
     const pair = id(), merchant = `${from.name} → ${to.name}`;
-    db.tx.push(T({ type: "expense", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: from_asset_id }));
-    db.tx.push(T({ type: "income", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: to_asset_id }));
-    return { ok: true };
+    db.tx.push(T({ type: "expense", amount: plan.amount, currency: plan.fromCur, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: from_asset_id, visibility: plan.outVisibility }));
+    db.tx.push(T({ type: "income", amount: plan.received, currency: plan.toCur, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: to_asset_id, visibility: plan.inVisibility }));
+    return { ok: true, to_partner: plan.toPartner };
   },
   approveTransaction: ({ approval_id }) => {
     const a = db.approvals.find((x) => x.id === approval_id); a.status = "approved";

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -53,7 +53,7 @@ function CopyButton({ text, label = "Salin" }) {
     catch { toast.error("Gagal menyalin — tekan lama teks untuk menyalin manual"); }
   };
   return (
-    <button type="button" onClick={copy} className="btn-secondary btn-sm shrink-0" aria-label={`${label}: ${text.slice(0, 20)}`}>
+    <button type="button" onClick={copy} className="btn-secondary btn-sm shrink-0" aria-label={label}>
       {done ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {done ? "Tersalin" : label}
     </button>
   );
@@ -280,7 +280,7 @@ function ConnectTab() {
   const { data: assets = [] } = useAssets();
   const invalidate = useInvalidate();
   const [deviceSheet, setDeviceSheet] = useState(false);
-  const [newToken, setNewToken] = useState(null);
+  const [setupToken, setSetupToken] = useSetupToken();
   const [cardSheet, setCardSheet] = useState(null); // null | {} | kartu
 
   const ownAssets = useMemo(
@@ -373,15 +373,24 @@ function ConnectTab() {
         )}
       </section>
 
-      <SetupGuide hasToken={activeDevices.length > 0} exampleLabel={cards.find((c) => c.status === "active" && c.wallet_label)?.wallet_label} />
+      <SetupGuide
+        hasToken={activeDevices.length > 0}
+        token={setupToken}
+        onClearToken={() => setSetupToken(null)}
+        onNewToken={() => setDeviceSheet(true)}
+        exampleLabel={cards.find((c) => c.status === "active" && c.wallet_label)?.wallet_label}
+      />
 
       {deviceSheet && (
         <DeviceSheet
           onClose={() => setDeviceSheet(false)}
-          onCreated={(token) => { setDeviceSheet(false); setNewToken(token); invalidate(); }}
+          onCreated={(token) => {
+            setDeviceSheet(false); setSetupToken(token); invalidate();
+            // Langsung ke panduan: token & langkah pemasangan tampil di tempat yang sama.
+            setTimeout(() => document.getElementById("ai-guide")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+          }}
         />
       )}
-      {newToken && <TokenSheet token={newToken} onClose={() => setNewToken(null)} />}
       {cardSheet && (
         <CardSheet
           initial={cardSheet}
@@ -403,7 +412,7 @@ function DeviceSheet({ onClose, onCreated }) {
     catch (e) { toast.error(msg(e, "Gagal membuat token")); setSaving(false); }
   };
   return (
-    <FormSheet title="Tambah iPhone" subtitle="Token dibuat sekali & hanya ditampilkan sekarang" onClose={onClose}
+    <FormSheet title="Tambah iPhone" subtitle="Token tampil di panduan pemasangan, bisa disalin sambil mengikuti langkahnya" onClose={onClose}
       footer={<button type="button" className="btn-primary w-full" disabled={saving || !name.trim()} onClick={submit}>{saving ? "Membuat…" : "Buat token"}</button>}>
       <FieldGroup>
         <FieldRow icon={Smartphone} label="Nama perangkat" htmlFor="ai-device-name">
@@ -414,50 +423,84 @@ function DeviceSheet({ onClose, onCreated }) {
   );
 }
 
-function TokenSheet({ token, onClose }) {
-  const url = endpointUrl();
+// Token baru disimpan sementara di sesi tab ini (30 menit) agar bisa disalin
+// berulang sambil bolak-balik ke app Pintasan. Tidak pernah dikirim ke server
+// lagi & hilang saat tab ditutup, kedaluwarsa, atau "Selesai" ditekan.
+const SETUP_KEY = "nafkita.ingest.setupToken";
+const SETUP_TTL_MS = 30 * 60 * 1000;
+function readSetupToken() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(SETUP_KEY) || "null");
+    return v && v.exp > Date.now() ? v : null;
+  } catch { return null; }
+}
+function useSetupToken() {
+  const [entry, setEntry] = useState(readSetupToken);
+  useEffect(() => {
+    if (!entry) return undefined;
+    const t = setTimeout(() => setEntry(null), Math.max(0, entry.exp - Date.now()));
+    return () => clearTimeout(t);
+  }, [entry]);
+  const set = (token) => {
+    const next = token ? { token, exp: Date.now() + SETUP_TTL_MS } : null;
+    try { if (next) sessionStorage.setItem(SETUP_KEY, JSON.stringify(next)); else sessionStorage.removeItem(SETUP_KEY); } catch { /* penyimpanan diblokir */ }
+    setEntry(next);
+  };
+  return [entry, set];
+}
+
+function CopyRow({ label, value, copyText, mono = true }) {
   return (
-    <FormSheet title="Token siap" subtitle="Salin sekarang — setelah ditutup token tidak bisa dilihat lagi" onClose={onClose} wide
-      footer={<button type="button" className="btn-primary w-full" onClick={onClose}>Sudah saya salin</button>}>
-      <div className="rounded-2xl bg-warning/10 text-warning px-3 py-2 text-xs flex gap-2">
-        <AlertTriangle className="w-4 h-4 shrink-0" />
-        <span>Siapa pun yang memegang token ini bisa menambah item ke kotak masuk Anda (tidak bisa membaca data). Jangan bagikan shortcut yang berisi token.</span>
+    <div>
+      <p className="text-[11px] font-semibold text-muted-foreground mb-1">{label}</p>
+      <div className="flex gap-2 items-center">
+        <code className={`flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2 ${mono ? "font-mono" : ""}`}>{value}</code>
+        <CopyButton text={copyText ?? value} />
       </div>
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Token (tempel saat memasang shortcut "Kirim ke Nafkita")</p>
-        <div className="flex gap-2 items-center">
-          <code className="flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2">{token}</code>
-          <CopyButton text={token} />
+    </div>
+  );
+}
+
+// "Bahan pemasangan": URL, token & header di satu kartu di atas langkah-langkah.
+function SetupKit({ token, hasToken, onClear, onNewToken }) {
+  const url = endpointUrl();
+  const mins = token ? Math.max(1, Math.round((token.exp - Date.now()) / 60000)) : 0;
+  return (
+    <div className="surface rounded-3xl p-4 space-y-3 border border-primary/20">
+      <p className="text-sm font-semibold">Bahan pemasangan</p>
+      {token ? (
+        <>
+          <CopyRow label="Token (tempel saat shortcut “Kirim ke Nafkita” meminta)" value={token.token} />
+          <CopyRow label="Header Authorization (cara manual)" value={`Bearer ${token.token.slice(0, 10)}…`} copyText={`Bearer ${token.token}`} />
+        </>
+      ) : (
+        <div className="rounded-2xl bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground flex items-center justify-between gap-3">
+          <span>{hasToken ? "Token lama tidak bisa dilihat lagi (disimpan terenkripsi). Butuh untuk memasang? Buat token baru." : "Belum ada token."}</span>
+          <button type="button" className="btn-secondary btn-sm shrink-0" onClick={onNewToken}><Plus className="w-4 h-4" /> Token</button>
         </div>
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Header Authorization (hanya untuk cara manual)</p>
-        <div className="flex gap-2 items-center">
-          <code className="flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2">Bearer {token}</code>
-          <CopyButton text={`Bearer ${token}`} />
+      )}
+      <CopyRow label="URL" value={url} />
+      {token && (
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground flex gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0 text-warning" />
+            Tampil di perangkat ini ±{mins} menit lagi agar bisa disalin sambil memasang. Jangan bagikan shortcut yang berisi token.</p>
+          <button type="button" className="btn-secondary btn-sm shrink-0" onClick={onClear}>Selesai</button>
         </div>
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1.5">URL</p>
-        <div className="flex gap-2 items-center">
-          <code className="flex-1 min-w-0 break-all text-xs surface rounded-xl px-3 py-2">{url}</code>
-          <CopyButton text={url} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">Lanjutkan dengan langkah 3 (Panduan pemasangan) di halaman Sambungan.</p>
-    </FormSheet>
+      )}
+    </div>
   );
 }
 
 function GuideSteps({ steps }) {
   return (
     <ol className="surface rounded-3xl divide-y divide-border">
-      {steps.map(([t, d], i) => (
+      {steps.map(([t, d, action], i) => (
         <li key={t} className="flex gap-3 px-4 py-3">
           <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
           <div className="min-w-0">
             <p className="text-sm font-semibold">{t}</p>
             <p className="text-xs text-muted-foreground leading-relaxed">{d}</p>
+            {action && <div className="mt-2">{action}</div>}
           </div>
         </li>
       ))}
@@ -465,15 +508,20 @@ function GuideSteps({ steps }) {
   );
 }
 
-function SetupGuide({ hasToken, exampleLabel }) {
+function SetupGuide({ hasToken, token, onClearToken, onNewToken, exampleLabel }) {
   const label = exampleLabel || "rajhi-harian";
   const [mode, setMode] = useState("apple_pay");
-  const tokenStep = ["Buat token", hasToken ? "Sudah ada token. Bila lupa menyalin, buat token baru lalu cabut yang lama." : "Di bagian 1 tekan Tambah, lalu salin Token & URL."];
+  const url = endpointUrl();
+  // Tombol salin langsung di langkah yang membutuhkannya — tidak perlu bolak-balik.
+  const copyToken = token ? <CopyButton text={token.token} label="Salin token" /> : null;
+  const copyUrl = <CopyButton text={url} label="Salin URL" />;
+  const copyHeader = token ? <CopyButton text={`Bearer ${token.token}`} label="Salin header" /> : null;
+  const tokenStep = ["Buat token", token ? "Token siap — ada di kartu Bahan pemasangan di atas." : hasToken ? "Token lama tidak bisa ditampilkan lagi. Bila perlu memasang ulang, buat token baru lalu cabut yang lama." : "Tekan + Token di atas (atau Tambah di bagian 1)."];
   // Cara cepat: satu shortcut siap pakai + satu otomasi untuk semua kartu.
   // Label otomatis = nama kartu di Wallet; kartu baru muncul di bagian 2 untuk dihubungkan.
   const quick = [
     tokenStep,
-    ["Pasang shortcut \"Kirim ke Nafkita\"", SHORTCUT_URL ? "Tekan tombol di bawah → Tambah Pintasan → tempel token saat ditanya." : "Tautan shortcut belum tersedia — gunakan cara manual di bawah."],
+    ["Pasang shortcut \"Kirim ke Nafkita\"", SHORTCUT_URL ? "Tekan tombol di bawah → Tambah Pintasan → tempel token saat ditanya." : "Tautan shortcut belum tersedia — gunakan cara manual di bawah.", copyToken],
     ["Uji dengan tombol ▶", "Jalankan shortcut sekali dari app Pintasan. Bila muncul \"Terhubung ✓\", sambungan beres (tidak ada transaksi yang dibuat)."],
     ["Buat SATU otomasi untuk semua kartu", "Pintasan → Otomasi → + → Wallet (iOS 17–18: \"Transaksi\"). Centang semua kartu yang ingin dicatat → Jalankan Segera."],
     ["Isi aksinya", "Tambah aksi \"Jalankan Pintasan\" → pilih \"Kirim ke Nafkita\" → masukan: Input Pintasan."],
@@ -482,7 +530,7 @@ function SetupGuide({ hasToken, exampleLabel }) {
   const manual = [
     ["Siapkan kartu", `Di halaman Kartu, isi Label Apple Pay tiap kartu (mis. "${label}") dan pilih rekeningnya.`],
     ["Buka Pintasan → Otomasi → +", "Pilih pemicu Wallet. Pilih SATU kartu, lalu Jalankan Segera."],
-    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_… (dari layar token)."],
+    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_…", <div className="flex flex-wrap gap-2">{copyUrl}{copyHeader}</div>],
     ["Isi Minta Isi (JSON), semua jenis Teks", `label = ${label} · amount = Input Pintasan (Jenis: Transaksi) → Jumlah · merchant = Input Pintasan → Penjual · name = Input Pintasan → Nama (cadangan bila Penjual kosong).`],
     ["Ulangi per kartu", "Satu otomasi per kartu dengan label berbeda."],
   ];
@@ -492,7 +540,7 @@ function SetupGuide({ hasToken, exampleLabel }) {
     tokenStep,
     ["Isi 4 digit terakhir kartu", "Di halaman Kartu, pastikan tiap kartu punya 4 digit terakhir & rekening. SMS \"…kartu ****0315…\" otomatis masuk ke kartu ••0315."],
     ["Pintasan → Otomasi → + → Pesan", "Pesan Berisi: kata yang selalu ada di SMS transaksi bank Anda (mis. \"SAR\", \"مبلغ\", atau \"Rp\"). Pilih Jalankan Segera."],
-    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_…"],
+    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_…", <div className="flex flex-wrap gap-2">{copyUrl}{copyHeader}</div>],
     ["Isi Minta Isi (JSON), jenis Teks", "text = Input Pintasan → Isi · sender = Input Pintasan → Pengirim · label (opsional) = nama bank, mis. alrajhi."],
     ["Cek di Kotak Masuk", "Uang keluar jadi pengeluaran, uang masuk (gaji, transfer masuk) jadi pemasukan. Isi SMS bisa dibuka di tiap item untuk dicek."],
   ];
@@ -502,6 +550,7 @@ function SetupGuide({ hasToken, exampleLabel }) {
         <h2 id="ai-guide" className="font-semibold text-[17px] leading-tight"><BookOpen className="w-4 h-4 inline -mt-1 mr-1" />3. Pasang di iPhone (±3 menit, sekali saja)</h2>
         <p className="text-xs text-muted-foreground">Apple Pay menangkap pembayaran kartu di iPhone. SMS bank menangkap transaksi kartu fisik, transfer & uang masuk.</p>
       </div>
+      <SetupKit token={token} hasToken={hasToken} onClear={onClearToken} onNewToken={onNewToken} />
       <ChipChoice ariaLabel="Sumber" size="sm" value={mode} onChange={setMode}
         options={[{ value: "apple_pay", label: "Apple Pay" }, { value: "sms", label: "SMS bank" }]} />
       {mode === "apple_pay" ? (

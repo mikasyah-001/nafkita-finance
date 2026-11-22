@@ -99,7 +99,8 @@ export function computeZakatMal({ assets = [], debts = [], goldPrice = 0, rateMa
 
   const horizon = now.getTime() + 365 * DAY;
   for (const d of debts) {
-    if ((d.status || "active") !== "active") continue;
+    // Status Debt: unpaid | partial | paid (lihat Debt.jsonc) — sama dengan halaman Utang.
+    if (d.status === "paid") continue;
     const remaining = Math.max(0, (Number(d.amount) || 0) - (Number(d.paid_amount) || 0));
     if (remaining <= 0) continue;
     const v = toBase(remaining, d.currency);

@@ -76,8 +76,8 @@ export default function AuditKas() {
     const ok = await confirmAction({
       title: diff < 0 ? `Catat kekurangan ${formatMoney(Math.abs(diff), cur)}?` : `Catat kelebihan ${formatMoney(diff, cur)}?`,
       description: diff < 0
-        ? "Selisih dicatat sebagai pengeluaran \"Penyesuaian Rekonsiliasi\" dan saldo dompet disamakan dengan uang fisik. Sebaiknya cek dulu apakah ada belanja tunai yang lupa dicatat."
-        : "Selisih dicatat sebagai pemasukan \"Penyesuaian Rekonsiliasi\" dan saldo dompet disamakan dengan uang fisik.",
+        ? "Saldo dompet disamakan dengan uang fisik. Selisih dicatat sebagai \"Penyesuaian Rekonsiliasi\" (koreksi, tidak dihitung sebagai pengeluaran bulan ini). Bila ada belanja tunai yang lupa dicatat, sebaiknya catat itu saja agar masuk laporan."
+        : "Saldo dompet disamakan dengan uang fisik. Selisih dicatat sebagai \"Penyesuaian Rekonsiliasi\" (koreksi, tidak dihitung sebagai pemasukan bulan ini).",
       confirmText: "Sesuaikan",
       destructive: false,
     });

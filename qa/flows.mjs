@@ -400,13 +400,10 @@ try {
     assert.ok(await page.getByText(/≈ Rp\s?425\.000/).isVisible(), "Pratinjau setara Rupiah");
   });
 
-  await step("Target tabungan dalam riyal: mata uang aktif bisa dipilih, aset sumber hanya SAR", async () => {
+  await step("Target tabungan dalam riyal: mata uang aktif bisa dipilih, aset sumber top-up hanya SAR", async () => {
     await nav("/target-tabungan");
     await page.getByRole("button", { name: /Tambah/ }).first().click();
     await page.getByRole("radio", { name: "SAR", exact: true }).click();
-    const opts = await page.locator("#savings-goal-linked-asset option").allInnerTexts();
-    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia");
-    assert.ok(!opts.some((o) => o.includes("Tabungan BCA")), "Rekening IDR tidak ditawarkan");
     await page.fill("#savings-goal-name", "QA Umrah SAR");
     await page.fill("#savings-goal-target-amount", "20000");
     await page.getByRole("button", { name: /^Simpan$/ }).click();
@@ -415,6 +412,15 @@ try {
     assert.equal(g?.currency, "SAR");
     assert.equal(g?.target_amount, 20000);
     assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
+    // Sumber setoran dipilih saat top-up (kolom "Rekening sumber" di form sudah dihapus).
+    // Elemen terdalam yang memuat nama target & tombolnya = kartu target itu.
+    const card = page.locator("div", { has: page.getByText("QA Umrah SAR", { exact: true }) })
+      .filter({ has: page.getByRole("button", { name: "Tambah Progress" }) }).last();
+    await card.getByRole("button", { name: "Tambah Progress" }).click();
+    await card.getByRole("radio", { name: "Top-up dari Aset" }).click();
+    const opts = await card.getByLabel("Aset sumber").locator("option").allInnerTexts();
+    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia");
+    assert.ok(!opts.some((o) => o.includes("Tabungan BCA")), "Rekening IDR tidak ditawarkan");
   });
 
   await step("Panel admin: menu berurutan, total per mata uang (SAR tidak dijumlah sebagai IDR), putus koneksi dengan konfirmasi", async () => {

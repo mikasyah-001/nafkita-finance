@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { isReportable } from "../../shared/reportable.js";
 import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { getAppUrl } from "../../shared/appUrl.ts";
 import { userTz, prevMonthBoundsInTz, DEFAULT_TZ } from "../../shared/timezone.ts";
@@ -89,7 +90,8 @@ function buildEmail(name, periodLabel, perCurrency, appUrl) {
 const computeSummary = (txs) => {
   const perCurrency = {};
   CURRENCIES.forEach((cur) => {
-    const inCur = txs.filter((t) => (t.currency || "IDR") === cur);
+    // Aturan sama dengan aplikasi: transfer, pending, penyesuaian & setoran target tidak dihitung.
+    const inCur = txs.filter((t) => (t.currency || "IDR") === cur && isReportable(t));
     const income = inCur.filter((t) => t.type === "income").reduce((s, t) => s + (t.amount || 0), 0);
     const expense = inCur.filter((t) => t.type === "expense").reduce((s, t) => s + (t.amount || 0), 0);
     const sedekah = inCur.filter((t) => t.type === "sedekah").reduce((s, t) => s + (t.amount || 0), 0);

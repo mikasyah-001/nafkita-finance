@@ -27,6 +27,7 @@ export const toolItems = [
   { to: "/target-tabungan", icon: Target, label: "Target Tabungan", color: "emerald" },
   { to: "/zakat", icon: Coins, label: "Zakat", color: "violet" },
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan", color: "indigo" },
+  { to: "/catat-otomatis", icon: Zap, label: "Catat Otomatis", color: "emerald" },
   { to: "/impor", icon: Upload, label: "Impor Data", color: "orange" },
   { to: "/kategori", icon: Tags, label: "Kategori", color: "cyan" },
   { to: "/kesehatan-data", icon: Activity, label: "Kesehatan Data", color: "red" },

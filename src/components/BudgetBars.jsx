@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTransactions, useCategories, useBudgets, useUserCurrencies } from "@/hooks/useFinance";
-import { colorMap, filterReportableTx, isExpenseBudget } from "@/lib/finance";
+import { colorMap, filterReportableTx, isExpenseBudget, effectiveLimit } from "@/lib/finance";
 import Money from "@/components/Money";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 
@@ -42,7 +42,7 @@ export default function BudgetBars({ scope = "shared" }) {
           const b = budgetMap[key];
           if (!b) return;
           const s = spent[key] || 0;
-          const limit = b.limit_amount;
+          const limit = effectiveLimit(b);
           const remaining = limit - s;
           const pct = Math.min(100, (s / limit) * 100);
           const over = s > limit;

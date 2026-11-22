@@ -1,4 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { resolvePartnerId } from "../../shared/partnerResolve.ts";
+import { isReportable } from "../../shared/reportable.js";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Dipanggil workflow terjadwal (cron awal bulan).
@@ -39,16 +41,24 @@ export default async function (req) {
         if (budget.period !== prevPeriod) continue;
 
         // Ambil transaksi expense untuk kategori ini.
-        const txFilter = { category: budget.category, type: "expense" };
-        if (budget.assignee_id) {
-          txFilter.created_by_id = budget.assignee_id;
+        const ownerId = budget.created_by_id;
+        const scope = budget.visibility || "shared";
+        const budgetCur = String(budget.currency || "IDR").toUpperCase();
+        let owners;
+        if (budget.assignee_id) owners = [budget.assignee_id];
+        else if (scope === "private") owners = [ownerId];
+        else owners = [ownerId, await resolvePartnerId(base44, ownerId)].filter(Boolean);
+        const txs = [];
+        for (const uid of owners) {
+          const part = await fetchAll(base44.asServiceRole.entities.Transaction, { category: budget.category, type: "expense", created_by_id: uid });
+          txs.push(...(part || []));
         }
-        const txs = await fetchAll(base44.asServiceRole.entities.Transaction, txFilter);
 
         // Filter transaksi dalam rentang periode dan approved.
         const periodTxs = (txs || []).filter((t) => {
-          if (t.approval_status && t.approval_status !== "approved") return false;
-          if (t.transfer_pair_id) return false;
+          if (!isReportable(t)) return false;
+          if (String(t.currency || "IDR").toUpperCase() !== budgetCur) return false;
+          if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
           const d = new Date(t.date);
           return d >= periodStart && d <= periodEnd;
         });

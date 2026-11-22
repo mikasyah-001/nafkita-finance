@@ -90,3 +90,34 @@ test("ekstraksi token", () => {
   assert.equal(looksLikeToken("nfk_" + "a".repeat(43)), true);
   assert.equal(looksLikeToken("abc"), false);
 });
+
+test("kamus merchant → kategori", async () => {
+  const { keywordCategory } = await import("../../../base44/shared/autoIngest.js");
+  assert.equal(keywordCategory("ALBAIK #1234 MAKKAH"), "Makanan");
+  assert.equal(keywordCategory("Al Baik"), "Makanan");
+  assert.equal(keywordCategory("PANDA RETAIL CO"), "Belanja");
+  assert.equal(keywordCategory("ALDREES PETROLEUM"), "Transportasi");
+  assert.equal(keywordCategory("STC PAY"), "Tagihan");
+  assert.equal(keywordCategory("NAHDI MEDICAL"), "Kesehatan");
+  assert.equal(keywordCategory("Indomaret Point"), "Belanja");
+  assert.equal(keywordCategory("Toko XYZ"), "Belanja");
+  assert.equal(keywordCategory("Perusahaan Tak Dikenal"), null);
+  assert.equal(keywordCategory(""), null);
+  // hanya kategori yang dimiliki pengguna
+  assert.equal(keywordCategory("Al Baik", ["makanan", "Belanja"]), "makanan");
+  assert.equal(keywordCategory("Al Baik", ["Belanja"]), null);
+});
+
+test("Apple Pay yang mungkin sudah dicatat manual", async () => {
+  const { findManualTwin } = await import("../../../base44/shared/autoIngest.js");
+  const cand = { amount: 25, occurred_at: "2026-11-21T10:00:00Z" };
+  const txs = [
+    { id: "m1", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T11:30:00Z", linked_asset_id: "a1" },
+    { id: "m2", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T20:00:00Z" },
+    { id: "t1", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T10:00:00Z", transfer_pair_id: "p" },
+  ];
+  assert.equal(findManualTwin(cand, txs, { currency: "SAR", assetId: "a1" })?.id, "m1");
+  assert.equal(findManualTwin(cand, txs, { currency: "IDR" }), null);
+  assert.equal(findManualTwin(cand, txs, { currency: "SAR", assetId: "a2" }), null);
+  assert.equal(findManualTwin({ amount: 0, occurred_at: cand.occurred_at }, txs), null);
+});

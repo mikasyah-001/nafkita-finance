@@ -80,3 +80,44 @@ export function quickDepositAmounts(currency = "IDR") {
   if (c === "IDR") return [100_000, 500_000, 1_000_000];
   return [50, 100, 500];
 }
+
+// Target sesuai cakupan Bersama/Pribadi (aturan sama dengan rekening di Dompet).
+export function goalsInScope(goals = [], { scope = "shared", meId } = {}) {
+  return goals.filter((g) => (scope === "private"
+    ? g.visibility === "private" && g.created_by_id === meId
+    : g.visibility !== "private"));
+}
+
+// Peta aset → target aktif lain yang sudah memakainya ("Disimpan di").
+// Satu aset hanya boleh menopang satu target aktif agar tidak terhitung dobel.
+export function allocationOwners(goals = [], exceptGoalId = null) {
+  const owners = {};
+  for (const g of goals) {
+    if (g.id === exceptGoalId || (g.status || "active") !== "active") continue;
+    for (const id of allocatedIds(g)) if (!owners[id]) owners[id] = g;
+  }
+  return owners;
+}
+
+// Total terkumpul per mata uang untuk ringkasan: aset yang (data lama) dipakai
+// beberapa target hanya dihitung sekali. progressOf = useGoalProgress().
+export function goalsSummary(goals = [], progressOf) {
+  const counted = new Set();
+  const byCur = {};
+  for (const g of goals) {
+    const c = g.currency || "IDR";
+    byCur[c] ||= { current: 0, target: 0 };
+    const ids = allocatedIds(g);
+    let current;
+    if (ids.length) {
+      const fresh = ids.filter((id) => !counted.has(id));
+      fresh.forEach((id) => counted.add(id));
+      current = fresh.length ? progressOf({ ...g, allocated_asset_ids: fresh }).current : 0;
+    } else {
+      current = progressOf(g).current;
+    }
+    byCur[c].current += current;
+    byCur[c].target += Number(g.target_amount) || 0;
+  }
+  return byCur;
+}

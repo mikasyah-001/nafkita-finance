@@ -149,8 +149,7 @@ function ReportsAnalysis() {
     if (!consolidated) return null;
     let income = 0, expense = 0, sedekah = 0, count = 0;
     periodTxAll.forEach((t) => {
-      if (t.transfer_pair_id) return;
-      if (t.approval_status && t.approval_status !== "approved") return;
+      if (!filterReportableTx(t)) return;
       const amt = convertAmount(Number(t.amount) || 0, (t.currency || "IDR").toUpperCase());
       if (t.type === "income") income += amt;
       else if (t.type === "expense") expense += amt;

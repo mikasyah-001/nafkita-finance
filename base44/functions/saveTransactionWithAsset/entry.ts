@@ -68,6 +68,12 @@ export default async function (req) {
     if (isUpdate) {
       const oldTx = await base44.entities.Transaction.get(transaction_id);
       if (!oldTx) return Response.json({ error: "tx_not_found" }, { status: 404 });
+      // Transfer tidak bisa diubah satu sisi (saldo dua rekening jadi tidak seimbang).
+      if (oldTx.transfer_pair_id)
+        return Response.json({ error: "transfer_pair", message: "Transfer tidak bisa diedit satu sisi. Hapus transfer lalu buat ulang." }, { status: 409 });
+      // Setoran target tabungan terkait progres target → hapus lalu setor ulang.
+      if (oldTx.savings_goal_id)
+        return Response.json({ error: "savings_deposit", message: "Setoran target tabungan tidak bisa diedit. Hapus lalu setor ulang dari halaman Target Tabungan." }, { status: 409 });
       if (oldTx.created_by_id !== me.id && me.role !== "admin")
         return Response.json({ error: "forbidden" }, { status: 403 });
 

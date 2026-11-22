@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import {
   normalizeLabel, parseAmount, detectCurrency, parseOccurredAt, suggestCategory,
-  isDuplicate, reviewReason, extractToken, looksLikeToken,
+  isDuplicate, reviewReason, extractToken, looksLikeToken, keywordCategory, findManualTwin,
 } from "../../shared/autoIngest.js";
 
 // Endpoint publik untuk "Catat Otomatis" — dipanggil Shortcuts iOS (pemicu
@@ -107,7 +107,8 @@ export default async function (req) {
     // --- Data transaksi ---
     const rawAmount = body?.amount == null ? "" : String(body.amount).slice(0, 64);
     const amount = parseAmount(body?.amount);
-    const merchant = String(body?.merchant ?? "").trim().slice(0, 120);
+    // Penjual (merchant) kadang kosong di Wallet; "Nama" transaksi dipakai sebagai cadangan.
+    const merchant = String(body?.merchant || body?.name || "").trim().slice(0, 120);
     const occurredAt = parseOccurredAt(body?.occurred_at);
     const rawCurrency = detectCurrency(body?.amount);
     const currency = asset.currency || "IDR";
@@ -118,13 +119,30 @@ export default async function (req) {
     const recentOf = async () => list(await db.IncomingTransaction.filter({ owner_id: ownerId, label }, "-occurred_at", 20));
     const possibleDup = isDuplicate(candidate, await recentOf());
 
+    // Kategori: 1) riwayat merchant yang sama milik pengguna, 2) kamus merchant
+    // umum (hanya bila kategorinya ada di daftar kategori pengguna).
+    // Riwayat pengeluaran pengguna: dipakai untuk saran kategori & cek
+    // "mungkin sudah dicatat manual" (Apple Pay + input manual = dobel).
+    let history = [];
+    try {
+      history = list(await db.Transaction.filter({ created_by_id: ownerId, type: "expense" }, "-date", 300));
+    } catch (e) { console.error("[ingestTransaction] riwayat", e?.message); }
+    const manualTwin = findManualTwin(candidate, history, { currency, assetId: asset.id });
+
     let suggested = null;
+    let suggestedSource = null;
     if (merchant) {
       try {
-        const history = list(await db.Transaction.filter({ created_by_id: ownerId, type: "expense" }, "-date", 300));
         suggested = suggestCategory(merchant, history);
+        if (suggested) suggestedSource = "history";
+        else {
+          const cats = list(await db.Category.filter({ created_by_id: ownerId }, "name", 500));
+          const names = cats.filter((c) => (c.type || "expense") === "expense").map((c) => c.name);
+          suggested = keywordCategory(merchant, names.length ? names : null);
+          if (suggested) suggestedSource = "keyword";
+        }
       } catch (e) {
-        console.error("[ingestTransaction] riwayat kategori", e?.message);
+        console.error("[ingestTransaction] saran kategori", e?.message);
       }
     }
 
@@ -142,7 +160,10 @@ export default async function (req) {
       card_name: String(body?.card ?? "").slice(0, 80) || undefined,
       occurred_at: occurredAt,
       suggested_category: suggested || undefined,
-      review_reason: (possibleDup ? DUP_REASON : reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency })) || undefined,
+      suggested_source: suggestedSource || undefined,
+      review_reason: (possibleDup ? DUP_REASON
+        : manualTwin ? `Mungkin sudah dicatat manual: "${manualTwin.merchant || manualTwin.category || "transaksi"}" dengan nominal sama — abaikan bila dobel`
+        : reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency })) || undefined,
       source: "apple_pay",
       status: "new",
     });

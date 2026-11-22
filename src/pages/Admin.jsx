@@ -1,13 +1,14 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { errorMessage, partialErrorText } from "@/lib/errorMessage";
 import { useMe } from "@/hooks/useFinance";
 import {
   ShieldCheck, Users, Link2, Receipt, Search, Loader2, ChevronDown, ScrollText,
-  LayoutDashboard, Landmark, Info, Unlink, Activity, HeartHandshake,
+  LayoutDashboard, Landmark, Info, Unlink, Activity, HeartHandshake, Inbox,
 } from "lucide-react";
+import AdminFeedback, { useFeedbackInbox } from "@/components/AdminFeedback";
 import Money from "@/components/Money";
 import { formatDate, colorMap, formatMoneyShort, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -22,6 +23,7 @@ import NativeSelect from "@/components/NativeSelect";
 // lalu data (transaksi → aset), terakhir jejak tindakan admin.
 const TABS = [
   { key: "ringkasan", label: "Ringkasan", icon: LayoutDashboard },
+  { key: "laporan", label: "Laporan", icon: Inbox },
   { key: "pengguna", label: "Pengguna", icon: Users },
   { key: "pasangan", label: "Pasangan", icon: HeartHandshake },
   { key: "transaksi", label: "Transaksi", icon: Receipt },
@@ -56,7 +58,13 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [partnerships, setPartnerships] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [tab, setTab] = useState("ringkasan");
+  // Tab & laporan bisa dibuka langsung lewat URL (mis. dari notifikasi):
+  // /admin?tab=laporan&id=<feedback_id>
+  const [params, setParams] = useSearchParams();
+  const tab = TABS.some((t) => t.key === params.get("tab")) ? params.get("tab") : "ringkasan";
+  const setTab = (k) => setParams(k === "ringkasan" ? {} : { tab: k }, { replace: true });
+  const { data: feedback = [] } = useFeedbackInbox(me?.role === "admin");
+  const newFeedback = feedback.filter((f) => (f.status || "open") === "open").length;
   const [userQuery, setUserQuery] = useState("");
   const [pFilter, setPFilter] = useState("active");
   const [txFilter, setTxFilter] = useState("");
@@ -278,13 +286,14 @@ export default function Admin() {
       </section>
 
       {/* Menu */}
-      <div role="tablist" aria-label="Menu admin" className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-4">
+      <div role="tablist" aria-label="Menu admin" className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 mb-4">
         {TABS.map((t) => {
           const on = tab === t.key;
           return (
             <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
               className={`h-10 px-2 rounded-full text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border"}`}>
               <t.icon className="w-4 h-4" /> {t.label}
+              {t.key === "laporan" && newFeedback > 0 && <span className="min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">{newFeedback}</span>}
             </button>
           );
         })}
@@ -292,6 +301,9 @@ export default function Admin() {
 
       {/* RINGKASAN */}
       {tab === "ringkasan" && <AdminStats />}
+
+      {/* LAPORAN PENGGUNA */}
+      {tab === "laporan" && <AdminFeedback initialId={params.get("id")} />}
 
       {/* PENGGUNA */}
       {tab === "pengguna" && (

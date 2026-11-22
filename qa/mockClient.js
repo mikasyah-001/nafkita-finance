@@ -45,6 +45,11 @@ const db = {
 };
 const ym = `${Y}-${String(M + 1).padStart(2, "0")}`;
 const DATA = {
+  Feedback: [
+    { id: "fb1", created_by_id: "u2", created_by: "siti@contoh.id", sender_name: "Siti Aminah", sender_email: "siti@contoh.id", type: "bug", subject: "Halaman ter-zoom saat mengetik", message: "Waktu isi Tempat/merchant di Catat transaksi, halaman membesar dan tidak kembali.", contact: "0812 3456 7890", status: "open", created_date: d(20, 0, 7), context: { path: "/add", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Version/18.1 Mobile/15E148 Safari/604.1", screen: "390×844", standalone: true, online: true } },
+    { id: "fb2", created_by_id: "u1", created_by: "keluarga@contoh.id", sender_name: "Ahmad Fauzi", sender_email: "keluarga@contoh.id", type: "feature", subject: "Ekspor laporan zakat ke PDF", message: "Mohon ada tombol ekspor PDF di halaman Zakat untuk arsip.", status: "in_progress", created_date: d(18), admin_reply: "Terima kasih, sedang kami kerjakan untuk rilis berikutnya.", replied_at: d(19), replied_by_name: "Tim NAFKITA" },
+    { id: "fb3", created_by_id: "u3", created_by: "rudi@contoh.id", sender_name: "Rudi Hartono", sender_email: "rudi@contoh.id", type: "suggestion", subject: "Warna grafik kurang kontras", message: "Di mode gelap grafik agak sulit dibaca.", status: "resolved", created_date: d(10) },
+  ],
   Category: defaultCategories.map((c) => ({ id: id(), created_by_id: "u1", ...c })),
   AssetSnapshot: [-3, -2, -1].map((o, i) => {
     const p = new Date(Date.UTC(Y, M + o, 1));
@@ -131,6 +136,13 @@ const FN = {
     my_requests: [],
   }),
   listExchangeRates: () => ({ rates: [{ base_currency: "SAR", quote_currency: "IDR", rate: 4250 }, { base_currency: "USD", quote_currency: "IDR", rate: 16100 }] }),
+  submitFeedback: (b) => { const r = { id: id(), created_by_id: "u1", created_by: ME.email, sender_name: ME.full_name, sender_email: ME.email, status: "open", created_date: new Date().toISOString(), ...b }; DATA.Feedback.unshift(r); return { ok: true, id: r.id }; },
+  respondFeedback: ({ feedback_id, status, reply }) => {
+    const f = DATA.Feedback.find((x) => x.id === feedback_id); const now = new Date().toISOString();
+    if (status) Object.assign(f, { status, status_updated_at: now });
+    if (reply) Object.assign(f, { admin_reply: reply, replied_at: now, replied_by_name: ME.full_name, ...(status ? {} : f.status === "open" ? { status: "in_progress" } : {}) });
+    return { ok: true, feedback: { ...f } };
+  },
   // Default: belum terhubung. QA kondisi terhubung: localStorage "qa:partner" = "1".
   getPartnerProfile: () => (QA_PARTNER ? {
     partner: { id: "u2", full_name: "Siti Aminah", email: "siti@contoh.id", photo_url: "", default_currency: "IDR", last_active_at: ago(180), joined_at: d(2, -6) },

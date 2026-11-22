@@ -107,3 +107,17 @@ test("kamus merchant → kategori", async () => {
   assert.equal(keywordCategory("Al Baik", ["makanan", "Belanja"]), "makanan");
   assert.equal(keywordCategory("Al Baik", ["Belanja"]), null);
 });
+
+test("Apple Pay yang mungkin sudah dicatat manual", async () => {
+  const { findManualTwin } = await import("../../../base44/shared/autoIngest.js");
+  const cand = { amount: 25, occurred_at: "2026-11-21T10:00:00Z" };
+  const txs = [
+    { id: "m1", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T11:30:00Z", linked_asset_id: "a1" },
+    { id: "m2", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T20:00:00Z" },
+    { id: "t1", type: "expense", amount: 25, currency: "SAR", date: "2026-11-21T10:00:00Z", transfer_pair_id: "p" },
+  ];
+  assert.equal(findManualTwin(cand, txs, { currency: "SAR", assetId: "a1" })?.id, "m1");
+  assert.equal(findManualTwin(cand, txs, { currency: "IDR" }), null);
+  assert.equal(findManualTwin(cand, txs, { currency: "SAR", assetId: "a2" }), null);
+  assert.equal(findManualTwin({ amount: 0, occurred_at: cand.occurred_at }, txs), null);
+});

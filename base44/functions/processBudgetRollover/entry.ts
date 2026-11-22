@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { resolvePartnerId } from "../../shared/partnerResolve.ts";
+import { isReportable } from "../../shared/reportable.js";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Dipanggil workflow terjadwal (cron awal bulan).
@@ -55,8 +56,7 @@ export default async function (req) {
 
         // Filter transaksi dalam rentang periode dan approved.
         const periodTxs = (txs || []).filter((t) => {
-          if (t.approval_status && t.approval_status !== "approved") return false;
-          if (t.transfer_pair_id) return false;
+          if (!isReportable(t)) return false;
           if (String(t.currency || "IDR").toUpperCase() !== budgetCur) return false;
           if (scope === "private" ? t.visibility !== "private" : t.visibility === "private") return false;
           const d = new Date(t.date);

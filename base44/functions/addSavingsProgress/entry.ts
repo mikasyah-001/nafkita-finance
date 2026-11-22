@@ -25,6 +25,7 @@ export default async function (req) {
       return Response.json({ error: "forbidden" }, { status: 403 });
 
     // Top-up: kurangi saldo aset sumber.
+    let depositTx = null;
     if (method === "topup" && source_asset_id) {
       const asset = await base44.entities.Asset.get(source_asset_id);
       if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
@@ -36,9 +37,33 @@ export default async function (req) {
       if ((asset.value || 0) < amt)
         return Response.json({ error: "saldo_tidak_cukup" }, { status: 400 });
 
+      // Catat sebagai transaksi "Setoran Tabungan" agar uang keluar terlihat di
+      // rekening (Dompet, Riwayat, Audit Kas). is_savings_deposit → tidak
+      // dihitung sebagai pengeluaran di laporan (uang disisihkan, bukan dibelanjakan).
+      depositTx = await base44.entities.Transaction.create({
+        type: "expense",
+        amount: amt,
+        currency: asset.currency || "IDR",
+        category: "Setoran Tabungan",
+        date: new Date().toISOString(),
+        merchant: `Setoran: ${goal.name}`,
+        notes: notes || "",
+        input_by_name: me.full_name || me.email,
+        tags: ["setoran-target"],
+        visibility: asset.visibility === "private" ? "private" : "shared",
+        linked_asset_id: source_asset_id,
+        savings_goal_id: goal_id,
+        is_savings_deposit: true,
+      });
+
       const prevValue = asset.value || 0;
       const newValue = roundForCurrency(prevValue - amt, asset.currency);
-      await base44.entities.Asset.update(source_asset_id, { value: newValue });
+      try {
+        await base44.entities.Asset.update(source_asset_id, { value: newValue });
+      } catch (e) {
+        try { await base44.entities.Transaction.delete(depositTx.id); } catch { /* biarkan */ }
+        throw e;
+      }
 
       // Catat mutasi aset immutable.
       await recordAssetMutation(base44, {
@@ -46,8 +71,8 @@ export default async function (req) {
         previous_value: prevValue,
         new_value: newValue,
         change_type: "transfer",
-        source_ref: goal_id,
-        source_description: `Top-up tabungan: ${goal.name}`,
+        source_ref: depositTx.id,
+        source_description: `Setoran tabungan: ${goal.name}`,
         actor_id: me.id,
         actor_name: me.full_name || me.email,
         currency: asset.currency || "IDR",
@@ -63,6 +88,7 @@ export default async function (req) {
       amount: amt,
       method: method || "manual",
       notes: notes || "",
+      ...(depositTx ? { transaction_id: depositTx.id, asset_id: source_asset_id } : {}),
     });
 
     const updateData = {

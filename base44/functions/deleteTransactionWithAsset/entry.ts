@@ -83,6 +83,19 @@ export default async function (req) {
       await base44.entities.Transaction.delete(transaction_id);
     }
 
+    // Setoran target tabungan dihapus → kurangi progres target (satu sumber data).
+    if (tx.savings_goal_id) {
+      try {
+        const goal = await base44.asServiceRole.entities.SavingsGoal.get(tx.savings_goal_id);
+        if (goal) {
+          const cur = Math.max(0, roundForCurrency((Number(goal.current_amount) || 0) - (Number(tx.amount) || 0), goal.currency));
+          const history = Array.isArray(goal.contribution_history) ? goal.contribution_history.filter((h) => h.transaction_id !== tx.id) : [];
+          const patch = { current_amount: cur, contribution_history: history };
+          if (goal.status === "completed" && cur < (Number(goal.target_amount) || 0)) patch.status = "active";
+          await base44.asServiceRole.entities.SavingsGoal.update(goal.id, patch);
+        }
+      } catch (e) { console.error("[deleteTransactionWithAsset] progres target", e?.message); }
+    }
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

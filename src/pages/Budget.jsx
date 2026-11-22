@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useTransactions, useCategories, useBudgets, useRefresh, useMe, useUserCurrencies } from "@/hooks/useFinance";
-import { formatMoney, formatDate, colorMap, currencySymbol, isExpenseBudget } from "@/lib/finance";
+import { formatMoney, formatDate, colorMap, currencySymbol, isExpenseBudget, filterReportableTx } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import CurrencyTabs from "@/components/CurrencyTabs";
 import EmptyState from "@/components/EmptyState";
@@ -44,7 +44,7 @@ export default function Budget() {
       transactions.filter((t) => {
         const d = new Date(t.date);
         const inScope = scope === "private" ? t.visibility === "private" : t.visibility !== "private";
-        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope && (t.currency || "IDR") === currency && (!t.approval_status || t.approval_status === "approved") && !t.transfer_pair_id;
+        return d.getMonth() === month && d.getFullYear() === year && t.type === "expense" && inScope && (t.currency || "IDR") === currency && filterReportableTx(t);
       }),
     [transactions, month, year, scope, currency]
   );

@@ -50,7 +50,7 @@ export default function Ringkasan({ embedded = false }) {
   const contributors = useMemo(() => {
     const m = {};
     txList.forEach((t) => {
-      if (t.transfer_pair_id) return;
+      if (!filterReportableTx(t)) return;
       const name = (t.input_by_name || "Keluarga").split(/\s+/)[0];
       const v = convertTo(Number(t.amount) || 0, t.currency || "IDR", cur, rateMap);
       m[name] ||= { name, income: 0, expense: 0 };

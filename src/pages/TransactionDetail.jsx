@@ -143,20 +143,26 @@ export default function TransactionDetail() {
     }
   };
 
+  // Transfer & setoran target: tidak diedit satu sisi, hanya dihapus utuh.
   const deleteTransfer = async () => {
-    if (!(await confirmAction({
+    const deposit = !!tx.savings_goal_id;
+    if (!(await confirmAction(deposit ? {
+      title: "Hapus setoran ini?",
+      description: "Saldo rekening dikembalikan dan progres target tabungan dikurangi sebesar setoran ini.",
+      confirmText: "Hapus setoran",
+    } : {
       title: "Hapus transfer ini?",
       description: "Kedua sisi transfer dihapus dan saldo kedua rekening dikembalikan seperti sebelum transfer.",
       confirmText: "Hapus transfer",
     }))) return;
     setDeleting(true);
     try {
-      await base44.functions.invoke("deleteTransferPair", { transaction_id: tx.id });
+      await base44.functions.invoke(deposit ? "deleteTransactionWithAsset" : "deleteTransferPair", { transaction_id: tx.id });
       refresh();
-      toast.success("Transfer dihapus");
+      toast.success(deposit ? "Setoran dihapus" : "Transfer dihapus");
       navigate("/riwayat", { replace: true });
     } catch (e) {
-      toast.error(e?.response?.data?.message || "Gagal menghapus transfer");
+      toast.error(e?.response?.data?.message || "Gagal menghapus");
       setDeleting(false);
     }
   };
@@ -165,6 +171,7 @@ export default function TransactionDetail() {
   const idrEquivalent = cur !== "IDR" ? conversionPreview(tx.amount, cur, "IDR", rateMap) : "";
   const linkedAsset = tx.linked_asset_id ? assets.find((a) => a.id === tx.linked_asset_id) : null;
   const isTransfer = !!tx.transfer_pair_id;
+  const isDeposit = !!tx.savings_goal_id; // setoran target tabungan
   const isExtra = (tx.tags || []).includes(EXTRAORDINARY_TAG);
   const tags = (tx.tags || []).filter((t) => t !== EXTRAORDINARY_TAG);
   const tone = TYPE_TONE[tx.type] || TYPE_TONE.expense;
@@ -309,16 +316,22 @@ export default function TransactionDetail() {
       {isTransfer && (
         <p className="text-xs text-muted-foreground text-center px-6 leading-snug">Transfer antar rekening tidak dihitung sebagai pemasukan atau pengeluaran.</p>
       )}
+      {isDeposit && (
+        <p className="text-xs text-muted-foreground text-center px-6 leading-snug">Setoran ke target tabungan: uang keluar dari rekening, tapi tidak dihitung sebagai pengeluaran.</p>
+      )}
+      {tx.is_adjustment && (
+        <p className="text-xs text-muted-foreground text-center px-6 leading-snug">Penyesuaian rekonsiliasi: koreksi saldo, tidak dihitung sebagai pemasukan atau pengeluaran.</p>
+      )}
 
       {/* Aksi */}
       {showActions && (
         <div className="fixed bottom-0 inset-x-0 z-40 md:static md:mt-6 px-5 pt-3 pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:p-0 bg-gradient-to-t from-background via-background/95 to-background/0 md:bg-none">
           <div className="max-w-md mx-auto">
-            {isTransfer ? (
+            {isTransfer || isDeposit ? (
               // Transfer = dua transaksi berpasangan: tidak diedit satu sisi,
               // dihapus sekaligus agar saldo kedua rekening tetap seimbang.
               <button onClick={deleteTransfer} disabled={deleting} className="w-full btn-secondary text-destructive">
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Hapus transfer (kedua sisi)
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} {isDeposit ? "Hapus setoran" : "Hapus transfer (kedua sisi)"}
               </button>
             ) : (
               <button

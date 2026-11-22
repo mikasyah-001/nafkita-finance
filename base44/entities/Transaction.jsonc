@@ -77,6 +77,15 @@
       "type": "string",
       "description": "ID tagihan berulang yang menghasilkan transaksi ini secara otomatis"
     },
+    "savings_goal_id": {
+      "type": "string",
+      "description": "Target tabungan yang menerima setoran ini (Top-up dari Aset)"
+    },
+    "is_savings_deposit": {
+      "type": "boolean",
+      "default": false,
+      "description": "True bila transaksi ini setoran ke target tabungan: uang keluar dari rekening, tapi tidak dihitung sebagai pengeluaran di laporan"
+    },
     "is_adjustment": {
       "type": "boolean",
       "default": false,

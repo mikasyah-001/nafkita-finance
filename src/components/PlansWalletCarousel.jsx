@@ -4,6 +4,7 @@ import { ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, CalendarDa
 import { useSavingsGoals, useAssets, useMe } from "@/hooks/useFinance";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
 import { walletAccounts, walletCandidates } from "@/lib/wallet";
+import { goalsInScope } from "@/lib/savingsGoal";
 import { formatDate } from "@/lib/finance";
 import Money from "@/components/Money";
 import { WalletCard, toneMap, saveSelected } from "@/components/AccountWallet";
@@ -76,7 +77,7 @@ export default function PlansWalletCarousel({ scope = "shared" }) {
   const tones = useMemo(() => toneMap(candidates), [candidates]);
 
   const items = useMemo(() => {
-    const active = goals.filter((g) => (g.status || "active") === "active");
+    const active = goalsInScope(goals, { scope, meId: me?.id }).filter((g) => (g.status || "active") === "active");
     const goalItems = active.length
       ? active.map((g) => ({ id: `g:${g.id}`, kind: "goal", goal: g, title: g.name }))
       : [{ id: "g:empty", kind: "empty", title: "Target Tabungan" }];

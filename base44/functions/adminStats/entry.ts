@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { isReportable } from "../../shared/reportable.js";
 import { fetchAll, fetchAllByDate } from "../../shared/fetchAll.ts";
 import { logAdminAction } from "../../shared/auditLog.ts";
 
@@ -61,8 +62,7 @@ export default async function (req) {
     let txCount = 0;
     for (const t of transactions) {
       txCount++;
-      if (t.transfer_pair_id) continue;
-      if (t.approval_status && t.approval_status !== "approved") continue;
+      if (!isReportable(t)) continue;
       const c = cur(t.currency);
       const e = (txByCurrency[c] ||= { income: 0, expense: 0, sedekah: 0, count: 0 });
       const amt = Number(t.amount) || 0;

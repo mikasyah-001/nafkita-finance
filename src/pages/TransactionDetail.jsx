@@ -8,7 +8,7 @@ import ProofViewer from "@/components/ProofViewer";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { usePartnership } from "@/hooks/usePartnership";
-import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ImagePlus, ImageOff, FileText, Maximize2 } from "lucide-react";
+import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ImagePlus, ImageOff, FileText, Maximize2, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { confirmAction } from "@/components/ConfirmHost";
 
@@ -39,6 +39,7 @@ export default function TransactionDetail() {
 
   const [viewPhoto, setViewPhoto] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imgFailed, setImgFailed] = useState(null);
   const proofRef = useRef(null);
@@ -139,6 +140,24 @@ export default function TransactionDetail() {
       toast.error("Gagal mengubah jangkauan");
     } finally {
       setToggling(false);
+    }
+  };
+
+  const deleteTransfer = async () => {
+    if (!(await confirmAction({
+      title: "Hapus transfer ini?",
+      description: "Kedua sisi transfer dihapus dan saldo kedua rekening dikembalikan seperti sebelum transfer.",
+      confirmText: "Hapus transfer",
+    }))) return;
+    setDeleting(true);
+    try {
+      await base44.functions.invoke("deleteTransferPair", { transaction_id: tx.id });
+      refresh();
+      toast.success("Transfer dihapus");
+      navigate("/riwayat", { replace: true });
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Gagal menghapus transfer");
+      setDeleting(false);
     }
   };
 
@@ -295,12 +314,20 @@ export default function TransactionDetail() {
       {showActions && (
         <div className="fixed bottom-0 inset-x-0 z-40 md:static md:mt-6 px-5 pt-3 pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:p-0 bg-gradient-to-t from-background via-background/95 to-background/0 md:bg-none">
           <div className="max-w-md mx-auto">
-            <button
-              onClick={() => navigate(`/transaksi/${id}/edit`)}
-              className="w-full btn-primary"
-            >
-              <Pencil className="w-4 h-4" /> Edit atau hapus
-            </button>
+            {isTransfer ? (
+              // Transfer = dua transaksi berpasangan: tidak diedit satu sisi,
+              // dihapus sekaligus agar saldo kedua rekening tetap seimbang.
+              <button onClick={deleteTransfer} disabled={deleting} className="w-full btn-secondary text-destructive">
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Hapus transfer (kedua sisi)
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate(`/transaksi/${id}/edit`)}
+                className="w-full btn-primary"
+              >
+                <Pencil className="w-4 h-4" /> Edit atau hapus
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -159,6 +159,15 @@ const FN = {
   },
   saveTransactionBatch: ({ transactions }) => { transactions.forEach((t) => db.tx.push(T(t))); return { saved: transactions.length, pending: 0 }; },
   deleteTransactionWithAsset: ({ transaction_id }) => { db.tx = db.tx.filter((t) => t.id !== transaction_id); return { ok: true }; },
+  deleteTransferPair: ({ transaction_id }) => {
+    const t = db.tx.find((x) => x.id === transaction_id);
+    db.tx.filter((x) => x.transfer_pair_id === t.transfer_pair_id).forEach((leg) => {
+      const a = db.assets.find((x) => x.id === leg.linked_asset_id);
+      if (a) a.value += leg.type === "income" ? -leg.amount : leg.amount;
+    });
+    db.tx = db.tx.filter((x) => x.transfer_pair_id !== t.transfer_pair_id);
+    return { ok: true };
+  },
   saveTransfer: ({ from_asset_id, to_asset_id, amount, currency, date }) => {
     const from = db.assets.find((a) => a.id === from_asset_id), to = db.assets.find((a) => a.id === to_asset_id);
     from.value -= amount; to.value += amount;
@@ -175,7 +184,17 @@ const FN = {
     const a = db.approvals.find((x) => x.id === approval_id); a.status = "rejected";
     db.tx.find((t) => t.id === a.transaction_id).approval_status = "rejected"; return { ok: true };
   },
-  deleteAssetWithLots: ({ asset_id }) => { db.assets = db.assets.filter((a) => a.id !== asset_id); return { ok: true }; },
+  deleteAssetWithLots: ({ asset_id, dry_run }) => {
+    // Tiru backend: hitung dampak; saat hapus, lepas tautan transaksi (riwayat tetap).
+    const txs = db.tx.filter((t) => t.linked_asset_id === asset_id);
+    const labels = (DATA.CardLabel || []).filter((l) => l.asset_id === asset_id);
+    const impact = { transactions: txs.length, card_labels: labels.length, recurring_bills: 0, debts: 0, savings_goals: 0, inbox_items: (DATA.IncomingTransaction || []).filter((i) => i.asset_id === asset_id && i.status === "new").length, investment_lots: (DATA.InvestmentLot || []).filter((l) => l.asset_id === asset_id).length };
+    if (dry_run) return { ok: true, dry_run: true, impact };
+    txs.forEach((t) => { t.linked_asset_id = null; });
+    labels.forEach((l) => { l.asset_id = null; l.status = "unmapped"; });
+    db.assets = db.assets.filter((a) => a.id !== asset_id);
+    return { ok: true, impact };
+  },
 };
 const entity = (name) => ({
   list: async () => (DATA[name] || []).map((r) => ({ ...r })),

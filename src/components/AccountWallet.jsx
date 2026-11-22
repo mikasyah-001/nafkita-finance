@@ -266,7 +266,7 @@ function WalletSettingsSheet({ candidates, tones, hiddenIds, meId, onClose }) {
           );
         })}
       </ul>
-      <p className="text-xs text-muted-foreground">Rekening yang disembunyikan tetap ada di halaman Aset dan saldonya tetap dihitung. Rekening baru otomatis tampil.</p>
+      <p className="text-xs text-muted-foreground">Rekening yang disembunyikan tetap ada di halaman Aset dan saldonya tetap dihitung. Rekening baru otomatis tampil. Untuk menghapus rekening: buka Riwayat rekening → ikon pensil → tombol hapus.</p>
     </FormSheet>
   );
 }

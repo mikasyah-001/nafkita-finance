@@ -513,6 +513,10 @@ export function inScope(t, scope) {
   return scope === "private" ? t.visibility === "private" : t.visibility !== "private";
 }
 
+// Batas anggaran efektif = limit + sisa/kelebihan bulan lalu (rollover).
+// Dipakai halaman Anggaran, bar anggaran Beranda, dan "Bisakah saya beli?".
+export const effectiveLimit = (b) => (Number(b?.limit_amount) || 0) + (Number(b?.rollover_amount) || 0);
+
 export function isInMonth(t, year, month) {
   const d = new Date(t.date);
   return d.getFullYear() === year && d.getMonth() === month;

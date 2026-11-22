@@ -4,7 +4,7 @@ import { CheckCircle2, AlertTriangle, XCircle, ArrowRight } from "lucide-react";
 import { useBudgets, useCategories, useTransactions } from "@/hooks/useFinance";
 import { useMonthPace } from "@/hooks/useMonthPace";
 import { useScope } from "@/lib/ScopeContext";
-import { spendingPace, isExpenseBudget, filterReportableTx, currencySymbol } from "@/lib/finance";
+import { spendingPace, isExpenseBudget, filterReportableTx, currencySymbol, effectiveLimit } from "@/lib/finance";
 import FormSheet, { FieldGroup, FieldRow, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
 import MoneyInput from "@/components/MoneyInput";
@@ -35,7 +35,7 @@ export function AffordCheckSheet({ onClose }) {
           && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && filterReportableTx(t);
       })
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    return { limit: Number(b.limit_amount), spent, after: Number(b.limit_amount) - spent - amt };
+    return { limit: effectiveLimit(b), spent, after: effectiveLimit(b) - spent - amt };
   }, [category, budgets, transactions, period, scope, currency, amt, now]);
 
   const after = useMemo(() => spendingPace({

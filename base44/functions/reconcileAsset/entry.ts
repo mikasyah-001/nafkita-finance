@@ -79,7 +79,8 @@ export default async function (req) {
           notes: `Penyesuaian rekonsiliasi ${asOf}${notes ? " — " + notes : ""}`,
           input_by_name: me.full_name || me.email,
           tags: [],
-          visibility: "shared",
+          // Ikut jangkauan rekening: penyesuaian rekening pribadi tidak terlihat pasangan.
+          visibility: asset.visibility === "private" ? "private" : "shared",
           linked_asset_id: asset_id,
           notif_batch_id: "recon-" + Date.now(),
           is_adjustment: true,

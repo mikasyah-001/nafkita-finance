@@ -19,6 +19,9 @@ export default async function (req) {
       return Response.json({ error: "missing_id" }, { status: 400 });
 
     const tx = await base44.entities.Transaction.get(transaction_id);
+    // Transfer = dua transaksi berpasangan; hapus satu sisi merusak saldo.
+    if (tx?.transfer_pair_id)
+      return Response.json({ error: "transfer_pair", message: "Ini bagian dari transfer — hapus lewat tombol Hapus transfer (kedua sisi sekaligus)." }, { status: 409 });
     if (!tx) return Response.json({ error: "tx_not_found" }, { status: 404 });
     if (tx.created_by_id !== me.id)
       return Response.json({ error: "forbidden" }, { status: 403 });

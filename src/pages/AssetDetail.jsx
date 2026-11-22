@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { deleteAssetFlow } from "@/lib/assetDelete";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -15,7 +16,6 @@ import GoldPriceCard from "@/components/GoldPriceCard";
 import InvestmentDca from "@/components/InvestmentDca";
 import CategoryIcon from "@/components/CategoryIcon";
 import Money from "@/components/Money";
-import { confirmAction } from "@/components/ConfirmHost";
 import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots, useSavingsGoals } from "@/hooks/useFinance";
 import { investmentCategory, CATEGORY_LABEL, emergencyAssetIds } from "@/lib/investmentCategory";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
@@ -89,17 +89,12 @@ export default function AssetDetail() {
   };
 
   const handleDelete = async () => {
-    const ok = await confirmAction({
-      title: `Hapus aset "${a.name}"?`,
-      description: a.type === "investasi" ? "Aset beserta seluruh Riwayat DCA-nya dihapus permanen." : "Aset dihapus permanen dan tidak bisa dikembalikan.",
-    });
-    if (!ok) return;
     try {
-      await base44.functions.invoke("deleteAssetWithLots", { asset_id: a.id });
+      if (!(await deleteAssetFlow(a))) return;
       refresh();
       toast.success("Aset dihapus");
       navigate("/aset", { replace: true });
-    } catch { toast.error("Gagal menghapus"); }
+    } catch (e) { toast.error(e?.response?.data?.message || "Gagal menghapus"); }
   };
 
   // Rincian per jenis aset — hanya baris yang relevan & berisi.

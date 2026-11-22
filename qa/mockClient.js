@@ -79,6 +79,11 @@ const ADMIN_USERS = [
   { id: "u3", full_name: "Rudi Hartono", email: "rudi@contoh.id", role: "user", last_active_at: ago(60 * 24 * 9), created_date: d(5, -2) },
   { id: "u4", full_name: "Lina Marlina", email: "lina@contoh.id", role: "user", last_active_at: null, created_date: d(7, -1) },
 ];
+const QA_PARTNER = (() => { try { return globalThis.localStorage?.getItem("qa:partner") === "1"; } catch { return false; } })();
+if (QA_PARTNER) {
+  (DATA.Partnership ||= []).push({ id: "p1", inviter_id: "u1", invitee_id: "u2", invitee_email: "siti@contoh.id", inviter_role: "suami", invitee_role: "istri", status: "active", created_date: d(3, -6) });
+  db.tx.forEach((t) => { if (t.input_by_name === "Siti") t.created_by_id = "u2"; });
+}
 const PARTNERSHIPS = [
   { id: "p1", inviter_id: "u1", invitee_id: "u2", inviter_role: "suami", invitee_role: "istri", status: "active", created_date: d(3, -6) },
   { id: "p2", inviter_id: "u3", invitee_email: "lina@contoh.id", status: "pending", created_date: d(8) },
@@ -126,7 +131,11 @@ const FN = {
     my_requests: [],
   }),
   listExchangeRates: () => ({ rates: [{ base_currency: "SAR", quote_currency: "IDR", rate: 4250 }, { base_currency: "USD", quote_currency: "IDR", rate: 16100 }] }),
-  getPartnerProfile: () => ({ partner: null }),
+  // Default: belum terhubung. QA kondisi terhubung: localStorage "qa:partner" = "1".
+  getPartnerProfile: () => (QA_PARTNER ? {
+    partner: { id: "u2", full_name: "Siti Aminah", email: "siti@contoh.id", photo_url: "", default_currency: "IDR", last_active_at: ago(180), joined_at: d(2, -6) },
+    connection: { partnership_id: "p1", connected_at: d(3, -6), connected_exact: true, invited_by: "me", my_role: "suami", partner_role: "istri" },
+  } : { partner: null }),
   // ── Mutasi ──
   manageAutoIngest: (args) => {
     const L = DATA.CardLabel, I = DATA.IncomingTransaction, D = DATA.IngestDevice;

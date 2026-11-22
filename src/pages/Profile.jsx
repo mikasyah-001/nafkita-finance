@@ -1,18 +1,31 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { ArrowRight, Camera, Loader2, Check, User, MessageSquareHeart, Hash, Copy, Heart } from "lucide-react";
+import {
+  Camera, Loader2, Check, User, Hash, Copy, Heart, ChevronRight, Settings, Bell,
+  MessageSquareHeart, BookOpen, CalendarHeart, Mail,
+} from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
+import Avatar from "@/components/Avatar";
 import PartnerManager from "@/components/PartnerManager";
 import UserAuditLog from "@/components/UserAuditLog";
 import { deriveRefCode } from "@/lib/refCode";
 import PageHeader from "@/components/PageHeader";
 import { FieldRow, fieldInput } from "@/components/FormSheet";
+import { useMe } from "@/hooks/useFinance";
+import { usePartnership } from "@/hooks/usePartnership";
+import { formatDate } from "@/lib/finance";
+import { connectionDuration, lastActiveLabel, ROLE_LABEL } from "@/lib/partner";
 
+// Profil: identitas saya, pasangan (ringkas → halaman profil pasangan),
+// pengaturan terkait, dan riwayat aktivitas. Simpan tidak lagi menutup
+// halaman; tombol hanya aktif bila ada perubahan.
 export default function Profile() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const qc = useQueryClient();
+  const { data: user } = useMe();
+  const { hasPartner, partners, connection, myRole, loading: partnerLoading } = usePartnership();
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [saving, setSaving] = useState(false);
@@ -20,7 +33,15 @@ export default function Profile() {
   const [copied, setCopied] = useState(false);
   const fileRef = useRef(null);
 
+  useEffect(() => {
+    if (!user) return;
+    setName(user.full_name || "");
+    setPhotoUrl(user.photo_url || "");
+  }, [user]);
+
   const myCode = deriveRefCode(user?.id);
+  const dirty = !!user && (name.trim() !== (user.full_name || "") || photoUrl !== (user.photo_url || ""));
+  const partner = partners?.[0];
 
   const copyCode = async () => {
     if (!myCode) return;
@@ -33,19 +54,9 @@ export default function Profile() {
     }
   };
 
-  useEffect(() => {
-    base44.auth
-      .me()
-      .then((u) => {
-        setUser(u);
-        setName(u?.full_name || "");
-        setPhotoUrl(u?.photo_url || "");
-      })
-      .catch(() => {});
-  }, []);
-
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setUploading(true);
     try {
@@ -55,7 +66,6 @@ export default function Profile() {
       toast.error("Gagal mengunggah foto");
     }
     setUploading(false);
-    e.target.value = "";
   };
 
   const handleSave = async () => {
@@ -63,8 +73,8 @@ export default function Profile() {
     setSaving(true);
     try {
       await base44.auth.updateMe({ full_name: name.trim(), photo_url: photoUrl });
+      await qc.invalidateQueries({ queryKey: ["me"] });
       toast.success("Profil diperbarui");
-      navigate(-1);
     } catch (e) {
       toast.error("Gagal memperbarui profil", { description: e.message });
     }
@@ -72,102 +82,120 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-5 pt-6">
+    <div className="px-5 pt-6 pb-6">
       <PageHeader title="Profil" back />
 
-      <section aria-label="Foto & identitas" className="card-gradient-primary rounded-[28px] p-5 mb-5 flex items-center gap-4">
+      {/* Identitas */}
+      <section aria-label="Foto & identitas" className="card-gradient-primary rounded-[28px] p-5 mb-4 flex items-center gap-4">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           aria-label="Ganti foto profil"
-          className="relative w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/15 shrink-0 active:scale-95 transition-transform disabled:opacity-60"
+          className="relative w-20 h-20 rounded-full overflow-hidden ring-4 ring-white/15 shrink-0 active:scale-95 transition-transform disabled:opacity-60"
         >
           {photoUrl ? (
             <SmartImage src={photoUrl} alt="foto profil" className="w-full h-full" fittingType="fill" />
           ) : (
             <div className="w-full h-full bg-white/10 flex items-center justify-center">
-              {uploading ? <Loader2 className="w-8 h-8 animate-spin opacity-80" /> : <User className="w-10 h-10 opacity-80" />}
+              {uploading ? <Loader2 className="w-7 h-7 animate-spin opacity-80" /> : <User className="w-9 h-9 opacity-80" />}
             </div>
           )}
-          <div className="absolute bottom-0 inset-x-0 bg-gold text-gold-foreground text-[11px] font-semibold py-1 flex items-center justify-center gap-1">
+          <div className="absolute bottom-0 inset-x-0 bg-gold text-gold-foreground text-[10px] font-semibold py-0.5 flex items-center justify-center gap-1">
             <Camera className="w-3 h-3" /> Ganti
           </div>
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
         <div className="min-w-0">
-          <p className="text-xs opacity-75">Akun Anda</p>
-          <p className="font-heading text-2xl font-extrabold leading-tight tracking-tight truncate">{name || user?.full_name || "Tanpa nama"}</p>
+          <p className="font-heading text-[22px] font-extrabold leading-tight tracking-tight truncate">{name || user?.full_name || "Tanpa nama"}</p>
           <p className="text-xs opacity-75 truncate mt-0.5">{user?.email}</p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {myRole && <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-white/15">{ROLE_LABEL[myRole]}</span>}
+            {user?.created_date && <span className="text-[11px] rounded-full px-2.5 py-0.5 bg-white/[0.08]">Anggota sejak {formatDate(user.created_date, "MMM yyyy")}</span>}
+          </div>
         </div>
       </section>
 
-      <section aria-label="Data profil" className="surface rounded-3xl divide-y divide-border mb-4">
+      {/* Data diri */}
+      <section aria-label="Data diri" className="surface rounded-3xl divide-y divide-border mb-3">
         <FieldRow icon={User} label="Nama" htmlFor="profile-name">
-          <input
-            id="profile-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nama lengkap"
-            className={fieldInput}
-          />
+          <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama lengkap" className={fieldInput} />
+        </FieldRow>
+        <FieldRow icon={Mail} label="Email (tidak bisa diubah)">
+          <p className="text-sm py-1 truncate text-muted-foreground">{user?.email || "—"}</p>
         </FieldRow>
       </section>
+      {dirty && (
+        <button onClick={handleSave} disabled={saving} className="w-full btn-primary mb-3">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan perubahan
+        </button>
+      )}
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full btn-primary"
-      >
-        {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />} Simpan Profil
-      </button>
-
-      <section aria-labelledby="profile-ref-code" className="surface rounded-3xl p-4 mt-6">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="w-9 h-9 rounded-full bg-gold text-gold-foreground flex items-center justify-center shrink-0"><Hash className="w-4 h-4" /></span>
-          <h2 id="profile-ref-code" className="font-semibold text-[17px] leading-tight">Kode referensi pasangan</h2>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3 leading-snug">
-          Bagikan kode ini ke pasangan. Pasangan memasukkannya di{" "}
-          <span className="font-medium">Pengaturan → Undang Pasangan → Via Kode Referensi</span>{" "}
-          untuk menghubungkan akun keduanya.
-        </p>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 rounded-2xl bg-muted px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.15em]">
-            {myCode || "—"}
+      {/* Pasangan */}
+      <h2 className="text-xs font-semibold text-muted-foreground mt-5 mb-2 px-1 flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-destructive" /> Pasangan</h2>
+      {partnerLoading ? (
+        <div className="surface h-20 animate-pulse" />
+      ) : hasPartner ? (
+        <Link to="/profil/pasangan" className="surface p-4 flex items-center gap-3 active:scale-[0.99] transition-transform">
+          <Avatar url={partner?.photo_url} name={partner?.full_name} />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-[15px] leading-tight truncate">{partner?.full_name || partner?.email || "Pasangan"}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {connection?.partner_role ? ROLE_LABEL[connection.partner_role] : "Pasangan"}
+              {partner?.last_active_at ? ` · aktif ${lastActiveLabel(partner.last_active_at)}` : ""}
+            </p>
+            {connection?.connected_at && (
+              <p className="text-xs text-primary font-medium mt-0.5 flex items-center gap-1">
+                <CalendarHeart className="w-3.5 h-3.5" />
+                {connection.connected_exact ? "" : "±"}Terhubung {connectionDuration(connection.connected_at)}
+              </p>
+            )}
           </div>
-          <button
-            onClick={copyCode}
-            className="btn-primary"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
-          </button>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </Link>
+      ) : (
+        <div className="space-y-3">
+          <section aria-labelledby="profile-ref-code" className="surface rounded-3xl p-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Hash className="w-4 h-4 text-muted-foreground" />
+              <h3 id="profile-ref-code" className="font-semibold text-sm">Kode referensi Anda</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-snug">Pasangan cukup memasukkan kode ini untuk terhubung dengan Anda.</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 rounded-2xl bg-muted px-4 py-3 text-center font-mono text-lg font-bold tracking-[0.15em]">{myCode || "—"}</div>
+              <button onClick={copyCode} className="btn-primary">
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Tersalin" : "Salin"}
+              </button>
+            </div>
+          </section>
+          {/* Undangan masuk/terkirim tetap dikelola di sini */}
+          <div className="surface rounded-3xl p-4"><PartnerManager /></div>
         </div>
-      </section>
+      )}
 
-      <button
-        onClick={() => navigate("/umpan-balik")}
-        className="w-full mt-4 card-pastel card-pastel-sage rounded-3xl p-4 flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
-      >
-        <div className="w-10 h-10 rounded-full bg-white/60 dark:bg-white/10 flex items-center justify-center shrink-0">
-          <MessageSquareHeart className="w-5 h-5" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Kirim Umpan Balik</p>
-          <p className="text-xs opacity-75 mt-0.5">Laporan error, ide fitur, atau saran untuk pengembang</p>
-        </div>
-        <ArrowRight className="w-4 h-4 opacity-70" />
-      </button>
-
-      <div className="mt-6">
-        <div className="mb-2.5">
-          <h2 className="font-semibold text-[17px] leading-tight flex items-center gap-2"><Heart className="w-4 h-4 text-destructive" /> Keluarga terkoneksi</h2>
-          <p className="text-xs text-muted-foreground">Akun yang berbagi catatan dengan Anda</p>
-        </div>
-        <PartnerManager />
+      {/* Pengaturan lainnya */}
+      <h2 className="text-xs font-semibold text-muted-foreground mt-5 mb-2 px-1">Pengaturan</h2>
+      <div className="surface overflow-hidden divide-y divide-border">
+        <Row to="/pengaturan" icon={Settings} label="Pengaturan aplikasi" desc="Tampilan, mata uang, bank, cadangan data" />
+        <Row to="/pengaturan" icon={Bell} label="Notifikasi" desc="Pemberitahuan dari pasangan & pengingat" />
+        <Row to="/panduan" icon={BookOpen} label="Panduan" desc="Cara memakai setiap fitur" />
+        <Row to="/umpan-balik" icon={MessageSquareHeart} label="Umpan balik" desc="Laporkan masalah atau usulkan fitur" />
       </div>
 
       <UserAuditLog userId={user?.id} />
     </div>
+  );
+}
+
+function Row({ to, icon: Icon, label, desc }) {
+  return (
+    <Link to={to} className="flex items-center gap-3 px-3.5 py-3 active:bg-muted transition-colors">
+      <span className="w-10 h-10 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0"><Icon className="w-5 h-5" /></span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-semibold leading-tight">{label}</span>
+        <span className="block text-xs text-muted-foreground truncate">{desc}</span>
+      </span>
+      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+    </Link>
   );
 }

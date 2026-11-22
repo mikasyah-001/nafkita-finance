@@ -40,13 +40,14 @@ export default async function (req) {
       catch (e) { console.error(`[deleteAssetWithLots] baca ${entity}`, e?.message); return []; }
     };
 
-    const [txs, bills, debts, goalsLinked, goalsAll, labels, incoming, lots] = await Promise.all([
+    const [txs, bills, debts, goalsLinked, goalsAll, labels, cards, incoming, lots] = await Promise.all([
       find("Transaction", { linked_asset_id: assetId }),
       find("RecurringBill", { linked_asset_id: assetId }),
       find("Debt", { linked_asset_id: assetId }),
       find("SavingsGoal", { linked_asset_id: assetId }),
       find("SavingsGoal", { created_by_id: me.id }, 500),
       find("CardLabel", { owner_id: me.id, asset_id: assetId }),
+      find("PaymentCard", { owner_id: me.id, asset_id: assetId }),
       find("IncomingTransaction", { owner_id: me.id, asset_id: assetId, status: "new" }),
       find("InvestmentLot", { asset_id: assetId }, 2000),
     ]);
@@ -59,6 +60,7 @@ export default async function (req) {
       debts: debts.length,
       savings_goals: goalIds.size,
       card_labels: labels.length,
+      payment_cards: cards.length,
       inbox_items: incoming.length,
       investment_lots: lots.length,
     };
@@ -82,6 +84,8 @@ export default async function (req) {
       return svc.SavingsGoal.update(g.id, patch);
     });
     await each("CardLabel", labels, (l) => svc.CardLabel.update(l.id, { asset_id: null, status: "unmapped" }));
+    // Kartu tetap ada (detail & foto tidak hilang), hanya lepas dari rekening.
+    await each("PaymentCard", cards, (c) => svc.PaymentCard.update(c.id, { asset_id: null, status: "unmapped" }));
     await each("IncomingTransaction", incoming, (it) => svc.IncomingTransaction.update(it.id, { asset_id: null }));
 
     // Bila ada tautan yang gagal dilepas, JANGAN hapus aset (hindari data yatim);

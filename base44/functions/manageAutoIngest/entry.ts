@@ -1,21 +1,17 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { normalizeLabel, TOKEN_PREFIX } from "../../shared/autoIngest.js";
+import { TOKEN_PREFIX } from "../../shared/autoIngest.js";
 
 // Pengelolaan "Catat Otomatis" oleh pemilik akun (wajib login).
-// Entity IngestDevice / CardLabel / IncomingTransaction hanya bisa ditulis
+// Entity IngestDevice / IncomingTransaction hanya bisa ditulis
 // lewat function ini (RLS create/update/delete = admin), supaya owner_id dan
 // token_hash tidak bisa dipalsukan dari klien.
 //
 // Aksi (body.action):
 //   create_device   { name }                         → { device, token }  (token tampil SEKALI)
 //   revoke_device   { device_id }
-//   save_label      { label_id?, label, asset_id?, status }
-//   delete_label    { label_id }
 //   dismiss_incoming{ ids: [] }
 
 const MAX_DEVICES = 5;
-const MAX_LABELS = 30;
-const LINKABLE_TYPES = ["bank", "tunai", "emas_digital", "lainnya"];
 
 async function sha256Hex(text: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -68,47 +64,8 @@ export default async function (req) {
       return Response.json({ ok: true });
     }
 
-    if (action === "save_label") {
-      const label = normalizeLabel(body.label);
-      if (!label) return err(400, "invalid_label", "Label wajib diisi (huruf, angka, tanda -)");
-      const status = ["active", "paused", "ignored"].includes(body.status) ? body.status : "active";
-
-      let assetId = body.asset_id || null;
-      if (status !== "ignored" || assetId) {
-        if (!assetId) return err(400, "asset_required", "Pilih rekening tujuan");
-        const asset = await db.Asset.get(assetId).catch(() => null);
-        if (!asset || asset.created_by_id !== me.id)
-          return err(403, "asset_forbidden", "Hanya rekening milik Anda sendiri yang bisa dihubungkan");
-        if (!LINKABLE_TYPES.includes(asset.type || "bank"))
-          return err(400, "asset_type", "Pilih aset bertipe bank/tunai");
-      }
-
-      const sameLabel = list(await db.CardLabel.filter({ owner_id: me.id, label }, "-created_date", 5));
-      const existing = body.label_id ? await ownDoc("CardLabel", body.label_id) : null;
-      if (body.label_id && !existing) return err(404, "not_found");
-      const clash = sameLabel.find((l) => l.id !== existing?.id);
-
-      // Label yang terdeteksi otomatis ("unmapped") dengan nama sama → pakai record itu.
-      const target = existing || (clash && clash.status === "unmapped" ? clash : null);
-      if (clash && clash.id !== target?.id) return err(409, "label_exists", `Label "${label}" sudah dipakai`);
-
-      const data = { label, status, asset_id: assetId || null };
-      if (target) {
-        const saved = await db.CardLabel.update(target.id, data);
-        return Response.json({ ok: true, label: saved });
-      }
-      const all = list(await db.CardLabel.filter({ owner_id: me.id }, "-created_date", MAX_LABELS + 1));
-      if (all.length >= MAX_LABELS) return err(400, "label_limit", `Maksimal ${MAX_LABELS} label`);
-      const saved = await db.CardLabel.create({ owner_id: me.id, seen_count: 0, ...data });
-      return Response.json({ ok: true, label: saved });
-    }
-
-    if (action === "delete_label") {
-      const l = await ownDoc("CardLabel", body.label_id);
-      if (!l) return err(404, "not_found");
-      await db.CardLabel.delete(l.id);
-      return Response.json({ ok: true });
-    }
+    // Label kartu kini dikelola sebagai Kartu (PaymentCard) lewat manageCards.
+    if (action === "save_label" || action === "delete_label") return err(410, "moved", "Kelola kartu di halaman Kartu");
 
     if (action === "dismiss_incoming") {
       const ids = Array.isArray(body.ids) ? body.ids.slice(0, 100) : [];

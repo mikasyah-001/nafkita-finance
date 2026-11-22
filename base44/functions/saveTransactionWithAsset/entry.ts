@@ -41,6 +41,9 @@ export default async function (req) {
         return Response.json({ error: "incoming_not_found" }, { status: 404 });
       if (incoming.status !== "new")
         return Response.json({ error: "incoming_already_processed" }, { status: 409 });
+      // Arah item (uang keluar/masuk dari SMS bank) menentukan jenis transaksi.
+      if (transaction.type !== (incoming.direction === "in" ? "income" : "expense"))
+        return Response.json({ error: "incoming_type_mismatch", message: "Jenis transaksi tidak sesuai arah item kotak masuk" }, { status: 400 });
       // Klaim sebelum menyentuh saldo: tulis klaim unik lalu baca ulang. Hanya
       // pemegang klaim terakhir yang lanjut — dua sesi yang menekan "Simpan"
       // bersamaan tidak sama-sama membuat transaksi.

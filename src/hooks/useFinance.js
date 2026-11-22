@@ -177,6 +177,7 @@ export const useIncomingTransactions = () =>
   useOwnerQuery(["autoIngest", "incoming"], "IncomingTransaction", { status: "new" }, "-occurred_at");
 export const useIngestDevices = () => useOwnerQuery(["autoIngest", "devices"], "IngestDevice");
 export const useCardLabels = () => useOwnerQuery(["autoIngest", "labels"], "CardLabel");
+export const usePaymentCards = () => useOwnerQuery(["autoIngest", "cards"], "PaymentCard", {}, "display_name");
 
 export function useAssetMutations(assetId) {
   return useQuery({

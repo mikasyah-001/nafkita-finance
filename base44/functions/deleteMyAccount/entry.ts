@@ -25,6 +25,9 @@ const ANON_NAME = "Pasangan (akun dihapus)";
 const OWNED: Array<[string, string]> = [
   ["IncomingTransaction", "owner_id"],
   ["CardLabel", "owner_id"],
+  ["PaymentCardSecret", "owner_id"],
+  ["PaymentCard", "owner_id"],
+  ["CardVault", "owner_id"],
   ["IngestDevice", "owner_id"],
   ["InvestmentLot", "created_by_id"],
   ["AssetMutation", "created_by_id"],

@@ -1,0 +1,57 @@
+{
+  "name": "CardVault",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string"
+    },
+    "pin_hash": {
+      "type": "string",
+      "description": "PBKDF2-SHA256 dari PIN Nafkita (bukan PIN ATM)"
+    },
+    "pin_salt": {
+      "type": "string"
+    },
+    "fail_count": {
+      "type": "number",
+      "default": 0
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "unlock_hash": {
+      "type": "string",
+      "description": "Hash token buka sementara"
+    },
+    "unlock_expires": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "owner_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

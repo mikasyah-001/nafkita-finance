@@ -1,36 +1,37 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Inbox, Smartphone, Tag, Plus, Copy, Check, Trash2, Ban, AlertTriangle, CreditCard, Link2, BookOpen,
+  Inbox, Smartphone, Plus, Copy, Check, Ban, AlertTriangle, CreditCard, Link2, BookOpen, MessageSquareText, IdCard,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { appParams } from "@/lib/app-params";
 import {
-  useAssets, useCategories, useMe, useIncomingTransactions, useIngestDevices, useCardLabels,
+  useAssets, useCategories, useMe, useIncomingTransactions, useIngestDevices, usePaymentCards,
 } from "@/hooks/useFinance";
 import { saveTransactionWithAsset } from "@/lib/linkedAsset";
 import { formatMoney } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
-import { normalizeLabel } from "../../base44/shared/autoIngest.js";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import FormSheet, { FieldGroup, FieldRow, fieldInput, ChipChoice } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
+import CardSheet, { manageCards, useMigrateLegacyLabels, STATUS_LABEL } from "@/components/CardSheet";
 import MoneyInput from "@/components/MoneyInput";
 import { confirmAction } from "@/components/ConfirmHost";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 
-// Catat Otomatis — transaksi Apple Pay dikirim Shortcuts iOS ke Nafkita.
+// Catat Otomatis — transaksi Apple Pay & SMS bank dikirim Shortcuts iOS ke Nafkita.
 // Tab "Kotak Masuk": konfirmasi 1 tap (saldo & laporan baru berubah di sini).
-// Tab "Sambungan": perangkat (token), label kartu → rekening, panduan setup.
+// Tab "Sambungan": perangkat (token), kartu → rekening, panduan setup.
 
 const LINKABLE_TYPES = ["bank", "tunai", "emas_digital", "lainnya"];
+const CARD_ACCOUNT_TYPES = ["bank", "tunai", "lainnya"];
 // Tautan iCloud shortcut siap pakai "Kirim ke Nafkita" (dibuat sekali oleh admin
 // di iPhone, lalu diisi di variabel lingkungan). Kosong → panduan manual saja.
 const SHORTCUT_URL = import.meta.env.VITE_NAFKITA_SHORTCUT_URL || "";
-const STATUS_TEXT = { active: "Aktif", paused: "Dijeda", unmapped: "Belum terhubung", ignored: "Diabaikan" };
+const SOURCE_TEXT = { apple_pay: "Apple Pay", sms: "SMS bank", email: "Email bank" };
 
 const msg = (e, fallback) => e?.response?.data?.message || e?.response?.data?.error || e?.message || fallback;
 const manage = async (payload) => (await base44.functions.invoke("manageAutoIngest", payload)).data;
@@ -62,12 +63,13 @@ export default function AutoIngest() {
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") === "sambungan" ? "sambungan" : "masuk";
   const { data: incoming = [] } = useIncomingTransactions();
-  const { data: labels = [] } = useCardLabels();
-  const unmapped = labels.filter((l) => l.status === "unmapped").length;
+  const { data: cards = [], isLoading: loadingCards } = usePaymentCards();
+  useMigrateLegacyLabels(cards, loadingCards);
+  const unmapped = cards.filter((c) => c.status === "unmapped").length;
 
   return (
     <div className="px-5 pt-6 pb-8">
-      <PageHeader title="Catat Otomatis" subtitle="Transaksi Apple Pay masuk sendiri, Anda tinggal konfirmasi" back />
+      <PageHeader title="Catat Otomatis" subtitle="Apple Pay & SMS bank masuk sendiri, Anda tinggal konfirmasi" back />
       <ChipChoice
         ariaLabel="Bagian"
         value={tab}
@@ -97,7 +99,11 @@ function InboxTab() {
   const assetById = useMemo(() => Object.fromEntries(assets.map((a) => [a.id, a])), [assets]);
   const accountsFor = (cur) => assets.filter((a) => a.created_by_id === me?.id && LINKABLE_TYPES.includes(a.type || "bank")
     && String(a.currency || "IDR").toUpperCase() === String(cur || "IDR").toUpperCase());
-  const expenseCats = useMemo(() => categories.filter((c) => (c.type || "expense") === "expense").map((c) => c.name), [categories]);
+  const catsOf = useMemo(() => {
+    const by = (t) => categories.filter((c) => (c.type || "expense") === t).map((c) => c.name);
+    return { out: by("expense"), in: by("income") };
+  }, [categories]);
+  const isIn = (it) => it.direction === "in";
 
   const draftOf = (it) => ({
     category: drafts[it.id]?.category ?? it.suggested_category ?? "",
@@ -119,15 +125,16 @@ function InboxTab() {
     if (!(Number(d.amount) > 0)) throw new Error("Isi nominal");
     if (curMismatch(it)) throw new Error("Mata uang rekening sudah berubah — abaikan item ini dan catat manual");
     const asset = assetById[d.asset_id];
+    const src = SOURCE_TEXT[it.source] || "Apple Pay";
     const res = await saveTransactionWithAsset({
-      type: "expense",
+      type: isIn(it) ? "income" : "expense",
       amount: Number(d.amount),
       currency: it.currency || assetById[it.asset_id]?.currency || "IDR",
       category: d.category,
       date: it.occurred_at || new Date().toISOString(),
       merchant: it.merchant || "",
-      notes: `Otomatis dari Apple Pay (${it.label})`,
-      tags: ["apple-pay"],
+      notes: `Otomatis dari ${src}${it.card_name ? ` (${it.card_name})` : it.label ? ` (${it.label})` : ""}`,
+      tags: [it.source === "sms" ? "sms-bank" : "apple-pay"],
       // Rekening pribadi → transaksinya juga pribadi (tidak terlihat pasangan).
       visibility: asset?.visibility === "private" ? "private" : "shared",
       linked_asset_id: d.asset_id || undefined,
@@ -172,7 +179,7 @@ function InboxTab() {
           icon={Inbox}
           title="Kotak masuk kosong"
           subtitle={devices.some((d) => !d.revoked)
-            ? "Bayar dengan Apple Pay memakai kartu yang sudah diberi label — transaksinya akan muncul di sini."
+            ? "Bayar dengan Apple Pay atau terima SMS transaksi dari bank untuk kartu yang sudah terhubung — transaksinya muncul di sini."
             : "Belum ada iPhone tersambung. Buka tab Sambungan untuk mulai."}
         />
       </div>
@@ -192,17 +199,19 @@ function InboxTab() {
         const asset = assetById[d.asset_id];
         const cur = it.currency || asset?.currency || "IDR";
         const accountOptions = accountsFor(cur);
-        const catOptions = d.category && !expenseCats.includes(d.category) ? [d.category, ...expenseCats] : expenseCats;
+        const baseCats = isIn(it) ? catsOf.in : catsOf.out;
+        const catOptions = d.category && !baseCats.includes(d.category) ? [d.category, ...baseCats] : baseCats;
         return (
           <article key={it.id} className="surface rounded-3xl p-4" aria-label={`Transaksi ${it.merchant || "tanpa nama"}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-semibold truncate">{it.merchant || "Tanpa nama merchant"}</p>
+                <p className="font-semibold truncate">{it.merchant || (isIn(it) ? "Uang masuk" : "Tanpa nama merchant")}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  <CreditCard className="w-3 h-3 inline -mt-0.5 mr-1" />{asset ? assetLabel(asset) : it.label} · {fmtTime(it.occurred_at)}
+                  {it.source === "sms" ? <MessageSquareText className="w-3 h-3 inline -mt-0.5 mr-1" /> : <CreditCard className="w-3 h-3 inline -mt-0.5 mr-1" />}
+                  {SOURCE_TEXT[it.source] || "Apple Pay"} · {asset ? assetLabel(asset) : it.card_name || it.label} · {fmtTime(it.occurred_at)}
                 </p>
               </div>
-              <p className="font-heading font-extrabold tabular-nums shrink-0">{Number(d.amount) > 0 ? `−${formatMoney(Number(d.amount), cur)}` : "—"}</p>
+              <p className={`font-heading font-extrabold tabular-nums shrink-0 ${isIn(it) ? "text-success" : ""}`}>{Number(d.amount) > 0 ? `${isIn(it) ? "+" : "−"}${formatMoney(Number(d.amount), cur)}` : "—"}</p>
             </div>
 
             {curMismatch(it) && (
@@ -218,6 +227,13 @@ function InboxTab() {
               </div>
             )}
 
+            {it.raw_text && (
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer select-none">Isi SMS</summary>
+                <p className="mt-1 whitespace-pre-wrap break-words rounded-xl bg-muted/50 px-3 py-2" dir="auto">{it.raw_text}</p>
+              </details>
+            )}
+
             <div className="mt-3 grid gap-2">
               {it.review_reason && (
                 <label className="block">
@@ -227,7 +243,7 @@ function InboxTab() {
               )}
               {accountOptions.length > 1 && (
                 <label className="block">
-                  <span className="text-[11px] text-muted-foreground">Rekening · label {it.label}</span>
+                  <span className="text-[11px] text-muted-foreground">Rekening · {it.card_name || it.label}</span>
                   <NativeSelect className="input" value={d.asset_id} sheetTitle="Rekening" aria-label="Rekening" onChange={(e) => setDraft(it.id, { asset_id: e.target.value })}>
                     {accountOptions.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)}</option>)}
                   </NativeSelect>
@@ -260,20 +276,22 @@ function InboxTab() {
 function ConnectTab() {
   const { data: me } = useMe();
   const { data: devices = [], isLoading: loadingDevices } = useIngestDevices();
-  const { data: labels = [], isLoading: loadingLabels } = useCardLabels();
+  const { data: cards = [], isLoading: loadingCards } = usePaymentCards();
   const { data: assets = [] } = useAssets();
   const invalidate = useInvalidate();
   const [deviceSheet, setDeviceSheet] = useState(false);
   const [newToken, setNewToken] = useState(null);
-  const [labelSheet, setLabelSheet] = useState(null); // null | {} | label
+  const [cardSheet, setCardSheet] = useState(null); // null | {} | kartu
 
   const ownAssets = useMemo(
-    () => assets.filter((a) => a.created_by_id === me?.id && LINKABLE_TYPES.includes(a.type || "bank")),
+    () => assets.filter((a) => a.created_by_id === me?.id && CARD_ACCOUNT_TYPES.includes(a.type || "bank")),
     [assets, me?.id],
   );
   const assetById = useMemo(() => Object.fromEntries(assets.map((a) => [a.id, a])), [assets]);
   const activeDevices = devices.filter((d) => !d.revoked);
-  const sortedLabels = [...labels].sort((a, b) => (a.status === "unmapped" ? -1 : 0) - (b.status === "unmapped" ? -1 : 0));
+  // Kartu yang relevan untuk Catat Otomatis: yang baru terdeteksi lebih dulu.
+  const autoCards = cards.filter((c) => c.status === "unmapped" || c.wallet_label || c.last4 || c.status === "active")
+    .sort((a, b) => (a.status === "unmapped" ? -1 : 0) - (b.status === "unmapped" ? -1 : 0));
 
   const revoke = async (d) => {
     if (!(await confirmAction({ title: `Cabut akses ${d.name}?`, description: "Shortcut di perangkat ini berhenti mengirim transaksi. Tidak bisa dibatalkan — buat token baru bila perlu.", confirmText: "Cabut" }))) return;
@@ -281,8 +299,8 @@ function ConnectTab() {
     catch (e) { toast.error(msg(e, "Gagal mencabut")); }
   };
 
-  const quickIgnore = async (l) => {
-    try { await manage({ action: "save_label", label_id: l.id, label: l.label, status: "ignored" }); await invalidate(); }
+  const quickIgnore = async (c) => {
+    try { await manageCards({ action: "set_status", card_id: c.id, status: "ignored" }); await invalidate(); }
     catch (e) { toast.error(msg(e, "Gagal menyimpan")); }
   };
 
@@ -315,37 +333,37 @@ function ConnectTab() {
         )}
       </section>
 
-      {/* Label kartu */}
-      <section aria-labelledby="ai-labels">
+      {/* Kartu → rekening */}
+      <section aria-labelledby="ai-cards">
         <div className="mb-2.5 flex items-end justify-between gap-2">
           <div>
-            <h2 id="ai-labels" className="font-semibold text-[17px] leading-tight">2. Label kartu → rekening</h2>
-            <p className="text-xs text-muted-foreground">Hanya label aktif yang dicatat. Label lain dibuang tanpa menyimpan nominal.</p>
+            <h2 id="ai-cards" className="font-semibold text-[17px] leading-tight">2. Kartu → rekening</h2>
+            <p className="text-xs text-muted-foreground">Hanya kartu aktif yang dicatat. Kartu lain dibuang tanpa menyimpan nominal.</p>
           </div>
-          <button type="button" className="btn-secondary btn-sm" onClick={() => setLabelSheet({})}><Plus className="w-4 h-4" /> Label</button>
+          <Link to="/kartu" className="btn-secondary btn-sm"><IdCard className="w-4 h-4" /> Semua kartu</Link>
         </div>
-        {loadingLabels ? <ListSkeleton rows={1} /> : sortedLabels.length === 0 ? (
-          <div className="surface rounded-3xl p-5 text-sm text-muted-foreground text-center">Belum ada label. Contoh: <b>rajhi-harian</b> → rekening Al Rajhi.</div>
+        {loadingCards ? <ListSkeleton rows={1} /> : autoCards.length === 0 ? (
+          <div className="surface rounded-3xl p-5 text-sm text-muted-foreground text-center">Belum ada kartu. Setelah pembayaran Apple Pay / SMS bank pertama, kartunya muncul di sini untuk dihubungkan.</div>
         ) : (
           <div className="surface rounded-3xl divide-y divide-border">
-            {sortedLabels.map((l) => {
-              const a = assetById[l.asset_id];
+            {autoCards.map((c) => {
+              const a = assetById[c.asset_id];
               return (
-                <div key={l.id} className="px-4 py-3">
-                  <button type="button" className="w-full flex items-center gap-3 text-left" onClick={() => setLabelSheet(l)}>
-                    <Tag className={`w-5 h-5 shrink-0 ${l.status === "unmapped" ? "text-warning" : "text-muted-foreground"}`} />
+                <div key={c.id} className="px-4 py-3">
+                  <button type="button" className="w-full flex items-center gap-3 text-left" onClick={() => setCardSheet(c)}>
+                    <CreditCard className={`w-5 h-5 shrink-0 ${c.status === "unmapped" ? "text-warning" : "text-muted-foreground"}`} />
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold truncate font-mono">{l.label}</span>
+                      <span className="block text-sm font-semibold truncate">{c.display_name}{c.last4 ? <span className="font-mono text-muted-foreground font-normal"> ••{c.last4}</span> : null}</span>
                       <span className="block text-xs text-muted-foreground truncate">
-                        {l.status === "unmapped" ? "Terdeteksi dari iPhone, belum terhubung — transaksinya tidak disimpan" : STATUS_TEXT[l.status] || l.status}
-                        {a ? ` · ${assetLabel(a)}` : ""}{l.last_seen_at ? ` · terakhir ${fmtTime(l.last_seen_at)}` : ""}
+                        {c.status === "unmapped" ? "Terdeteksi, belum terhubung — transaksinya tidak disimpan" : STATUS_LABEL[c.status] || c.status}
+                        {a ? ` · ${assetLabel(a)}` : ""}{c.wallet_label ? ` · ${c.wallet_label}` : ""}{c.last_seen_at ? ` · terakhir ${fmtTime(c.last_seen_at)}` : ""}
                       </span>
                     </span>
                   </button>
-                  {l.status === "unmapped" && (
+                  {c.status === "unmapped" && (
                     <div className="mt-2.5 pl-8 flex gap-2">
-                      <button type="button" className="btn-primary btn-sm flex-1" onClick={() => setLabelSheet(l)}><Link2 className="w-4 h-4" /> Hubungkan</button>
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => quickIgnore(l)}><Ban className="w-4 h-4" /> Abaikan</button>
+                      <button type="button" className="btn-primary btn-sm flex-1" onClick={() => setCardSheet(c)}><Link2 className="w-4 h-4" /> Hubungkan</button>
+                      <button type="button" className="btn-secondary btn-sm" onClick={() => quickIgnore(c)}><Ban className="w-4 h-4" /> Abaikan</button>
                     </div>
                   )}
                 </div>
@@ -355,7 +373,7 @@ function ConnectTab() {
         )}
       </section>
 
-      <SetupGuide hasToken={activeDevices.length > 0} exampleLabel={labels.find((l) => l.status === "active")?.label} />
+      <SetupGuide hasToken={activeDevices.length > 0} exampleLabel={cards.find((c) => c.status === "active" && c.wallet_label)?.wallet_label} />
 
       {deviceSheet && (
         <DeviceSheet
@@ -364,12 +382,12 @@ function ConnectTab() {
         />
       )}
       {newToken && <TokenSheet token={newToken} onClose={() => setNewToken(null)} />}
-      {labelSheet && (
-        <LabelSheet
-          initial={labelSheet}
+      {cardSheet && (
+        <CardSheet
+          initial={cardSheet}
           assets={ownAssets}
-          onClose={() => setLabelSheet(null)}
-          onSaved={() => { setLabelSheet(null); invalidate(); }}
+          onClose={() => setCardSheet(null)}
+          onSaved={() => { setCardSheet(null); invalidate(); }}
         />
       )}
     </div>
@@ -431,60 +449,6 @@ function TokenSheet({ token, onClose }) {
   );
 }
 
-function LabelSheet({ initial, assets, onClose, onSaved }) {
-  const isEdit = !!initial.id;
-  const [label, setLabel] = useState(initial.label || "");
-  const [assetId, setAssetId] = useState(initial.asset_id || "");
-  const [status, setStatus] = useState(initial.status && initial.status !== "unmapped" ? initial.status : "active");
-  const [saving, setSaving] = useState(false);
-  const preview = normalizeLabel(label);
-
-  const submit = async () => {
-    setSaving(true);
-    try {
-      await manage({ action: "save_label", label_id: initial.id, label, asset_id: assetId || undefined, status });
-      toast.success("Label tersimpan");
-      onSaved();
-    } catch (e) { toast.error(msg(e, "Gagal menyimpan label")); setSaving(false); }
-  };
-  const remove = async () => {
-    if (!(await confirmAction({ title: `Hapus label ${initial.label}?`, description: "Transaksi dengan label ini akan dianggap label baru (tidak dicatat) sampai dihubungkan lagi." }))) return;
-    try { await manage({ action: "delete_label", label_id: initial.id }); onSaved(); }
-    catch (e) { toast.error(msg(e, "Gagal menghapus")); }
-  };
-
-  return (
-    <FormSheet
-      title={initial.status === "unmapped" ? "Hubungkan label" : isEdit ? "Ubah label" : "Label baru"}
-      subtitle="Ketik label yang sama persis di shortcut iPhone"
-      onClose={onClose}
-      footer={
-        <div className="flex gap-2">
-          {isEdit && <button type="button" className="btn-secondary" aria-label="Hapus label" onClick={remove}><Trash2 className="w-4 h-4" /></button>}
-          <button type="button" className="btn-primary flex-1" disabled={saving || !preview || (status !== "ignored" && !assetId)} onClick={submit}>{saving ? "Menyimpan…" : "Simpan"}</button>
-        </div>
-      }
-    >
-      <FieldGroup>
-        <FieldRow icon={Tag} label="Label" htmlFor="ai-label" hint={preview && preview !== label ? `Disimpan sebagai: ${preview}` : "Huruf kecil, angka, tanda -. Contoh: rajhi-harian"}>
-          <input id="ai-label" className={`${fieldInput} font-mono`} value={label} maxLength={40} autoCapitalize="none" autoCorrect="off" onChange={(e) => setLabel(e.target.value)} placeholder="rajhi-harian" />
-        </FieldRow>
-        <FieldRow icon={CreditCard} label="Rekening tujuan" htmlFor="ai-asset" hint={assets.length ? "Mata uang transaksi mengikuti rekening ini" : "Belum ada aset bank milik Anda — tambahkan di menu Aset"}>
-          <NativeSelect id="ai-asset" className={fieldInput} value={assetId} sheetTitle="Rekening tujuan" aria-label="Rekening tujuan" onChange={(e) => setAssetId(e.target.value)}>
-            <option value="">Pilih rekening…</option>
-            {assets.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({a.currency || "IDR"})</option>)}
-          </NativeSelect>
-        </FieldRow>
-      </FieldGroup>
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Status</p>
-        <ChipChoice ariaLabel="Status label" value={status} onChange={setStatus}
-          options={[{ value: "active", label: "Catat" }, { value: "paused", label: "Jeda" }, { value: "ignored", label: "Abaikan selalu" }]} />
-      </div>
-    </FormSheet>
-  );
-}
-
 function GuideSteps({ steps }) {
   return (
     <ol className="surface rounded-3xl divide-y divide-border">
@@ -503,36 +467,60 @@ function GuideSteps({ steps }) {
 
 function SetupGuide({ hasToken, exampleLabel }) {
   const label = exampleLabel || "rajhi-harian";
+  const [mode, setMode] = useState("apple_pay");
+  const tokenStep = ["Buat token", hasToken ? "Sudah ada token. Bila lupa menyalin, buat token baru lalu cabut yang lama." : "Di bagian 1 tekan Tambah, lalu salin Token & URL."];
   // Cara cepat: satu shortcut siap pakai + satu otomasi untuk semua kartu.
   // Label otomatis = nama kartu di Wallet; kartu baru muncul di bagian 2 untuk dihubungkan.
   const quick = [
-    ["Buat token", hasToken ? "Sudah ada token. Bila lupa menyalin, buat token baru lalu cabut yang lama." : "Di bagian 1 tekan Tambah, lalu salin Token."],
-    ["Pasang shortcut \"Kirim ke Nafkita\"", SHORTCUT_URL ? "Tekan tombol di bawah → Tambah Pintasan → tempel token saat ditanya." : "Tautan shortcut belum tersedia — gunakan cara manual di bawah, atau minta admin menyiapkan tautannya."],
+    tokenStep,
+    ["Pasang shortcut \"Kirim ke Nafkita\"", SHORTCUT_URL ? "Tekan tombol di bawah → Tambah Pintasan → tempel token saat ditanya." : "Tautan shortcut belum tersedia — gunakan cara manual di bawah."],
+    ["Uji dengan tombol ▶", "Jalankan shortcut sekali dari app Pintasan. Bila muncul \"Terhubung ✓\", sambungan beres (tidak ada transaksi yang dibuat)."],
     ["Buat SATU otomasi untuk semua kartu", "Pintasan → Otomasi → + → Wallet (iOS 17–18: \"Transaksi\"). Centang semua kartu yang ingin dicatat → Jalankan Segera."],
     ["Isi aksinya", "Tambah aksi \"Jalankan Pintasan\" → pilih \"Kirim ke Nafkita\" → masukan: Input Pintasan."],
-    ["Bayar sekali, lalu hubungkan", "Setelah pembayaran pertama, tiap kartu muncul di bagian 2 sebagai \"Belum terhubung\" (nama kartu jadi label). Ketuk Hubungkan → pilih rekeningnya. Pembayaran berikutnya langsung masuk Kotak Masuk."],
+    ["Bayar sekali, lalu hubungkan", "Setelah pembayaran pertama, tiap kartu muncul di bagian 2 sebagai \"Belum terhubung\". Ketuk Hubungkan → pilih rekeningnya. Pembayaran berikutnya langsung masuk Kotak Masuk."],
   ];
   const manual = [
-    ["Buat label", `Di bagian 2, buat label untuk tiap kartu (mis. "${label}") dan pilih rekeningnya.`],
+    ["Siapkan kartu", `Di halaman Kartu, isi Label Apple Pay tiap kartu (mis. "${label}") dan pilih rekeningnya.`],
     ["Buka Pintasan → Otomasi → +", "Pilih pemicu Wallet. Pilih SATU kartu, lalu Jalankan Segera."],
     ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_… (dari layar token)."],
     ["Isi Minta Isi (JSON), semua jenis Teks", `label = ${label} · amount = Input Pintasan (Jenis: Transaksi) → Jumlah · merchant = Input Pintasan → Penjual · name = Input Pintasan → Nama (cadangan bila Penjual kosong).`],
     ["Ulangi per kartu", "Satu otomasi per kartu dengan label berbeda."],
   ];
+  // SMS bank (Al Rajhi, D360, bank Indonesia). Kartu dicocokkan lewat 4 digit
+  // terakhir di SMS; SMS OTP & promo dibuang tanpa disimpan.
+  const sms = [
+    tokenStep,
+    ["Isi 4 digit terakhir kartu", "Di halaman Kartu, pastikan tiap kartu punya 4 digit terakhir & rekening. SMS \"…kartu ****0315…\" otomatis masuk ke kartu ••0315."],
+    ["Pintasan → Otomasi → + → Pesan", "Pesan Berisi: kata yang selalu ada di SMS transaksi bank Anda (mis. \"SAR\", \"مبلغ\", atau \"Rp\"). Pilih Jalankan Segera."],
+    ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_…"],
+    ["Isi Minta Isi (JSON), jenis Teks", "text = Input Pintasan → Isi · sender = Input Pintasan → Pengirim · label (opsional) = nama bank, mis. alrajhi."],
+    ["Cek di Kotak Masuk", "Uang keluar jadi pengeluaran, uang masuk (gaji, transfer masuk) jadi pemasukan. Isi SMS bisa dibuka di tiap item untuk dicek."],
+  ];
   return (
     <section aria-labelledby="ai-guide" className="space-y-3">
       <div>
         <h2 id="ai-guide" className="font-semibold text-[17px] leading-tight"><BookOpen className="w-4 h-4 inline -mt-1 mr-1" />3. Pasang di iPhone (±3 menit, sekali saja)</h2>
-        <p className="text-xs text-muted-foreground">Hanya untuk iPhone dengan Apple Pay. Transfer, QRIS & kartu fisik tidak tertangkap.</p>
+        <p className="text-xs text-muted-foreground">Apple Pay menangkap pembayaran kartu di iPhone. SMS bank menangkap transaksi kartu fisik, transfer & uang masuk.</p>
       </div>
-      {SHORTCUT_URL && (
-        <a href={SHORTCUT_URL} target="_blank" rel="noreferrer" className="btn-primary w-full"><Smartphone className="w-4 h-4" /> Pasang shortcut &quot;Kirim ke Nafkita&quot;</a>
+      <ChipChoice ariaLabel="Sumber" size="sm" value={mode} onChange={setMode}
+        options={[{ value: "apple_pay", label: "Apple Pay" }, { value: "sms", label: "SMS bank" }]} />
+      {mode === "apple_pay" ? (
+        <>
+          {SHORTCUT_URL && (
+            <a href={SHORTCUT_URL} target="_blank" rel="noreferrer" className="btn-primary w-full"><Smartphone className="w-4 h-4" /> Pasang shortcut &quot;Kirim ke Nafkita&quot;</a>
+          )}
+          <GuideSteps steps={quick} />
+          <details className="surface rounded-3xl">
+            <summary className="px-4 py-3 text-sm font-semibold cursor-pointer select-none">Cara manual (tanpa tautan shortcut)</summary>
+            <div className="px-1 pb-1"><GuideSteps steps={manual} /></div>
+          </details>
+        </>
+      ) : (
+        <>
+          <GuideSteps steps={sms} />
+          <p className="text-[11px] text-muted-foreground px-1">SMS berisi kode OTP tidak pernah dicatat. Bila satu pembelian masuk dari Apple Pay dan SMS sekaligus, Nafkita menandainya agar tidak dobel.</p>
+        </>
       )}
-      <GuideSteps steps={quick} />
-      <details className="surface rounded-3xl">
-        <summary className="px-4 py-3 text-sm font-semibold cursor-pointer select-none">Cara manual (tanpa tautan shortcut)</summary>
-        <div className="px-1 pb-1"><GuideSteps steps={manual} /></div>
-      </details>
     </section>
   );
 }

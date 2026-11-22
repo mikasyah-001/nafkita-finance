@@ -30,7 +30,7 @@ const TONES = [
 export const toneMap = (list) => Object.fromEntries(
   [...list].sort((a, b) => String(a.created_date || a.id).localeCompare(String(b.created_date || b.id))).map((a, i) => [a.id, i]),
 );
-const cardBg = (i) => {
+export const cardBg = (i) => {
   const [a, b] = TONES[i % TONES.length];
   return `radial-gradient(80% 60% at 100% 0%, hsl(var(--gold) / 0.20), transparent 60%), linear-gradient(155deg, hsl(${a}), hsl(${b}))`;
 };
@@ -38,7 +38,7 @@ const STORE_KEY = "nafkita.wallet.selected";
 const readSaved = () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } };
 export const saveSelected = (id) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* penyimpanan diblokir */ } };
 
-function StarPattern({ id }) {
+export function StarPattern({ id }) {
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
       <defs>

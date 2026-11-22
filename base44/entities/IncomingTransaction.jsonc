@@ -49,6 +49,11 @@
     },
     "source": {
       "type": "string",
+      "enum": [
+        "apple_pay",
+        "sms",
+        "email"
+      ],
       "default": "apple_pay"
     },
     "status": {
@@ -76,6 +81,23 @@
         "keyword"
       ],
       "description": "Asal saran kategori: riwayat merchant pengguna atau kamus merchant umum"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "out",
+        "in"
+      ],
+      "default": "out",
+      "description": "out = pengeluaran, in = pemasukan (mis. SMS gaji/transfer masuk)"
+    },
+    "card_id": {
+      "type": "string",
+      "description": "PaymentCard yang dikenali"
+    },
+    "raw_text": {
+      "type": "string",
+      "description": "Isi SMS/email (dipotong; OTP tidak pernah disimpan)"
     }
   },
   "required": [

@@ -178,7 +178,9 @@ export default function TransactionDetail() {
   const categoryName = tx.type === "sedekah" ? "Sedekah & Infaq" : tx.category || "Tanpa kategori";
   const title = tx.merchant || categoryName;
   const subtitle = tx.merchant ? categoryName : typeLabels[tx.type];
-  const showActions = canManage && inList && !isPending;
+  // Transfer ke pasangan: penerima (pemilik rekening tujuan) juga boleh membatalkan.
+  const ownsLinkedAccount = !!linkedAsset && !!user && linkedAsset.created_by_id === user.id;
+  const showActions = (canManage || (isTransfer && ownsLinkedAccount)) && inList && !isPending;
   const sign = isIncome ? "+" : "−";
 
   return (

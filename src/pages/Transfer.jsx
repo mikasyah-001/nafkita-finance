@@ -1,29 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useUserCurrencies, useMe, useRateMap } from "@/hooks/useFinance";
-import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
-import { convertedFromLabel } from "@/components/CurrencySwitchNotice";
-import { currencySymbol, isMoneyAsset, formatMoneyPlain, conversionPreview } from "@/lib/finance";
+import { useAssets, useRefresh, useMe, useRateMap } from "@/hooks/useFinance";
+import { usePartnership } from "@/hooks/usePartnership";
+import { currencySymbol, isMoneyAsset, formatMoneyPlain, convertTo, canConvert } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
 import { toast } from "sonner";
-import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info } from "lucide-react";
+import { ArrowRightLeft, Loader2, Check, Users, Lock, ArrowUpFromLine, ArrowDownToLine, CalendarDays, NotebookPen, Info, HeartHandshake, Coins } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { FieldRow, fieldInput } from "@/components/FormSheet";
 import NativeSelect from "@/components/NativeSelect";
 import MoneyInput from "@/components/MoneyInput";
 
+// Transfer antar-rekening — juga ke rekening PASANGAN dan antar mata uang.
+// Aturan (asal milik sendiri; tujuan milik sendiri/pasangan bukan pribadi;
+// beda mata uang wajib nominal diterima) ditegakkan di backend
+// (shared/transferRules.js); halaman ini hanya menyaring pilihan yang sah.
+const up = (c) => String(c || "IDR").toUpperCase();
+
 export default function Transfer() {
   const navigate = useNavigate();
   const refresh = useRefresh();
   const { data: assets = [] } = useAssets();
-  const userCurrencies = useUserCurrencies();
   const { data: user = null } = useMe();
+  const { partners } = usePartnership();
+  const partner = partners?.[0] || null;
+  const partnerName = String(partner?.full_name || "Pasangan").split(/\s+/)[0];
   const qs = new URLSearchParams(window.location.search);
   const [fromAsset, setFromAsset] = useState(qs.get("from") || "");
   const [toAsset, setToAsset] = useState(qs.get("to") || "");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("IDR");
+  const [received, setReceived] = useState("");
+  const [receivedTouched, setReceivedTouched] = useState(false);
   const [date, setDate] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -33,124 +41,135 @@ export default function Transfer() {
   const [visibility, setVisibility] = useState("shared");
   const [saving, setSaving] = useState(false);
   const { map: rateMap } = useRateMap();
-  const curGuard = useCurrencySwitch({
-    currency, amounts: { amount }, rateMap,
-    setCurrency: (c) => { setCurrency(c); setFromAsset(""); setToAsset(""); },
-    setAmounts: (a) => setAmount(a.amount),
-  });
 
-  useEffect(() => {
-    if (user?.default_currency) setCurrency(user.default_currency);
-  }, [user?.default_currency]);
-
-  // Rekening bank & dompet tunai (tarik tunai = transfer bank → dompet tunai).
-  const bankAssets = assets.filter(
-    (a) => isMoneyAsset(a) && (a.currency || "IDR") === currency && a.created_by_id === user?.id
+  // Rekening asal: bank & tunai milik sendiri (semua mata uang).
+  const myAccounts = useMemo(() => assets.filter((a) => isMoneyAsset(a) && a.created_by_id === user?.id), [assets, user?.id]);
+  // Rekening tujuan pasangan: bank & tunai bersama milik pasangan aktif.
+  const partnerAccounts = useMemo(
+    () => (partner ? assets.filter((a) => isMoneyAsset(a) && a.created_by_id === partner.id && a.visibility !== "private") : []),
+    [assets, partner],
   );
 
+  const fromObj = myAccounts.find((a) => a.id === fromAsset);
+  const toObj = [...myAccounts, ...partnerAccounts].find((a) => a.id === toAsset);
+  const fromCur = up(fromObj?.currency);
+  const toCur = up(toObj?.currency || fromObj?.currency);
+  const cross = !!fromObj && !!toObj && fromCur !== toCur;
+  const toPartner = !!toObj && toObj.created_by_id !== user?.id;
+  const amountNum = Number(amount) || 0;
+
+  // Nominal diterima (beda mata uang): isi otomatis dari kurs, boleh dikoreksi sesuai kurs bank.
+  useEffect(() => {
+    if (!cross || receivedTouched) return;
+    if (amountNum > 0 && canConvert(fromCur, toCur, rateMap)) {
+      const v = convertTo(amountNum, fromCur, toCur, rateMap);
+      setReceived(String(toCur === "IDR" ? Math.round(v) : Math.round(v * 100) / 100));
+    } else setReceived("");
+  }, [cross, amountNum, fromCur, toCur, rateMap, receivedTouched]);
+
+  // Asal berganti → tujuan tak valid lagi bila sama.
+  useEffect(() => { if (toAsset && toAsset === fromAsset) setToAsset(""); }, [fromAsset, toAsset]);
+
   const handleSave = async () => {
-    const amt = Number(amount);
-    if (!amt || amt <= 0) return toast.error("Masukkan nominal terlebih dahulu");
-    if (!fromAsset) return toast.error("Pilih rekening asal");
-    if (!toAsset) return toast.error("Pilih rekening tujuan");
-    if (fromAsset === toAsset) return toast.error("Rekening asal dan tujuan tidak boleh sama");
+    if (!(amountNum > 0)) return toast.error("Masukkan nominal terlebih dahulu");
+    if (!fromObj) return toast.error("Pilih rekening asal");
+    if (!toObj) return toast.error("Pilih rekening tujuan");
+    if (cross && !(Number(received) > 0)) return toast.error(`Isi nominal yang diterima dalam ${toCur}`);
 
     setSaving(true);
     try {
       const res = await base44.functions.invoke("saveTransfer", {
-        from_asset_id: fromAsset,
-        to_asset_id: toAsset,
-        amount: amt,
-        currency,
+        from_asset_id: fromObj.id,
+        to_asset_id: toObj.id,
+        amount: amountNum,
+        received_amount: cross ? Number(received) : undefined,
         date: new Date(date).toISOString(),
         notes,
         visibility,
       });
-      if (res.data?.error) throw new Error(res.data.error);
+      if (res.data?.error) throw new Error(res.data.message || res.data.error);
       refresh();
-      toast.success("Transfer berhasil!");
+      toast.success(toPartner ? `Terkirim ke ${partnerName}` : "Transfer berhasil!", toPartner ? { description: `${partnerName} mendapat notifikasi uang masuk.` } : undefined);
       navigate("/");
     } catch (err) {
-      toast.error("Gagal membuat transfer", { description: err?.message || "" });
+      toast.error("Gagal membuat transfer", { description: err?.response?.data?.message || err?.message || "" });
     }
     setSaving(false);
   };
 
-  const fromObj = bankAssets.find((a) => a.id === fromAsset);
-  const toObj = bankAssets.find((a) => a.id === toAsset);
-  const amountNum = Number(amount) || 0;
-  const disabled = bankAssets.length < 2;
+  const destinationOptions = myAccounts.filter((a) => a.id !== fromAsset);
+  const disabled = myAccounts.length + partnerAccounts.length < 2 || myAccounts.length < 1;
 
   return (
     <div className="px-5 pt-6">
-      <div>
-        <PageHeader title="Transfer antar-rekening" subtitle="Pindahkan saldo tanpa tercatat sebagai belanja" back />
+      <PageHeader title="Transfer" subtitle="Antar rekening sendiri atau ke pasangan — tidak tercatat sebagai belanja" back />
 
-        <div className="space-y-5">
-          {/* Nominal (fokus utama) */}
-          <section aria-label="Nominal" className="card-gradient-primary rounded-[28px] p-5">
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="transfer-amount" className="text-xs opacity-80">Berapa yang dipindahkan?</label>
-              {userCurrencies.length > 1 && (
-                <div role="radiogroup" aria-label="Mata uang" className="flex gap-1">
-                  {userCurrencies.map((c) => (
-                    <button
-                      key={c.code}
-                      type="button"
-                      role="radio"
-                      aria-checked={currency === c.code}
-                      onClick={() => curGuard.change(c.code)}
-                      className={`h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors ${currency === c.code ? "bg-white text-[hsl(var(--hero-from))] border-white" : "border-white/25 text-white/75"}`}
-                    >
-                      {c.code}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-xl font-semibold opacity-70">{currencySymbol(currency)}</span>
-              <MoneyInput currency={currency}
-                id="transfer-amount"
-                value={amount}
-                onChange={(v) => setAmount(v)}
-                placeholder="0"
-                className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
-              />
-            </div>
-            <p className="text-xs opacity-70 mt-1 tabular-nums h-4">{/* Angka besar sudah berpemisah ribuan; baris ini hanya untuk konversi kurs */}{curGuard.origin ? convertedFromLabel(curGuard) : amountNum > 0 && currency !== "IDR" ? conversionPreview(amountNum, currency, "IDR", rateMap) : ""}</p>
-            <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 text-xs">
-              <span className="truncate flex-1 min-w-0">{fromObj ? assetLabel(fromObj) : "Rekening asal"}</span>
-              <ArrowRightLeft className="w-3.5 h-3.5 opacity-70 shrink-0" />
-              <span className="truncate flex-1 min-w-0 text-right">{toObj ? assetLabel(toObj) : "Rekening tujuan"}</span>
-            </div>
-          </section>
+      <div className="space-y-5">
+        {/* Nominal (fokus utama) */}
+        <section aria-label="Nominal" className="card-gradient-primary rounded-[28px] p-5">
+          <label htmlFor="transfer-amount" className="text-xs opacity-80">Berapa yang dikirim?</label>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-xl font-semibold opacity-70">{currencySymbol(fromCur)}</span>
+            <MoneyInput currency={fromCur}
+              id="transfer-amount"
+              value={amount}
+              onChange={(v) => setAmount(v)}
+              placeholder="0"
+              className="flex-1 min-w-0 bg-transparent outline-none font-heading text-[40px] leading-none font-extrabold tracking-tight tabular-nums placeholder:text-white/30 text-[hsl(var(--hero-foreground))]"
+            />
+          </div>
+          <p className="text-xs opacity-70 mt-1 h-4">{fromObj ? `Saldo ${assetLabel(fromObj)}: ${formatMoneyPlain(fromObj.value || 0, fromCur)}` : "Pilih rekening asal di bawah"}</p>
+          <div className="mt-3 flex items-center gap-2 rounded-2xl bg-white/[0.07] border border-white/10 px-3 py-2 text-xs">
+            <span className="truncate flex-1 min-w-0">{fromObj ? assetLabel(fromObj) : "Rekening asal"}</span>
+            <ArrowRightLeft className="w-3.5 h-3.5 opacity-70 shrink-0" />
+            <span className="truncate flex-1 min-w-0 text-right">{toObj ? `${toPartner ? `${partnerName} · ` : ""}${assetLabel(toObj)}` : "Rekening tujuan"}</span>
+          </div>
+        </section>
 
-          {disabled ? (
-            <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
-              Anda memerlukan minimal 2 rekening atau dompet tunai bermata uang {currency} untuk transfer.
-            </div>
-          ) : (
-            <section aria-label="Detail transfer" className="surface rounded-3xl divide-y divide-border">
-              <FieldRow icon={ArrowUpFromLine} label="Dari rekening" htmlFor="transfer-from">
-                <NativeSelect sheetTitle="Rekening asal" id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
-                  <option value="">Pilih rekening asal</option>
-                  {bankAssets.map((a) => (
-                    <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
-                  ))}
-                </NativeSelect>
+        {disabled ? (
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+            Perlu minimal 2 rekening (milik Anda, atau rekening bersama pasangan) untuk transfer.
+          </div>
+        ) : (
+          <section aria-label="Detail transfer" className="surface rounded-3xl divide-y divide-border">
+            <FieldRow icon={ArrowUpFromLine} label="Dari rekening saya" htmlFor="transfer-from">
+              <NativeSelect sheetTitle="Rekening asal" id="transfer-from" value={fromAsset} onChange={(e) => setFromAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
+                <option value="">Pilih rekening asal</option>
+                {myAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
+                ))}
+              </NativeSelect>
+            </FieldRow>
+            <FieldRow icon={toPartner ? HeartHandshake : ArrowDownToLine} label="Ke rekening" htmlFor="transfer-to"
+              hint={toPartner ? `Saldo rekening ${partnerName} bertambah otomatis dan ${partnerName} mendapat notifikasi.` : undefined}>
+              <NativeSelect sheetTitle="Rekening tujuan" id="transfer-to" value={toAsset} onChange={(e) => { setToAsset(e.target.value); setReceivedTouched(false); }} className={`${fieldInput} -ml-0.5`}>
+                <option value="">Pilih rekening tujuan</option>
+                {destinationOptions.length > 0 && (
+                  <optgroup label="Rekening saya">
+                    {destinationOptions.map((a) => (
+                      <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
+                    ))}
+                  </optgroup>
+                )}
+                {partnerAccounts.length > 0 && (
+                  <optgroup label={`Rekening ${partnerName}`}>
+                    {partnerAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>{partnerName} · {assetLabel(a)} ({up(a.currency)})</option>
+                    ))}
+                  </optgroup>
+                )}
+              </NativeSelect>
+            </FieldRow>
+            {cross && (
+              <FieldRow icon={Coins} label={`Diterima di ${assetLabel(toObj)} (${toCur})`} htmlFor="transfer-received"
+                hint={receivedTouched ? "Sesuai kurs bank yang Anda isi." : canConvert(fromCur, toCur, rateMap) ? "Dihitung dari kurs hari ini — ubah bila kurs bank berbeda." : "Kurs belum tersedia — isi sesuai nominal yang benar-benar diterima."}>
+                <MoneyInput id="transfer-received" currency={toCur} value={received} onChange={(v) => { setReceived(v); setReceivedTouched(true); }} className={fieldInput} placeholder="0" />
               </FieldRow>
-              <FieldRow icon={ArrowDownToLine} label="Ke rekening" htmlFor="transfer-to">
-                <NativeSelect sheetTitle="Rekening tujuan" id="transfer-to" value={toAsset} onChange={(e) => setToAsset(e.target.value)} className={`${fieldInput} -ml-0.5`}>
-                  <option value="">Pilih rekening tujuan</option>
-                  {bankAssets.filter((a) => a.id !== fromAsset).map((a) => (
-                    <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value, a.currency)})</option>
-                  ))}
-                </NativeSelect>
-              </FieldRow>
-              <FieldRow icon={CalendarDays} label="Tanggal & jam" htmlFor="transfer-date">
-                <input id="transfer-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className={fieldInput} />
-              </FieldRow>
+            )}
+            <FieldRow icon={CalendarDays} label="Tanggal & jam" htmlFor="transfer-date">
+              <input id="transfer-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} className={fieldInput} />
+            </FieldRow>
+            {!toPartner && (
               <div className="flex items-center gap-3 px-4 py-3">
                 {visibility === "private" ? <Lock className="w-4 h-4 text-muted-foreground shrink-0" /> : <Users className="w-4 h-4 text-muted-foreground shrink-0" />}
                 <div className="flex-1 min-w-0">
@@ -163,16 +182,19 @@ export default function Transfer() {
                   ))}
                 </div>
               </div>
-              <FieldRow icon={NotebookPen} label="Catatan (opsional)" htmlFor="transfer-notes">
-                <textarea id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Mis. Transfer ke tabungan pendidikan..." className={`${fieldInput} resize-none`} />
-              </FieldRow>
-            </section>
-          )}
+            )}
+            <FieldRow icon={NotebookPen} label="Catatan (opsional)" htmlFor="transfer-notes">
+              <textarea id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={toPartner ? "Mis. Uang belanja bulan ini" : "Mis. Transfer ke tabungan pendidikan..."} className={`${fieldInput} resize-none`} />
+            </FieldRow>
+          </section>
+        )}
 
-          <div className="flex items-start gap-2 rounded-2xl bg-muted/60 p-3 text-xs text-muted-foreground leading-snug">
-            <Info className="w-4 h-4 shrink-0 mt-0.5" />
-            Transfer tidak terhitung sebagai pemasukan atau pengeluaran. Saldo kedua rekening disesuaikan otomatis.
-          </div>
+        <div className="flex items-start gap-2 rounded-2xl bg-muted/60 p-3 text-xs text-muted-foreground leading-snug">
+          <Info className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            Transfer tidak terhitung sebagai pemasukan atau pengeluaran keluarga. Saldo kedua rekening disesuaikan otomatis.
+            {partner ? ` Transfer ke ${partnerName} hanya ke rekening bersamanya; rekening pribadinya tidak ditampilkan.` : " Hubungkan pasangan untuk bisa transfer ke rekeningnya."}
+          </span>
         </div>
       </div>
 
@@ -180,7 +202,7 @@ export default function Transfer() {
       <div className="mt-5">
         <button onClick={handleSave} disabled={saving || disabled} className="w-full btn-primary">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          {saving ? "Memproses..." : "Transfer Sekarang"}
+          {saving ? "Memproses..." : toPartner ? `Kirim ke ${partnerName}` : "Transfer Sekarang"}
         </button>
       </div>
     </div>

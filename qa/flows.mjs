@@ -1104,6 +1104,76 @@ try {
     assert.equal(await list.getByText("Bnak Salah Ketik").count(), 0, "Bank salah ketik bisa dihapus");
   });
 
+  await step("Kartu: hubungkan kartu terdeteksi, buat PIN, buka & simpan detail, kunci lagi", async () => {
+    await nav("/riwayat"); await nav("/kartu");
+    assert.ok(await page.getByText("Terdeteksi, belum terhubung").isVisible(), "Kartu terdeteksi tampil");
+    assert.ok(await page.getByText(/tidak pernah/).first().isVisible(), "Catatan keamanan tampil");
+    // Hubungkan kartu terdeteksi
+    await page.getByRole("button", { name: "Hubungkan" }).first().click();
+    const sheet = page.getByRole("dialog");
+    await page.selectOption("#cs-asset", { index: 1 });
+    await page.locator("#cs-last4").fill("4111 1111 1111 7788");
+    assert.equal(await page.locator("#cs-last4").inputValue(), "7788", "Hanya 4 digit terakhir yang tersimpan di form");
+    await sheet.getByRole("button", { name: "Simpan" }).click();
+    await page.waitForTimeout(500);
+    const pc3 = await page.evaluate(() => window.__qaData.PaymentCard.find((c) => c.id === "pc3"));
+    assert.equal(pc3.status, "active"); assert.ok(pc3.asset_id, "Terhubung ke rekening"); assert.equal(pc3.last4, "7788");
+    assert.equal(await page.getByText("Terdeteksi, belum terhubung").count(), 0, "Bagian terdeteksi hilang");
+    // Buka detail kartu Al Rajhi → buat PIN
+    await page.getByRole("button", { name: "Kartu Al Rajhi mada" }).click();
+    assert.ok(await page.getByRole("dialog").getByText("••/••").isVisible(), "Masa berlaku tersembunyi sebelum PIN");
+    await page.getByRole("button", { name: /Lihat detail/ }).click();
+    await page.getByLabel("PIN baru").fill("135790");
+    await page.getByLabel("Ulangi PIN").fill("135790");
+    await page.getByRole("button", { name: /Simpan PIN/ }).click();
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText("AHMAD FAUZI").isVisible(), "Nama di kartu tampil setelah PIN");
+    assert.ok(await page.getByText("08/29").first().isVisible(), "Masa berlaku tampil");
+    // Ubah detail: masa berlaku + foto tersamar
+    await page.getByRole("button", { name: /Ubah detail/ }).click();
+    await page.getByLabel("Bulan").fill("09");
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDasKb6QAAAABJRU5ErkJggg==", "base64");
+    await page.locator('input[type=file]').setInputFiles({ name: "kartu.png", mimeType: "image/png", buffer: png });
+    await page.waitForTimeout(400);
+    assert.ok(await page.getByLabel("Posisi samaran").isVisible(), "Pengatur samaran tampil");
+    await page.getByRole("button", { name: "Simpan detail" }).click();
+    await page.waitForTimeout(700);
+    const sec = await page.evaluate(() => window.__qaData.PaymentCardSecret.find((x) => x.card_id === "pc1"));
+    assert.equal(sec.exp_month, 9); assert.ok(/^data:image\/jpeg/.test(sec.photo_uri || ""), "Foto diunggah sebagai JPEG hasil samaran (bukan file asli)");
+    assert.ok(await page.getByAltText(/nomor disamarkan/).isVisible(), "Foto tampil setelah dibuka");
+    await page.getByRole("button", { name: "Kunci sekarang" }).click();
+    await page.waitForTimeout(300);
+    assert.equal(await page.getByText("AHMAD FAUZI").count(), 0, "Detail tersembunyi lagi setelah dikunci");
+    // PIN salah ditolak
+    await page.getByRole("button", { name: /Lihat detail/ }).click();
+    await page.getByLabel("PIN", { exact: true }).fill("000000");
+    await page.getByRole("button", { name: /Buka/ }).click();
+    await page.waitForTimeout(400);
+    assert.ok(await page.getByRole("alert").getByText(/PIN salah/).isVisible(), "PIN salah ditolak");
+    await page.keyboard.press("Escape");
+  });
+
+  await step("Catat Otomatis: SMS uang masuk disimpan sebagai pemasukan; panduan SMS tersedia", async () => {
+    await nav("/riwayat"); await nav("/catat-otomatis");
+    const item = page.locator("article", { hasText: "Uang masuk" });
+    assert.ok(await item.getByText(/SMS bank/).isVisible(), "Sumber SMS ditandai");
+    assert.ok(/\+/.test(await item.locator("p.font-heading").innerText()), "Nominal bertanda +");
+    await item.getByText("Isi SMS").click();
+    assert.ok(await item.getByText(/إيداع راتب/).isVisible(), "Isi SMS bisa dicek");
+    const catSel = item.locator('select[aria-label="Kategori"]');
+    const opts = await catSel.locator("option").allInnerTexts();
+    assert.ok(opts.some((o) => /Gaji/i.test(o)), "Pilihan kategori pemasukan");
+    await catSel.selectOption({ label: opts.find((o) => /Gaji/i.test(o)) });
+    await item.getByRole("button", { name: "Simpan" }).click();
+    await page.waitForTimeout(600);
+    const tx = await page.evaluate(() => window.__qa.tx.find((t) => /SMS bank/.test(t.notes || "")));
+    assert.ok(tx && tx.type === "income" && tx.amount === 5000, "Tersimpan sebagai pemasukan 5000");
+    await nav("/riwayat"); await nav("/catat-otomatis?tab=sambungan");
+    assert.ok(await page.getByText("2. Kartu → rekening").isVisible());
+    await page.getByRole("radio", { name: "SMS bank" }).click();
+    assert.ok(await page.getByText(/Otomasi → \+ → Pesan/).isVisible(), "Langkah otomasi Pesan tampil");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

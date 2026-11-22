@@ -9,6 +9,7 @@ export function deleteImpactText(asset, impact = {}) {
   if (impact.debts) parts.push(`${impact.debts} catatan utang/piutang dilepas dari aset ini`);
   if (impact.savings_goals) parts.push(`${impact.savings_goals} target tabungan tidak lagi memakai aset ini`);
   if (impact.card_labels) parts.push(`${impact.card_labels} label kartu Catat Otomatis berhenti mencatat sampai dihubungkan lagi`);
+  if (impact.payment_cards) parts.push(`${impact.payment_cards} kartu dilepas dari rekening ini (kartu & detailnya tetap tersimpan)`);
   if (impact.inbox_items) parts.push(`${impact.inbox_items} item Kotak Masuk perlu dipilihkan rekening lain`);
   if (impact.investment_lots) parts.push(`${impact.investment_lots} riwayat pembelian (DCA) ikut dihapus`);
   const head = "Aset dihapus permanen dan tidak bisa dikembalikan.";

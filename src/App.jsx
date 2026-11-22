@@ -56,6 +56,7 @@ const More = lazyPage(() => import('@/pages/More'));
 const PartnerProfile = lazyPage(() => import('@/pages/PartnerProfile'));
 const AutoIngest = lazyPage(() => import('@/pages/AutoIngest'));
 const Wallet = lazyPage(() => import('@/pages/Wallet'));
+const Cards = lazyPage(() => import('@/pages/Cards'));
 
 // Halaman selain Beranda & auth dimuat saat dibuka (code-splitting), sehingga
 // pembukaan pertama aplikasi jauh lebih ringan di jaringan lemah.
@@ -147,6 +148,7 @@ const AuthenticatedApp = () => {
           <Route path="/lainnya" element={<More />} />
           <Route path="/catat-otomatis" element={<AutoIngest />} />
           <Route path="/dompet" element={<Wallet />} />
+          <Route path="/kartu" element={<Cards />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

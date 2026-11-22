@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { IdCard } from "lucide-react";
 import { useScope } from "@/lib/ScopeContext";
 import PageHeader from "@/components/PageHeader";
 import ScopeToggle from "@/components/ScopeToggle";
@@ -10,7 +12,8 @@ export default function Wallet() {
   const { scope } = useScope();
   return (
     <div className="px-5 pt-6 pb-6">
-      <PageHeader title="Dompet" subtitle="Saldo & transaksi per rekening" back />
+      <PageHeader title="Dompet" subtitle="Saldo & transaksi per rekening" back
+        actions={<Link to="/kartu" className="btn-secondary btn-sm"><IdCard className="w-4 h-4" /> Kartu</Link>} />
       <ScopeToggle className="mb-4" />
       <AccountWallet scope={scope} recent={8} />
     </div>

@@ -4,7 +4,7 @@ import {
   Home, ReceiptText, Landmark, BarChart3, Wallet,
   ArrowRightLeft, HandCoins, RefreshCw, Scale, Target, CheckCheck,
   Upload, Tags, Activity, Coins, User, Settings, MessageSquare,
-  Shield, BookOpen, Banknote, Zap, CreditCard,
+  Shield, BookOpen, Banknote, Zap, CreditCard, IdCard,
 } from "lucide-react";
 
 // Item utama (Sidebar) — Beranda, Riwayat, Aset, Laporan (termasuk ringkasan bulanan), Anggaran.
@@ -28,6 +28,7 @@ export const toolItems = [
   { to: "/zakat", icon: Coins, label: "Zakat", color: "violet" },
   { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan", color: "indigo" },
   { to: "/catat-otomatis", icon: Zap, label: "Catat Otomatis", color: "emerald" },
+  { to: "/kartu", icon: IdCard, label: "Kartu", color: "indigo" },
   { to: "/impor", icon: Upload, label: "Impor Data", color: "orange" },
   { to: "/kategori", icon: Tags, label: "Kategori", color: "cyan" },
   { to: "/kesehatan-data", icon: Activity, label: "Kesehatan Data", color: "red" },
@@ -65,7 +66,8 @@ export const moreGroups = [
       { to: "/tagihan-berulang", icon: RefreshCw, label: "Tagihan Berulang", desc: "Listrik, sewa, langganan rutin" },
       { to: "/zakat", icon: Coins, label: "Zakat", desc: "Hitung nisab & catat pembayaran" },
       { to: "/persetujuan", icon: CheckCheck, label: "Persetujuan", desc: "Transaksi pasangan menunggu Anda" },
-      { to: "/catat-otomatis", icon: Zap, label: "Catat Otomatis", desc: "Apple Pay masuk sendiri, tinggal konfirmasi" },
+      { to: "/kartu", icon: IdCard, label: "Kartu", desc: "Kartu debit, kredit & e-money, terhubung ke rekening" },
+      { to: "/catat-otomatis", icon: Zap, label: "Catat Otomatis", desc: "Apple Pay & SMS bank masuk sendiri, tinggal konfirmasi" },
     ],
   },
   {

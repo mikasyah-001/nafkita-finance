@@ -1,136 +1,112 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
+import { roundForCurrency } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
+import { resolvePartnerId } from "../../shared/partnerResolve.ts";
+import { createNotificationIdempotent } from "../../shared/notifyCommon.ts";
+import { planTransfer } from "../../shared/transferRules.js";
 
-// Membuat sepasang transaksi transfer antar-rekening secara atomik.
-// - Transaksi "out" (expense) dari rekening asal, menyesuaikan saldo aset asal (-amount).
-// - Transaksi "in" (income) ke rekening tujuan, menyesuaikan saldo aset tujuan (+amount).
-// - Kedua transaksi memiliki transfer_pair_id yang sama.
-// - Transfer tidak memicu notifikasi instan (notif_batch_id).
+// Transfer antar-rekening: sepasang transaksi (keluar & masuk) dengan
+// transfer_pair_id yang sama — tidak dihitung sebagai pemasukan/pengeluaran.
 //
-// Rollback: bila pembuatan transaksi kedua gagal, hapus transaksi pertama
-// dan kembalikan saldo kedua aset ke nilai semula.
+// - Rekening asal: milik sendiri. Rekening tujuan: milik sendiri ATAU milik
+//   pasangan aktif (bukan rekening pribadinya). Aturan: shared/transferRules.js.
+// - Beda mata uang: body.received_amount = nominal yang diterima dalam mata uang
+//   rekening tujuan (kurs bank). Tiap sisi tercatat dalam mata uangnya sendiri.
+// - Saldo rekening pasangan diubah lewat service role (RLS hanya izinkan pemilik),
+//   dan pasangan mendapat notifikasi uang masuk.
+// - Rollback: bila langkah berikutnya gagal, saldo & transaksi dikembalikan.
+//
+// Body: { from_asset_id, to_asset_id, amount, received_amount?, date?, notes?, visibility? }
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     let me;
-    try { me = await base44.auth.me(); } catch {}
+    try { me = await base44.auth.me(); } catch { /* tanpa sesi */ }
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { from_asset_id, to_asset_id, amount, currency, date, notes, visibility } = body;
+    const { from_asset_id, to_asset_id, amount, received_amount, date, notes, visibility } = body;
+    const svc = base44.asServiceRole.entities;
 
-    if (!from_asset_id || !to_asset_id)
-      return Response.json({ error: "from_asset_id dan to_asset_id wajib diisi" }, { status: 400 });
-    if (from_asset_id === to_asset_id)
-      return Response.json({ error: "Rekening asal dan tujuan tidak boleh sama" }, { status: 400 });
-    const amt = Number(amount);
-    if (!amt || amt <= 0)
-      return Response.json({ error: "Nominal harus > 0" }, { status: 400 });
+    const [fromAsset, toAsset] = await Promise.all([
+      from_asset_id ? svc.Asset.get(from_asset_id).catch(() => null) : null,
+      to_asset_id ? svc.Asset.get(to_asset_id).catch(() => null) : null,
+    ]);
+    if (!fromAsset || !toAsset) return Response.json({ error: "aset_tidak_ditemukan", message: "Rekening asal atau tujuan tidak ditemukan" }, { status: 404 });
 
-    const cur = (currency || "IDR").toUpperCase();
-    const vis = visibility || "shared";
+    const partnerId = toAsset.created_by_id !== me.id ? await resolvePartnerId(base44, me.id) : null;
+    const plan = planTransfer({ from: fromAsset, to: toAsset, meId: me.id, partnerId, amount, receivedAmount: received_amount, visibility });
+    if (plan.error) return Response.json({ error: "invalid_transfer", message: plan.error }, { status: 400 });
+
+    const myName = me.full_name || me.email;
+    const firstName = String(myName || "").split(/\s+/)[0] || "Pasangan";
     const txDate = date || new Date().toISOString();
-    const inputByName = me.full_name || me.email;
     const pairId = "trf-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
     const batchId = "transfer-" + pairId;
+    const outLabel = plan.toPartner ? `Transfer ke ${toAsset.name} (pasangan)` : `Transfer ke ${toAsset.name || "rekening tujuan"}`;
+    // Sisi masuk di rekening pasangan tidak menyebut nama rekening pribadi pengirim.
+    const inLabel = plan.toPartner
+      ? `Transfer dari ${firstName}${fromAsset.visibility === "private" ? "" : ` (${fromAsset.name})`}`
+      : `Transfer dari ${fromAsset.name || "rekening asal"}`;
+    const rateNote = plan.cross ? `Kurs: ${plan.amount} ${plan.fromCur} → ${plan.received} ${plan.toCur}` : "";
+    const fullNotes = [notes || "", rateNote].filter(Boolean).join(" · ");
 
-    // Ambil kedua aset, validasi kepemilikan.
-    const fromAsset = await base44.entities.Asset.get(from_asset_id);
-    if (!fromAsset) return Response.json({ error: "aset_asal_tidak_ditemukan" }, { status: 404 });
-    if (fromAsset.created_by_id !== me.id)
-      return Response.json({ error: "forbidden_asal" }, { status: 403 });
+    const undo = [];
+    const rollback = async () => { for (const fn of undo.reverse()) { try { await fn(); } catch (e) { console.error("[saveTransfer] rollback", e?.message); } } };
 
-    const toAsset = await base44.entities.Asset.get(to_asset_id);
-    if (!toAsset) return Response.json({ error: "aset_tujuan_tidak_ditemukan" }, { status: 404 });
-    if (toAsset.created_by_id !== me.id)
-      return Response.json({ error: "forbidden_tujuan" }, { status: 403 });
-
-    // Sesuaikan saldo aset asal (-amount).
-    const fromPrev = fromAsset.value;
-    const fromNew = roundForCurrency((fromAsset.value || 0) - amt, fromAsset.currency);
-    await base44.entities.Asset.update(from_asset_id, { value: fromNew });
-
-    await recordAssetMutation(base44, {
-      asset_id: from_asset_id, previous_value: fromPrev, new_value: fromNew,
-      change_type: "transfer", source_ref: pairId,
-      source_description: `Transfer ke ${toAsset.name || "rekening tujuan"}`,
-      actor_id: me.id, actor_name: me.full_name || me.email,
-      currency: fromAsset.currency || "IDR",
-    });
-
-    // Sesuaikan saldo aset tujuan (+amount).
-    const toPrev = toAsset.value;
-    const toNew = roundForCurrency((toAsset.value || 0) + amt, toAsset.currency);
     try {
-      await base44.entities.Asset.update(to_asset_id, { value: toNew });
+      // 1) Saldo rekening asal (−amount, mata uang asal)
+      const fromPrev = Number(fromAsset.value) || 0;
+      const fromNew = roundForCurrency(fromPrev - plan.amount, fromAsset.currency);
+      await svc.Asset.update(fromAsset.id, { value: fromNew });
+      undo.push(() => svc.Asset.update(fromAsset.id, { value: fromPrev }));
+
+      // 2) Saldo rekening tujuan (+received, mata uang tujuan)
+      const toPrev = Number(toAsset.value) || 0;
+      const toNew = roundForCurrency(toPrev + plan.received, toAsset.currency);
+      await svc.Asset.update(toAsset.id, { value: toNew });
+      undo.push(() => svc.Asset.update(toAsset.id, { value: toPrev }));
+
+      // 3) Dua sisi transaksi (dibuat atas nama pengirim)
+      const common = { category: "Transfer", date: txDate, notes: fullNotes, input_by_name: myName, tags: plan.toPartner ? ["transfer-pasangan"] : [], notif_batch_id: batchId, transfer_pair_id: pairId };
+      const outTx = await base44.entities.Transaction.create({
+        ...common, type: "expense", amount: plan.amount, currency: plan.fromCur, merchant: outLabel,
+        visibility: plan.outVisibility, linked_asset_id: fromAsset.id, transfer_direction: "out",
+      });
+      undo.push(() => base44.entities.Transaction.delete(outTx.id));
+      const inTx = await base44.entities.Transaction.create({
+        ...common, type: "income", amount: plan.received, currency: plan.toCur, merchant: inLabel,
+        visibility: plan.inVisibility, linked_asset_id: toAsset.id, transfer_direction: "in",
+      });
+      undo.push(() => base44.entities.Transaction.delete(inTx.id));
+
+      // 4) Jejak mutasi (setelah semua berhasil)
       await recordAssetMutation(base44, {
-        asset_id: to_asset_id, previous_value: toPrev, new_value: toNew,
-        change_type: "transfer", source_ref: pairId,
-        source_description: `Transfer dari ${fromAsset.name || "rekening asal"}`,
-        actor_id: me.id, actor_name: me.full_name || me.email,
-        currency: toAsset.currency || "IDR",
+        asset_id: fromAsset.id, previous_value: fromPrev, new_value: fromNew, change_type: "transfer", source_ref: pairId,
+        source_description: outLabel, actor_id: me.id, actor_name: myName, currency: fromAsset.currency || "IDR",
       });
-    } catch (e) {
-      // Rollback aset asal bila aset tujuan gagal.
-      try { await base44.entities.Asset.update(from_asset_id, { value: fromPrev }); } catch {}
-      return Response.json({ error: e?.message || "gagal_sesuaikan_tujuan" }, { status: 500 });
-    }
-
-    // Buat transaksi "out" (expense dari rekening asal).
-    let outTx;
-    try {
-      outTx = await base44.entities.Transaction.create({
-        type: "expense",
-        amount: amt,
-        currency: cur,
-        category: "Transfer",
-        date: txDate,
-        merchant: `Transfer ke ${toAsset.name || "rekening tujuan"}`,
-        notes: notes || "",
-        input_by_name: inputByName,
-        tags: [],
-        visibility: vis,
-        linked_asset_id: from_asset_id,
-        notif_batch_id: batchId,
-        transfer_pair_id: pairId,
-        transfer_direction: "out",
+      await recordAssetMutation(base44, {
+        asset_id: toAsset.id, previous_value: toPrev, new_value: toNew, change_type: "transfer", source_ref: pairId,
+        source_description: inLabel, actor_id: me.id, actor_name: myName, currency: toAsset.currency || "IDR",
       });
-    } catch (e) {
-      // Rollback kedua aset.
-      try { await base44.entities.Asset.update(from_asset_id, { value: fromPrev }); } catch {}
-      try { await base44.entities.Asset.update(to_asset_id, { value: toPrev }); } catch {}
-      return Response.json({ error: e?.message || "gagal_buat_out" }, { status: 500 });
-    }
 
-    // Buat transaksi "in" (income ke rekening tujuan).
-    let inTx;
-    try {
-      inTx = await base44.entities.Transaction.create({
-        type: "income",
-        amount: amt,
-        currency: cur,
-        category: "Transfer",
-        date: txDate,
-        merchant: `Transfer dari ${fromAsset.name || "rekening asal"}`,
-        notes: notes || "",
-        input_by_name: inputByName,
-        tags: [],
-        visibility: vis,
-        linked_asset_id: to_asset_id,
-        notif_batch_id: batchId,
-        transfer_pair_id: pairId,
-        transfer_direction: "in",
-      });
-    } catch (e) {
-      // Rollback: hapus transaksi out + kembalikan kedua aset.
-      try { await base44.entities.Transaction.delete(outTx.id); } catch {}
-      try { await base44.entities.Asset.update(from_asset_id, { value: fromPrev }); } catch {}
-      try { await base44.entities.Asset.update(to_asset_id, { value: toPrev }); } catch {}
-      return Response.json({ error: e?.message || "gagal_buat_in" }, { status: 500 });
-    }
+      // 5) Notifikasi uang masuk untuk pasangan
+      if (plan.toPartner) {
+        try {
+          await createNotificationIdempotent(base44, {
+            target_user_id: toAsset.created_by_id, actor_name: myName, action: "created", entity_kind: "transaction",
+            event_key: `transfer-in-${pairId}`, title: `${firstName} mentransfer ke ${toAsset.name}`,
+            body: notes || "Saldo rekening Anda sudah bertambah otomatis.", ref_id: inTx.id,
+            amount: plan.received, currency: plan.toCur, tx_type: "income",
+          });
+        } catch (e) { console.error("[saveTransfer] notifikasi", e?.message); }
+      }
 
-    return Response.json({ ok: true, transfer_pair_id: pairId, out_tx: outTx, in_tx: inTx });
+      return Response.json({ ok: true, transfer_pair_id: pairId, out_tx: outTx, in_tx: inTx, to_partner: plan.toPartner, cross_currency: plan.cross });
+    } catch (e) {
+      await rollback();
+      return Response.json({ error: "transfer_failed", message: e?.message || "Transfer gagal, saldo dikembalikan" }, { status: 500 });
+    }
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

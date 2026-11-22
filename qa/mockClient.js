@@ -3,6 +3,8 @@
 // Stateful di memori: simpan/transfer/setujui benar-benar mengubah data,
 // sehingga alur input bisa diuji end-to-end. Reset saat halaman dimuat ulang.
 import { defaultCategories } from "@/lib/finance";
+import { planTransfer } from "../base44/shared/transferRules.js";
+const MOCK_VAULT = {};
 
 const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
 try { const c = localStorage.getItem("qaDefaultCur"); if (c) ME.default_currency = c; } catch { /* abaikan */ }
@@ -43,6 +45,13 @@ const db = {
   ],
   approvals: [{ id: "ap1", transaction_id: "tx-pending", requester_name: "Siti", amount: 3200000, currency: "IDR", status: "pending" }],
 };
+// Mode QA pasangan (opt-in): localStorage "qa:partner" = "1" (atau "qaPartner" lama)
+// → Siti (u2) terhubung + rekening bersamanya.
+const QA_PARTNER = (() => { try { const ls = globalThis.localStorage; return ls?.getItem("qa:partner") === "1" || ls?.getItem("qaPartner") === "1"; } catch { return false; } })();
+if (QA_PARTNER) {
+  db.assets.push({ id: "p1a", name: "BSI Siti", type: "bank", value: 2_000_000, currency: "IDR", visibility: "shared", created_by_id: "u2" });
+  db.assets.push({ id: "p1b", name: "Rahasia Siti", type: "bank", value: 9_000_000, currency: "IDR", visibility: "private", created_by_id: "u2" });
+}
 const ym = `${Y}-${String(M + 1).padStart(2, "0")}`;
 const DATA = {
   Feedback: [
@@ -68,13 +77,22 @@ const DATA = {
     { id: "cl2", owner_id: "u1", label: "bca-debit", asset_id: "a1", status: "paused", seen_count: 0 },
     { id: "cl3", owner_id: "u1", label: "kartu-kantor", status: "unmapped", last_seen_at: d(13, 0, 18), seen_count: 1 },
   ],
+  PaymentCard: [
+    { id: "pc1", owner_id: "u1", display_name: "Al Rajhi mada", kind: "debit", network: "mada", issuer: "Al Rajhi Bank", last4: "0315", asset_id: "a4", wallet_label: "riyal-harian", status: "active", has_details: true, has_photo: false, last_seen_at: d(14, 0, 9), seen_count: 4, created_date: d(1) },
+    { id: "pc2", owner_id: "u1", display_name: "BCA Debit", kind: "debit", network: "gpn", issuer: "BCA", last4: "9876", asset_id: "a1", wallet_label: "bca-debit", status: "paused", has_details: false, seen_count: 0, created_date: d(2) },
+    { id: "pc3", owner_id: "u1", display_name: "Kartu Kantor", kind: "debit", network: "lainnya", last4: "", wallet_label: "kartu-kantor", status: "unmapped", last_seen_at: d(13, 0, 18), seen_count: 1, created_date: d(3) },
+    { id: "pc4", owner_id: "u1", display_name: "Flazz", kind: "emoney", network: "flazz", issuer: "BCA", last4: "4410", status: "paused", has_details: false, created_date: d(4) },
+  ],
+  PaymentCardSecret: [{ id: "ps1", owner_id: "u1", card_id: "pc1", exp_month: 8, exp_year: 2029, holder_name: "AHMAD FAUZI", photo_uri: null }],
   IncomingTransaction: [
+    { id: "in5", owner_id: "u1", label: "riyal-harian", card_id: "pc1", card_name: "Al Rajhi mada", asset_id: "a4", amount: 5000, currency: "SAR", raw_amount: "SAR 5000", merchant: "", occurred_at: d(14, 0, 10), source: "sms", direction: "in", raw_text: "إيداع راتب\nمبلغ: 5000 SAR\nبطاقة: 0315", status: "new" },
     { id: "in1", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 18.5, currency: "SAR", merchant: "Al Baik Makkah", occurred_at: d(14, 0, 9), suggested_category: "Makanan", status: "new" },
     { id: "in2", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 0, currency: "SAR", raw_amount: "", merchant: "Jarir Bookstore", occurred_at: d(14, 0, 8), review_reason: "Nominal tidak terbaca", status: "new" },
     { id: "in3", owner_id: "u1", label: "riyal-harian", asset_id: "a4", amount: 42, currency: "SAR", merchant: "Panda Retail", occurred_at: d(13, 0, 20), status: "new" },
     { id: "in4", owner_id: "u1", label: "visa-debit", asset_id: "a1", amount: 45000, currency: "IDR", merchant: "Indomaret Point", occurred_at: d(13, 0, 19), suggested_category: "Belanja", suggested_source: "keyword", status: "new" },
   ],
 };
+if (QA_PARTNER) DATA.Partnership = [{ id: "pp1", inviter_id: "u1", invitee_id: "u2", status: "active", created_by_id: "u1" }];
 // Data admin (pengguna lain di aplikasi) — hanya untuk Panel Admin.
 // Simulasi jaringan lambat untuk QA: localStorage.qaLag = "400" (ms).
 const lag = (label = "") => { try { if (localStorage.getItem("qaTrace")) console.log("REQ", Math.round(performance.now()), label); } catch { /* abaikan */ } let ms = 0; try { ms = Number(localStorage.getItem("qaLag")) || 0; } catch { /* abaikan */ } return ms ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve(); };
@@ -85,7 +103,6 @@ const ADMIN_USERS = [
   { id: "u3", full_name: "Rudi Hartono", email: "rudi@contoh.id", role: "user", last_active_at: ago(60 * 24 * 9), created_date: d(5, -2) },
   { id: "u4", full_name: "Lina Marlina", email: "lina@contoh.id", role: "user", last_active_at: null, created_date: d(7, -1) },
 ];
-const QA_PARTNER = (() => { try { return globalThis.localStorage?.getItem("qa:partner") === "1"; } catch { return false; } })();
 if (QA_PARTNER) {
   (DATA.Partnership ||= []).push({ id: "p1", inviter_id: "u1", invitee_id: "u2", invitee_email: "siti@contoh.id", inviter_role: "suami", invitee_role: "istri", status: "active", created_date: d(3, -6) });
   db.tx.forEach((t) => { if (t.input_by_name === "Siti") t.created_by_id = "u2"; });
@@ -154,9 +171,46 @@ const FN = {
     const L = DATA.CardLabel, I = DATA.IncomingTransaction, D = DATA.IngestDevice;
     if (args.action === "create_device") { const tok = "nfk_" + "QaToken".repeat(6).slice(0, 43); const dev = { id: id(), owner_id: "u1", name: args.name, token_hint: tok.slice(-4), revoked: false }; D.push(dev); return { ok: true, device: dev, token: tok }; }
     if (args.action === "revoke_device") { Object.assign(D.find((x) => x.id === args.device_id), { revoked: true }); return { ok: true }; }
-    if (args.action === "save_label") { const data = { label: args.label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), status: args.status, asset_id: args.asset_id || null }; const t = L.find((x) => x.id === args.label_id); if (t) Object.assign(t, data); else L.push({ id: id(), owner_id: "u1", ...data }); return { ok: true }; }
-    if (args.action === "delete_label") { DATA.CardLabel = L.filter((x) => x.id !== args.label_id); return { ok: true }; }
     if (args.action === "dismiss_incoming") { I.forEach((x) => { if (args.ids.includes(x.id)) x.status = "dismissed"; }); return { ok: true }; }
+    return {};
+  },
+  manageCards: (args) => {
+    const C = DATA.PaymentCard, S = DATA.PaymentCardSecret;
+    const V = (MOCK_VAULT.v ||= { pin: null, fails: 0, token: null });
+    const bad = (status, message) => { const e = new Error(message); e.response = { status, data: { message } }; throw e; };
+    const unlocked = () => V.token && args.unlock_token === V.token;
+    if (args.action === "save_card") {
+      const c = args.card;
+      if (/\d{13,}/.test(String(c.display_name).replace(/\s/g, ""))) bad(400, "Jangan menulis nomor kartu lengkap atau CVC. Cukup 4 digit terakhir.");
+      const status = c.status && c.status !== "unmapped" ? c.status : "active";
+      if (!c.asset_id && status === "active" && c.kind !== "credit") bad(400, "Kartu debit harus terhubung ke rekening bank");
+      const data = { display_name: c.display_name, kind: c.kind, network: c.network, issuer: c.issuer, last4: String(c.last4 || "").replace(/\D/g, "").slice(-4), asset_id: c.asset_id || null, wallet_label: c.wallet_label ? c.wallet_label.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null, status };
+      const t = C.find((x) => x.id === c.id); if (t) Object.assign(t, data); else C.push({ id: id(), owner_id: "u1", created_date: new Date().toISOString(), has_details: false, ...data });
+      return { ok: true };
+    }
+    if (args.action === "set_status") { Object.assign(C.find((x) => x.id === args.card_id), { status: args.status }); return { ok: true }; }
+    if (args.action === "delete_card") { DATA.PaymentCard = C.filter((x) => x.id !== args.card_id); return { ok: true }; }
+    if (args.action === "pin_status") return { ok: true, has_pin: !!V.pin };
+    if (args.action === "set_pin") { if (!/^\d{6}$/.test(args.pin)) bad(400, "PIN harus 6 angka"); V.pin = args.pin; return { ok: true }; }
+    if (args.action === "unlock") {
+      if (args.pin !== V.pin) { V.fails++; bad(403, `PIN salah (${5 - V.fails} percobaan lagi)`); }
+      V.fails = 0; V.token = "unlock-" + id(); return { ok: true, unlock_token: V.token, expires_at: new Date(Date.now() + 180000).toISOString() };
+    }
+    if (args.action === "lock") { V.token = null; return { ok: true }; }
+    if (args.action === "reveal") {
+      if (!unlocked()) bad(403, "Buka dengan PIN dulu");
+      const x = S.find((y) => y.card_id === args.card_id);
+      return { ok: true, details: x ? { exp_month: x.exp_month, exp_year: x.exp_year, holder_name: x.holder_name, photo_url: x.photo_uri } : {} };
+    }
+    if (args.action === "save_details") {
+      if (!unlocked()) bad(403, "Buka dengan PIN dulu");
+      const d = args.details; let x = S.find((y) => y.card_id === args.card_id);
+      if (!x) { x = { id: id(), owner_id: "u1", card_id: args.card_id }; S.push(x); }
+      Object.assign(x, { exp_month: Number(d.exp_month) || null, exp_year: d.exp_year ? 2000 + Number(String(d.exp_year).slice(-2)) : null, holder_name: d.holder_name || null }, d.photo_uri !== undefined ? { photo_uri: d.photo_uri } : {});
+      Object.assign(C.find((y) => y.id === args.card_id), { has_details: true, has_photo: !!x.photo_uri });
+      return { ok: true };
+    }
+    if (args.action === "migrate_labels") return { ok: true, migrated: 0 };
     return {};
   },
   saveTransactionWithAsset: ({ transaction, transaction_id, incoming_id }) => {
@@ -189,13 +243,16 @@ const FN = {
     db.tx = db.tx.filter((x) => x.transfer_pair_id !== t.transfer_pair_id);
     return { ok: true };
   },
-  saveTransfer: ({ from_asset_id, to_asset_id, amount, currency, date }) => {
+  // Meniru backend: aturan sama (shared/transferRules.js), tiap sisi dalam mata uangnya.
+  saveTransfer: ({ from_asset_id, to_asset_id, amount, received_amount, date, visibility }) => {
     const from = db.assets.find((a) => a.id === from_asset_id), to = db.assets.find((a) => a.id === to_asset_id);
-    from.value -= amount; to.value += amount;
+    const plan = planTransfer({ from, to, meId: "u1", partnerId: QA_PARTNER ? "u2" : null, amount, receivedAmount: received_amount, visibility });
+    if (plan.error) return { error: "invalid_transfer", message: plan.error };
+    from.value -= plan.amount; to.value += plan.received;
     const pair = id(), merchant = `${from.name} → ${to.name}`;
-    db.tx.push(T({ type: "expense", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: from_asset_id }));
-    db.tx.push(T({ type: "income", amount, currency, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: to_asset_id }));
-    return { ok: true };
+    db.tx.push(T({ type: "expense", amount: plan.amount, currency: plan.fromCur, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: from_asset_id, visibility: plan.outVisibility }));
+    db.tx.push(T({ type: "income", amount: plan.received, currency: plan.toCur, date, category: "Transfer", merchant, transfer_pair_id: pair, linked_asset_id: to_asset_id, visibility: plan.inVisibility }));
+    return { ok: true, to_partner: plan.toPartner };
   },
   approveTransaction: ({ approval_id }) => {
     const a = db.approvals.find((x) => x.id === approval_id); a.status = "approved";
@@ -209,7 +266,7 @@ const FN = {
     // Tiru backend: hitung dampak; saat hapus, lepas tautan transaksi (riwayat tetap).
     const txs = db.tx.filter((t) => t.linked_asset_id === asset_id);
     const labels = (DATA.CardLabel || []).filter((l) => l.asset_id === asset_id);
-    const impact = { transactions: txs.length, card_labels: labels.length, recurring_bills: 0, debts: 0, savings_goals: 0, inbox_items: (DATA.IncomingTransaction || []).filter((i) => i.asset_id === asset_id && i.status === "new").length, investment_lots: (DATA.InvestmentLot || []).filter((l) => l.asset_id === asset_id).length };
+    const impact = { transactions: txs.length, card_labels: labels.length, payment_cards: (DATA.PaymentCard || []).filter((c) => c.asset_id === asset_id).length, recurring_bills: 0, debts: 0, savings_goals: 0, inbox_items: (DATA.IncomingTransaction || []).filter((i) => i.asset_id === asset_id && i.status === "new").length, investment_lots: (DATA.InvestmentLot || []).filter((l) => l.asset_id === asset_id).length };
     if (dry_run) return { ok: true, dry_run: true, impact };
     txs.forEach((t) => { t.linked_asset_id = null; });
     labels.forEach((l) => { l.asset_id = null; l.status = "unmapped"; });
@@ -248,7 +305,9 @@ export const base44 = {
     const data = FN[name] ? FN[name](args) : {};
     return { data: partial ? { ...data, errors: partial } : data };
   } },
-  integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadFile")
+  integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadPrivateFile")
+    ? async ({ file }) => ({ file_uri: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
+    : (ns === "Core" && fn === "UploadFile")
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
     // AI tiruan: tes mengisi window.__qaLLM = [respons1, respons2, ...] (urut per panggilan).

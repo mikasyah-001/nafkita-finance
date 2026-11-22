@@ -33,5 +33,5 @@ export const routes = [
   "/selamat-datang", "/", "/riwayat", "/add", "/aset", "/aset/a2", "/aset/a3", "/aset-dashboard", "/laporan", "/laporan?tab=analisis", "/anggaran",
   "/transfer", "/utang", "/tagihan-berulang", "/target-tabungan", "/zakat", "/persetujuan",
   "/rekonsiliasi", "/kategori", "/kesehatan-data", "/impor", "/impor-portofolio", "/pengaturan", "/profil", "/panduan", "/umpan-balik", "/admin",
-  "/catat-otomatis", "/catat-otomatis?tab=sambungan", "/lainnya", "/dompet",
+  "/catat-otomatis", "/catat-otomatis?tab=sambungan", "/lainnya", "/dompet", "/kartu",
 ];

@@ -1,0 +1,109 @@
+{
+  "name": "PaymentCard",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Nama kartu, mis. Al Rajhi Debit"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "debit",
+        "credit",
+        "emoney",
+        "prepaid"
+      ],
+      "default": "debit"
+    },
+    "network": {
+      "type": "string",
+      "description": "visa | mastercard | mada | gpn | flazz | emoney | ..."
+    },
+    "issuer": {
+      "type": "string",
+      "description": "Bank penerbit"
+    },
+    "last4": {
+      "type": "string",
+      "description": "4 digit terakhir. Nomor lengkap TIDAK disimpan."
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Rekening/aset yang dipotong kartu ini (debit/e-money/prabayar)"
+    },
+    "wallet_label": {
+      "type": "string",
+      "description": "Label Catat Otomatis (Apple Pay): nama kartu di Wallet atau label shortcut. Pengganti CardLabel."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "unmapped",
+        "ignored"
+      ],
+      "default": "active",
+      "description": "active = transaksi kartu dicatat; paused = dijeda; unmapped = terdeteksi otomatis, belum dihubungkan; ignored = selalu diabaikan"
+    },
+    "color": {
+      "type": "string"
+    },
+    "has_photo": {
+      "type": "boolean",
+      "default": false
+    },
+    "has_details": {
+      "type": "boolean",
+      "default": false,
+      "description": "Ada detail terkunci PIN (masa berlaku/nama/foto)"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seen_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "owner_id",
+    "display_name",
+    "kind",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

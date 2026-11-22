@@ -8,7 +8,7 @@ import { summarizeConsolidated, monthlyPlan, spendingPace } from "@/lib/finance"
 // (spendingPace) dari ringkasan yang sudah ia punya.
 export function useMonthPace({ scope = "shared", currency } = {}) {
   const { data: transactions = [] } = useTransactions();
-  const { data: budgets = [] } = useBudgets();
+  const { data: budgets = [], isSuccess: budgetsReady } = useBudgets();
   const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
   const userCurrencies = useUserCurrencies();
@@ -28,6 +28,6 @@ export function useMonthPace({ scope = "shared", currency } = {}) {
       income: summary.income, expense: summary.expense, sedekah: summary.sedekah,
       planIncome: plan.income, planSavings: plan.savings, now,
     });
-    return { currency: cur, summary, plan, pace, now };
-  }, [transactions, budgets, rateMap, userCurrencies, scope, cur]);
+    return { currency: cur, summary, plan, pace, now, ready: budgetsReady };
+  }, [transactions, budgets, budgetsReady, rateMap, userCurrencies, scope, cur]);
 }

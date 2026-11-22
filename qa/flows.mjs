@@ -427,7 +427,8 @@ try {
     await nav("/admin");
     await page.waitForTimeout(800);
     const tabs = await page.getByRole("tablist", { name: "Menu admin" }).getByRole("tab").allInnerTexts();
-    assert.deepEqual(tabs.map((t) => t.trim()), ["Ringkasan", "Pengguna", "Pasangan", "Transaksi", "Aset", "Audit"]);
+    // Angka di tab = badge jumlah laporan baru, bukan bagian label.
+    assert.deepEqual(tabs.map((t) => t.replace(/\d+/g, "").trim()), ["Ringkasan", "Laporan", "Pengguna", "Pasangan", "Transaksi", "Aset", "Audit"]);
     const sarIncome = await page.evaluate(() => window.__qa.tx.some((t) => t.currency === "SAR"));
     if (sarIncome) assert.ok(await page.getByRole("radio", { name: "SAR", exact: true }).isVisible(), "Pilihan SAR tersedia di ringkasan");
     await page.getByRole("tab", { name: "Pengguna" }).click();

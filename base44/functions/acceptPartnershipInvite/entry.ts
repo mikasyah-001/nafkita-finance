@@ -42,7 +42,7 @@ export default async function (req) {
     // bersamaan yang berhasil mengaktifkan — yang lain mendapat modified=0.
     const result = await base44.asServiceRole.entities.Partnership.updateMany(
       { id: partnership_id, status: "pending" },
-      { $set: { invitee_id: me.id, status: "active" } }
+      { $set: { invitee_id: me.id, status: "active", connected_at: now } }
     );
     if (!result || !result.modified) {
       return Response.json({ error: "not_pending_or_already_accepted" }, { status: 409 });

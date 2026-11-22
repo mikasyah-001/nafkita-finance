@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, User, MessageSquare, Shield, ArrowRight } from "lucide-react";
+import PlanEditSheet from "@/components/PlanEditSheet";
+import { ChevronRight, User, MessageSquare, Shield, ArrowRight, Pencil } from "lucide-react";
 import { useMe, usePendingApprovals, useRecurringBills, useIncomingTransactions } from "@/hooks/useFinance";
 import { usePartnership } from "@/hooks/usePartnership";
 import { useMonthPace } from "@/hooks/useMonthPace";
@@ -17,7 +19,8 @@ export default function More() {
   const { data: me } = useMe();
   const { partners } = usePartnership();
   const { scope } = useScope();
-  const { pace, currency, now } = useMonthPace({ scope });
+  const { pace, currency, now, plan, summary, ready } = useMonthPace({ scope });
+  const [editPlan, setEditPlan] = useState(false);
   const { data: approvals } = usePendingApprovals();
   const { data: bills = [] } = useRecurringBills();
   const { data: incoming = [] } = useIncomingTransactions();
@@ -47,11 +50,17 @@ export default function More() {
         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
       </Link>
 
-      {/* Anggaran bulan ini */}
-      <Link to="/anggaran" className="surface p-4 block mb-5 active:scale-[0.99] transition-transform">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Anggaran {formatDate(now, "MMMM")}</p>
-          {pace && <p className="text-sm font-bold tabular-nums"><Money value={pace.budget} currency={currency} format="short" /></p>}
+      {/* Rencana belanja bulan ini — angka = rencana pemasukan − rencana menabung */}
+      <section className="surface p-4 mb-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Rencana belanja {formatDate(now, "MMMM")}</p>
+            <p className="text-[11px] text-muted-foreground">{scope === "private" ? "Pribadi" : "Bersama"} · {currency}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {pace && <p className="text-sm font-bold tabular-nums"><Money value={pace.budget} currency={currency} format="short" /></p>}
+            <button type="button" onClick={() => setEditPlan(true)} disabled={!ready} className="btn-secondary btn-sm h-8 px-3 disabled:opacity-50"><Pencil className="w-3.5 h-3.5" /> {pace ? "Ubah" : "Atur"}</button>
+          </div>
         </div>
         {pace ? (
           <>
@@ -63,13 +72,18 @@ export default function More() {
               {pace.over
                 ? <span className="text-destructive font-medium">lebih <Money value={-pace.remaining} currency={currency} format="short" /></span>
                 : <>sisa <Money value={pace.remaining} currency={currency} format="short" /></>}
-              {pace.source === "income" && " · dari pemasukan nyata"}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
+              {pace.source === "plan" ? "Pemasukan" : "Pemasukan nyata"} <Money value={pace.source === "plan" ? plan.income : summary.income} currency={currency} format="short" />
+              {" − "}menabung <Money value={plan.savings} currency={currency} format="short" />
             </p>
           </>
         ) : (
-          <p className="text-xs text-primary font-medium mt-1 inline-flex items-center gap-1">Atur rencana bulan ini <ArrowRight className="w-3 h-3" /></p>
+          <p className="text-xs text-muted-foreground mt-1">Belum ada rencana atau pemasukan bulan ini.</p>
         )}
-      </Link>
+        <Link to="/anggaran" className="mt-2.5 text-xs font-medium text-primary inline-flex items-center gap-1">Batas per kategori <ArrowRight className="w-3 h-3" /></Link>
+      </section>
+      {editPlan && <PlanEditSheet plan={plan} period={`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`} scope={scope} currency={currency} actualIncome={summary.income} onClose={() => setEditPlan(false)} />}
 
       {moreGroups.map((g) => (
         <section key={g.title} className="mb-5">

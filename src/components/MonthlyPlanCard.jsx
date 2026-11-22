@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useTransactions, useBudgets, useMe, useRefresh, useRateMap } from "@/hooks/useFinance";
-import { formatMoney, formatMoneyShort, monthlyPlan, planProgress, PLAN_KINDS, PLAN_CATEGORY, summarizeConsolidated, filterReportableTx, inScope, isInMonth } from "@/lib/finance";
+import { useTransactions, useBudgets, useRateMap } from "@/hooks/useFinance";
+import { useSavePlan } from "@/hooks/useSavePlan";
+import { formatMoney, formatMoneyShort, monthlyPlan, planProgress, summarizeConsolidated, filterReportableTx, inScope, isInMonth } from "@/lib/finance";
 import { toast } from "sonner";
 import { TrendingUp, Vault, CheckCircle2 } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
@@ -12,9 +12,7 @@ import MoneyInput from "@/components/MoneyInput";
 export default function MonthlyPlanCard({ period, year, month, scope, currency }) {
   const { data: transactions = [] } = useTransactions();
   const { data: budgets = [] } = useBudgets();
-  const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
-  const refresh = useRefresh();
 
   const plan = monthlyPlan(budgets, { period, scope, currency });
   const actual = useMemo(() => {
@@ -27,27 +25,16 @@ export default function MonthlyPlanCard({ period, year, month, scope, currency }
   useEffect(() => { setDraft({}); }, [period, scope, currency]);
   const value = (key) => (draft[key] !== undefined ? draft[key] : plan[key] || "");
 
+  const savePlan = useSavePlan();
   const save = async (key) => {
     if (draft[key] === undefined) return;
-    const num = draft[key] === "" ? 0 : Number(draft[key]);
-    if (!Number.isFinite(num) || num < 0) return toast.error("Nominal rencana tidak valid");
-    const kind = key === "income" ? PLAN_KINDS.income : PLAN_KINDS.savings;
-    const rec = key === "income" ? plan.incomeRecord : plan.savingsRecord;
     try {
-      if (rec) await base44.entities.Budget.update(rec.id, { limit_amount: num });
-      else if (num > 0) {
-        await base44.entities.Budget.create({
-          kind, category: PLAN_CATEGORY[kind], limit_amount: num, currency, period, period_type: "monthly",
-          visibility: scope,
-          assignee_id: scope === "private" ? me?.id : null,
-          assignee_name: scope === "private" ? (me?.full_name || me?.email) : null,
-        });
-      }
-      refresh();
+      await savePlan({ key, amount: draft[key], plan, period, scope, currency });
       setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
       toast.success("Rencana disimpan");
-    } catch {
-      toast.error("Gagal menyimpan rencana");
+    } catch (e) {
+      toast.error(e?.message === "Nominal rencana tidak valid" || e?.code === "not_owner" ? e.message : "Gagal menyimpan rencana");
+      if (e?.code === "not_owner") setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
     }
   };
 

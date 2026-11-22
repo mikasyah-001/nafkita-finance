@@ -53,6 +53,7 @@ const Zakat = lazyPage(() => import('@/pages/Zakat'));
 const Panduan = lazyPage(() => import('@/pages/Panduan'));
 const AuditKas = lazyPage(() => import('@/pages/AuditKas'));
 const More = lazyPage(() => import('@/pages/More'));
+const PartnerProfile = lazyPage(() => import('@/pages/PartnerProfile'));
 const AutoIngest = lazyPage(() => import('@/pages/AutoIngest'));
 const Wallet = lazyPage(() => import('@/pages/Wallet'));
 const Cards = lazyPage(() => import('@/pages/Cards'));
@@ -125,6 +126,7 @@ const AuthenticatedApp = () => {
           <Route path="/transaksi/:id/edit" element={<AddTransaction />} />
           <Route path="/pengaturan" element={<Settings />} />
           <Route path="/profil" element={<Profile />} />
+          <Route path="/profil/pasangan" element={<PartnerProfile />} />
           <Route path="/sambungkan-pasangan" element={<PartnerOnboarding />} />
           <Route path="/kategori" element={<Categories />} />
           <Route path="/asisten-struk" element={<Navigate to="/add" replace />} />

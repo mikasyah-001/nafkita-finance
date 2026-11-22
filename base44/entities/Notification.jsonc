@@ -32,7 +32,8 @@
         "transaction",
         "asset",
         "bulk",
-        "partnership"
+        "partnership",
+        "feedback"
       ],
       "default": "transaction"
     },

@@ -41,6 +41,11 @@
       ],
       "description": "Peran penerima (otomatis pelengkap dari inviter_role)"
     },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Waktu hubungan menjadi aktif (undangan diterima)"
+    },
     "ended_at": {
       "type": "string",
       "format": "date-time",

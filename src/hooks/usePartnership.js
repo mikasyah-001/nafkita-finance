@@ -22,13 +22,15 @@ export function usePartnership() {
     queryKey: ["partnerProfile"],
     queryFn: async () => {
       const res = await base44.functions.invoke("getPartnerProfile");
-      return res?.data?.partner || null;
+      return { partner: res?.data?.partner || null, connection: res?.data?.connection || null };
     },
   });
 
   const me = meQ.data || null;
   const partnerships = partnershipsQ.data || [];
-  const partnerProfile = partnerQ.data || null;
+  const partnerProfile = partnerQ.data?.partner || null;
+  // Info koneksi: sejak kapan terhubung, siapa yang mengundang, peran.
+  const connection = partnerQ.data?.connection || null;
   const users = partnerProfile ? [partnerProfile] : [];
 
   const refresh = () => {
@@ -181,6 +183,7 @@ export function usePartnership() {
 
   return {
     me,
+    connection,
     users,
     partnerships,
     partners,

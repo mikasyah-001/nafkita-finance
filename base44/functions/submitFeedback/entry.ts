@@ -8,6 +8,11 @@ const TYPE_LABEL = {
   other: 'Lainnya',
 };
 
+const clip = (v, n) => (v == null ? '' : String(v)).trim().slice(0, n);
+
+// Menyimpan umpan balik pengguna lalu memberi tahu semua admin (notifikasi
+// in-app + email, best-effort). Record dibuat atas nama pengguna sehingga
+// ia bisa melihatnya di "Laporan saya" (RLS: pemilik atau admin).
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -16,28 +21,43 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
     const type = ['bug', 'feature', 'suggestion', 'other'].includes(body.type) ? body.type : 'suggestion';
-    const subject = (body.subject || '').toString().trim();
-    const message = (body.message || '').toString().trim();
-    const contact = (body.contact || '').toString().trim();
+    const subject = clip(body.subject, 120);
+    const message = clip(body.message, 2000);
+    const contact = clip(body.contact, 120);
+    const screenshot_url = /^https:\/\//.test(String(body.screenshot_url || '')) ? clip(body.screenshot_url, 1000) : '';
+    const c = body.context && typeof body.context === 'object' ? body.context : null;
+    const context = c ? {
+      path: clip(c.path, 200),
+      user_agent: clip(c.user_agent, 300),
+      platform: clip(c.platform, 60),
+      screen: clip(c.screen, 40),
+      standalone: !!c.standalone,
+      online: c.online !== false,
+    } : undefined;
 
     if (!subject || !message) {
       return Response.json({ error: 'Subjek dan pesan wajib diisi' }, { status: 400 });
     }
 
+    const sender = user.full_name || user.email;
     const record = await base44.entities.Feedback.create({
       type,
       subject,
       message,
       contact,
+      screenshot_url,
+      context,
+      sender_name: user.full_name || '',
+      sender_email: user.email || '',
       status: 'open',
+      status_updated_at: new Date().toISOString(),
     });
 
-    // Notify all admins by email — best-effort, non-blocking
+    // Beri tahu admin — best-effort, tidak menghambat respons.
     waitUntil((async () => {
       try {
         const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' }, '-created_date', 50);
         const label = TYPE_LABEL[type] || 'Umpan Balik';
-        const sender = user.full_name || user.email;
         const emailBody = [
           'Halo Pengembang NAFKITA,',
           '',
@@ -49,11 +69,27 @@ export default async function(req) {
           'Pesan:',
           message,
           contact ? `\nKontak balasan: ${contact}` : '',
+          screenshot_url ? `\nTangkapan layar: ${screenshot_url}` : '',
           '',
-          'Mohon tinjau pada aplikasi NAFKITA.',
+          'Tinjau & balas di aplikasi: Admin → Laporan.',
         ].join('\n');
 
         for (const a of admins) {
+          if (a.id && a.id !== user.id) {
+            try {
+              await base44.asServiceRole.entities.Notification.create({
+                target_user_id: a.id,
+                actor_name: sender,
+                action: 'created',
+                entity_kind: 'feedback',
+                event_key: `feedback:${record.id}:created:${a.id}`,
+                title: `${label} baru: ${subject}`,
+                body: message.slice(0, 140),
+                ref_id: record.id,
+                read: false,
+              });
+            } catch (_) { /* lewati */ }
+          }
           if (a.email) {
             try {
               await base44.asServiceRole.integrations.Core.SendEmail({
@@ -61,7 +97,7 @@ export default async function(req) {
                 subject: `[NAFKITA] ${label}: ${subject}`,
                 body: emailBody,
               });
-            } catch (_) { /* skip individual failure */ }
+            } catch (_) { /* lewati */ }
           }
         }
       } catch (_) { /* best-effort */ }

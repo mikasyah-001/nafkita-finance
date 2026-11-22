@@ -36,6 +36,7 @@ const kindIcon = (k) => {
   if (k === "asset") return "🏦";
   if (k === "bulk") return "📋";
   if (k === "partnership") return "💍";
+  if (k === "feedback") return "💬";
   return "💸";
 };
 
@@ -155,7 +156,8 @@ export default function NotificationBell() {
     }
     setOpen(false);
     if (n.ref_id) {
-      if (n.entity_kind === "asset") navigate("/aset");
+      if (n.entity_kind === "feedback") navigate(n.action === "created" ? `/admin?tab=laporan&id=${n.ref_id}` : "/umpan-balik?tab=saya");
+      else if (n.entity_kind === "asset") navigate("/aset");
       else if (n.entity_kind === "partnership") navigate("/profil");
       else navigate(`/transaksi/${n.ref_id}`);
     }

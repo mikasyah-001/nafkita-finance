@@ -23,6 +23,7 @@
         "partnership",
         "user",
         "transaction",
+        "feedback",
         "system"
       ],
       "default": "system"

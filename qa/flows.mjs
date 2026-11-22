@@ -1174,6 +1174,26 @@ try {
     assert.ok(await page.getByText(/Otomasi → \+ → Pesan/).isVisible(), "Langkah otomasi Pesan tampil");
   });
 
+  await step("Catat Otomatis: token baru tampil di panduan & tombol salin ada di tiap langkah (tanpa bolak-balik)", async () => {
+    await nav("/riwayat"); await nav("/catat-otomatis?tab=sambungan");
+    assert.ok(await page.getByText(/Token lama tidak bisa dilihat lagi/).isVisible(), "Tanpa token sesi: ajakan buat token");
+    await page.getByRole("button", { name: "Tambah" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Buat token" }).click();
+    await page.waitForTimeout(600);
+    assert.equal(await page.getByRole("dialog").count(), 0, "Tidak ada jendela token yang menutupi panduan");
+    assert.ok(await page.getByText("Bahan pemasangan", { exact: true }).isVisible());
+    assert.ok(await page.getByText(/^nfk_/).first().isVisible(), "Token tampil di panduan");
+    await page.getByRole("radio", { name: "SMS bank" }).click();
+    assert.ok(await page.getByRole("button", { name: "Salin header" }).isVisible(), "Salin header langsung di langkah SMS");
+    assert.ok(await page.getByRole("button", { name: "Salin URL" }).isVisible(), "Salin URL langsung di langkah SMS");
+    // Pindah halaman lalu kembali (seperti bolak-balik ke app Pintasan): token masih ada.
+    await nav("/riwayat"); await nav("/catat-otomatis?tab=sambungan");
+    assert.ok(await page.getByText(/^nfk_/).first().isVisible(), "Token bertahan selama sesi pemasangan");
+    await page.getByRole("button", { name: "Selesai" }).click();
+    assert.equal(await page.getByText(/^nfk_/).count(), 0, "Selesai → token dihapus dari layar");
+    assert.equal(await page.evaluate(() => sessionStorage.getItem("nafkita.ingest.setupToken")), null, "Token dihapus dari sesi");
+  });
+
   await step("Tidak ada error JavaScript selama alur", async () => {
     assert.deepEqual(jsErrors, []);
   });

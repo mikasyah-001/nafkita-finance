@@ -1191,6 +1191,20 @@ try {
     assert.ok(await page.getByText(/^nfk_/).first().isVisible(), "Token bertahan selama sesi pemasangan");
     await page.getByRole("button", { name: "Selesai" }).click();
     assert.equal(await page.getByText(/^nfk_/).count(), 0, "Selesai → token dihapus dari layar");
+    // Token milik akun lain di sesi yang sama tidak ditampilkan & dibuang.
+    await page.evaluate(() => sessionStorage.setItem("nafkita.ingest.setupToken", JSON.stringify({ token: "nfk_" + "Z".repeat(43), owner_id: "akun-lain", device_id: "dev1", exp: Date.now() + 600000 })));
+    await nav("/riwayat"); await nav("/catat-otomatis?tab=sambungan");
+    assert.equal(await page.getByText(/^nfk_Z/).count(), 0, "Token akun lain tidak tampil");
+    assert.equal(await page.evaluate(() => sessionStorage.getItem("nafkita.ingest.setupToken")), null, "Token akun lain dibuang");
+    // Perangkat dicabut → token pemasangannya ikut hilang.
+    await page.getByRole("button", { name: "Tambah" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Buat token" }).click();
+    await page.waitForTimeout(600);
+    assert.ok(await page.getByText(/^nfk_/).first().isVisible());
+    await page.getByRole("button", { name: /^Cabut iPhone/ }).last().click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Cabut" }).click();
+    await page.waitForTimeout(700);
+    assert.equal(await page.getByText(/^nfk_/).count(), 0, "Token perangkat yang dicabut tidak ditawarkan lagi");
     assert.equal(await page.evaluate(() => sessionStorage.getItem("nafkita.ingest.setupToken")), null, "Token dihapus dari sesi");
   });
 

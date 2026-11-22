@@ -280,7 +280,7 @@ function ConnectTab() {
   const { data: assets = [] } = useAssets();
   const invalidate = useInvalidate();
   const [deviceSheet, setDeviceSheet] = useState(false);
-  const [setupToken, setSetupToken] = useSetupToken();
+  const [setupToken, setSetupToken] = useSetupToken(me?.id, devices, !loadingDevices);
   const [cardSheet, setCardSheet] = useState(null); // null | {} | kartu
 
   const ownAssets = useMemo(
@@ -408,7 +408,7 @@ function DeviceSheet({ onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
   const submit = async () => {
     setSaving(true);
-    try { const res = await manage({ action: "create_device", name }); onCreated(res.token); }
+    try { const res = await manage({ action: "create_device", name }); onCreated({ token: res.token, device_id: res.device?.id }); }
     catch (e) { toast.error(msg(e, "Gagal membuat token")); setSaving(false); }
   };
   return (
@@ -434,19 +434,32 @@ function readSetupToken() {
     return v && v.exp > Date.now() ? v : null;
   } catch { return null; }
 }
-function useSetupToken() {
+const writeSetupToken = (v) => {
+  try { if (v) sessionStorage.setItem(SETUP_KEY, JSON.stringify(v)); else sessionStorage.removeItem(SETUP_KEY); } catch { /* penyimpanan diblokir */ }
+};
+// Token diikat ke akun & perangkatnya: tidak pernah ditampilkan ke akun lain
+// (ganti akun di tab yang sama), dan dibuang begitu perangkatnya dicabut.
+function useSetupToken(meId, devices, devicesLoaded) {
   const [entry, setEntry] = useState(readSetupToken);
+  const valid = !!entry && !!meId && entry.owner_id === meId
+    // Hanya "dicabut" yang membatalkan: perangkat baru bisa belum muncul di daftar
+    // sesaat setelah dibuat (daftar masih dimuat ulang).
+    && !!entry.device_id && !(devicesLoaded && devices.some((d) => d.id === entry.device_id && d.revoked));
   useEffect(() => {
     if (!entry) return undefined;
-    const t = setTimeout(() => setEntry(null), Math.max(0, entry.exp - Date.now()));
+    const t = setTimeout(() => { writeSetupToken(null); setEntry(null); }, Math.max(0, entry.exp - Date.now()));
     return () => clearTimeout(t);
   }, [entry]);
-  const set = (token) => {
-    const next = token ? { token, exp: Date.now() + SETUP_TTL_MS } : null;
-    try { if (next) sessionStorage.setItem(SETUP_KEY, JSON.stringify(next)); else sessionStorage.removeItem(SETUP_KEY); } catch { /* penyimpanan diblokir */ }
+  // Milik akun lain / perangkat sudah dicabut → hapus dari sesi.
+  useEffect(() => {
+    if (entry && meId && devicesLoaded && !valid) { writeSetupToken(null); setEntry(null); }
+  }, [entry, meId, devicesLoaded, valid]);
+  const set = (created) => {
+    const next = created ? { token: created.token, device_id: created.device_id, owner_id: meId, exp: Date.now() + SETUP_TTL_MS } : null;
+    writeSetupToken(next);
     setEntry(next);
   };
-  return [entry, set];
+  return [valid ? entry : null, set];
 }
 
 function CopyRow({ label, value, copyText, mono = true }) {

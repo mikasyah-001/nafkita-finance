@@ -83,10 +83,34 @@ function parseNumber(raw) {
   return Number.isFinite(n) ? n : 0;
 }
 
+// Waktu transaksi di SMS ("22/11/26 08:47", "21/11/2026 10:00", "2026-11-21 10:00").
+// SMS bisa terlambat sampai; waktu di isi SMS lebih tepat dari waktu diterima.
+// Zona waktu ditebak dari mata uang (SAR → Riyadh +03:00, IDR → WIB +07:00).
+const TZ = { SAR: "+03:00", IDR: "+07:00" };
+export function smsDate(text, currency, now = new Date()) {
+  const t = String(text ?? "");
+  let y, mo, d, h, mi;
+  const dmy = t.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\s+(\d{1,2}):(\d{2})/);
+  const ymd = t.match(/(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+  if (ymd) [, y, mo, d, h, mi] = ymd;
+  else if (dmy) [, d, mo, y, h, mi] = dmy;
+  else return null;
+  y = Number(y) < 100 ? 2000 + Number(y) : Number(y);
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = `${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(mi)}:00${TZ[currency] || "+03:00"}`;
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  // Tanggal yang tidak masuk akal (masa depan / lebih dari 7 hari lalu) diabaikan.
+  const diff = now.getTime() - at.getTime();
+  if (diff < -10 * 60000 || diff > 7 * 86400000) return null;
+  return at.toISOString();
+}
+
 /**
  * Urai SMS transaksi bank (Arab/Inggris/Indonesia). Heuristik umum; aturan
  * khusus per bank bisa ditambahkan setelah ada contoh SMS asli.
- * → { ok, amount, currency, last4, merchant, direction: "out"|"in", reason }
+ * → { ok, amount, currency, last4, account_last4, merchant, direction: "out"|"in",
+ *     channel: "online"|"pos"|null, wallet: "apple_pay"|null, occurred_at, reason }
  */
 export function parseBankSms(text) {
   const t = normalizeDigits(text).replace(/\r/g, "");
@@ -103,7 +127,11 @@ export function parseBankSms(text) {
   if (labeled && !currency) { const c = (before || after); if (c) currency = CUR_CODE(before ? before[1] : after[2]); }
   if (!(amount > 0)) return { ok: false, reason: "no_amount" };
 
-  const l4 = t.match(/(?:\*{1,}|x{2,}|•{2,}|(?:card|kartu|بطاقة|رقم البطاقة)[^0-9\n]{0,12}\**)\s*(\d{4})(?!\d)/i);
+  // Al Rajhi: "By:6458;mada-Apple Pay" = kartu (untuk Apple Pay: nomor perangkat),
+  // "From:0315" = rekening sumber. Format lain: "kartu ****9876", "بطاقة: 0315".
+  const by = t.match(/(?:^|\n)\s*(?:by|بواسطة)\s*:\s*\**(\d{4})(?!\d)/i);
+  const from = t.match(/(?:^|\n)\s*(?:from|من|dari rek(?:ening)?)\s*:\s*\**(\d{4})(?!\d)/i);
+  const l4 = by || t.match(/(?:\*{1,}|x{2,}|•{2,}|(?:card|kartu|بطاقة|رقم البطاقة)[^0-9\n]{0,12}\**)\s*(\d{4})(?!\d)/i);
   const merchantMatch = t.match(/(?:\bat\b|\bmerchant\b|\bdi\b|\bke\b|\bto\b|لدى|من عند|عند|التاجر)[:\s]+([^\n;:]{2,60})/i);
   let merchant = merchantMatch ? merchantMatch[1].trim().replace(/\s{2,}/g, " ") : "";
   // Potong ekor yang bukan nama toko: tanggal, kartu/rekening, saldo.
@@ -111,7 +139,12 @@ export function parseBankSms(text) {
 
   const incoming = /(credit(ed)?\b|deposit|received|incoming|transfer in|salary|refund|masuk|dikreditkan|diterima|إيداع|واردة|راتب|استرداد|مستردة)/i.test(t)
     && !/(purchase|pembelian|belanja|debit(ed)?\b|شراء|خصم|سحب)/i.test(t);
-  return { ok: true, amount, currency, last4: l4 ? l4[1] : "", merchant, direction: incoming ? "in" : "out" };
+  const channel = /online|internet|e-?commerce|عبر الإنترنت|daring/i.test(t) ? "online" : /\bpos\b|نقاط البيع|point of sale/i.test(t) ? "pos" : null;
+  const wallet = /apple\s*pay|أبل باي|ابل باي/i.test(t) ? "apple_pay" : null;
+  return {
+    ok: true, amount, currency, last4: l4 ? l4[1] : "", account_last4: from ? from[1] : "",
+    merchant, direction: incoming ? "in" : "out", channel, wallet, occurred_at: smsDate(t, currency),
+  };
 }
 
 // Satu pembelian bisa terkirim dua kali dari sumber berbeda (Apple Pay + SMS
@@ -127,19 +160,22 @@ export function findCrossSourceTwin(candidate, recent = [], windowMin = 30) {
     if ((r.direction || "out") !== (candidate.direction || "out")) return false;
     if (Math.abs((Number(r.amount) || 0) - amt) > 0.005) return false;
     if (r.status === "dismissed") return false;
+    if (r.merged_from) return false; // sudah dipasangkan dengan notifikasi lain
     const rt = new Date(r.occurred_at).getTime();
     return !Number.isNaN(rt) && Math.abs(rt - t) <= windowMin * 60000;
   }) || null;
 }
 
 // Cari kartu untuk SMS: 4 digit terakhir dulu (paling spesifik), lalu label.
-export function matchCardForSms(cards = [], { last4 = "", label = "" } = {}) {
-  const live = cards;
-  if (last4) {
-    const byL4 = live.filter((c) => c.last4 === last4);
-    if (byL4.length === 1) return byL4[0];
-    if (byL4.length > 1) return byL4.find((c) => label && c.wallet_label === label) || byL4.find((c) => c.status === "active") || byL4[0];
+// Cari kartu untuk SMS: 4 digit kartu, lalu 4 digit rekening ("From:0315"),
+// lalu label shortcut (mis. "alrajhi").
+export function matchCardForSms(cards = [], { last4 = "", account_last4 = "", label = "" } = {}) {
+  for (const digits of [last4, account_last4]) {
+    if (!digits) continue;
+    const hits = cards.filter((c) => c.last4 === digits);
+    if (hits.length === 1) return hits[0];
+    if (hits.length > 1) return hits.find((c) => label && c.wallet_label === label) || hits.find((c) => c.status === "active") || hits[0];
   }
-  if (label) return live.find((c) => c.wallet_label === label) || null;
+  if (label) return cards.find((c) => c.wallet_label === label) || null;
   return null;
 }

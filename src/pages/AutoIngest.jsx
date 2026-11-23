@@ -208,7 +208,7 @@ function InboxTab() {
                 <p className="font-semibold truncate">{it.merchant || (isIn(it) ? "Uang masuk" : "Tanpa nama merchant")}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   {it.source === "sms" ? <MessageSquareText className="w-3 h-3 inline -mt-0.5 mr-1" /> : <CreditCard className="w-3 h-3 inline -mt-0.5 mr-1" />}
-                  {SOURCE_TEXT[it.source] || "Apple Pay"} · {asset ? assetLabel(asset) : it.card_name || it.label} · {fmtTime(it.occurred_at)}
+                  {SOURCE_TEXT[it.source] || "Apple Pay"}{it.merged_from && it.merged_from !== it.source ? ` + ${SOURCE_TEXT[it.merged_from]}` : ""} · {asset ? assetLabel(asset) : it.card_name || it.label} · {fmtTime(it.occurred_at)}
                 </p>
               </div>
               <p className={`font-heading font-extrabold tabular-nums shrink-0 ${isIn(it) ? "text-success" : ""}`}>{Number(d.amount) > 0 ? `${isIn(it) ? "+" : "−"}${formatMoney(Number(d.amount), cur)}` : "—"}</p>
@@ -551,8 +551,8 @@ function SetupGuide({ hasToken, token, onClearToken, onNewToken, exampleLabel })
   // terakhir di SMS; SMS OTP & promo dibuang tanpa disimpan.
   const sms = [
     tokenStep,
-    ["Isi 4 digit terakhir kartu", "Di halaman Kartu, pastikan tiap kartu punya 4 digit terakhir & rekening. SMS \"…kartu ****0315…\" otomatis masuk ke kartu ••0315."],
-    ["Pintasan → Otomasi → + → Pesan", "Pesan Berisi: kata yang selalu ada di SMS transaksi bank Anda (mis. \"SAR\", \"مبلغ\", atau \"Rp\"). Pilih Jalankan Segera."],
+    ["Isi 4 digit terakhir", "Di halaman Kartu, isi 4 digit rekening atau kartu. Contoh Al Rajhi: \"From:0315\" (rekening) atau \"By:6458\" (kartu Apple Pay) — salah satu cukup. Kartu belum dikenal muncul sebagai \"Belum terhubung\"."],
+    ["Pintasan → Otomasi → + → Pesan", "Pesan Berisi: kata yang selalu ada di SMS transaksi bank Anda. Al Rajhi (Inggris): \"Amount\" — menangkap belanja online & POS. SMS Arab: \"مبلغ\". Bank Indonesia: \"Rp\". Pilih Jalankan Segera."],
     ["Tambah aksi \"Dapatkan Konten URL\"", "Tempel URL. Metode: POST. Header: Authorization = Bearer nfk_…", <div className="flex flex-wrap gap-2">{copyUrl}{copyHeader}</div>],
     ["Isi Minta Isi (JSON), jenis Teks", "text = Input Pintasan → Isi · sender = Input Pintasan → Pengirim · label (opsional) = nama bank, mis. alrajhi."],
     ["Cek di Kotak Masuk", "Uang keluar jadi pengeluaran, uang masuk (gaji, transfer masuk) jadi pemasukan. Isi SMS bisa dibuka di tiap item untuk dicek."],
@@ -580,7 +580,7 @@ function SetupGuide({ hasToken, token, onClearToken, onNewToken, exampleLabel })
       ) : (
         <>
           <GuideSteps steps={sms} />
-          <p className="text-[11px] text-muted-foreground px-1">SMS berisi kode OTP tidak pernah dicatat. Bila satu pembelian masuk dari Apple Pay dan SMS sekaligus, Nafkita menandainya agar tidak dobel.</p>
+          <p className="text-[11px] text-muted-foreground px-1">SMS berisi kode OTP tidak pernah dicatat. Pembelian POS yang tertangkap Apple Pay dan SMS sekaligus otomatis digabung jadi satu item — tidak dobel. Belanja online lewat Apple Pay biasanya hanya tertangkap lewat SMS.</p>
         </>
       )}
     </section>

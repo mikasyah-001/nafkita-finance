@@ -54,3 +54,24 @@ test("kartu: kembaran lintas sumber & pencocokan SMS", async () => {
   assert.equal(matchCardForSms(cards, { label: "rajhi" }).id, "1");
   assert.equal(matchCardForSms(cards, { last4: "9999" }), null);
 });
+
+test("SMS Al Rajhi asli: online & PoS via Apple Pay", async () => {
+  const { parseBankSms, matchCardForSms, findCrossSourceTwin, smsDate } = await import("../../../base44/shared/cards.js");
+  const now = new Date("2026-11-23T06:00:00Z");
+  const online = parseBankSms("Online Purchase\nBy:6458;mada-Apple Pay\nFrom:0315\nAmount:SR 13.80\nAt:Mawgif\n22/11/26 08:47");
+  assert.equal(online.amount, 13.8); assert.equal(online.currency, "SAR");
+  assert.equal(online.last4, "6458"); assert.equal(online.account_last4, "0315");
+  assert.equal(online.merchant, "Mawgif"); assert.equal(online.channel, "online"); assert.equal(online.wallet, "apple_pay");
+  assert.equal(online.direction, "out");
+  const pos = parseBankSms("PoS Purchase\nBy:6458;mada-Apple Pay\nAmount: SAR 37\nAt:ALBWABAH A\n22/11/26 09:07");
+  assert.equal(pos.amount, 37); assert.equal(pos.merchant, "ALBWABAH A"); assert.equal(pos.channel, "pos"); assert.equal(pos.account_last4, "");
+  // Waktu dari isi SMS, zona Riyadh (+03:00).
+  assert.equal(smsDate("Amount:SR 67.85\n23/11/26 08:13", "SAR", now), "2026-11-23T05:13:00.000Z");
+  assert.equal(smsDate("01/01/20 08:13", "SAR", now), null, "tanggal terlalu lama diabaikan");
+  // Kartu dicocokkan lewat rekening (From) bila 4 digit Apple Pay (By) tidak dikenal.
+  const cards = [{ id: "rajhi", last4: "0315", status: "active" }];
+  assert.equal(matchCardForSms(cards, { last4: online.last4, account_last4: online.account_last4 }).id, "rajhi");
+  // Notifikasi yang sudah dipasangkan tidak dipasangkan lagi (dua pembelian bernominal sama).
+  const ap = { id: "a", source: "apple_pay", asset_id: "x", amount: 8, occurred_at: "2026-11-22T11:34:00Z", status: "new", merged_from: "sms" };
+  assert.equal(findCrossSourceTwin({ source: "sms", asset_id: "x", amount: 8, occurred_at: "2026-11-22T11:34:00Z" }, [ap]), null);
+});

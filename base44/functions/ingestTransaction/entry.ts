@@ -87,7 +87,7 @@ export default async function (req) {
     // SMS: dicocokkan lewat 4 digit terakhir di SMS, lalu label (mis. "alrajhi").
     const label = normalizeLabel(body?.label) || (isSms ? "" : normalizeLabel(body?.card));
     const cards = list(await db.PaymentCard.filter({ owner_id: ownerId }, "-created_date", 200));
-    let card = isSms ? matchCardForSms(cards, { last4: sms.last4, label }) : (label ? cards.find((c) => c.wallet_label === label) : null);
+    let card = isSms ? matchCardForSms(cards, { last4: sms.last4, account_last4: sms.account_last4, label }) : (label ? cards.find((c) => c.wallet_label === label) : null);
 
     if (!card && !isSms && label) {
       // Migrasi malas dari label lama (CardLabel) agar pengguna lama tidak perlu menghubungkan ulang.
@@ -101,18 +101,24 @@ export default async function (req) {
       }
     }
     if (!card) {
-      if (!label && !(isSms && sms.last4)) return reply(400, { ok: false, message: isSms ? "SMS tanpa 4 digit kartu — tambahkan label di shortcut" : "Label & nama kartu kosong — kirim label atau Input Pintasan → Kartu" });
+      if (!label && !(isSms && (sms.last4 || sms.account_last4))) return reply(400, { ok: false, message: isSms ? "SMS tanpa 4 digit kartu — tambahkan label di shortcut" : "Label & nama kartu kosong — kirim label atau Input Pintasan → Kartu" });
       // Batasi jumlah kartu tercatat agar token bocor tidak bisa membanjiri daftar.
       if (cards.length >= 40) return reply(202, { ok: true, result: "unknown_label", message: "Kartu belum terhubung" });
-      const name = isSms ? `${String(body?.sender || label || "SMS").slice(0, 30)}${sms.last4 ? " ••" + sms.last4 : ""}` : String(body?.card || label).slice(0, 50);
+      const smsL4 = isSms ? (sms.last4 || sms.account_last4) : "";
+      const name = isSms ? `${String(body?.sender || label || "SMS").slice(0, 30)}${smsL4 ? " ••" + smsL4 : ""}` : String(body?.card || label).slice(0, 50);
       await db.PaymentCard.create({
-        owner_id: ownerId, display_name: name, kind: "debit", network: "lainnya", last4: isSms ? sms.last4 : "",
+        owner_id: ownerId, display_name: name, kind: "debit", network: "lainnya", last4: smsL4,
         wallet_label: label || null, status: "unmapped", last_seen_at: nowIso, seen_count: 1, has_photo: false, has_details: false,
       });
       // Hanya kartunya yang dicatat; nominal & merchant transaksi ini TIDAK disimpan.
       return reply(202, { ok: true, result: "unknown_label", message: "Kartu baru terdeteksi. Hubungkan di Nafkita → Kartu." });
     }
-    const touch = () => db.PaymentCard.update(card.id, { last_seen_at: nowIso, seen_count: (Number(card.seen_count) || 0) + 1 });
+    const touch = () => db.PaymentCard.update(card.id, {
+      last_seen_at: nowIso, seen_count: (Number(card.seen_count) || 0) + 1,
+      // Kartu yang dicocokkan lewat label & belum punya 4 digit: lengkapi dari SMS
+      // agar SMS berikutnya cocok walau shortcut tidak mengirim label.
+      ...(isSms && !card.last4 && (sms.last4 || sms.account_last4) ? { last4: sms.last4 || sms.account_last4 } : {}),
+    });
     // Respons sengaja generik: token hanya untuk MENGIRIM, tidak boleh
     // membocorkan nama rekening atau status kartu ke pemegang token.
     if (card.status !== "active" || !card.asset_id) {
@@ -144,7 +150,8 @@ export default async function (req) {
     const amount = isSms ? sms.amount : parseAmount(body?.amount);
     // Penjual (merchant) kadang kosong di Wallet; "Nama" transaksi dipakai sebagai cadangan.
     const merchant = (isSms ? sms.merchant : String(body?.merchant || body?.name || "")).trim().slice(0, 120);
-    const occurredAt = parseOccurredAt(body?.occurred_at);
+    // SMS: waktu di isi SMS lebih tepat (SMS bisa terlambat sampai).
+    const occurredAt = (isSms && sms.occurred_at) || parseOccurredAt(body?.occurred_at);
     const rawCurrency = isSms ? sms.currency : detectCurrency(body?.amount);
     const currency = asset.currency || "IDR";
     const itemLabel = card.wallet_label || (card.last4 ? `kartu-${card.last4}` : `kartu-${card.id}`);
@@ -156,8 +163,20 @@ export default async function (req) {
     const recentOf = async () => list(await db.IncomingTransaction.filter({ owner_id: ownerId, asset_id: asset.id }, "-occurred_at", 30));
     const recent = await recentOf();
     const possibleDup = isDuplicate(candidate, recent);
-    // Pembelian yang sama bisa datang dari Apple Pay DAN SMS bank.
-    const crossTwin = findCrossSourceTwin(candidate, recent);
+    // Pembelian yang sama bisa datang dari Apple Pay DAN SMS bank (pembayaran
+    // POS memicu keduanya). Jangan buat item kedua: lengkapi item yang sudah
+    // ada (merchant, isi SMS) lalu tandai sudah dipasangkan.
+    const crossTwin = findCrossSourceTwin(candidate, recent, 20);
+    if (crossTwin) {
+      const patch = { merged_from: source };
+      if (crossTwin.status === "new") {
+        if (!crossTwin.merchant && merchant) patch.merchant = merchant;
+        if (isSms) patch.raw_text = smsText.slice(0, 500);
+        if (/^Mungkin sama dengan notifikasi/.test(crossTwin.review_reason || "")) patch.review_reason = null;
+      }
+      await db.IncomingTransaction.update(crossTwin.id, patch);
+      return reply(200, { ok: true, result: "merged", message: "Sudah tercatat dari sumber lain — digabungkan" });
+    }
 
     // Riwayat transaksi pengguna: saran kategori & cek "mungkin sudah dicatat manual".
     const txType = direction === "in" ? "income" : "expense";
@@ -187,10 +206,8 @@ export default async function (req) {
     }
 
     const DUP_REASON = "Mirip transaksi lain dalam 10 menit — pastikan bukan dobel";
-    const otherSrc = (r) => (r.source === "sms" ? "SMS bank" : "Apple Pay");
     const reasonFor = () => {
       if (possibleDup) return DUP_REASON;
-      if (crossTwin) return `Mungkin sama dengan notifikasi ${otherSrc(crossTwin)} (nominal sama) — abaikan salah satunya`;
       if (manualTwin) return `Mungkin sudah dicatat manual: "${manualTwin.merchant || manualTwin.category || "transaksi"}" dengan nominal sama — abaikan bila dobel`;
       const r = reviewReason({ amount, merchant, rawCurrency, assetCurrency: currency });
       // Uang masuk lewat SMS sering tanpa nama pengirim; itu bukan masalah.

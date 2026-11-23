@@ -98,6 +98,11 @@
     "raw_text": {
       "type": "string",
       "description": "Isi SMS/email (dipotong; OTP tidak pernah disimpan)"
+    },
+    "merged_from": {
+      "type": "string",
+      "enum": ["apple_pay", "sms", "email"],
+      "description": "Notifikasi sumber lain untuk pembelian yang sama sudah digabungkan ke item ini"
     }
   },
   "required": [

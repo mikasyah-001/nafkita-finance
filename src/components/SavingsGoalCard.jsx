@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Trash2, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Wallet } from "lucide-react";
-import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset, formatMoneyShort } from "@/lib/finance";
+import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset, formatMoneyShort, convertTo } from "@/lib/finance";
 
 const formatMoneyShortSafe = (v, c) => formatMoneyShort(v, c).replace(/^Rp\s?/, "");
 import { toast } from "sonner";
 import MoneyInput from "@/components/MoneyInput";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
-import { useMe } from "@/hooks/useFinance";
+import { useMe, useRateMap } from "@/hooks/useFinance";
 import { assetLabel } from "@/lib/bankAccount";
 import { goalProjection, quickDepositAmounts } from "@/lib/savingsGoal";
 
@@ -40,7 +40,10 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const { data: me } = useMe();
   // Target "Disimpan di": setoran = transfer dari rekening lain ke rekening
   // target (total aset tetap). Target manual: hanya mencatat angka.
-  const destOptions = byAssets ? gp.assets.filter((a) => a.created_by_id === me?.id) : [];
+  // Tujuan setoran hanya rekening bank/tunai milik sendiri (emas/investasi
+  // nilainya dari unit × harga — catat pembeliannya di Aset).
+  const destOptions = byAssets ? gp.assets.filter((a) => a.created_by_id === me?.id && isMoneyAsset(a)) : [];
+  const { map: rateMap } = useRateMap();
   const [destAssetId, setDestAssetId] = useState("");
   const dest = destOptions.find((a) => a.id === destAssetId) || (destOptions.length === 1 ? destOptions[0] : null);
   const allocatedSet = new Set(gp.assets.map((a) => a.id));
@@ -48,6 +51,9 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
     ? assets.filter((a) => isMoneyAsset(a) && a.created_by_id === me?.id && !allocatedSet.has(a.id) && (a.currency || "IDR") === (dest.currency || "IDR"))
     : [];
   const progressMethod = byAssets ? "topup" : "manual";
+  // Nominal diketik dalam mata uang rekening (yang benar-benar dipindah);
+  // target manual memakai mata uang target.
+  const inputCur = (progressMethod === "topup" && dest ? dest.currency : goal.currency) || "IDR";
 
   const handleAddProgress = async () => {
     const amt = Number(progressAmount);
@@ -60,6 +66,9 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         method: progressMethod,
         source_asset_id: progressMethod === "topup" ? sourceAssetId : undefined,
         dest_asset_id: progressMethod === "topup" ? dest?.id : undefined,
+        // Setara dalam mata uang target untuk riwayat/proyeksi bila berbeda.
+        goal_amount: progressMethod === "topup" && dest && (dest.currency || "IDR") !== (goal.currency || "IDR")
+          ? convertTo(amt, dest.currency || "IDR", goal.currency || "IDR", rateMap) : undefined,
       });
       if (res.data?.error) throw new Error(res.data.message || (res.data.error === "saldo_tidak_cukup" ? "Saldo rekening sumber tidak cukup" : res.data.error));
       if (res.data?.ok) {
@@ -191,7 +200,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
                     {destOptions.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)}</option>)}
                   </select>
                 )}
-                {destOptions.length === 0 && <p className="text-xs text-warning">Rekening target milik pasangan — setoran dicatat oleh pemiliknya.</p>}
+                {destOptions.length === 0 && <p className="text-xs text-warning">"Disimpan di" tidak memuat rekening bank/tunai milik Anda. Untuk emas/investasi, catat pembeliannya di Aset — progres target mengikuti nilainya otomatis.</p>}
                 {dest && (
                   <select aria-label="Dari rekening" value={sourceAssetId} onChange={(e) => setSourceAssetId(e.target.value)} className={panelInput}>
                     <option value="">Dari rekening ({dest.currency || "IDR"})…</option>
@@ -204,18 +213,18 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
               <p className="text-[11px] text-muted-foreground leading-snug">Hanya mencatat angka setoran. Agar uangnya benar-benar dipindah & terlacak di aset, atur <b>"Disimpan di"</b> lewat menu Edit target.</p>
             )}
             <div className="flex gap-1.5" role="group" aria-label="Setoran cepat">
-              {quickDepositAmounts(goal.currency).map((v) => (
+              {quickDepositAmounts(inputCur).map((v) => (
                 <button key={v} type="button" onClick={() => setProgressAmount(String(v))}
                   className={`flex-1 h-9 rounded-full border text-xs font-semibold tabular-nums ${Number(progressAmount) === v ? "bg-foreground text-background border-foreground" : "bg-card border-border"}`}>
-                  +{formatMoneyShortSafe(v, goal.currency)}
+                  +{formatMoneyShortSafe(v, inputCur)}
                 </button>
               ))}
             </div>
-            <MoneyInput currency={goal.currency || "IDR"}
+            <MoneyInput currency={inputCur}
               aria-label="Nominal"
               value={progressAmount}
               onChange={(v) => setProgressAmount(v)}
-              placeholder={`Nominal (${goal.currency || "IDR"})`}
+              placeholder={`Nominal (${inputCur})`}
               className={`${panelInput} tabular-nums`}
             />
             <button

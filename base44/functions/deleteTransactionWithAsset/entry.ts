@@ -15,6 +15,10 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
     const { transaction_id } = body;
+    // Perbaikan setoran model lama (Kesehatan Data): saldo rekening dikembalikan,
+    // tetapi progres/riwayat/status target TETAP (setorannya tetap diakui sebagai
+    // penanda). Hanya berlaku untuk setoran lama non-transfer.
+    const keepGoalProgress = body.keep_goal_progress === true;
     if (!transaction_id)
       return Response.json({ error: "missing_id" }, { status: 400 });
 
@@ -84,7 +88,7 @@ export default async function (req) {
     }
 
     // Setoran target tabungan dihapus → kurangi progres target (satu sumber data).
-    if (tx.savings_goal_id) {
+    if (tx.savings_goal_id && !(keepGoalProgress && tx.is_savings_deposit && !tx.transfer_pair_id)) {
       try {
         const goal = await base44.asServiceRole.entities.SavingsGoal.get(tx.savings_goal_id);
         if (goal) {

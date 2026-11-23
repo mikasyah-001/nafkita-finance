@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots, useSavingsGoals, useDebts } from "@/hooks/useFinance";
 import { investmentCategory, CATEGORY_LABEL, categoryBreakdown, emergencyAssetIds } from "@/lib/investmentCategory";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName, balanceSheet, formatMoneyShort } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName, balanceSheet } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -187,7 +187,7 @@ export default function Assets() {
         {total > 0 && (
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
-              ["Kas & tabungan", sheet.kas, sheet.kasTabungan > 0 ? `harian ${formatMoneyShort(sheet.kasHarian, displayCurrency)}` : "rekening & tunai"],
+              ["Kas & tabungan", sheet.kas, sheet.kasTabungan > 0 ? <>harian <Money value={sheet.kasHarian} currency={displayCurrency} format="short" /></> : "rekening & tunai"],
               ["Investasi", sheet.investasi, "emas, reksa dana, saham"],
               ["Aset pakai", sheet.pakai + sheet.lainnya, "rumah, tanah, dll"],
             ].map(([label, v, hint]) => (

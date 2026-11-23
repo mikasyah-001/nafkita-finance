@@ -44,6 +44,12 @@ export default async function (req) {
       ]);
       if (!src || !dest) return Response.json({ error: "asset_not_found" }, { status: 404 });
       if (src.created_by_id !== me.id || dest.created_by_id !== me.id) return Response.json({ error: "forbidden" }, { status: 403 });
+      // Hanya rekening bank/tunai yang bisa menerima uang (sama dengan aturan
+      // Transfer). Emas/investasi nilainya dari jumlah unit × harga — menambah
+      // "value" tanpa membeli unit membuat uangnya tidak terhitung.
+      const isMoney = (a) => a.type === "bank" || a.type === "tunai";
+      if (!isMoney(src) || !isMoney(dest))
+        return Response.json({ error: "Setoran hanya antar rekening bank/tunai. Untuk emas/investasi, catat pembeliannya di Aset." }, { status: 400 });
       const cur = (src.currency || "IDR").toUpperCase();
       if (cur !== (dest.currency || "IDR").toUpperCase())
         return Response.json({ error: "Mata uang rekening sumber & rekening target berbeda — gunakan menu Transfer" }, { status: 400 });
@@ -62,20 +68,24 @@ export default async function (req) {
         await base44.entities.Asset.update(dest.id, { value: destNew });
         undo.push(() => base44.entities.Asset.update(dest.id, { value: destPrev }));
 
-        const common = {
+        const common: Record<string, unknown> = {
           category: "Setoran Tabungan", date: new Date().toISOString(), notes: notes || "",
           input_by_name: myName, tags: ["setoran-target"], transfer_pair_id: pairId,
-          savings_goal_id: goal_id, amount: amt, currency: cur,
+          amount: amt, currency: cur,
           visibility: src.visibility === "private" || dest.visibility === "private" ? "private" : "shared",
         };
-        const outTx = await base44.entities.Transaction.create({ ...common, type: "expense", merchant: `Setoran ${goal.name} → ${dest.name}`, linked_asset_id: src.id, transfer_direction: "out" });
+        // Id target pribadi juga tidak ditempel pada transaksi bersama.
+        if (!(goal.visibility === "private" && common.visibility !== "private")) common.savings_goal_id = goal_id;
+        // Nama target pribadi tidak ditulis di transaksi yang bisa dilihat pasangan.
+        const goalLabel = goal.visibility === "private" && common.visibility !== "private" ? "target pribadi" : goal.name;
+        const outTx = await base44.entities.Transaction.create({ ...common, type: "expense", merchant: `Setoran ${goalLabel} → ${dest.name}`, linked_asset_id: src.id, transfer_direction: "out" });
         undo.push(() => base44.entities.Transaction.delete(outTx.id));
-        const inTx = await base44.entities.Transaction.create({ ...common, type: "income", merchant: `Setoran ${goal.name} dari ${src.name}`, linked_asset_id: dest.id, transfer_direction: "in" });
+        const inTx = await base44.entities.Transaction.create({ ...common, type: "income", merchant: `Setoran ${goalLabel} dari ${src.name}`, linked_asset_id: dest.id, transfer_direction: "in" });
         undo.push(() => base44.entities.Transaction.delete(inTx.id));
 
         await recordAssetMutation(base44, { asset_id: src.id, previous_value: srcPrev, new_value: srcNew, change_type: "transfer", source_ref: pairId, source_description: `Setoran target: ${goal.name}`, actor_id: me.id, actor_name: myName, currency: cur, notes: notes || "" });
         await recordAssetMutation(base44, { asset_id: dest.id, previous_value: destPrev, new_value: destNew, change_type: "transfer", source_ref: pairId, source_description: `Setoran target: ${goal.name}`, actor_id: me.id, actor_name: myName, currency: cur, notes: notes || "" });
-        transfer = { pairId, outId: outTx.id, srcId: src.id, destId: dest.id };
+        transfer = { pairId, outId: outTx.id, srcId: src.id, destId: dest.id, cur };
       } catch (e) {
         for (const fn of undo.reverse()) { try { await fn(); } catch { /* lanjut */ } }
         throw e;
@@ -87,9 +97,16 @@ export default async function (req) {
     // progres dari saldo rekeningnya, jadi tidak ditambah lagi (hindari ganda).
     const newAmount = transfer ? (goal.current_amount || 0) : roundForCurrency((goal.current_amount || 0) + amt, goal.currency);
     const history = Array.isArray(goal.contribution_history) ? [...goal.contribution_history] : [];
+    // Riwayat dicatat dalam mata uang TARGET (dipakai proyeksi). Bila rekening
+    // bermata uang lain, frontend mengirim goal_amount (setara, kurs aplikasi);
+    // nominal asli rekening disimpan untuk jejak.
+    const goalCur = (goal.currency || "IDR").toUpperCase();
+    const crossCur = transfer && transfer.cur !== goalCur;
+    const goalAmt = crossCur ? Number(body.goal_amount) || 0 : amt;
     history.push({
       date: new Date().toISOString(),
-      amount: amt,
+      amount: goalAmt,
+      ...(crossCur ? { account_amount: amt, account_currency: transfer.cur } : {}),
       method: method || "manual",
       notes: notes || "",
       ...(transfer ? { transaction_id: transfer.outId, transfer_pair_id: transfer.pairId, asset_id: transfer.srcId, dest_asset_id: transfer.destId } : {}),

@@ -66,7 +66,7 @@ export default function DataHealth() {
   const restoreDeposit = async (t) => {
     setFixing(`dep:${t.id}`);
     try {
-      await deleteTransactionWithAsset(t.id);
+      await deleteTransactionWithAsset(t.id, { keep_goal_progress: true });
       toast.success("Saldo dikembalikan ke rekening", { description: "Progres target tidak berubah." });
       refresh();
     } catch (e) {

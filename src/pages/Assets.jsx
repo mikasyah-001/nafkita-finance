@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots, useSavingsGoals } from "@/hooks/useFinance";
+import { useAssets, useRefresh, useRateMap, useMe, useUserCurrencies, useAllInvestmentLots, useSavingsGoals, useDebts } from "@/hooks/useFinance";
 import { investmentCategory, CATEGORY_LABEL, categoryBreakdown, emergencyAssetIds } from "@/lib/investmentCategory";
-import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName } from "@/lib/finance";
+import { formatMoney, formatNumber, formatDate, formatDuration, colorMap, assetTypeLabels, convertTo, hasRate, isGoldType, assetMarketValue, assetGain, goldPriceIn, assetDisplayName, balanceSheet, formatMoneyShort } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
 import AssetForm from "@/components/AssetForm";
@@ -137,6 +137,10 @@ export default function Assets() {
   });
 
   const total = scopedAssets.reduce((s, a) => s + convertedValue(a), 0);
+  // Neraca: kas (harian/tabungan) · investasi · aset pakai, lalu utang/piutang.
+  const { data: debts = [] } = useDebts();
+  const scopedDebts = debts.filter((d) => (scope === "private" ? d.visibility === "private" : d.visibility !== "private"));
+  const sheet = balanceSheet({ assets: scopedAssets, debts: scopedDebts, valueOf: convertedValue, currency: displayCurrency, rateMap });
   const emasAssets = scopedAssets.filter((a) => isGoldType(a.type));
   const emasGrams = emasAssets.reduce((s, a) => s + (a.quantity || 0), 0);
   const goldGramsIdr = scopedAssets.filter((a) => isGoldType(a.type) && (a.currency || "IDR") === "IDR").reduce((t, a) => t + (Number(a.quantity) || 0), 0);
@@ -179,6 +183,33 @@ export default function Assets() {
         <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums break-words"><Money value={total} currency={displayCurrency} /></p>
         {userCurrencies.length > 1 && (
           <div className="mt-2"><CurrencyTabs currencies={userCurrencies.map((c) => c.code)} value={displayCurrency} onChange={setDisplayCurrency} variant="inverse" /></div>
+        )}
+        {total > 0 && (
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {[
+              ["Kas & tabungan", sheet.kas, sheet.kasTabungan > 0 ? `harian ${formatMoneyShort(sheet.kasHarian, displayCurrency)}` : "rekening & tunai"],
+              ["Investasi", sheet.investasi, "emas, reksa dana, saham"],
+              ["Aset pakai", sheet.pakai + sheet.lainnya, "rumah, tanah, dll"],
+            ].map(([label, v, hint]) => (
+              <div key={label} className="rounded-2xl bg-white/[0.08] border border-white/10 px-2.5 py-2 min-w-0">
+                <p className="text-[10px] opacity-75 truncate">{label}</p>
+                <p className="text-sm font-semibold tabular-nums truncate"><Money value={v} currency={displayCurrency} format="short" /></p>
+                <p className="text-[10px] opacity-60 truncate">{hint}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {(sheet.utang > 0 || sheet.piutang > 0) && (
+          <Link to="/utang" className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-white/[0.08] border border-white/10 px-3 py-2.5 active:scale-[0.99] transition-transform">
+            <span className="min-w-0">
+              <span className="block text-[11px] opacity-75">Kekayaan bersih</span>
+              <span className="block text-lg font-bold tabular-nums leading-tight"><Money value={sheet.netWorth} currency={displayCurrency} /></span>
+              <span className="block text-[10px] opacity-70 tabular-nums">
+                aset{sheet.piutang > 0 && <> + piutang <Money value={sheet.piutang} currency={displayCurrency} format="short" /></>}{sheet.utang > 0 && <> − utang <Money value={sheet.utang} currency={displayCurrency} format="short" /></>}
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+          </Link>
         )}
         {emasGrams > 0 && (
           <button onClick={() => setShowGold(true)} aria-label="Atur harga emas acuan"

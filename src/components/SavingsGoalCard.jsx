@@ -4,10 +4,10 @@ import { Target, TrendingUp, CalendarDays, CheckCircle2, MoreVertical, Edit2, Tr
 import { formatMoney, formatDate, formatMoneyPlain, isMoneyAsset, formatMoneyShort } from "@/lib/finance";
 
 const formatMoneyShortSafe = (v, c) => formatMoneyShort(v, c).replace(/^Rp\s?/, "");
-import { ChipChoice } from "@/components/FormSheet";
 import { toast } from "sonner";
 import MoneyInput from "@/components/MoneyInput";
 import { useGoalProgress } from "@/hooks/useGoalProgress";
+import { useMe } from "@/hooks/useFinance";
 import { assetLabel } from "@/lib/bankAccount";
 import { goalProjection, quickDepositAmounts } from "@/lib/savingsGoal";
 
@@ -24,7 +24,6 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const [showMenu, setShowMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [progressAmount, setProgressAmount] = useState("");
-  const [progressMethod, setProgressMethod] = useState("manual");
   // Rekening sumber default dari data lama (field "Rekening sumber setoran" yang dulu ada di form).
   const [sourceAssetId, setSourceAssetId] = useState(goal.linked_asset_id || "");
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +37,17 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
   const Icon = isCompleted ? CheckCircle2 : (TYPE_ICON[goal.type] || Target);
   const tone = TONE[goal.color] || TONE.green;
   const proj = isCompleted ? null : goalProjection(goal, gp.current);
+  const { data: me } = useMe();
+  // Target "Disimpan di": setoran = transfer dari rekening lain ke rekening
+  // target (total aset tetap). Target manual: hanya mencatat angka.
+  const destOptions = byAssets ? gp.assets.filter((a) => a.created_by_id === me?.id) : [];
+  const [destAssetId, setDestAssetId] = useState("");
+  const dest = destOptions.find((a) => a.id === destAssetId) || (destOptions.length === 1 ? destOptions[0] : null);
+  const allocatedSet = new Set(gp.assets.map((a) => a.id));
+  const sourceOptions = dest
+    ? assets.filter((a) => isMoneyAsset(a) && a.created_by_id === me?.id && !allocatedSet.has(a.id) && (a.currency || "IDR") === (dest.currency || "IDR"))
+    : [];
+  const progressMethod = byAssets ? "topup" : "manual";
 
   const handleAddProgress = async () => {
     const amt = Number(progressAmount);
@@ -49,15 +59,17 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         amount: amt,
         method: progressMethod,
         source_asset_id: progressMethod === "topup" ? sourceAssetId : undefined,
+        dest_asset_id: progressMethod === "topup" ? dest?.id : undefined,
       });
+      if (res.data?.error) throw new Error(res.data.message || (res.data.error === "saldo_tidak_cukup" ? "Saldo rekening sumber tidak cukup" : res.data.error));
       if (res.data?.ok) {
-        toast.success("Progress ditambahkan");
+        toast.success(progressMethod === "topup" ? `Dipindahkan ke ${dest?.name || "rekening target"}` : "Setoran dicatat");
         setShowProgress(false);
         setProgressAmount("");
         onRefresh();
       }
     } catch (e) {
-      toast.error("Gagal", { description: e?.message });
+      toast.error("Gagal", { description: e?.response?.data?.message || e?.message });
     }
     setSubmitting(false);
   };
@@ -158,38 +170,38 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         )}
 
         {/* Action button */}
-        {!isCompleted && !byAssets && (
+        {!isCompleted && (
           <button
             onClick={() => setShowProgress(!showProgress)}
             aria-expanded={showProgress}
             className="w-full mt-3 h-10 flex items-center justify-center gap-2 rounded-full bg-white/60 dark:bg-white/10 text-sm font-semibold active:scale-[0.99] transition-transform"
           >
-            <TrendingUp className="w-4 h-4" /> Tambah Progress
+            <TrendingUp className="w-4 h-4" /> {byAssets ? "Setor ke target" : "Catat setoran"}
           </button>
         )}
 
         {/* Progress form */}
-        {showProgress && !isCompleted && !byAssets && (
+        {showProgress && !isCompleted && (
           <div className="mt-3 p-3 rounded-2xl bg-background/85 text-foreground space-y-2.5">
-            <ChipChoice
-              size="sm"
-              ariaLabel="Cara menambah progress"
-              value={progressMethod}
-              onChange={setProgressMethod}
-              options={[{ value: "manual", label: "Manual" }, { value: "topup", label: "Top-up dari Aset" }]}
-            />
-            {progressMethod === "topup" && (
-              <select
-                aria-label="Aset sumber"
-                value={sourceAssetId}
-                onChange={(e) => setSourceAssetId(e.target.value)}
-                className={panelInput}
-              >
-                <option value="">Pilih aset sumber ({goal.currency || "IDR"})...</option>
-                {assets.filter(a => isMoneyAsset(a) && (a.currency || "IDR") === (goal.currency || "IDR")).map(a => (
-                  <option key={a.id} value={a.id}>{a.name} ({formatMoneyPlain(a.value || 0, a.currency)})</option>
-                ))}
-              </select>
+            {byAssets ? (
+              <>
+                {destOptions.length > 1 && (
+                  <select aria-label="Ke rekening target" value={dest?.id || ""} onChange={(e) => setDestAssetId(e.target.value)} className={panelInput}>
+                    <option value="">Ke rekening target…</option>
+                    {destOptions.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)}</option>)}
+                  </select>
+                )}
+                {destOptions.length === 0 && <p className="text-xs text-warning">Rekening target milik pasangan — setoran dicatat oleh pemiliknya.</p>}
+                {dest && (
+                  <select aria-label="Dari rekening" value={sourceAssetId} onChange={(e) => setSourceAssetId(e.target.value)} className={panelInput}>
+                    <option value="">Dari rekening ({dest.currency || "IDR"})…</option>
+                    {sourceOptions.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({formatMoneyPlain(a.value || 0, a.currency)})</option>)}
+                  </select>
+                )}
+                {dest && <p className="text-[11px] text-muted-foreground">Saldo dipindahkan ke <b>{assetLabel(dest)}</b>. Total aset tetap — uangnya hanya pindah rekening.</p>}
+              </>
+            ) : (
+              <p className="text-[11px] text-muted-foreground leading-snug">Hanya mencatat angka setoran. Agar uangnya benar-benar dipindah & terlacak di aset, atur <b>"Disimpan di"</b> lewat menu Edit target.</p>
             )}
             <div className="flex gap-1.5" role="group" aria-label="Setoran cepat">
               {quickDepositAmounts(goal.currency).map((v) => (
@@ -208,10 +220,10 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
             />
             <button
               onClick={handleAddProgress}
-              disabled={submitting || !progressAmount || (progressMethod === "topup" && !sourceAssetId)}
+              disabled={submitting || !progressAmount || (progressMethod === "topup" && (!sourceAssetId || !dest))}
               className="w-full btn-primary btn-sm"
             >
-              {submitting ? "Memproses..." : "Tambah"}
+              {submitting ? "Memproses..." : byAssets ? "Pindahkan ke target" : "Catat"}
             </button>
           </div>
         )}

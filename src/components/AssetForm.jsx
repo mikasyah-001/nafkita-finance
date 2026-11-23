@@ -11,7 +11,7 @@ import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
 import { INVESTMENT_CATEGORIES, investmentCategory } from "@/lib/investmentCategory";
 import { normalizeAccountNumber, accountNumberError, defaultBankName, findDuplicateAccount, formatAccountNumber } from "@/lib/bankAccount";
 import { toast } from "sonner";
-import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes, Hash } from "lucide-react";
+import { Loader2, Upload, Check, Trash2, Users, Lock, Tag, Building2, UserRound, CalendarDays, Receipt, Image as ImageIcon, NotebookPen, ChevronRight, Shapes, Hash, Wallet } from "lucide-react";
 import FormSheet, { FieldGroup, FieldRow, ChipChoice, fieldInput } from "@/components/FormSheet";
 import CategoryIcon from "@/components/CategoryIcon";
 import MoneyInput from "@/components/MoneyInput";
@@ -27,7 +27,7 @@ const digitalGoldBrokers = {
 const empty = {
   name: "", type: "bank", value: "", quantity: "", unit: "", broker: "", account_number: "",
   purchase_date: "", purchase_price: "", purchase_proof_url: "",
-  owner: "", notes: "", visibility: "shared", currency: "",
+  owner: "", notes: "", visibility: "shared", currency: "", account_role: "harian",
 };
 
 export default function AssetForm({ asset, onClose }) {
@@ -97,6 +97,9 @@ export default function AssetForm({ asset, onClose }) {
     const { error, payload } = buildAssetPayload({ ...form, name, broker: canonBroker(form.broker) });
     if (error) return toast.error(error);
     payload.account_number = payload.type === "bank" ? normalizeAccountNumber(form.account_number) : "";
+    // Peran rekening: harian (operasional) vs tabungan (disimpan). Keduanya
+    // tetap aset kas; tunai selalu harian.
+    payload.account_role = payload.type === "bank" ? (form.account_role === "tabungan" ? "tabungan" : "harian") : payload.type === "tunai" ? "harian" : "";
     // Jenis investasi: pilihan sendiri dikunci; selain itu tebakan otomatis dari nama/ticker.
     if (payload.type === "investasi") {
       payload.instrument = invCategory;
@@ -262,6 +265,15 @@ export default function AssetForm({ asset, onClose }) {
             {accountError ? <p className="text-[11px] text-expense mt-1">{accountError}</p>
               : duplicateAccount ? <p className="text-[11px] text-expense mt-1">Rekening ini sudah tercatat sebagai “{duplicateAccount.name}”.</p>
               : <p className="text-[11px] text-muted-foreground mt-1">Pembeda rekening di bank yang sama. Di daftar tampil ••4 digit terakhir.</p>}
+          </FieldRow>
+        )}
+        {form.type === "bank" && (
+          <FieldRow icon={Wallet} label="Dipakai untuk">
+            <div className="mt-1.5"><ChipChoice size="sm" ariaLabel="Peran rekening" value={form.account_role === "tabungan" ? "tabungan" : "harian"} onChange={(v) => setForm({ ...form, account_role: v })}
+              options={[{ value: "harian", label: "Harian" }, { value: "tabungan", label: "Tabungan" }]} /></div>
+            <p className="text-[11px] text-muted-foreground mt-1">{form.account_role === "tabungan"
+              ? "Uang yang disimpan: dana darurat, target, simpanan. Cocok untuk \"Disimpan di\" pada target."
+              : "Untuk gaji masuk, belanja & tagihan sehari-hari. Saldonya naik-turun."}</p>
           </FieldRow>
         )}
         {form.type === "bank" && nameRow}

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Lock, Clock, X, Paperclip } from "lucide-react";
 import { formatDate, colorMap, isExtraordinary } from "@/lib/finance";
+import { isDebtSettlement } from "../../base44/shared/reportable.js";
 import Money from "./Money";
 import CategoryIcon from "./CategoryIcon";
 
@@ -47,7 +48,7 @@ export default function TransactionItem({ tx, categories }) {
           </div>
         )}
       </div>
-      <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${tx.transfer_pair_id || tx.is_adjustment || tx.is_savings_deposit ? "text-muted-foreground" : isIncome ? "text-income" : isSedekah ? "text-sedekah" : "text-expense"} ${tx.approval_status === "rejected" ? "opacity-40 line-through" : ""} ${tx.approval_status === "pending" ? "opacity-60" : ""}`}>
+      <div className={`text-sm font-semibold whitespace-nowrap shrink-0 tabular-nums ${tx.transfer_pair_id || tx.is_adjustment || tx.is_savings_deposit || isDebtSettlement(tx) ? "text-muted-foreground" : isIncome ? "text-income" : isSedekah ? "text-sedekah" : "text-expense"} ${tx.approval_status === "rejected" ? "opacity-40 line-through" : ""} ${tx.approval_status === "pending" ? "opacity-60" : ""}`}>
         {isIncome ? "+" : "-"}<Money value={tx.amount} currency={tx.currency} />
       </div>
     </Link>

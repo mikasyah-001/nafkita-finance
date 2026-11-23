@@ -7,7 +7,7 @@ import { useMe, useAssets } from "@/hooks/useFinance";
 import { savedBankUsage, withSavedBank } from "@/lib/finance";
 
 /**
- * Kelola "Bank tersimpan" (pilihan tinggal klik di form Tabungan/Bank &
+ * Kelola "Bank tersimpan" (pilihan tinggal klik di form Rekening bank &
  * Emas Digital): tambah bank baru, hapus yang salah ketik / tidak dipakai.
  */
 export default function SavedBanksManager() {
@@ -39,7 +39,7 @@ export default function SavedBanksManager() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Bank yang pernah Anda tulis — muncul sebagai pilihan tinggal klik saat menambah Tabungan/Bank atau Emas Digital.</p>
+      <p className="text-xs text-muted-foreground">Bank yang pernah Anda tulis — muncul sebagai pilihan tinggal klik saat menambah Rekening bank atau Emas Digital.</p>
       {rows.length === 0 ? (
         <p className="text-xs text-muted-foreground italic">Belum ada bank tersimpan.</p>
       ) : (

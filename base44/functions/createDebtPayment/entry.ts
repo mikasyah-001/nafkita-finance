@@ -68,6 +68,9 @@ export default async function (req) {
           visibility: debt.visibility || "shared",
           linked_asset_id: linked_asset_id,
           notif_batch_id: debtPayRef,
+          // Pelunasan pokok: saldo rekening berubah, tetapi tidak dihitung
+          // sebagai pemasukan/pengeluaran (lihat shared/reportable.js).
+          is_debt_settlement: true,
         });
         adjustmentTxId = tx.id;
       } catch (e) {

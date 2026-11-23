@@ -302,7 +302,7 @@ try {
     await page.getByRole("radio", { name: "Emas", exact: true }).click();
     await page.fill("#asset-gold-quantity", "40");
     await page.fill("#asset-gold-purchase-price", "1250000");
-    await page.getByRole("radio", { name: /Tabungan/ }).click();
+    await page.getByRole("radio", { name: "Rekening bank", exact: true }).click();
     await page.fill("#asset-name", "QA Bank");
     await page.fill("#asset-account", "7000111222");
     await page.fill("#asset-value", "7000000");
@@ -412,15 +412,29 @@ try {
     assert.equal(g?.currency, "SAR");
     assert.equal(g?.target_amount, 20000);
     assert.ok(await page.getByText(/\u20C1/).first().isVisible(), "Simbol riyal tampil di kartu target");
-    // Sumber setoran dipilih saat top-up (kolom "Rekening sumber" di form sudah dihapus).
-    // Elemen terdalam yang memuat nama target & tombolnya = kartu target itu.
+    // Model earmark: target tanpa "Disimpan di" hanya MENCATAT setoran (tidak
+    // mengurangi saldo rekening mana pun — dulu top-up membuat uang "hilang"
+    // dari total aset). Setoran yang memindahkan uang butuh rekening target.
     const card = page.locator("div", { has: page.getByText("QA Umrah SAR", { exact: true }) })
-      .filter({ has: page.getByRole("button", { name: "Tambah Progress" }) }).last();
-    await card.getByRole("button", { name: "Tambah Progress" }).click();
-    await card.getByRole("radio", { name: "Top-up dari Aset" }).click();
-    const opts = await card.getByLabel("Aset sumber").locator("option").allInnerTexts();
-    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia");
+      .filter({ has: page.getByRole("button", { name: "Catat setoran" }) }).last();
+    await card.getByRole("button", { name: "Catat setoran" }).click();
+    assert.equal(await card.getByLabel("Dari rekening").count(), 0, "Target manual tidak menawarkan pemindahan saldo");
+    assert.ok(await card.getByText(/Disimpan di/).first().isVisible(), "Petunjuk: atur 'Disimpan di' agar uang benar-benar dipindah");
+    // Target dengan "Disimpan di" rekening SAR: sumber setoran hanya rekening SAR lain.
+    await page.evaluate(async () => {
+      const { base44 } = await import("/qa/mockClient.js");
+      const dest = await base44.entities.Asset.create({ name: "QA Tabungan Riyal", type: "bank", account_role: "tabungan", value: 1000, currency: "SAR", visibility: "shared" });
+      const g = (window.__qaData.SavingsGoal || []).find((x) => x.name === "QA Umrah SAR");
+      await base44.entities.SavingsGoal.update(g.id, { allocated_asset_ids: [dest.id] });
+    });
+    await nav("/riwayat"); await nav("/target-tabungan");
+    const card2 = page.locator("div", { has: page.getByText("QA Umrah SAR", { exact: true }) })
+      .filter({ has: page.getByRole("button", { name: "Setor ke target" }) }).last();
+    await card2.getByRole("button", { name: "Setor ke target" }).click();
+    const opts = await card2.getByLabel("Dari rekening").locator("option").allInnerTexts();
+    assert.ok(opts.some((o) => o.includes("Dompet Riyal")), "Dompet SAR tersedia sebagai sumber");
     assert.ok(!opts.some((o) => o.includes("Tabungan BCA")), "Rekening IDR tidak ditawarkan");
+    assert.ok(!opts.some((o) => o.includes("QA Tabungan Riyal")), "Rekening target sendiri bukan sumber");
   });
 
   await step("Panel admin: menu berurutan, total per mata uang (SAR tidak dijumlah sebagai IDR), putus koneksi dengan konfirmasi", async () => {
@@ -935,7 +949,7 @@ try {
     assert.ok(opts.some((o) => /BCA · 1234 5678 90/.test(o)) && opts.some((o) => /BCA · 5555 6666 77/.test(o)), `Pilihan rekening menampilkan nomor lengkap: ${opts.filter((o) => /BCA/.test(o))}`);
     // Daftar aset: nomor lengkap di kartu; rekening lama tanpa nomor diberi tanda
     await nav("/riwayat"); await nav("/aset");
-    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Tabungan/Bank" }).click();
+    await page.getByRole("group", { name: "Filter jenis aset" }).getByRole("button", { name: "Rekening bank" }).click();
     const card = (await page.locator("a.surface", { hasText: "BCA ••7890" }).first().innerText()).replace(/\s+/g, " ");
     assert.ok(/No\. rek 1234 5678 90/.test(card), `Kartu menampilkan nomor lengkap: ${card}`);
     assert.ok(/No\. rekening belum diisi/.test(await page.locator("a.surface", { hasText: "Rekening Mandiri" }).first().innerText()), "Rekening lama tanpa nomor ditandai");
@@ -964,7 +978,7 @@ try {
       await page.getByRole("radio", { name: type, exact: true }).click();
       return page.getByRole("radiogroup", { name: "Bank tersimpan" }).getByRole("radio", { name: "Bank Ar-Rajhi" });
     };
-    let chip = await pick("Tabungan/Bank");
+    let chip = await pick("Rekening bank");
     assert.ok(await chip.isVisible(), "Bank baru jadi pilihan");
     await chip.click();
     assert.equal(await page.inputValue("#asset-broker"), "Bank Ar-Rajhi", "Sekali klik terisi");
@@ -976,7 +990,7 @@ try {
     await page.evaluate(() => { window.__qa.assets = window.__qa.assets.filter((x) => x.broker !== "Bank Ar-Rajhi"); });
     assert.equal(await page.evaluate(() => window.__qa.assets.some((x) => x.broker === "Bank Ar-Rajhi")), false, "Aset benar-benar terhapus");
     await nav("/riwayat"); await nav("/aset");
-    chip = await pick("Tabungan/Bank");
+    chip = await pick("Rekening bank");
     assert.ok(await chip.isVisible(), "Tetap ada walau asetnya dihapus");
     // Ketikan beda ejaan diseragamkan
     await page.fill("#asset-broker", "bank ar-rajhi");

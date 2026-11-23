@@ -69,7 +69,7 @@ export default function AssetDashboard() {
   const totalPurchase = totalGain.cost;
   const totalGrowth = totalGain.pct;
 
-  const allocColors = { "Tabungan/Bank": "#3b82f6", "Uang Tunai": "#157A5A", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
+  const allocColors = { "Rekening bank": "#3b82f6", "Uang Tunai": "#157A5A", "Emas": "#f59e0b", "Emas Digital": "#f59e0b", "Investasi": "#10b981", "Properti": "#8b5cf6", "Tanah": "#06b6d4", "Lainnya": "#64748b" };
   const allocation = ["bank", "tunai", "emas", "emas_digital", "investasi", "properti", "tanah", "lainnya"]
     .map((type) => {
       const val = scopedAssets.filter((a) => a.type === type).reduce((s, a) => s + displayValue(a), 0);

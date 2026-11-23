@@ -86,6 +86,10 @@
       "default": false,
       "description": "True bila transaksi ini setoran ke target tabungan: uang keluar dari rekening, tapi tidak dihitung sebagai pengeluaran di laporan"
     },
+    "is_debt_settlement": {
+      "type": "boolean",
+      "description": "Pelunasan pokok utang/piutang: memindahkan saldo rekening, tetapi bukan pemasukan/pengeluaran (uang pinjaman bukan penghasilan, pelunasan pokok bukan konsumsi)"
+    },
     "is_adjustment": {
       "type": "boolean",
       "default": false,

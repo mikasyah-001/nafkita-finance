@@ -76,7 +76,7 @@ export default function Reconciliation() {
 
       {bankAssets.length === 0 ? (
         <div className="surface rounded-3xl px-4">
-          <EmptyState icon={Scale} title="Belum ada aset bank" subtitle="Tambahkan aset bertipe Tabungan/Bank untuk melakukan rekonsiliasi." />
+          <EmptyState icon={Scale} title="Belum ada aset bank" subtitle="Tambahkan aset bertipe Rekening bank untuk melakukan rekonsiliasi." />
         </div>
       ) : (
         <>

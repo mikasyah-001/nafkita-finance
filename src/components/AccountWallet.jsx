@@ -58,7 +58,7 @@ export function WalletCard({ account, meId, tone }) {
   const Icon = account.type === "tunai" ? Banknote : Landmark;
   const cur = (account.currency || "IDR").toUpperCase();
   const mine = account.created_by_id === meId;
-  const subtitle = [account.broker, maskAccount(account.account_number)].filter(Boolean).join(" · ") || (account.type === "tunai" ? "Uang tunai" : "Rekening");
+  const subtitle = [account.broker, maskAccount(account.account_number), account.type === "bank" && account.account_role === "tabungan" ? "Tabungan" : ""].filter(Boolean).join(" · ") || (account.type === "tunai" ? "Uang tunai" : "Rekening");
   return (
     <div className="absolute inset-0 rounded-[26px] overflow-hidden p-5 text-[hsl(var(--hero-foreground))]" style={{ background: cardBg(tone) }}>
       <StarPattern id={`nk-star-${account.id}`} />

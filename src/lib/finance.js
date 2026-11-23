@@ -487,7 +487,7 @@ export function assetDisplayName(a) {
 }
 
 export const assetTypeLabels = {
-  bank: { label: "Tabungan/Bank", icon: "Landmark", color: "blue" },
+  bank: { label: "Rekening bank", icon: "Landmark", color: "blue" },
   tunai: { label: "Uang Tunai", icon: "Wallet", color: "green" },
   emas: { label: "Emas", icon: "Coins", color: "amber" },
   emas_digital: { label: "Emas Digital", icon: "Coins", color: "amber" },
@@ -496,6 +496,48 @@ export const assetTypeLabels = {
   tanah: { label: "Tanah", icon: "Map", color: "cyan" },
   lainnya: { label: "Lainnya", icon: "Package", color: "slate" },
 };
+// ── Neraca rumah tangga (kekayaan bersih) ────────────────────────────
+// Struktur mengikuti neraca keuangan pribadi pada umumnya:
+//   kas & setara kas (rekening harian + tabungan + tunai) — likuid
+//   aset investasi (emas, reksa dana, saham, …)
+//   aset pakai (rumah, tanah)
+//   piutang (uang kita di orang lain)
+//   − kewajiban (utang yang belum lunas)
+//   = KEKAYAAN BERSIH.
+// Rekening harian TETAP aset (kas), tetapi dipisah dari tabungan agar
+// terlihat berapa uang yang benar-benar "diam" vs untuk operasional.
+export const ASSET_CLASS = { bank: "kas", tunai: "kas", emas: "investasi", emas_digital: "investasi", investasi: "investasi", properti: "pakai", tanah: "pakai", lainnya: "lainnya" };
+export const ACCOUNT_ROLES = { harian: "Rekening harian", tabungan: "Tabungan" };
+// Tunai selalu dianggap uang harian; bank mengikuti account_role (default harian).
+export const accountRole = (a) => (a?.type === "tunai" ? "harian" : a?.type === "bank" ? (a.account_role === "tabungan" ? "tabungan" : "harian") : null);
+
+export function debtOutstanding(d) {
+  if (!d || d.status === "paid") return 0;
+  return Math.max(0, (Number(d.amount) || 0) - (Number(d.paid_amount) || 0));
+}
+
+export function balanceSheet({ assets = [], debts = [], valueOf, currency = "IDR", rateMap = {} }) {
+  const out = { kasHarian: 0, kasTabungan: 0, kas: 0, investasi: 0, pakai: 0, lainnya: 0, totalAssets: 0, piutang: 0, utang: 0, netWorth: 0, liquidPct: 0 };
+  for (const a of assets) {
+    const v = Number(valueOf(a)) || 0;
+    const cls = ASSET_CLASS[a.type] || "lainnya";
+    if (cls === "kas") {
+      if (accountRole(a) === "tabungan") out.kasTabungan += v; else out.kasHarian += v;
+    } else out[cls] += v;
+  }
+  out.kas = out.kasHarian + out.kasTabungan;
+  out.totalAssets = out.kas + out.investasi + out.pakai + out.lainnya;
+  for (const d of debts) {
+    const from = (d.currency || "IDR").toUpperCase();
+    if (!canConvert(from, currency, rateMap)) continue;
+    const v = convertTo(debtOutstanding(d), from, currency, rateMap);
+    if (d.type === "piutang") out.piutang += v; else if (d.type === "utang") out.utang += v;
+  }
+  out.netWorth = out.totalAssets + out.piutang - out.utang;
+  out.liquidPct = out.netWorth > 0 ? (out.kas / out.netWorth) * 100 : 0;
+  return out;
+}
+
 // ── Sumber tunggal ringkasan pengeluaran bulanan ─────────────────────────
 // Dipakai Beranda (MonthlySummary) dan halaman Ringkasan agar angka selalu
 // sama. Aturan: hanya transaksi "reportable" (bukan transfer antar-rekening,

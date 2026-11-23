@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Image as ImageIcon, Check, Loader2, Tag, CalendarDays, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Wallet } from "lucide-react";
-import { currencySymbol, formatMoneyPlain } from "@/lib/finance";
+import { currencySymbol, formatMoneyPlain, accountRole } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
 import { useMe, useUserCurrencies, useRateMap, useSavingsGoals } from "@/hooks/useFinance";
 import { useCurrencySwitch } from "@/hooks/useCurrencySwitch";
@@ -71,7 +71,9 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
   });
   // "Disimpan di": aset tempat dana target berada (boleh beberapa, jenis &
   // mata uang apa saja — dikonversi). Rumah/tanah tidak ditawarkan.
-  const allocatable = assets.filter((a) => ALLOCATABLE_TYPES.includes(a.type));
+  // Rekening tabungan & investasi didahulukan; rekening harian di belakang.
+  const allocatable = assets.filter((a) => ALLOCATABLE_TYPES.includes(a.type))
+    .sort((a, b) => (accountRole(a) === "harian") - (accountRole(b) === "harian"));
   const allocated = form.allocated_asset_ids || [];
   const toggleAllocated = (id) => setForm((f) => {
     const cur = f.allocated_asset_ids || [];
@@ -212,12 +214,22 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
                     <button key={a.id} type="button" aria-pressed={on} disabled={locked} onClick={() => toggleAllocated(a.id)}
                       title={other ? `Sudah dipakai di target "${other.name}"` : undefined}
                       className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors max-w-full truncate ${on ? "bg-primary text-primary-foreground border-primary" : locked ? "bg-muted border-border text-muted-foreground opacity-60" : "bg-card border-border text-foreground/80"}`}>
-                      {on ? "✓ " : ""}{assetLabel(a)}{locked ? ` · ${other.name}` : ""}
+                      {on ? "✓ " : ""}{assetLabel(a)}{accountRole(a) === "harian" ? " · harian" : ""}{locked ? ` · ${other.name}` : ""}
                     </button>
                   );
                 })}
               </div>
             )}
+            {(() => {
+              // Rekening harian sebagai tempat dana target: progres ikut turun
+              // setiap belanja harian — target jadi tidak bisa dipercaya.
+              const daily = allocatable.filter((a) => allocated.includes(a.id) && accountRole(a) === "harian");
+              return daily.length > 0 ? (
+                <p className="text-[11px] text-warning mt-1.5 leading-snug">
+                  {daily.map((a) => assetLabel(a)).join(", ")} adalah rekening harian — saldonya naik-turun karena belanja, jadi progres target ikut berubah. Sebaiknya simpan dana target di rekening <b>Tabungan</b> (atur di Aset → Edit → "Dipakai untuk").
+                </p>
+              ) : null;
+            })()}
           </FieldRow>
         </FieldGroup>
 

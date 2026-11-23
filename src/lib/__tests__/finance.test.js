@@ -507,3 +507,50 @@ test("untung/rugi gabungan: per aset, lalu dikonversi dengan kurs masing-masing"
   const sar = portfolioGain([assets[1]], "SAR", { rateMap });
   assert.equal(Math.round(sar.pct), 10);
 });
+
+// ── Pelunasan utang/piutang bukan pemasukan/pengeluaran ─────────────
+import { isDebtSettlement } from "../../../base44/shared/reportable.js";
+
+test("pelunasan pokok utang/piutang tidak dihitung di laporan (flag & data lama)", () => {
+  const rows = [
+    tx({ type: "income", amount: 15_000_000, category: "Gaji" }),
+    tx({ type: "expense", amount: 10_000_000, category: "Elektronik" }),          // dibeli dengan uang pinjaman
+    tx({ type: "expense", amount: 10_000_000, category: "Pelunasan Utang", is_debt_settlement: true }),
+    tx({ type: "income", amount: 2_000_000, category: "Pelunasan Piutang" }),      // data lama tanpa flag
+  ];
+  assert.equal(isDebtSettlement(rows[2]), true);
+  assert.equal(isDebtSettlement(rows[3]), true);
+  assert.equal(rows.filter(filterReportableTx).length, 2);
+  const s = summarizeConsolidated(rows, "IDR", RATES);
+  assert.equal(s.income, 15_000_000, "uang pinjaman kembali bukan penghasilan");
+  assert.equal(s.expense, 10_000_000, "laptop tidak terhitung dua kali");
+});
+
+// ── Neraca rumah tangga ──────────────────────────────────────────
+import { balanceSheet, accountRole, debtOutstanding } from "../finance.js";
+
+test("balanceSheet: rekening harian tetap aset (kas), dipisah dari tabungan; kekayaan bersih = aset + piutang − utang", () => {
+  const assets = [
+    { type: "bank", value: 8_000_000 },                              // tanpa peran → harian
+    { type: "bank", value: 20_000_000, account_role: "tabungan" },
+    { type: "tunai", value: 1_000_000 },
+    { type: "emas", value: 30_000_000 },
+    { type: "properti", value: 500_000_000 },
+  ];
+  const debts = [
+    { type: "utang", amount: 100_000_000, paid_amount: 40_000_000, status: "partial" },
+    { type: "piutang", amount: 5_000_000, status: "unpaid", currency: "IDR" },
+    { type: "utang", amount: 9_000_000, status: "paid" },
+    { type: "utang", amount: 1_000, currency: "SAR", status: "unpaid" },  // 4.2 jt
+  ];
+  const b = balanceSheet({ assets, debts, valueOf: (a) => a.value, rateMap: RATES });
+  assert.equal(b.kasHarian, 9_000_000);
+  assert.equal(b.kasTabungan, 20_000_000);
+  assert.equal(b.kas, 29_000_000);
+  assert.equal(b.totalAssets, 559_000_000);
+  assert.equal(b.utang, 60_000_000 + 4_200_000);
+  assert.equal(b.piutang, 5_000_000);
+  assert.equal(b.netWorth, 559_000_000 + 5_000_000 - 64_200_000);
+  assert.equal(accountRole({ type: "emas" }), null);
+  assert.equal(debtOutstanding({ amount: 10, paid_amount: 12 }), 0);
+});

@@ -7,7 +7,8 @@ import { formatDate, assetCurrencyIssue, brokerSpellingGroups } from "@/lib/fina
 import Money from "@/components/Money";
 import CategoryIcon from "@/components/CategoryIcon";
 import EmptyState from "@/components/EmptyState";
-import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2, Coins, SpellCheck } from "lucide-react";
+import { AlertTriangle, Tag, TrendingDown, Clock, CheckCircle2, Loader2, Coins, SpellCheck, PiggyBank } from "lucide-react";
+import { deleteTransactionWithAsset } from "@/lib/linkedAsset";
 import PageHeader from "@/components/PageHeader";
 
 const STALE_DAYS = 90;
@@ -52,8 +53,27 @@ export default function DataHealth() {
     const own = assets.filter((a) => !a.created_by_id || !me?.id || a.created_by_id === me.id);
     const brokerSpelling = brokerSpellingGroups(own);
 
-    return { noCategory, negativeAssets, staleAssets, currencyMismatch, brokerSpelling };
+    // 6. Setoran target model lama: saldo rekening dikurangi tanpa masuk ke
+    //    aset lain → total aset & dasar zakat turun padahal uangnya masih ada.
+    const leakedDeposits = transactions.filter((t) =>
+      t.is_savings_deposit && !t.transfer_pair_id && t.linked_asset_id && (!me?.id || t.created_by_id === me.id));
+
+    return { noCategory, negativeAssets, staleAssets, currencyMismatch, brokerSpelling, leakedDeposits };
   }, [transactions, assets, codes.join(","), rateMap, me?.id]);
+
+  // Kembalikan setoran lama ke rekening sumbernya. Angka di target tetap
+  // (sebagai penanda), sehingga progres target tidak berubah.
+  const restoreDeposit = async (t) => {
+    setFixing(`dep:${t.id}`);
+    try {
+      await deleteTransactionWithAsset(t.id);
+      toast.success("Saldo dikembalikan ke rekening", { description: "Progres target tidak berubah." });
+      refresh();
+    } catch (e) {
+      toast.error("Gagal mengembalikan", { description: e?.response?.data?.message || e?.message });
+    }
+    setFixing(null);
+  };
 
   // Seragamkan ejaan: semua aset di grup memakai ejaan baku.
   const unifyBroker = async (group) => {
@@ -84,7 +104,7 @@ export default function DataHealth() {
     setFixing(null);
   };
 
-  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length + issues.currencyMismatch.length + issues.brokerSpelling.length;
+  const totalIssues = issues.noCategory.length + issues.negativeAssets.length + issues.staleAssets.length + issues.currencyMismatch.length + issues.brokerSpelling.length + issues.leakedDeposits.length;
   const isHealthy = totalIssues === 0;
   const loading = txLoading || assetLoading;
 
@@ -152,6 +172,34 @@ export default function DataHealth() {
                   <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{issue.message}</p>
                 </div>
               ))}
+            </IssueSection>
+          )}
+
+          {/* Setoran target model lama yang "menghilangkan" saldo */}
+          {issues.leakedDeposits.length > 0 && (
+            <IssueSection
+              icon={PiggyBank}
+              title="Setoran target mengurangi aset"
+              subtitle="Setoran lama mengurangi saldo rekening tanpa masuk ke aset mana pun, sehingga total aset & zakat terhitung lebih kecil."
+              tone="warning"
+            >
+              {issues.leakedDeposits.map((t) => {
+                const a = assets.find((x) => x.id === t.linked_asset_id);
+                return (
+                  <div key={t.id} className="px-4 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.merchant || "Setoran target"}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(t.date, "d MMM yyyy")} · dari {a?.name || "rekening"} · <Money value={t.amount} currency={t.currency} /></p>
+                    </div>
+                    <button onClick={() => restoreDeposit(t)} disabled={fixing === `dep:${t.id}`}
+                      aria-label={`Kembalikan ${t.merchant || "setoran"} ke rekening`}
+                      className="h-8 px-3.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0 active:scale-95 transition-transform disabled:opacity-60">
+                      {fixing === `dep:${t.id}` ? "Memproses..." : "Kembalikan"}
+                    </button>
+                  </div>
+                );
+              })}
+              <p className="px-4 pb-3 text-[11px] text-muted-foreground">Kini setoran target memindahkan saldo ke rekening "Disimpan di" sehingga total aset tetap. Uang yang dikembalikan tetap ditandai untuk target (progres tidak berubah).</p>
             </IssueSection>
           )}
 

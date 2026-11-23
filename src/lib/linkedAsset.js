@@ -16,7 +16,7 @@ export const saveTransactionWithAsset = async (transaction, transaction_id, { in
 };
 
 // Menghapus transaksi + mengembalikan saldo aset secara atomik (backend).
-export const deleteTransactionWithAsset = async (transaction_id) => {
-  const res = await base44.functions.invoke("deleteTransactionWithAsset", { transaction_id });
+export const deleteTransactionWithAsset = async (transaction_id, opts = {}) => {
+  const res = await base44.functions.invoke("deleteTransactionWithAsset", { transaction_id, ...opts });
   return res.data;
 };

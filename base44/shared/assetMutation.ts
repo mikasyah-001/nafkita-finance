@@ -2,7 +2,8 @@
 // Dipanggil oleh semua backend function yang mengubah nilai aset:
 // saveTransactionWithAsset, reconcileAsset, saveTransfer, adjustLinkedAsset, deleteTransactionWithAsset.
 //
-// Record AssetMutation tidak dapat diubah/dihapus (RLS update/delete = null).
+// Record AssetMutation tidak dapat dibuat/diubah/dihapus dari klien (RLS create/update/delete = admin);
+// semua penulisan lewat service role di backend.
 // Hanya dibuat via asServiceRole dari backend function.
 import { roundForCurrency } from "./assetAdjust.ts";
 

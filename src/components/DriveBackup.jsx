@@ -132,7 +132,8 @@ export default function DriveBackup() {
               Gabung
             </button>
             <button
-              onClick={() => { setMode("replace"); setConfirmReplace(false); }}
+              onClick={() => toast.info("Mode Ganti total sementara dinonaktifkan", { description: "Sedang diperbaiki agar lot investasi & tautan rekening tidak hilang. Gunakan mode Gabung." })}
+              aria-disabled="true"
               className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "replace" ? "bg-destructive text-white" : "bg-muted text-muted-foreground"}`}
             >
               Ganti total

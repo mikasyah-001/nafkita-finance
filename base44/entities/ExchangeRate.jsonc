@@ -38,7 +38,11 @@
   ],
   "rls": {
     "read": null,
-    "create": null,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "update": {
       "user_condition": {
         "role": "admin"

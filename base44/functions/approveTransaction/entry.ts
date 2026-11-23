@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { currencyMismatch, CURRENCY_MISMATCH, txEffect, roundForCurrency } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
-import { notifyApprovalResult } from "../../shared/transactionApproval.ts";
+import { notifyApprovalResult, validateApprovalDecision, claimApproval, releaseApproval } from "../../shared/transactionApproval.ts";
 
 // Menyetujui transaksi pending.
 // - Hanya approver (pasangan) yang boleh menyetujui.
@@ -30,12 +30,18 @@ export default async function (req) {
     const tx = await base44.asServiceRole.entities.Transaction.get(approval.transaction_id);
     if (!tx) return Response.json({ error: "tx_not_found" }, { status: 404 });
 
+    const check = await validateApprovalDecision(base44, me, approval, tx);
+    if (!check.ok) return Response.json({ error: check.error, message: check.message }, { status: check.status });
+    if (!(await claimApproval(base44, approval_id)))
+      return Response.json({ error: "sudah_diproses" }, { status: 409 });
+    try {
+
     // Sesuaikan saldo aset bila ditautkan.
     if (tx.linked_asset_id) {
       const asset = await base44.asServiceRole.entities.Asset.get(tx.linked_asset_id);
       // Mata uang rekening berubah sejak transaksi diajukan → jangan ubah saldo
       // dengan angka mata uang lain; minta pengaju memperbaiki atau tolak.
-      if (asset && currencyMismatch(asset, tx)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
+      if (asset && currencyMismatch(asset, tx)) { await releaseApproval(base44, approval_id); return Response.json(CURRENCY_MISMATCH, { status: 409 }); }
       if (asset) {
         const prevValue = asset.value || 0;
         const delta = txEffect(tx);
@@ -72,6 +78,11 @@ export default async function (req) {
     // Kirim notifikasi ke pembuat.
     const approverName = me.full_name || me.email || "Pasangan";
     await notifyApprovalResult(base44, approverName, approval, tx, true, null);
+
+    } catch (e) {
+      await releaseApproval(base44, approval_id);
+      throw e;
+    }
 
     return Response.json({ ok: true, approval_id, status: "approved" });
   } catch (error) {

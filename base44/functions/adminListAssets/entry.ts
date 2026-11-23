@@ -15,7 +15,8 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
     const pageSize = Math.min(Number(body.limit) || 100, 500);
-    const filter = {};
+    // Admin tidak melihat aset pribadi (sama dengan adminListTransactions).
+    const filter: Record<string, unknown> = { visibility: { $ne: "private" } };
     if (body.user_filter) filter.created_by_id = body.user_filter;
     if (body.before_date) filter.created_date = { $lt: body.before_date };
 

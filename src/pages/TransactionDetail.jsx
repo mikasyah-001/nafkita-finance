@@ -11,6 +11,7 @@ import { usePartnership } from "@/hooks/usePartnership";
 import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ImagePlus, ImageOff, FileText, Maximize2, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { confirmAction } from "@/components/ConfirmHost";
+import { safeUrl } from "../../base44/shared/txInput.js";
 
 const isPdfUrl = (u) => /\.pdf($|\?)/i.test(u || "");
 
@@ -294,7 +295,7 @@ export default function TransactionDetail() {
               imgFailed === tx.photo_url ? (
               <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><ImageOff className="w-7 h-7" /><span className="text-xs font-medium">Pratinjau tidak bisa dimuat · ketuk untuk membuka</span></span>
             ) : (
-              <img src={tx.photo_url} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
+              <img src={safeUrl(tx.photo_url)} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
             )
             )}
             <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>

@@ -25,6 +25,7 @@ import {
 } from "@/lib/finance";
 import { valueSourceInfo } from "@/lib/portfolioImport";
 import { ZAKAT_EXCLUDED_TYPES } from "@/lib/zakat";
+import { safeUrl } from "../../base44/shared/txInput.js";
 
 const UNIT = { emas: "gram", emas_digital: "gram", tanah: "m²" };
 
@@ -182,7 +183,7 @@ export default function AssetDetail() {
         <section aria-label="Bukti pembelian" className="surface rounded-3xl p-3 mb-4">
           <p className="text-sm font-semibold flex items-center gap-1.5 px-1 mb-2"><Receipt className="w-4 h-4 text-muted-foreground" /> Bukti pembelian</p>
           <button type="button" onClick={() => setViewProof(true)} aria-label={`Lihat bukti pembelian ${a.name}`} className="relative block w-full rounded-2xl overflow-hidden bg-muted">
-            <img src={a.purchase_proof_url} alt="Bukti pembelian" className="w-full max-h-64 object-contain" />
+            <img src={safeUrl(a.purchase_proof_url)} alt="Bukti pembelian" className="w-full max-h-64 object-contain" />
             <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>
           </button>
         </section>

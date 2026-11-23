@@ -27,26 +27,31 @@ export default async function (req) {
       const q = `(name contains 'nafkita-backup-${full}' or name contains 'nafkita-backup-${suffix}') and trashed = false`;
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=createdTime desc&fields=files(id,name,createdTime,size)&pageSize=50`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (!res.ok) return Response.json({ error: "drive_list_failed", details: await res.text() }, { status: 502 });
+      if (!res.ok) return Response.json({ error: "drive_list_failed", details: "Google Drive menolak permintaan" }, { status: 502 });
       const data = await res.json();
       return Response.json({ files: data.files || [] });
     }
 
     if (action === "restore") {
       const fileId = body.file_id;
-      const mode = body.mode === "replace" ? "replace" : "merge";
+      // Mode "replace" sementara dinonaktifkan: format cadangan tidak menyimpan id
+      // asli sehingga lot investasi & tautan rekening hilang permanen saat ganti total.
+      const mode: string = "merge";
       if (!fileId) return Response.json({ error: "file_id required" }, { status: 400 });
+      // Id file Drive hanya huruf/angka/_/- (mencegah penyisipan path/parameter API).
+      if (!/^[A-Za-z0-9_-]{10,200}$/.test(String(fileId))) return Response.json({ error: "invalid_file_id" }, { status: 400 });
 
       const dl = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (!dl.ok) return Response.json({ error: "drive_download_failed", details: await dl.text() }, { status: 502 });
+      if (!dl.ok) return Response.json({ error: "drive_download_failed", details: "Gagal mengunduh cadangan" }, { status: 502 });
       const text = await dl.text();
       let backup;
       try { backup = JSON.parse(text); } catch { return Response.json({ error: "invalid_backup_file" }, { status: 400 }); }
 
       // Validasi: file ini benar-benar milik pemanggil.
-      if (backup.user_id && backup.user_id !== me.id) {
+      // Cadangan wajib milik pengguna ini (cadangan tanpa user_id ditolak).
+      if (!backup.user_id || backup.user_id !== me.id) {
         return Response.json({ error: "backup_not_yours" }, { status: 403 });
       }
 

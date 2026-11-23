@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import { FEEDBACK_TYPES, FEEDBACK_STATUS, describeDevice } from "@/lib/feedback";
 import { formatDate } from "@/lib/finance";
 import { lastActiveLabel } from "@/lib/partner";
+import { isSafeUrl } from "../../base44/shared/txInput.js";
 
 const TYPE_ICON = { bug: Bug, feature: Lightbulb, suggestion: MessageSquare, other: MoreHorizontal };
 const FILTERS = [["open", "Baru"], ["in_progress", "Diproses"], ["resolved", "Selesai"], ["closed", "Ditutup"], ["all", "Semua"]];
@@ -199,6 +200,7 @@ function Attachment({ url }) {
   let host = "";
   try { host = new URL(url).hostname; } catch { /* abaikan */ }
   const trusted = TRUSTED_HOSTS.some((re) => re.test(host));
+  if (!isSafeUrl(url)) return <p className="mt-3 text-xs text-destructive">Lampiran memakai tautan tidak aman — tidak ditampilkan.</p>;
   if (!show) {
     return (
       <button type="button" onClick={() => setShow(true)} className="mt-3 w-full rounded-xl border border-dashed border-border px-3 py-3 text-left text-xs flex items-center gap-2 active:bg-muted">

@@ -27,6 +27,7 @@
           "with": {
             "function_name": "notifyPartnerAsset",
             "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f",
               "asset_id": "${ .trigger.entity_id }",
               "event_type": "${ .trigger.event_type }",
               "name": "${ .trigger.data.name }",

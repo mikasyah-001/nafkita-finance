@@ -2,6 +2,8 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { fetchAll } from "../../shared/fetchAll.ts";
 import { roundForCurrency } from "../../shared/assetAdjust.ts";
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
+import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
+import { MAX_AMOUNT } from "../../shared/txInput.js";
 
 // Dipanggil workflow terjadwal harian.
 // Untuk tiap tagihan aktif dengan next_date <= hari ini, proses SATU periode:
@@ -12,6 +14,9 @@ import { recordAssetMutation } from "../../shared/assetMutation.ts";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    // Hanya workflow terjadwal (token) atau admin. Dulu siapa pun bisa memanggil
+    // fungsi service-role ini dan memicu pemrosesan data semua pengguna.
+    if (!(await isAuthorizedCall(req.clone(), base44))) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const db = base44.asServiceRole.entities;
     const today = new Date().toISOString().slice(0, 10);
 
@@ -25,6 +30,20 @@ export default async function (req) {
         const key = `recurring-${bill.id}-${period}`;
         const amt = Number(bill.amount) || 0;
         const cur = bill.currency || "IDR";
+        if (!Number.isFinite(amt) || amt <= 0 || amt > MAX_AMOUNT) {
+          results.push({ bill_id: bill.id, error: "invalid_amount" });
+          continue;
+        }
+        // Rekening hanya boleh milik pemilik tagihan & bermata uang sama
+        // (RecurringBill dibuat klien, linked_asset_id bisa diisi sembarang).
+        let linkedId = bill.linked_asset_id || null;
+        let linkedAsset = null;
+        if (linkedId) {
+          linkedAsset = await db.Asset.get(linkedId).catch(() => null);
+          if (!linkedAsset || linkedAsset.created_by_id !== bill.created_by_id || (linkedAsset.currency || "IDR") !== cur) {
+            linkedId = null; linkedAsset = null;
+          }
+        }
 
         const existing = await db.Transaction.filter({ notif_batch_id: key }, { limit: 1 });
         const already = (existing?.items || existing || []).length > 0;
@@ -42,19 +61,19 @@ export default async function (req) {
             input_by_name: "Tagihan Berulang",
             tags: [],
             visibility: bill.visibility || "shared",
-            linked_asset_id: bill.linked_asset_id || undefined,
+            linked_asset_id: linkedId || undefined,
             notif_batch_id: key,
             recurring_id: bill.id,
           });
           txId = tx.id;
 
-          if (bill.linked_asset_id) {
-            const asset = await db.Asset.get(bill.linked_asset_id);
+          if (linkedId) {
+            const asset = linkedAsset;
             if (asset) {
               const newVal = roundForCurrency((asset.value || 0) - amt, asset.currency);
-              await db.Asset.update(bill.linked_asset_id, { value: newVal });
+              await db.Asset.update(linkedId, { value: newVal });
               await recordAssetMutation(base44, {
-                asset_id: bill.linked_asset_id, previous_value: asset.value, new_value: newVal,
+                asset_id: linkedId, previous_value: asset.value, new_value: newVal,
                 change_type: "transaction", source_ref: tx.id,
                 source_description: `Tagihan berulang: ${bill.category || ""}`,
                 actor_name: "Tagihan Berulang", currency: asset.currency || "IDR",

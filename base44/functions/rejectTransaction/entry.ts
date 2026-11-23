@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { notifyApprovalResult } from "../../shared/transactionApproval.ts";
+import { notifyApprovalResult, validateApprovalDecision, claimApproval, releaseApproval } from "../../shared/transactionApproval.ts";
 
 // Menolak transaksi pending.
 // - Hanya approver (pasangan) yang boleh menolak.
@@ -27,6 +27,12 @@ export default async function (req) {
     const tx = await base44.asServiceRole.entities.Transaction.get(approval.transaction_id);
     if (!tx) return Response.json({ error: "tx_not_found" }, { status: 404 });
 
+    const check = await validateApprovalDecision(base44, me, approval, tx);
+    if (!check.ok) return Response.json({ error: check.error, message: check.message }, { status: check.status });
+    if (!(await claimApproval(base44, approval_id)))
+      return Response.json({ error: "sudah_diproses" }, { status: 409 });
+    try {
+
     // Update approval status.
     await base44.asServiceRole.entities.TransactionApproval.update(approval_id, {
       status: "rejected",
@@ -43,6 +49,11 @@ export default async function (req) {
     // Kirim notifikasi ke pembuat.
     const approverName = me.full_name || me.email || "Pasangan";
     await notifyApprovalResult(base44, approverName, approval, tx, false, reason);
+
+    } catch (e) {
+      await releaseApproval(base44, approval_id);
+      throw e;
+    }
 
     return Response.json({ ok: true, approval_id, status: "rejected" });
   } catch (error) {

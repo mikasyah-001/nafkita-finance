@@ -3,6 +3,7 @@ import { txEffect, roundForCurrency, currencyMismatch, CURRENCY_MISMATCH } from 
 import { recordAssetMutation } from "../../shared/assetMutation.ts";
 import { needsApproval, createApprovalRequest, notifyApprovalRequest } from "../../shared/transactionApproval.ts";
 import { resolvePartnerId } from "../../shared/partnerResolve.ts";
+import { sanitizeTxInput } from "../../shared/txInput.js";
 
 // Menyimpan transaksi + menyesuaikan saldo aset terkait secara atomik.
 // Bila transaction_id diberikan → update; jika tidak → create.
@@ -27,9 +28,15 @@ export default async function (req) {
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { transaction, transaction_id, incoming_id } = body;
-    if (!transaction)
+    const { transaction: rawTx, transaction_id, incoming_id } = body;
+    if (!rawTx)
       return Response.json({ error: "missing_transaction" }, { status: 400 });
+    // Hanya field yang boleh diatur pengguna (lihat shared/txInput.js): field
+    // sistem (approval_*, transfer_pair_id, savings_goal_id, is_*) dibuang dan
+    // nominal/URL divalidasi.
+    const clean = sanitizeTxInput(rawTx, { partial: !!transaction_id });
+    if (clean.error) return Response.json({ error: clean.error }, { status: 400 });
+    const transaction = clean.data;
 
     // Konfirmasi item kotak masuk "Catat Otomatis": hanya milik sendiri & belum
     // diproses. Ditandai "saved" setelah transaksi berhasil dibuat.
@@ -83,7 +90,7 @@ export default async function (req) {
       // #4: Field approval_status/approval_id hanya boleh diubah lewat function
       // persetujuan (approveTransaction/rejectTransaction/cancelApproval), bukan
       // langsung oleh klien. Tolak bila klien mencoba mengubahnya.
-      if (transaction.approval_status !== undefined || transaction.approval_id !== undefined) {
+      if (rawTx.approval_status !== undefined || rawTx.approval_id !== undefined) {
         return Response.json({ error: "approval_field_protected" }, { status: 403 });
       }
 
@@ -93,9 +100,22 @@ export default async function (req) {
       if (oldTx.approval_status === "pending") {
         return Response.json({ error: "pending_approval_locked" }, { status: 409 });
       }
+      // Transaksi yang ditolak pasangan tidak pernah memengaruhi saldo; mengeditnya
+      // akan menerapkan efek tanpa persetujuan. Hapus lalu catat ulang.
+      if (oldTx.approval_status === "rejected") {
+        return Response.json({ error: "rejected_locked", message: "Transaksi yang ditolak tidak bisa diedit. Hapus lalu catat ulang." }, { status: 409 });
+      }
 
-      const oldLinked = oldTx.linked_asset_id || null;
-      const newLinked = linkedAssetId;
+      // Update parsial: field inti yang tidak dikirim memakai nilai lama, agar
+      // efek saldo dihitung dari angka yang benar (dulu amount kosong = 0).
+      for (const k of ["type", "amount", "currency"]) if (transaction[k] === undefined) transaction[k] = oldTx[k];
+      if (rawTx.linked_asset_id === undefined && oldTx.linked_asset_id) transaction.linked_asset_id = oldTx.linked_asset_id;
+
+      // Transaksi yang ditolak/dibatalkan tidak pernah memengaruhi saldo —
+      // jangan "membalik" efek yang tidak pernah diterapkan.
+      const oldApplied = !oldTx.approval_status || oldTx.approval_status === "approved";
+      const oldLinked = oldApplied ? (oldTx.linked_asset_id || null) : null;
+      const newLinked = transaction.linked_asset_id || null;
 
       // #6: Bila field sensitif berubah dan transaksi hasil edit kini melewati
       // ambang persetujuan, alihkan ke alur approval: balik efek lama ke aset
@@ -185,8 +205,12 @@ export default async function (req) {
     // Cek apakah transaksi memerlukan persetujuan pasangan.
     const requireApproval = await needsApproval(base44, me, transaction);
     if (requireApproval && linkedAssetId) {
+      // Rekening yang ditautkan harus milik sendiri juga di jalur persetujuan
+      // (saat disetujui, saldonya diubah lewat service role).
       const asset = await base44.entities.Asset.get(linkedAssetId).catch(() => null);
-      if (asset && currencyMismatch(asset, transaction)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
+      if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
+      if (asset.created_by_id !== me.id) return Response.json({ error: "forbidden" }, { status: 403 });
+      if (currencyMismatch(asset, transaction)) return Response.json(CURRENCY_MISMATCH, { status: 409 });
     }
     if (requireApproval) {
       const partnerId = await resolvePartnerId(base44, me.id);

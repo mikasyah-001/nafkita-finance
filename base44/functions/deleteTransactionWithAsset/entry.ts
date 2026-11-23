@@ -54,6 +54,13 @@ export default async function (req) {
       return Response.json({ ok: true, cancelled_approval: true });
     }
 
+    // Transaksi yang ditolak/dibatalkan tidak pernah memengaruhi saldo → hapus
+    // tanpa membalik efek (dulu menghapusnya "mengembalikan" uang yang tak pernah keluar).
+    if (tx.approval_status && tx.approval_status !== "approved") {
+      await base44.entities.Transaction.delete(transaction_id);
+      return Response.json({ ok: true });
+    }
+
     // Sesuaikan saldo aset LEBIH DULU, lalu hapus transaksi.
     // Urutan ini memungkinkan rollback bila penghapusan gagal.
     if (tx.linked_asset_id) {
@@ -91,7 +98,8 @@ export default async function (req) {
     if (tx.savings_goal_id && !(keepGoalProgress && tx.is_savings_deposit && !tx.transfer_pair_id)) {
       try {
         const goal = await base44.asServiceRole.entities.SavingsGoal.get(tx.savings_goal_id);
-        if (goal) {
+        // Hanya target milik pembuat transaksi (savings_goal_id dulu bisa disuntik klien).
+        if (goal && goal.created_by_id === tx.created_by_id) {
           const cur = Math.max(0, roundForCurrency((Number(goal.current_amount) || 0) - (Number(tx.amount) || 0), goal.currency));
           const history = Array.isArray(goal.contribution_history) ? goal.contribution_history.filter((h) => h.transaction_id !== tx.id) : [];
           const patch = { current_amount: cur, contribution_history: history };

@@ -83,6 +83,9 @@
           "data.invitee_id": "{{user.id}}"
         },
         {
+          "data.inviter_id": "{{user.id}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }

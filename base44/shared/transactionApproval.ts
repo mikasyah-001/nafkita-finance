@@ -82,6 +82,26 @@ async function getApprovalThreshold(base44, userId) {
 // Syarat: transaksi shared, bukan income, nominal (dikonversi ke mata uang acuan
 // ambang) >= ambang, DAN user memiliki pasangan aktif.
 // Bila kurs untuk konversi tidak tersedia, konservatif: wajib persetujuan.
+// Ambang yang berlaku = yang PALING KETAT antara ambang pengaju dan ambang
+// pasangan (penyetuju). Dulu hanya ambang milik pengaju yang dipakai, sehingga
+// pengaju bisa menaikkannya sendiri (mis. 1 miliar) untuk melewati persetujuan.
+// Kini penyetuju juga menentukan batasnya; pengaju hanya bisa memperketat.
+async function binding(base44, userId, partnerId, amt, txCur) {
+  const own = await getApprovalThreshold(base44, userId);
+  const theirs = partnerId ? await getApprovalThreshold(base44, partnerId) : null;
+  let rateMap = null;
+  const check = async (t) => {
+    if (txCur === t.currency) return amt >= t.threshold;
+    rateMap ||= await buildServerRateMap(base44);
+    const converted = convertTo(amt, txCur, t.currency, rateMap);
+    if (converted === null) return true; // kurs tidak tersedia → konservatif: wajib persetujuan
+    return converted >= t.threshold;
+  };
+  if (theirs && await check(theirs)) return theirs;
+  if (await check(own)) return own;
+  return null;
+}
+
 export async function needsApproval(base44, user, transaction) {
   if (!user || !transaction) return false;
   // Hanya transaksi shared yang memerlukan persetujuan.
@@ -95,22 +115,14 @@ export async function needsApproval(base44, user, transaction) {
   const partnerId = await resolvePartnerId(base44, user.id);
   if (!partnerId) return false;
 
-  // Ambang per pasangan + konversi mata uang sadar.
-  const { threshold, currency: threshCur } = await getApprovalThreshold(base44, user.id);
-  const txCur = (transaction.currency || "IDR").toUpperCase();
-  if (txCur === threshCur) {
-    return amt >= threshold;
-  }
-  const rateMap = await buildServerRateMap(base44);
-  const converted = convertTo(amt, txCur, threshCur, rateMap);
-  if (converted === null) return true; // kurs tidak tersedia → konservatif: wajib persetujuan
-  return converted >= threshold;
+  return !!(await binding(base44, user.id, partnerId, amt, (transaction.currency || "IDR").toUpperCase()));
 }
 
 // Buat record TransactionApproval dan set transaksi ke pending.
 export async function createApprovalRequest(base44, user, transaction, partnerId) {
   const amt = Number(transaction.amount) || 0;
-  const { threshold, currency: threshCur } = await getApprovalThreshold(base44, user.id);
+  const hit = await binding(base44, user.id, partnerId, amt, (transaction.currency || "IDR").toUpperCase());
+  const { threshold } = hit || await getApprovalThreshold(base44, user.id);
   const approval = await base44.asServiceRole.entities.TransactionApproval.create({
     transaction_id: transaction.id,
     requester_id: user.id,
@@ -132,8 +144,6 @@ export async function createApprovalRequest(base44, user, transaction, partnerId
     approval_id: approval.id,
   });
 
-  // Catat mata uang acuan ambang pada record (di kolom notes agar terlacak).
-  void threshCur;
   return approval;
 }
 
@@ -232,4 +242,26 @@ export async function claimApproval(base44, approvalId) {
 
 export async function releaseApproval(base44, approvalId) {
   try { await base44.asServiceRole.entities.TransactionApproval.update(approvalId, { status: "pending" }); } catch { /* biarkan */ }
+}
+
+// Saat hubungan berakhir (putus koneksi / hapus akun), permintaan persetujuan
+// yang masih menunggu di antara dua orang ini tidak akan pernah diputuskan.
+// Batalkan seperti cancelApproval: status "cancelled", transaksi "rejected"
+// (terkunci, tidak memengaruhi saldo; pengaju bisa menghapus & mencatat ulang).
+export async function cancelPendingApprovalsBetween(base44, userA, userB) {
+  const svc = base44.asServiceRole.entities;
+  let n = 0;
+  for (const q of [{ requester_id: userA, status: "pending" }, { approver_id: userA, status: "pending" }]) {
+    let rows = [];
+    try { rows = await svc.TransactionApproval.filter(q, "-created_date", 500); } catch { continue; }
+    for (const a of rows || []) {
+      if (userB && a.requester_id !== userB && a.approver_id !== userB) continue;
+      try {
+        await svc.TransactionApproval.update(a.id, { status: "cancelled", decided_at: new Date().toISOString() });
+        if (a.transaction_id) await svc.Transaction.update(a.transaction_id, { approval_status: "rejected" });
+        n++;
+      } catch (e) { console.error("[cancelPendingApprovalsBetween]", a.id, e?.message); }
+    }
+  }
+  return n;
 }

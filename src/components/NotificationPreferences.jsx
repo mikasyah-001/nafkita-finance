@@ -133,7 +133,7 @@ export default function NotificationPreferences() {
           <ShieldCheck className="w-4 h-4 text-muted-foreground" />
           <p className="text-xs font-medium">Ambang persetujuan pasangan</p>
         </div>
-        <p className="text-[11px] text-muted-foreground mb-2">Transaksi bersama dengan nominal ≥ ambang ini (dikonversi ke mata uang acuan) wajib disetujui pasangan sebelum saldo berubah.</p>
+        <p className="text-[11px] text-muted-foreground mb-2">Pengeluaran bersama ≥ ambang ini (dikonversi ke mata uang acuan) wajib disetujui sebelum saldo berubah — berlaku untuk pengeluaran pasangan (Anda yang menyetujui) dan pengeluaran Anda sendiri. Bila ambang Anda dan pasangan berbeda, yang lebih kecil yang dipakai.</p>
         <div className="flex gap-2">
           <MoneyInput currency={threshCurDraft}
             aria-label="Ambang persetujuan pasangan"

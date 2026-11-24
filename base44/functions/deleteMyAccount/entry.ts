@@ -2,6 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { notifyPartnershipLifecycle } from "../../shared/notifyCommon.ts";
 import { logAdminAction } from "../../shared/auditLog.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
+import { cancelPendingApprovalsBetween } from "../../shared/transactionApproval.ts";
 
 // Penghapusan akun oleh pengguna sendiri (wajib App Store 5.1.1(v) &
 // Google Play "Account deletion"). Client SDK tidak menyediakan endpoint
@@ -49,6 +50,7 @@ const OWNED: Array<[string, string]> = [
   ["Notification", "target_user_id"],
   ["Notification", "created_by_id"],
   ["Feedback", "created_by_id"],
+  ["Feedback", "owner_id"],
 ];
 
 export default async function (req) {
@@ -85,7 +87,10 @@ export default async function (req) {
       transferred = result.transferred;
     }
 
-    // 2. Akhiri hubungan pasangan.
+    // 2. Akhiri hubungan pasangan. Permintaan persetujuan yang menunggu
+    //    keputusan akun ini (sebagai penyetuju) dibatalkan agar transaksi
+    //    pasangan tidak menggantung selamanya.
+    await cancelPendingApprovalsBetween(base44, me.id, null);
     for (const p of partnerships) {
       if (p.status !== "pending" && p.status !== "active") continue;
       const status = p.status === "active" ? "ended" : (p.inviter_id === me.id ? "cancelled" : "declined");

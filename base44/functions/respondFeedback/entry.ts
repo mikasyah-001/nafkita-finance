@@ -42,7 +42,7 @@ export default async function (req) {
     const updated = await base44.asServiceRole.entities.Feedback.update(id, patch);
 
     // Beri tahu pengirim (bukan bila admin melapor ke dirinya sendiri).
-    const ownerId = fb.created_by_id;
+    const ownerId = fb.owner_id || fb.created_by_id;
     if (ownerId && ownerId !== me.id) {
       const newStatus = (patch.status as string) || fb.status;
       const title = reply ? `Balasan untuk laporan Anda: ${fb.subject}` : `Laporan Anda: ${STATUS_LABEL[newStatus] || newStatus}`;
@@ -62,7 +62,7 @@ export default async function (req) {
       } catch (e) { console.error("[respondFeedback] notify", e); }
       // Pakai email akun dari platform (created_by), bukan sender_email yang bisa
       // diisi sembarang bila record dibuat langsung oleh klien.
-      const to = fb.created_by || "";
+      const to = fb.owner_email || fb.created_by || "";
       if (reply && to) {
         try {
           await base44.asServiceRole.integrations.Core.SendEmail({

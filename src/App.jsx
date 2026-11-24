@@ -39,6 +39,7 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import Mfa from '@/pages/Mfa';
 const PartnerOnboarding = lazyPage(() => import('@/pages/PartnerOnboarding'));
 const Admin = lazyPage(() => import('@/pages/Admin'));
 const Transfer = lazyPage(() => import('@/pages/Transfer'));
@@ -72,7 +73,7 @@ const RouteFallback = () => (
 // Seluruh area aplikasi memakai satu kunci ("app") agar Layout — sidebar &
 // nav bawah — tetap terpasang; transisi antarhalaman di dalamnya ditangani
 // Layout sendiri.
-const STANDALONE_PATHS = ['/selamat-datang', '/login', '/register', '/forgot-password', '/reset-password'];
+const STANDALONE_PATHS = ['/selamat-datang', '/login', '/register', '/forgot-password', '/reset-password', '/mfa'];
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -110,6 +111,8 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      {/* Langkah kedua (MFA) setelah masuk dengan Google/SSO — lib/authMfaFlow.js kembali ke sini. */}
+      <Route path="/mfa" element={<Mfa />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/selamat-datang" replace />} />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />

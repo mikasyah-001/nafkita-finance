@@ -1,17 +1,7 @@
 // Ekspor (PDF/CSV) tidak bisa memuat font simbol riyal → pakai kode "SAR".
 import { formatMoneyPlain as formatMoney } from "@/lib/finance";
+import { rowToCsv } from "@/lib/csv";
 
-function csvCell(v) {
-  let s = v == null ? "" : String(v);
-  // Cegah formula injection saat CSV dibuka di Excel/Sheets.
-  if (/^[=+\-@]/.test(s)) s = `\'${s}`;
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function rowToCsv(cells) {
-  return cells.map(csvCell).join(",");
-}
 
 const pct = (n, d) => (d > 0 ? +((n / d) * 100).toFixed(1) : 0);
 

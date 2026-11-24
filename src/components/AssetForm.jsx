@@ -126,8 +126,13 @@ export default function AssetForm({ asset, onClose }) {
         await base44.entities.Asset.update(asset.id, payload);
         toast.success("Aset diperbarui");
       } else {
-        await base44.entities.Asset.create(payload);
-        toast.success("Aset ditambahkan");
+        const created = await base44.entities.Asset.create(payload);
+        // Rekening baru → tawarkan langsung menambah kartu untuknya.
+        if (payload.type === "bank" && created?.id) {
+          toast.success("Rekening ditambahkan", { action: { label: "Tambah kartu", onClick: () => navigate(`/kartu?rekening=${created.id}`) } });
+        } else {
+          toast.success("Aset ditambahkan");
+        }
       }
       // Bank baru → ditetapkan di profil agar lain kali tinggal klik
       // (juga untuk Emas Digital, dan tetap ada walau asetnya dihapus).

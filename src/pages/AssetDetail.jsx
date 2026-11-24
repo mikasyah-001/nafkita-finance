@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   Pencil, Trash2, History, ChevronRight, Lock, Users, Receipt, Maximize2, TrendingUp, TrendingDown,
   Globe, Upload, Coins, CalendarDays, Building2, UserRound, NotebookPen, Hash, Scale, ShieldCheck, Ban, Copy,
+  CreditCard, Plus,
 } from "lucide-react";
 import { maskAccount, formatAccountNumber, normalizeAccountNumber } from "@/lib/bankAccount";
 import { usePrivacy } from "@/lib/PrivacyContext";
@@ -17,7 +18,8 @@ import GoldPriceCard from "@/components/GoldPriceCard";
 import InvestmentDca from "@/components/InvestmentDca";
 import CategoryIcon from "@/components/CategoryIcon";
 import Money from "@/components/Money";
-import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots, useSavingsGoals } from "@/hooks/useFinance";
+import { useAssets, useMe, useRateMap, useRefresh, useInvestmentLots, useSavingsGoals, usePaymentCards } from "@/hooks/useFinance";
+import { CARD_ASSET_TYPES } from "../../base44/shared/cards.js";
 import { investmentCategory, CATEGORY_LABEL, emergencyAssetIds } from "@/lib/investmentCategory";
 import { useGoldPrice } from "@/hooks/useGoldPrice";
 import {
@@ -39,6 +41,7 @@ export default function AssetDetail() {
   const { data: assets = [], isLoading } = useAssets();
   const { data: lots = [] } = useInvestmentLots(id); // sama dengan Riwayat DCA (cache bersama)
   const { data: goals = [] } = useSavingsGoals();
+  const { data: cards = [] } = usePaymentCards();
   const { hidden } = usePrivacy();
   const { data: me } = useMe();
   const { map: rateMap } = useRateMap();
@@ -179,6 +182,33 @@ export default function AssetDetail() {
 
       {/* Investasi: perbarui nilai + Riwayat DCA langsung di halaman ini */}
       {a.type === "investasi" && <InvestmentDca asset={a} readOnly={!isOwner} />}
+
+      {/* Kartu yang terhubung ke rekening ini — tambah kartu tanpa pindah halaman dulu */}
+      {isOwner && Object.values(CARD_ASSET_TYPES).some((t) => t.includes(a.type || "bank")) && (() => {
+        const linked = cards.filter((c) => c.asset_id === a.id && c.status !== "unmapped");
+        return (
+          <section aria-label="Kartu rekening ini" className="surface rounded-3xl p-3 mb-4">
+            <div className="flex items-center justify-between gap-2 px-1 mb-1.5">
+              <p className="text-sm font-semibold flex items-center gap-1.5"><CreditCard className="w-4 h-4 text-muted-foreground" /> Kartu</p>
+              <Link to={`/kartu?rekening=${a.id}`} className="text-xs font-semibold text-primary inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah kartu</Link>
+            </div>
+            {linked.length ? (
+              <ul className="divide-y divide-border">
+                {linked.map((c) => (
+                  <li key={c.id}>
+                    <Link to="/kartu" className="flex items-center gap-2 px-1 py-2 text-sm">
+                      <span className="flex-1 min-w-0 truncate">{c.display_name}</span>
+                      <span className="font-mono text-xs text-muted-foreground">••{c.last4 || "····"}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground px-1 pb-1">Belum ada kartu. Tambahkan kartu debit/ATM agar transaksi dari SMS bank otomatis tercatat ke rekening ini.</p>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Bukti pembelian */}
       {hasAssetProof(a) && (

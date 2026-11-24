@@ -12,6 +12,16 @@ const deriveRefCode = (userId) => {
   return "NK" + num.toString(36).toUpperCase().padStart(7, "0").slice(0, 7);
 };
 
+// Email disamarkan di respons: kode referensi bukan rahasia kuat, jadi siapa pun
+// yang mendapatkan kode tidak boleh langsung tahu email lengkap pemiliknya.
+const maskEmail = (e) => {
+  const [u, d] = String(e || "").split("@");
+  if (!d) return "";
+  return `${u.slice(0, 2)}${"•".repeat(Math.max(1, Math.min(6, u.length - 2)))}@${d}`;
+};
+const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "";
+const MAX_PER_HOUR = 5;
+
 // Inviter memilih perannya sendiri; invitee otomatis mendapat peran pelengkap.
 const complement = (r) => (r === "suami" ? "istri" : "suami");
 
@@ -36,6 +46,12 @@ export default async function (req) {
       return Response.json({ error: "invalid_role" }, { status: 400 });
     const invitee_role = complement(inviter_role);
 
+    // Batasi percobaan: mencegah menebak kode massal / spam permintaan koneksi.
+    const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+    const recent = await fetchAll(base44.asServiceRole.entities.Partnership, { inviter_id: me.id }).catch(() => []);
+    if ((recent || []).filter((p) => String(p.created_date || "") >= hourAgo).length >= MAX_PER_HOUR)
+      return Response.json({ error: "Terlalu banyak percobaan. Coba lagi dalam 1 jam." }, { status: 429 });
+
     const users = await fetchAll(base44.asServiceRole.entities.User);
     const target = (users || []).find((u) => u.id && deriveRefCode(u.id) === code);
     if (!target) return Response.json({ error: "Kode referensi tidak ditemukan" }, { status: 404 });
@@ -50,7 +66,9 @@ export default async function (req) {
 
     await base44.asServiceRole.entities.Partnership.create({
       inviter_id: me.id,
-      invitee_email: target.email,
+      // Disamarkan: pengundang bisa membaca record ini (RLS data.inviter_id), dan
+      // pemilik kode belum menyetujui. Pencocokan invitee memakai invitee_id.
+      invitee_email: maskEmail(target.email),
       invitee_id: target.id,
       status: "pending",
       inviter_role,
@@ -59,9 +77,10 @@ export default async function (req) {
 
     return Response.json({
       status: "success",
-      target: { id: target.id, full_name: target.full_name, email: target.email },
+      target: { full_name: firstName(target.full_name), email: maskEmail(target.email) },
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("[connectByRefCode]", error?.message);
+    return Response.json({ error: "connect_failed" }, { status: 500 });
   }
 }

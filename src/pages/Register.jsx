@@ -46,7 +46,9 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      window.location.href = "/sambungkan-pasangan";
+      // Lanjutkan ke tujuan semula (mis. undangan/izin) bila ada; selain itu onboarding pasangan.
+      const back = safeReturnTo();
+      window.location.href = back !== "/" ? back : "/sambungkan-pasangan";
     } catch (err) {
       setError(err.message || "Kode verifikasi salah");
     } finally {

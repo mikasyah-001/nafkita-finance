@@ -154,7 +154,7 @@ const FN = {
     my_requests: [],
   }),
   listExchangeRates: () => ({ rates: [{ base_currency: "SAR", quote_currency: "IDR", rate: 4250 }, { base_currency: "USD", quote_currency: "IDR", rate: 16100 }] }),
-  submitFeedback: (b) => { const r = { id: id(), created_by_id: "u1", created_by: ME.email, sender_name: ME.full_name, sender_email: ME.email, status: "open", created_date: new Date().toISOString(), ...b }; DATA.Feedback.unshift(r); return { ok: true, id: r.id }; },
+  submitFeedback: (b) => { const r = { id: id(), created_by_id: "u1", owner_id: "u1", created_by: ME.email, sender_name: ME.full_name, sender_email: ME.email, status: "open", created_date: new Date().toISOString(), ...b }; DATA.Feedback.unshift(r); return { ok: true, id: r.id }; },
   respondFeedback: ({ feedback_id, status, reply }) => {
     const f = DATA.Feedback.find((x) => x.id === feedback_id); const now = new Date().toISOString();
     if (status) Object.assign(f, { status, status_updated_at: now });

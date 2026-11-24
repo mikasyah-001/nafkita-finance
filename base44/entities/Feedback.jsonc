@@ -23,6 +23,8 @@
     },
     "sender_name": { "type": "string", "description": "Nama pengirim saat laporan dibuat" },
     "sender_email": { "type": "string", "description": "Email akun pengirim" },
+    "owner_id": { "type": "string", "description": "Id akun pengirim (diisi server)" },
+    "owner_email": { "type": "string", "description": "Email akun pengirim (diisi server; dipakai untuk balasan)" },
     "screenshot_url": { "type": "string", "description": "Tangkapan layar (opsional)" },
     "context": {
       "type": "object",
@@ -57,10 +59,18 @@
     "message"
   ],
   "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "$or": [
         {
           "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.owner_id": "{{user.id}}"
         },
         {
           "user_condition": {

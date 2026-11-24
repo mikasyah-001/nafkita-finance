@@ -26,7 +26,11 @@ export default async function (req) {
     if (!p) return Response.json({ error: "not_found" }, { status: 404 });
     if (p.status !== "pending")
       return Response.json({ error: "not_pending" }, { status: 409 });
-    if ((p.invitee_email || "").toLowerCase() !== (me.email || "").toLowerCase())
+    // Undangan email: cocokkan email. Undangan kode referensi: email disimpan
+    // tersamar, jadi cocokkan invitee_id yang diisi server.
+    const isInvitee = (p.invitee_id && p.invitee_id === me.id) ||
+      (!!me.email && (p.invitee_email || "").toLowerCase() === me.email.toLowerCase());
+    if (!isInvitee)
       return Response.json({ error: "forbidden" }, { status: 403 });
 
     // Cek pasangan ganda untuk kedua pihak (fast-fail; atomic check di bawah).

@@ -26,7 +26,17 @@ export default function Feedback() {
   const { data: mine = [], isLoading } = useQuery({
     queryKey: ["myFeedback", me?.id],
     enabled: !!me?.id,
-    queryFn: () => base44.entities.Feedback.filter({ created_by_id: me.id }, "-created_date", 100),
+    // Record baru dibuat server (owner_id); record lama dibuat klien (created_by_id).
+    queryFn: async () => {
+      const [byOwner, legacy] = await Promise.all([
+        base44.entities.Feedback.filter({ owner_id: me.id }, "-created_date", 100),
+        base44.entities.Feedback.filter({ created_by_id: me.id }, "-created_date", 100),
+      ]);
+      const seen = new Set();
+      return [...(byOwner || []), ...(legacy || [])]
+        .filter((f) => !seen.has(f.id) && seen.add(f.id))
+        .sort((a, b) => String(b.created_date || "").localeCompare(String(a.created_date || "")));
+    },
   });
   // Titik merah hanya untuk balasan yang belum dilihat (disimpan per perangkat).
   const [seenAt, setSeenAt] = useState(() => { try { return localStorage.getItem("nafkita:feedbackSeenAt") || ""; } catch { return ""; } });

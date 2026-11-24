@@ -31,7 +31,7 @@ export async function hasPendingPartnership(base44, userId, email) {
   return (partnerships || []).some(
     (p) =>
       p.status === "pending" &&
-      (p.inviter_id === userId || (e && (p.invitee_email || "").toLowerCase() === e))
+      (p.inviter_id === userId || p.invitee_id === userId || (e && (p.invitee_email || "").toLowerCase() === e))
   );
 }
 

@@ -326,14 +326,16 @@ export default function PartnerManager() {
                   <Clock className="w-3 h-3" /> Menunggu • sebagai {p.invitee_role ? ROLE_LABEL[p.invitee_role] : "pasangan"}
                 </p>
               </div>
-              <button
+              {/* Kirim ulang hanya untuk undangan email; permintaan lewat kode referensi
+                  (invitee_id sudah terisi, email tersamar) tidak dikirim lewat email. */}
+              {!p.invitee_id && <button
                 onClick={() => run(`r-${p.id}`, () => resend(p))}
                 disabled={busy === `r-${p.id}`}
                 className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center active:scale-95 disabled:opacity-60"
                 title="Kirim ulang"
               >
                 {busy === `r-${p.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              </button>
+              </button>}
               <button
                 onClick={() => run(`c-${p.id}`, () => cancelInvite(p.id))}
                 disabled={busy === `c-${p.id}`}

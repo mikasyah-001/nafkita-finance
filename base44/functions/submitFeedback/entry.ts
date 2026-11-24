@@ -11,8 +11,10 @@ const TYPE_LABEL = {
 const clip = (v, n) => (v == null ? '' : String(v)).trim().slice(0, n);
 
 // Menyimpan umpan balik pengguna lalu memberi tahu semua admin (notifikasi
-// in-app + email, best-effort). Record dibuat atas nama pengguna sehingga
-// ia bisa melihatnya di "Laporan saya" (RLS: pemilik atau admin).
+// in-app + email, best-effort). Create Feedback khusus admin (RLS) agar klien
+// tidak bisa membuat record berisi status/balasan/email palsu; record dibuat
+// lewat service role dengan owner_id/owner_email dari sesi → tampil di
+// "Laporan saya" (RLS read: data.owner_id).
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -40,7 +42,9 @@ export default async function(req) {
     }
 
     const sender = user.full_name || user.email;
-    const record = await base44.entities.Feedback.create({
+    const record = await base44.asServiceRole.entities.Feedback.create({
+      owner_id: user.id,
+      owner_email: user.email || '',
       type,
       subject,
       message,

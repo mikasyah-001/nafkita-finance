@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { getActorName, notifyPartnershipLifecycle } from "../../shared/notifyCommon.ts";
 import { logAdminAction } from "../../shared/auditLog.ts";
+import { cancelPendingApprovalsBetween } from "../../shared/transactionApproval.ts";
 
 // Mengakhiri Partnership (soft-delete): batalkan undangan, tolak permintaan,
 // atau putuskan koneksi aktif. Record dipertahankan dengan status terminal
@@ -60,6 +61,13 @@ export default async function (req) {
       ended_by: me.id,
       end_reason: reason,
     });
+
+    // Permintaan persetujuan yang masih menunggu antara keduanya tidak akan
+    // pernah diputuskan lagi → batalkan agar tidak menggantung.
+    // Pakai kedua pihak dari record (bukan pemanggil): admin juga bisa memutus.
+    if (terminalStatus === "ended" && p.inviter_id && p.invitee_id) {
+      await cancelPendingApprovalsBetween(base44, p.inviter_id, p.invitee_id);
+    }
 
     // Catat ke audit log untuk semua user (admin maupun pasangan).
     {

@@ -126,6 +126,7 @@ export default async function (req) {
       // transaksi menjadi pending dan buat permintaan persetujuan baru.
       const sensitiveChanged =
         Number(transaction.amount) !== Number(oldTx.amount) ||
+        String(transaction.currency || "IDR").toUpperCase() !== String(oldTx.currency || "IDR").toUpperCase() ||
         (transaction.type && transaction.type !== oldTx.type) ||
         (transaction.category != null && transaction.category !== oldTx.category) ||
         newLinked !== oldLinked ||

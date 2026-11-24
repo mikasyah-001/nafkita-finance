@@ -66,7 +66,9 @@ export default async function (req) {
 
     await base44.asServiceRole.entities.Partnership.create({
       inviter_id: me.id,
-      invitee_email: target.email,
+      // Disamarkan: pengundang bisa membaca record ini (RLS data.inviter_id), dan
+      // pemilik kode belum menyetujui. Pencocokan invitee memakai invitee_id.
+      invitee_email: maskEmail(target.email),
       invitee_id: target.id,
       status: "pending",
       inviter_role,

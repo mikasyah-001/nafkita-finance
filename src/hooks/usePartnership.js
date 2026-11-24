@@ -67,12 +67,13 @@ export function usePartnership() {
 
   // Undangan terkirim oleh saya yang masih menunggu
   const sentInvites = partnerships.filter(
-    (p) => p.created_by_id === me?.id && p.status === "pending"
+    (p) => (p.inviter_id === me?.id || p.created_by_id === me?.id) && p.status === "pending"
   );
 
   // Permintaan masuk: seseorang mengundang saya, belum saya tanggapi
   const incomingRequests = partnerships.filter(
-    (p) => (p.invitee_email || "").toLowerCase() === (me?.email || "").toLowerCase() && p.status === "pending" && p.inviter_id !== me?.id
+    (p) => p.status === "pending" && p.inviter_id !== me?.id &&
+      ((p.invitee_id && p.invitee_id === me?.id) || (p.invitee_email || "").toLowerCase() === (me?.email || "").toLowerCase())
   );
 
   const invite = async (email, role) => {

@@ -108,7 +108,10 @@ export default async function (req) {
 
       // Update parsial: field inti yang tidak dikirim memakai nilai lama, agar
       // efek saldo dihitung dari angka yang benar (dulu amount kosong = 0).
-      for (const k of ["type", "amount", "currency"]) if (transaction[k] === undefined) transaction[k] = oldTx[k];
+      // visibility juga: bila tidak dikirim, transaksi pribadi tidak boleh dianggap
+      // "bersama" (memicu permintaan persetujuan berisi nominal ke pasangan).
+      for (const k of ["type", "amount", "currency", "visibility"]) if (transaction[k] === undefined) transaction[k] = oldTx[k];
+      // Rekening: tidak dikirim (undefined) = pertahankan; null/"" = lepaskan tautan.
       if (rawTx.linked_asset_id === undefined && oldTx.linked_asset_id) transaction.linked_asset_id = oldTx.linked_asset_id;
 
       // Transaksi yang ditolak/dibatalkan tidak pernah memengaruhi saldo —
@@ -147,7 +150,7 @@ export default async function (req) {
         }
         const updated = await base44.entities.Transaction.update(transaction_id, {
           ...transaction,
-          linked_asset_id: newLinked || undefined,
+          linked_asset_id: newLinked, // null = tautan dilepas (undefined tidak menghapus field)
         });
         const partnerId = await resolvePartnerId(base44, me.id);
         const approval = await createApprovalRequest(base44, me, updated, partnerId);
@@ -189,7 +192,7 @@ export default async function (req) {
       try {
         const updated = await base44.entities.Transaction.update(transaction_id, {
           ...transaction,
-          linked_asset_id: newLinked || undefined,
+          linked_asset_id: newLinked, // null = tautan dilepas (undefined tidak menghapus field)
         });
         return Response.json({ ok: true, transaction: updated });
       } catch (e) {

@@ -7,13 +7,21 @@ const toSnakeCase = (str) => {
 }
 
 // Validasi parameter dari URL: tanpa ini, tautan seperti
-// ?app_base_url=https://situs-palsu membelokkan halaman login ke situs phishing.
+// ?app_base_url=https://situs-palsu membelokkan halaman login ke situs phishing
+// (dan nilainya tersimpan permanen di localStorage). Hanya asal aplikasi ini
+// sendiri yang dipercaya: host halaman saat ini atau VITE_BASE44_APP_BASE_URL.
+// Subdomain *.base44.app/*.base44.com lain TIDAK dipercaya — domain itu dipakai
+// bersama oleh aplikasi Base44 milik siapa pun.
+const ownHosts = () => {
+	const hosts = new Set([window.location.hostname.toLowerCase()]);
+	try { const env = import.meta.env.VITE_BASE44_APP_BASE_URL; if (env) hosts.add(new URL(env).hostname.toLowerCase()); } catch { /* abaikan */ }
+	return hosts;
+};
 const isTrustedBaseUrl = (v) => {
 	try {
 		const u = new URL(v);
 		if (u.protocol !== 'https:' && !(u.protocol === 'http:' && u.hostname === 'localhost')) return false;
-		const h = u.hostname.toLowerCase();
-		return h === window.location.hostname || h === 'base44.app' || h.endsWith('.base44.app') || h === 'base44.com' || h.endsWith('.base44.com');
+		return ownHosts().has(u.hostname.toLowerCase());
 	} catch {
 		return false;
 	}

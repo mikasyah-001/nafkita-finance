@@ -273,7 +273,8 @@ export default function AddTransaction() {
           photo_url: photoUrl || "",
           tags,
           visibility,
-          linked_asset_id: linkedAssetId || undefined,
+          // null = "Tidak dipilih" (lepas tautan); undefined berarti "jangan ubah".
+          linked_asset_id: linkedAssetId || null,
         }, editId);
         refresh();
         toast.success("Transaksi diperbarui");

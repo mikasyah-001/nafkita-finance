@@ -31,29 +31,26 @@ export default async function (req) {
     if (!check.ok) return Response.json({ error: check.error, message: check.message }, { status: check.status });
     if (!(await claimApproval(base44, approval_id)))
       return Response.json({ error: "sudah_diproses" }, { status: 409 });
+    // Status transaksi lebih dulu (tidak ada efek saldo pada penolakan). Bila
+    // gagal → belum ada yang berubah, klaim dilepas. Setelah itu kegagalan
+    // status persetujuan/notifikasi tidak membuka ulang permintaan.
     try {
-
-    // Update approval status.
-    await base44.asServiceRole.entities.TransactionApproval.update(approval_id, {
-      status: "rejected",
-      decided_at: new Date().toISOString(),
-      approver_name: me.full_name || me.email,
-      rejection_reason: reason || "",
-    });
-
-    // Update transaksi approval_status.
-    await base44.asServiceRole.entities.Transaction.update(tx.id, {
-      approval_status: "rejected",
-    });
-
-    // Kirim notifikasi ke pembuat.
-    const approverName = me.full_name || me.email || "Pasangan";
-    await notifyApprovalResult(base44, approverName, approval, tx, false, reason);
-
+      await base44.asServiceRole.entities.Transaction.update(tx.id, { approval_status: "rejected" });
     } catch (e) {
       await releaseApproval(base44, approval_id);
       throw e;
     }
+    try {
+      await base44.asServiceRole.entities.TransactionApproval.update(approval_id, {
+        status: "rejected",
+        decided_at: new Date().toISOString(),
+        approver_name: me.full_name || me.email,
+        rejection_reason: reason || "",
+      });
+    } catch (e) { console.error("[rejectTransaction] status persetujuan gagal ditulis (transaksi sudah ditolak)", e?.message); }
+    try {
+      await notifyApprovalResult(base44, me.full_name || me.email || "Pasangan", approval, tx, false, reason);
+    } catch (e) { console.error("[rejectTransaction] notifikasi gagal", e?.message); }
 
     return Response.json({ ok: true, approval_id, status: "rejected" });
   } catch (error) {

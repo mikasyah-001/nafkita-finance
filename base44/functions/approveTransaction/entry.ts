@@ -34,55 +34,57 @@ export default async function (req) {
     if (!check.ok) return Response.json({ error: check.error, message: check.message }, { status: check.status });
     if (!(await claimApproval(base44, approval_id)))
       return Response.json({ error: "sudah_diproses" }, { status: 409 });
+    // Urutan aman (tanpa transaksi DB): saldo → status transaksi → status
+    // persetujuan → notifikasi. Klaim hanya dilepas bila BELUM ada efek yang
+    // tersimpan, atau efeknya berhasil dibatalkan — agar coba-ulang tidak
+    // memotong saldo dua kali. Notifikasi gagal tidak membatalkan keputusan.
+    let applied = null; // { assetId, prev } setelah saldo berubah
     try {
-
-    // Sesuaikan saldo aset bila ditautkan.
-    if (tx.linked_asset_id) {
-      const asset = await base44.asServiceRole.entities.Asset.get(tx.linked_asset_id);
-      // Mata uang rekening berubah sejak transaksi diajukan → jangan ubah saldo
-      // dengan angka mata uang lain; minta pengaju memperbaiki atau tolak.
-      if (asset && currencyMismatch(asset, tx)) { await releaseApproval(base44, approval_id); return Response.json(CURRENCY_MISMATCH, { status: 409 }); }
-      if (asset) {
-        const prevValue = asset.value || 0;
-        const delta = txEffect(tx);
-        const newValue = roundForCurrency(prevValue + delta, asset.currency);
-        await base44.asServiceRole.entities.Asset.update(tx.linked_asset_id, { value: newValue });
-
-        // Catat mutasi aset immutable.
-        await recordAssetMutation(base44, {
-          asset_id: tx.linked_asset_id,
-          previous_value: prevValue,
-          new_value: newValue,
-          change_type: "transaction",
-          source_ref: tx.id,
-          source_description: `Disetujui: ${tx.merchant || tx.category || "transaksi"}`,
-          actor_id: me.id,
-          actor_name: me.full_name || me.email,
-          currency: asset.currency || "IDR",
-        });
+      if (tx.linked_asset_id) {
+        const asset = await base44.asServiceRole.entities.Asset.get(tx.linked_asset_id);
+        // Mata uang rekening berubah sejak transaksi diajukan → jangan ubah saldo
+        // dengan angka mata uang lain; minta pengaju memperbaiki atau tolak.
+        if (asset && currencyMismatch(asset, tx)) { await releaseApproval(base44, approval_id); return Response.json(CURRENCY_MISMATCH, { status: 409 }); }
+        if (asset) {
+          const prevValue = asset.value || 0;
+          const newValue = roundForCurrency(prevValue + txEffect(tx), asset.currency);
+          await base44.asServiceRole.entities.Asset.update(tx.linked_asset_id, { value: newValue });
+          applied = { assetId: tx.linked_asset_id, prev: prevValue };
+          try {
+            await recordAssetMutation(base44, {
+              asset_id: tx.linked_asset_id, previous_value: prevValue, new_value: newValue,
+              change_type: "transaction", source_ref: tx.id,
+              source_description: `Disetujui: ${tx.merchant || tx.category || "transaksi"}`,
+              actor_id: me.id, actor_name: me.full_name || me.email, currency: asset.currency || "IDR",
+            });
+          } catch (e) { console.error("[approveTransaction] jejak mutasi gagal", e?.message); }
+        }
       }
-    }
-
-    // Update approval status.
-    await base44.asServiceRole.entities.TransactionApproval.update(approval_id, {
-      status: "approved",
-      decided_at: new Date().toISOString(),
-      approver_name: me.full_name || me.email,
-    });
-
-    // Update transaksi approval_status.
-    await base44.asServiceRole.entities.Transaction.update(tx.id, {
-      approval_status: "approved",
-    });
-
-    // Kirim notifikasi ke pembuat.
-    const approverName = me.full_name || me.email || "Pasangan";
-    await notifyApprovalResult(base44, approverName, approval, tx, true, null);
-
+      // Status transaksi lebih dulu: begitu "approved", validasi menolak coba-ulang.
+      await base44.asServiceRole.entities.Transaction.update(tx.id, { approval_status: "approved" });
     } catch (e) {
-      await releaseApproval(base44, approval_id);
+      // Belum ada keputusan tersimpan → batalkan efek saldo, lalu lepas klaim.
+      let rolledBack = !applied;
+      if (applied) {
+        try { await base44.asServiceRole.entities.Asset.update(applied.assetId, { value: applied.prev }); rolledBack = true; }
+        catch (rb) { console.error("[approveTransaction] rollback saldo gagal; klaim dibiarkan 'processing'", rb?.message); }
+      }
+      if (rolledBack) await releaseApproval(base44, approval_id);
       throw e;
     }
+
+    // Keputusan sudah berlaku. Kegagalan di bawah tidak boleh membuka ulang klaim.
+    try {
+      await base44.asServiceRole.entities.TransactionApproval.update(approval_id, {
+        status: "approved",
+        decided_at: new Date().toISOString(),
+        approver_name: me.full_name || me.email,
+      });
+    } catch (e) { console.error("[approveTransaction] status persetujuan gagal ditulis (transaksi sudah disetujui)", e?.message); }
+
+    try {
+      await notifyApprovalResult(base44, me.full_name || me.email || "Pasangan", approval, tx, true, null);
+    } catch (e) { console.error("[approveTransaction] notifikasi gagal", e?.message); }
 
     return Response.json({ ok: true, approval_id, status: "approved" });
   } catch (error) {

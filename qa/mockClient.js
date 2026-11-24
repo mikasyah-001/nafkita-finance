@@ -47,7 +47,16 @@ const db = {
 };
 // Mode QA pasangan (opt-in): localStorage "qa:partner" = "1" (atau "qaPartner" lama)
 // → Siti (u2) terhubung + rekening bersamanya.
-const QA_PARTNER = (() => { try { const ls = globalThis.localStorage; return ls?.getItem("qa:partner") === "1" || ls?.getItem("qaPartner") === "1"; } catch { return false; } })();
+// Mode promo (opt-in): localStorage "qa:promo" = "1" → data lebih lengkap untuk
+// screenshot materi promosi (harga emas, rencana bulanan, pasangan, target).
+const QA_PROMO = (() => { try { return globalThis.localStorage?.getItem("qa:promo") === "1"; } catch { return false; } })();
+const QA_PARTNER = QA_PROMO || (() => { try { const ls = globalThis.localStorage; return ls?.getItem("qa:partner") === "1" || ls?.getItem("qaPartner") === "1"; } catch { return false; } })();
+if (QA_PROMO) {
+  Object.assign(ME, { zakat_gold_price: 2_450_000, zakat_gold_price_date: now.toISOString().slice(0, 10) });
+  db.assets.find((a) => a.id === "a2").purchase_date = later(-400);
+  db.assets.find((a) => a.id === "a2").value = 40 * 2_450_000;
+  db.assets.find((a) => a.id === "a7").value = 15 * 2_450_000;
+}
 if (QA_PARTNER) {
   db.assets.push({ id: "p1a", name: "BSI Siti", type: "bank", value: 2_000_000, currency: "IDR", visibility: "shared", created_by_id: "u2" });
   db.assets.push({ id: "p1b", name: "Rahasia Siti", type: "bank", value: 9_000_000, currency: "IDR", visibility: "private", created_by_id: "u2" });
@@ -156,6 +165,12 @@ const FN = {
     { id: "b1", category: "Belanja", limit_amount: 2000000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b2", category: "Makanan", limit_amount: 1500000, currency: "IDR", period: ym, visibility: "shared" },
     { id: "b3", category: "Transportasi", limit_amount: 500000, currency: "IDR", period: ym, visibility: "shared" },
+    ...(QA_PROMO ? [
+      { id: "b4", category: "Tagihan", limit_amount: 2500000, currency: "IDR", period: ym, visibility: "shared" },
+      { id: "b5", category: "Sedekah & Infaq", limit_amount: 750000, currency: "IDR", period: ym, visibility: "shared" },
+      { id: "bp1", kind: "income_plan", category: "Rencana Pemasukan", limit_amount: 20000000, currency: "IDR", period: ym, visibility: "shared" },
+      { id: "bp2", kind: "savings_plan", category: "Rencana Menabung", limit_amount: 5000000, currency: "IDR", period: ym, visibility: "shared" },
+    ] : []),
   ] }),
   listVisibleDebts: () => ({ debts: [
     { id: "d1", created_by_id: "u1", type: "utang", counterparty_name: "Pak Hasan", amount: 5000000, remaining: 3000000, currency: "IDR", due_date: later(30), status: "active" },
@@ -164,7 +179,11 @@ const FN = {
     { id: "r1", created_by_id: "u1", name: "Listrik PLN", amount: 750000, currency: "IDR", frequency: "monthly", next_date: later(-1), start_date: later(-1), status: "active", category: "Tagihan", type: "expense" },
     { id: "r2", created_by_id: "u1", name: "Internet", amount: 450000, currency: "IDR", frequency: "monthly", next_date: later(2), start_date: later(2), status: "active", category: "Tagihan", type: "expense" },
   ] }),
-  listSavingsGoals: () => ({ goals: [...(DATA.SavingsGoal || []),{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" }] }),
+  listSavingsGoals: () => ({ goals: [...(DATA.SavingsGoal || []),{ id: "g1", created_by_id: "u1", name: "Umrah keluarga", target_amount: 120000000, current_amount: 46000000, currency: "IDR", target_date: later(200), status: "active" },
+    ...(QA_PROMO ? [
+      { id: "g2", created_by_id: "u1", name: "Dana darurat", target_amount: 60000000, current_amount: 42000000, currency: "IDR", target_date: later(150), status: "active" },
+      { id: "g3", created_by_id: "u1", name: "Pendidikan anak", target_amount: 150000000, current_amount: 31500000, currency: "IDR", target_date: later(900), status: "active" },
+    ] : [])] }),
   listPendingApprovals: () => ({
     pending_approvals: db.approvals.filter((a) => a.status === "pending").map((a) => ({ ...a, transaction: db.tx.find((t) => t.id === a.transaction_id) })),
     my_requests: [],

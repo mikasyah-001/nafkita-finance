@@ -1,0 +1,7 @@
+out/screens/
+out/mockups/
+out/*.zip
+out/.tmp/
+out/.sb/
+out/video/.frames/
+out/video/.video.html

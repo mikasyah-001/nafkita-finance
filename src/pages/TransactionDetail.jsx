@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { uploadFile, uploadErrorText } from "@/lib/upload";
+import { uploadErrorText } from "@/lib/upload";
+import { uploadProof as uploadPrivateProof, useProofUrl, hasProof } from "@/lib/proof";
 import { useCategories, useRefresh, useTransactions, useAssets, useRateMap } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap, conversionPreview, EXTRAORDINARY_TAG } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -44,6 +45,9 @@ export default function TransactionDetail() {
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imgFailed, setImgFailed] = useState(null);
+  const proofExists = hasProof(tx);
+  const proofQ = useProofUrl(tx); // sebelum return awal (aturan hooks)
+  const proofUrl = proofQ.data || "";
   const proofRef = useRef(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -101,8 +105,9 @@ export default function TransactionDetail() {
     setCancelling(false);
   };
 
-  // Bukti bisa ditambah/diganti tanpa membuka form edit (hanya kolom photo_url,
+  // Bukti bisa ditambah/diganti tanpa membuka form edit (hanya kolom bukti,
   // tidak memengaruhi saldo). Tidak untuk transaksi yang menunggu persetujuan.
+  // Bukti baru disimpan PRIVAT (photo_uri); tampil lewat signed URL singkat.
   const canEditProof = canManage && inList && !isPending;
   const uploadProof = async (e) => {
     const file = e.target.files?.[0];
@@ -110,8 +115,8 @@ export default function TransactionDetail() {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await uploadFile(file, "imageOrPdf");
-      await base44.entities.Transaction.update(id, { photo_url: file_url });
+      const { file_uri } = await uploadPrivateProof(file, "imageOrPdf");
+      await base44.entities.Transaction.update(id, { photo_uri: file_uri, photo_url: "" });
       refresh();
       toast.success("Bukti transaksi disimpan");
     } catch (err) {
@@ -122,7 +127,7 @@ export default function TransactionDetail() {
   const removeProof = async () => {
     if (!(await confirmAction({ title: "Hapus bukti transaksi?", description: "Hanya lampiran yang dihapus, transaksinya tetap." }))) return;
     try {
-      await base44.entities.Transaction.update(id, { photo_url: "" });
+      await base44.entities.Transaction.update(id, { photo_url: "", photo_uri: "" });
       refresh();
       toast.success("Bukti dihapus");
     } catch {
@@ -276,7 +281,7 @@ export default function TransactionDetail() {
       <section aria-label="Bukti transaksi" className="surface rounded-3xl p-3 mb-4">
         <div className="flex items-center justify-between gap-2 px-1 mb-2">
           <p className="text-sm font-semibold flex items-center gap-1.5"><Receipt className="w-4 h-4 text-muted-foreground" /> Bukti transaksi</p>
-          {tx.photo_url && canEditProof && (
+          {proofExists && canEditProof && (
             <div className="flex items-center gap-3">
               <button onClick={() => proofRef.current?.click()} disabled={uploading} className="text-xs font-semibold text-primary disabled:opacity-60">Ganti</button>
               <button onClick={removeProof} disabled={uploading} className="text-xs font-semibold text-destructive disabled:opacity-60">Hapus</button>
@@ -287,15 +292,19 @@ export default function TransactionDetail() {
           <div className="h-40 rounded-2xl bg-muted flex flex-col items-center justify-center gap-2 text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin" /><span className="text-xs">Mengunggah bukti…</span>
           </div>
-        ) : tx.photo_url ? (
+        ) : proofExists && !proofUrl ? (
+          <div className="h-32 rounded-2xl bg-muted flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
+            {proofQ.isError ? <><ImageOff className="w-7 h-7" /><span className="text-xs font-medium">Bukti tidak bisa dimuat</span></> : <><Loader2 className="w-6 h-6 animate-spin" /><span className="text-xs">Memuat bukti…</span></>}
+          </div>
+        ) : proofExists ? (
           <button type="button" onClick={() => setViewPhoto(true)} aria-label="Lihat bukti layar penuh" className="relative block w-full rounded-2xl overflow-hidden bg-muted">
-            {isPdfUrl(tx.photo_url) ? (
+            {isPdfUrl(proofUrl) ? (
               <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><FileText className="w-8 h-8" /><span className="text-xs font-medium">Dokumen PDF · ketuk untuk membuka</span></span>
             ) : (
-              imgFailed === tx.photo_url ? (
+              imgFailed === proofUrl ? (
               <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><ImageOff className="w-7 h-7" /><span className="text-xs font-medium">Pratinjau tidak bisa dimuat · ketuk untuk membuka</span></span>
             ) : (
-              <img src={safeUrl(tx.photo_url)} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
+              <img src={safeUrl(proofUrl)} alt="Bukti transaksi" className="w-full max-h-80 object-contain" referrerPolicy="no-referrer" onError={() => setImgFailed(proofUrl)} />
             )
             )}
             <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>
@@ -311,7 +320,7 @@ export default function TransactionDetail() {
         )}
         <input ref={proofRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={uploadProof} />
       </section>
-      {viewPhoto && tx.photo_url && <ProofViewer url={tx.photo_url} title="Bukti transaksi" onClose={() => setViewPhoto(false)} />}
+      {viewPhoto && proofUrl && <ProofViewer url={proofUrl} title="Bukti transaksi" onClose={() => setViewPhoto(false)} />}
 
       {!isOwner && !isAdmin && (
         <p className="text-xs text-muted-foreground text-center px-6 leading-snug">Transaksi ini dicatat oleh {tx.input_by_name || "pasangan"}. Anda hanya dapat melihatnya.</p>

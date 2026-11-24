@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { hasProof, useProofUrl } from "@/lib/proof";
 import { useTransactions, useCategories, useMe, useRateMap } from "@/hooks/useFinance";
 import { formatMoney, formatMoneyShort, formatDate, colorMap, monthlyExpenseBreakdown, inScope, isInMonth, filterReportableTx, formatUnconverted, summarizeConsolidated, convertTo } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -192,8 +193,8 @@ export default function Ringkasan({ embedded = false }) {
                     ) : (
                       txs.map((t) => (
                         <div key={t.id} className="flex items-center gap-2.5">
-                          {t.photo_url ? (
-                            <Image src={t.photo_url} alt="bukti" className="w-9 h-9 rounded-lg shrink-0" />
+                          {hasProof(t) ? (
+                            <ProofThumb tx={t} />
                           ) : (
                             <div className="w-9 h-9 rounded-lg bg-muted shrink-0" />
                           )}
@@ -223,4 +224,9 @@ export default function Ringkasan({ embedded = false }) {
       )}
     </div>
   );
+}
+// Gambar mini bukti (privat → signed URL singkat dimuat saat baris dibuka).
+function ProofThumb({ tx }) {
+  const { data: url } = useProofUrl(tx);
+  return url ? <Image src={url} alt="bukti" className="w-9 h-9 rounded-lg shrink-0" /> : <div className="w-9 h-9 rounded-lg bg-muted shrink-0" />;
 }

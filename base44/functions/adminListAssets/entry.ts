@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { redactAssetProof } from "../../shared/proof.ts";
 
 // Endpoint admin: daftar aset lintas keluarga dengan pagination cursor.
 // Hanya menampilkan aset non-private (kebijakan privasi).
@@ -25,7 +26,7 @@ export default async function (req) {
     );
 
     return Response.json({
-      assets: assets || [],
+      assets: (assets || []).map((a) => redactAssetProof(a, me.id)),
       has_more: (assets || []).length === pageSize,
     });
   } catch (error) {

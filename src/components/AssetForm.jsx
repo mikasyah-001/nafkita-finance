@@ -3,7 +3,9 @@ import { deleteAssetFlow } from "@/lib/assetDelete";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { uploadFile, uploadErrorText } from "@/lib/upload";
+import { uploadErrorText } from "@/lib/upload";
+import { uploadProof, assetProofUrlFor } from "@/lib/proof";
+import { safeUrl } from "../../base44/shared/txInput.js";
 import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
 import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, canonicalBrokerFor, canonicalBroker, placeSuggestions, withSavedBank, BANK_LIKE_TYPES, DEFAULT_BANKS } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
@@ -51,6 +53,11 @@ export default function AssetForm({ asset, onClose }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [proofPreview, setProofPreview] = useState("");
+  useEffect(() => {
+    if (asset?.purchase_proof_uri || asset?.has_purchase_proof) assetProofUrlFor(asset).then(setProofPreview).catch(() => {});
+  }, [asset]);
+  const proofShown = proofPreview || (form.purchase_proof_uri ? "" : form.purchase_proof_url);
   const fileRef = useRef(null);
   const { data: me } = useMe();
   const userCurrencies = useUserCurrencies();
@@ -76,8 +83,10 @@ export default function AssetForm({ asset, onClose }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await uploadFile(file, "imageOrPdf");
-      setForm((f) => ({ ...f, purchase_proof_url: file_url }));
+      // Bukti pembelian disimpan PRIVAT; pratinjau lewat signed URL singkat.
+      const { file_uri, preview_url } = await uploadProof(file, "imageOrPdf");
+      setForm((f) => ({ ...f, purchase_proof_uri: file_uri, purchase_proof_url: "" }));
+      setProofPreview(preview_url);
       toast.success("Bukti pembelian terunggah");
     } catch (err) {
       toast.error(uploadErrorText(err, "Gagal mengunggah bukti"));
@@ -365,12 +374,12 @@ export default function AssetForm({ asset, onClose }) {
         )}
         <FieldRow icon={ImageIcon} label="Bukti pembelian">
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-          {form.purchase_proof_url ? (
+          {form.purchase_proof_uri || form.purchase_proof_url ? (
             <div className="relative w-fit mt-1">
               <button type="button" onClick={() => setPreview(true)} aria-label="Lihat bukti pembelian" className="block rounded-xl overflow-hidden active:scale-95 transition-transform">
-                <img src={form.purchase_proof_url} alt="Bukti pembelian" className="w-24 h-24 object-cover bg-muted" />
+                {proofShown ? <img src={safeUrl(proofShown)} alt="Bukti pembelian" className="w-24 h-24 object-cover bg-muted" referrerPolicy="no-referrer" /> : <span className="w-24 h-24 bg-muted flex items-center justify-center"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></span>}
               </button>
-              <button onClick={() => setForm({ ...form, purchase_proof_url: "" })} aria-label="Hapus bukti" className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
+              <button onClick={() => { setForm({ ...form, purchase_proof_url: "", purchase_proof_uri: "" }); setProofPreview(""); }} aria-label="Hapus bukti" className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
             </div>
           ) : (
             <button onClick={() => fileRef.current?.click()} disabled={uploading} className="mt-1 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-dashed border-border text-xs font-semibold text-muted-foreground disabled:opacity-60">
@@ -396,7 +405,7 @@ export default function AssetForm({ asset, onClose }) {
           <input id="asset-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Opsional" className={fieldInput} />
         </FieldRow>
       </FieldGroup>
-      {preview && <ProofViewer url={form.purchase_proof_url} onClose={() => setPreview(false)} />}
+      {preview && proofShown && <ProofViewer url={proofShown} onClose={() => setPreview(false)} />}
     </FormSheet>
   );
 }

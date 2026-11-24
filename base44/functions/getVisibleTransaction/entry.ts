@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { redactProof } from "../../shared/proof.ts";
 import { resolvePartnerId, txVisibleTo } from "../../shared/partnerResolve.ts";
 
 // Mengembalikan satu transaksi bila terlihat oleh user yang login
@@ -22,7 +23,7 @@ export default async function(req) {
     if (!txVisibleTo(tx, me.id, partnerId)) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
-    return Response.json({ transaction: tx, partner_id: partnerId });
+    return Response.json({ transaction: redactProof(tx, me.id), partner_id: partnerId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

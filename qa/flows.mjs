@@ -58,6 +58,29 @@ try {
     start.saldo = after.saldo; start.belanja = after.belanja;
   });
 
+  await step("Scan bon AI → bukti disimpan PRIVAT (photo_uri), AI membaca lewat URL sementara", async () => {
+    await nav("/add");
+    await page.evaluate(() => {
+      window.__qaScanUrls = [];
+      window.__qaLLM = [(args) => { window.__qaScanUrls.push((args.file_urls || [])[0] || ""); return { transactions: [{ amount: 45000, merchant: "QA Bon Privat", category: "Makanan", date: "2026-11-20", currency: "IDR" }] }; }];
+    });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==", "base64");
+    await page.locator('input[type=file][accept="image/*"]').first().setInputFiles({ name: "struk.png", mimeType: "image/png", buffer: png });
+    await page.waitForTimeout(1200);
+    const scanUrl = await page.evaluate(() => window.__qaScanUrls[0]);
+    assert.ok(scanUrl && scanUrl.startsWith("data:image/png"), "AI menerima URL sementara dari getProofUrl");
+    assert.equal(await page.inputValue("#add-tx-merchant"), "QA Bon Privat", "Hasil scan mengisi form");
+    await page.getByRole("button", { name: /Simpan Transaksi/ }).click();
+    await page.waitForURL(BASE + "/", { timeout: 5000 });
+    const t = await page.evaluate(() => { const x = window.__qa.tx.find((y) => y.merchant === "QA Bon Privat"); return x && { uri: x.photo_uri, url: x.photo_url, data: window.__qaPrivateFiles[x.photo_uri] || "" }; });
+    assert.ok(t, "Transaksi hasil scan tersimpan");
+    assert.ok(t.uri && !/^(https?|data):/.test(t.uri), `Bukti = referensi file privat (${t?.uri})`);
+    assert.ok(!t.url, "Tidak ada URL publik/sementara yang tersimpan");
+    assert.ok(t.data.startsWith("data:image/png"), "File privat berisi struk yang diunggah");
+    const after = await homeNumbers();
+    start.saldo = after.saldo; start.belanja = after.belanja;
+  });
+
   await step("Transfer Rp 1.000.000 antar rekening → saldo & belanja TIDAK berubah, saldo aset berpindah", async () => {
     const before = await page.evaluate(() => window.__qa.assets.map((a) => [a.id, a.value]));
     await nav("/transfer");
@@ -120,8 +143,11 @@ try {
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==", "base64");
     await page.locator('section[aria-label="Bukti transaksi"] input[type=file]').setInputFiles({ name: "bon.png", mimeType: "image/png", buffer: png });
     await page.waitForTimeout(900);
-    const saved = await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id);
-    assert.ok(saved && saved.startsWith("data:image/png"), "photo_url tersimpan");
+    // Bukti disimpan PRIVAT: photo_uri = referensi file (bukan URL), photo_url kosong.
+    const saved = await page.evaluate((i) => { const t = window.__qa.tx.find((x) => x.id === i); return { uri: t.photo_uri, url: t.photo_url, data: window.__qaPrivateFiles[t.photo_uri] || "" }; }, t0.id);
+    assert.ok(saved.uri && !/^(https?|data):/.test(saved.uri), `photo_uri berisi referensi file privat (${saved.uri})`);
+    assert.ok(!saved.url, "Tidak ada URL publik tersimpan");
+    assert.ok(saved.data.startsWith("data:image/png"), "Isi file privat = gambar yang diunggah");
     const img = page.locator('section[aria-label="Bukti transaksi"] img');
     const box = await img.boundingBox();
     assert.ok(box && box.height > 50, `Bukti terlihat (tinggi ${box?.height})`);
@@ -131,7 +157,7 @@ try {
     await page.locator('section[aria-label="Bukti transaksi"]').getByRole("button", { name: "Hapus", exact: true }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: /Hapus|Ya/ }).click();
     await page.waitForTimeout(700);
-    assert.equal(await page.evaluate((i) => window.__qa.tx.find((t) => t.id === i).photo_url, t0.id), "", "Bukti dihapus, transaksi tetap");
+    assert.deepEqual(await page.evaluate((i) => { const t = window.__qa.tx.find((x) => x.id === i); return [t.photo_url, t.photo_uri]; }, t0.id), ["", ""], "Bukti dihapus, transaksi tetap");
     assert.ok(await page.getByText("Tambah foto bukti").isVisible());
   });
 
@@ -290,10 +316,19 @@ try {
     assert.ok(await dlg.isVisible(), "Pratinjau dari form terbuka");
     await page.getByRole("button", { name: "Tutup pratinjau" }).click();
     assert.ok(await page.locator("#asset-name").isVisible(), "Form aset tetap terbuka setelah pratinjau ditutup");
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(300);
-    if (await page.locator("#asset-name").count()) await page.getByRole("button", { name: /Tutup|Batal/ }).first().click();
-    await page.waitForTimeout(300);
+    // Ganti bukti → tersimpan PRIVAT (purchase_proof_uri), URL publik lama dilepas.
+    await page.getByRole("button", { name: "Hapus bukti" }).click();
+    const png2 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAHUlEQVR4nGP4z8BAEmIY1TCqYVTDqIZRDcNKAwBk7P8BYH1n2gAAAABJRU5ErkJggg==", "base64");
+    await page.locator('input[type=file][accept="image/*"]').last().setInputFiles({ name: "kuitansi.png", mimeType: "image/png", buffer: png2 });
+    await page.waitForTimeout(900);
+    assert.ok(await page.getByRole("button", { name: "Lihat bukti pembelian", exact: true }).isVisible(), "Pratinjau bukti baru tampil");
+    await page.getByRole("button", { name: /Simpan/ }).last().click();
+    await page.waitForTimeout(900);
+    const ap = await page.evaluate(() => { const a = window.__qa.assets.find((x) => x.id === "qa-proof"); return { uri: a.purchase_proof_uri, url: a.purchase_proof_url, data: window.__qaPrivateFiles[a.purchase_proof_uri] || "" }; });
+    assert.ok(ap.uri && !/^(https?|data):/.test(ap.uri), `Bukti pembelian = file privat (${ap.uri})`);
+    assert.ok(!ap.url, "URL publik lama dilepas");
+    assert.ok(ap.data.startsWith("data:image/png"), "Isi file privat benar");
+    if (await page.locator("#asset-name").count()) { await page.keyboard.press("Escape"); await page.waitForTimeout(300); }
     await nav("/aset");
   });
 
@@ -1153,7 +1188,7 @@ try {
     await page.getByRole("button", { name: "Simpan detail" }).click();
     await page.waitForTimeout(700);
     const sec = await page.evaluate(() => window.__qaData.PaymentCardSecret.find((x) => x.card_id === "pc1"));
-    assert.equal(sec.exp_month, 9); assert.ok(/^data:image\/jpeg/.test(sec.photo_uri || ""), "Foto diunggah sebagai JPEG hasil samaran (bukan file asli)");
+    assert.equal(sec.exp_month, 9); const secFile = await page.evaluate((u) => window.__qaPrivateFiles[u] || "", sec.photo_uri); assert.ok(/^data:image\/jpeg/.test(secFile), "Foto diunggah (privat) sebagai JPEG hasil samaran (bukan file asli)");
     assert.ok(await page.getByAltText(/nomor disamarkan/).isVisible(), "Foto tampil setelah dibuka");
     await page.getByRole("button", { name: "Kunci sekarang" }).click();
     await page.waitForTimeout(300);

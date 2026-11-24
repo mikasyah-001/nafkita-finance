@@ -56,6 +56,10 @@
     "purchase_proof_url": {
       "type": "string"
     },
+    "purchase_proof_uri": {
+      "type": "string",
+      "description": "Bukti pembelian PRIVAT (referensi UploadPrivateFile); dibuka lewat getProofUrl. purchase_proof_url = URL publik lama."
+    },
     "owner": {
       "type": "string"
     },

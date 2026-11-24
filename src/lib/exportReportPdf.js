@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { hasProof, proofUrlFor } from "@/lib/proof";
 // Ekspor (PDF/CSV) tidak bisa memuat font simbol riyal → pakai kode "SAR".
 import { formatMoneyPlain as formatMoney } from "@/lib/finance";
 
@@ -89,8 +90,10 @@ export async function downloadReportPdf({ monthName, scopeLabel, currency = "IDR
       lines.forEach((ln) => { ensure(12); doc.text(ln, margin, y); y += 12; });
     }
     y += 4;
-    if (withProof && t.photo_url) {
-      const img = await loadImageDataUrl(t.photo_url);
+    if (withProof && hasProof(t)) {
+      // Bukti privat: signed URL singkat dari server (hak lihat dicek di sana).
+      const url = await proofUrlFor(t).catch(() => "");
+      const img = url ? await loadImageDataUrl(url) : null;
       if (img) {
         const maxW = pageW - 2 * margin;
         const maxH = pageH - margin - y;

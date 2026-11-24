@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { redactAssetProof } from "../../shared/proof.ts";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
@@ -21,7 +22,7 @@ export default async function(req) {
       partnerAssets = (raw || []).filter((a) => assetVisibleTo(a, me.id, partnerId));
     }
 
-    return Response.json({ assets: [...(own || []), ...partnerAssets], partner_id: partnerId });
+    return Response.json({ assets: [...(own || []), ...partnerAssets].map((a) => redactAssetProof(a, me.id)), partner_id: partnerId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

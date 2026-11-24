@@ -35,6 +35,10 @@
     "photo_url": {
       "type": "string"
     },
+    "photo_uri": {
+      "type": "string",
+      "description": "Bukti transaksi PRIVAT (referensi UploadPrivateFile). Dibuka lewat getProofUrl (signed URL singkat); photo_url = URL publik lama."
+    },
     "input_by_name": {
       "type": "string"
     },

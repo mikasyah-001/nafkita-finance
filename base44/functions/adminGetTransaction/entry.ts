@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { redactProof } from "../../shared/proof.ts";
 import { logAdminAction } from "../../shared/auditLog.ts";
 
 // Endpoint admin: ambil satu transaksi berdasarkan ID (termasuk private) untuk audit.
@@ -30,7 +31,7 @@ export default async function (req) {
       details: `Admin membuka detail transaksi ${id}`,
     });
 
-    return Response.json({ transaction: tx });
+    return Response.json({ transaction: redactProof(tx, me.id) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

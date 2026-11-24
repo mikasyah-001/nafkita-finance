@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { hitRateLimit } from "../../shared/rateLimit.ts";
 import { hasActivePartnership, hasPendingPartnership } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
@@ -51,6 +52,10 @@ export default async function (req) {
     const recent = await fetchAll(base44.asServiceRole.entities.Partnership, { inviter_id: me.id }).catch(() => []);
     if ((recent || []).filter((p) => String(p.created_date || "") >= hourAgo).length >= MAX_PER_HOUR)
       return Response.json({ error: "Terlalu banyak percobaan. Coba lagi dalam 1 jam." }, { status: 429 });
+
+    // Semua percobaan (termasuk kode yang tidak ditemukan) dihitung: maks 10/jam.
+    if (!(await hitRateLimit(base44, `refcode:${me.id}`, 10, 3600_000)))
+      return Response.json({ error: "Terlalu banyak percobaan kode. Coba lagi dalam 1 jam." }, { status: 429 });
 
     const users = await fetchAll(base44.asServiceRole.entities.User);
     const target = (users || []).find((u) => u.id && deriveRefCode(u.id) === code);

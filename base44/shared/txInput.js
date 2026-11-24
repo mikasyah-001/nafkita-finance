@@ -8,7 +8,7 @@
 // service-role (mis. menghapus "transfer" palsu yang mengubah saldo aset orang lain).
 export const TX_INPUT_FIELDS = [
   "type", "amount", "currency", "category", "date", "merchant", "notes",
-  "photo_url", "tags", "visibility", "input_by_name", "notif_batch_id", "linked_asset_id",
+  "photo_url", "photo_uri", "tags", "visibility", "input_by_name", "notif_batch_id", "linked_asset_id",
 ];
 export const TX_TYPES = ["income", "expense", "sedekah"];
 export const MAX_AMOUNT = 1e13; // di atas ini hampir pasti salah ketik/serangan
@@ -27,6 +27,14 @@ export function isSafeUrl(url) {
   }
 }
 export const safeUrl = (url) => (url && isSafeUrl(url) ? String(url).trim() : "");
+
+// Referensi file privat (hasil UploadPrivateFile): bukan URL — tanpa skema
+// (http:, data:, javascript:), tanpa spasi, tanpa "..". Kosong = tanpa bukti.
+export function isPrivateFileUri(u) {
+  if (u == null || u === "") return true;
+  return typeof u === "string" && u.length <= 1024 && /^\S+$/.test(u) &&
+    !/^(https?|javascript|data|vbscript|file|blob):/i.test(u) && !u.includes("..");
+}
 
 const clip = (v, n) => (v == null ? v : String(v).slice(0, n));
 
@@ -56,6 +64,7 @@ export function sanitizeTxInput(raw, { partial = false } = {}) {
   if (t.visibility !== undefined && !["shared", "private"].includes(t.visibility)) return { error: "invalid_visibility" };
   if (t.date !== undefined && t.date !== null && Number.isNaN(new Date(t.date).getTime())) return { error: "invalid_date" };
   if (t.photo_url !== undefined && !isSafeUrl(t.photo_url)) return { error: "invalid_photo_url" };
+  if (t.photo_uri !== undefined && !isPrivateFileUri(t.photo_uri)) return { error: "invalid_photo_uri" };
   if (t.tags !== undefined) {
     if (!Array.isArray(t.tags)) return { error: "invalid_tags" };
     t.tags = t.tags.filter((x) => typeof x === "string").slice(0, 20).map((x) => x.slice(0, 40));

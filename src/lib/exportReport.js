@@ -1,4 +1,5 @@
 // Ekspor (PDF/CSV) tidak bisa memuat font simbol riyal → pakai kode "SAR".
+import { proofLinkText } from "@/lib/proofText";
 import { formatMoneyPlain as formatMoney } from "@/lib/finance";
 import { rowToCsv } from "@/lib/csv";
 
@@ -44,7 +45,7 @@ export function downloadMonthlyReport({ monthName, scopeLabel, currency = "IDR",
     lines.push(rowToCsv([
       new Date(t.date).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }),
       TYPE_LABEL[t.type] || t.type, t.category || "", t.merchant || "", t.amount,
-      t.notes || "", t.input_by_name || "", t.currency || cur, t.photo_url || "",
+      t.notes || "", t.input_by_name || "", t.currency || cur, proofLinkText(t),
     ]));
   });
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { hasAssetProof, useAssetProofUrl } from "@/lib/proof";
 import { deleteAssetFlow } from "@/lib/assetDelete";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -47,6 +48,7 @@ export default function AssetDetail() {
   const [busy, setBusy] = useState(false);
 
   const a = assets.find((x) => x.id === id);
+  const { data: assetProofUrl = "" } = useAssetProofUrl(a); // sebelum return awal (aturan hooks)
   if (!a) {
     return (
       <div className="px-5 pt-6">
@@ -179,11 +181,11 @@ export default function AssetDetail() {
       {a.type === "investasi" && <InvestmentDca asset={a} readOnly={!isOwner} />}
 
       {/* Bukti pembelian */}
-      {a.purchase_proof_url && (
+      {hasAssetProof(a) && (
         <section aria-label="Bukti pembelian" className="surface rounded-3xl p-3 mb-4">
           <p className="text-sm font-semibold flex items-center gap-1.5 px-1 mb-2"><Receipt className="w-4 h-4 text-muted-foreground" /> Bukti pembelian</p>
           <button type="button" onClick={() => setViewProof(true)} aria-label={`Lihat bukti pembelian ${a.name}`} className="relative block w-full rounded-2xl overflow-hidden bg-muted">
-            <img src={safeUrl(a.purchase_proof_url)} alt="Bukti pembelian" className="w-full max-h-64 object-contain" />
+            {assetProofUrl ? <img src={safeUrl(assetProofUrl)} alt="Bukti pembelian" className="w-full max-h-64 object-contain" referrerPolicy="no-referrer" /> : <span className="h-32 flex items-center justify-center text-xs text-muted-foreground">Memuat bukti…</span>}
             <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>
           </button>
         </section>
@@ -228,7 +230,7 @@ export default function AssetDetail() {
       )}
 
       {editing && <AssetForm asset={a} onClose={() => setEditing(false)} />}
-      {viewProof && <ProofViewer url={a.purchase_proof_url} onClose={() => setViewProof(false)} />}
+      {viewProof && assetProofUrl && <ProofViewer url={assetProofUrl} onClose={() => setViewProof(false)} />}
     </div>
   );
 }

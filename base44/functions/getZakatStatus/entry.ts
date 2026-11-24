@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { hitRateLimit } from "../../shared/rateLimit.ts";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
 import { fetchGoldPricesBackend, computeZakatMal, isPlausibleGoldPriceIdr, haulPeriodBackend } from "../../shared/zakat.ts";
@@ -49,9 +50,9 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     if (body?.action === "email") {
       if (!me.email) return Response.json({ error: "no_email" }, { status: 400 });
-      const last = me.zakat_email_sent_at ? new Date(me.zakat_email_sent_at).getTime() : 0;
-      if (last && Date.now() - last < EMAIL_INTERVAL_MS) return Response.json({ error: "too_soon" }, { status: 429 });
       if (!goldPrice) return Response.json({ error: "no_gold_price" }, { status: 409 });
+      // Kuota dipakai hanya setelah prasyarat siap (permintaan yang tak terkirim tidak memulai jeda).
+      if (!(await hitRateLimit(base44, `zakat_email:${me.id}`, 1, EMAIL_INTERVAL_MS))) return Response.json({ error: "too_soon" }, { status: 429 });
       const period = haulPeriodBackend(me.zakat_haul_date);
       const hijriYear = Number(new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric" }).formatToParts(new Date()).find((p) => p.type === "year")?.value || 0);
       const payments = await fetchAll(base44.asServiceRole.entities.ZakatPayment, { created_by_id: me.id });
@@ -59,7 +60,6 @@ export default async function (req) {
         .filter((z) => z.status === "paid" && (period.key ? z.period_key === period.key : z.zakat_type === "mal" && z.year === hijriYear))
         .reduce((sum, z) => sum + (Number(z.amount_idr ?? z.amount) || 0), 0);
       const remaining = Math.max(0, result.zakat - paid);
-      try { await base44.asServiceRole.entities.User.update(me.id, { zakat_email_sent_at: new Date().toISOString() }); } catch { /* pembatas terbaik-upaya */ }
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: me.email,
         subject: "Pengingat zakat mal — NAFKITA",

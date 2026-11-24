@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { uploadFile } from "@/lib/upload";
+import { uploadProof, proofUrlFor, hasProof } from "@/lib/proof";
 import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap, useMe } from "@/hooks/useFinance";
 import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
@@ -61,7 +61,15 @@ export default function AddTransaction() {
   });
   const [merchant, setMerchant] = useState("");
   const [notes, setNotes] = useState("");
+  // photoUrl/photoUrls = pratinjau saja (signed URL singkat). Yang disimpan:
+  // proofUri (file privat) atau legacyUrl (URL publik lama saat mengedit).
   const [photoUrl, setPhotoUrl] = useState("");
+  const [proofUri, setProofUri] = useState("");
+  const [legacyUrl, setLegacyUrl] = useState("");
+  // Mode edit: kolom bukti hanya dikirim bila diubah (scan baru / lepas bon).
+  // Non-pemilik (mis. admin) tidak menerima referensi file privat, jadi
+  // mengirim nilai kosong akan menghapus bukti pemilik.
+  const [proofTouched, setProofTouched] = useState(false);
   const [photoUrls, setPhotoUrls] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -104,8 +112,13 @@ export default function AddTransaction() {
     setDate(d.toISOString().slice(0, 16));
     setMerchant(editTx.merchant || "");
     setNotes(editTx.notes || "");
-    setPhotoUrl(editTx.photo_url || "");
-    setPhotoUrls(editTx.photo_url ? [editTx.photo_url] : []);
+    setProofUri(editTx.photo_uri || "");
+    setLegacyUrl(editTx.photo_uri ? "" : (editTx.photo_url || ""));
+    setPhotoUrl("");
+    setPhotoUrls([]);
+    if (hasProof(editTx)) {
+      proofUrlFor(editTx).then((u) => { if (u) { setPhotoUrl(u); setPhotoUrls([u]); } }).catch(() => {});
+    }
     setTags(editTx.tags || []);
     setVisibility(editTx.visibility || "shared");
     setCurrency((editTx.currency || "IDR").toUpperCase());
@@ -146,12 +159,16 @@ export default function AddTransaction() {
       const urls = [];
       const allTx = [];
       for (let i = 0; i < files.length; i++) {
-        const { file_url } = await uploadFile(files[i], "image");
-        urls.push(file_url);
+        // Bukti disimpan PRIVAT; AI membaca lewat signed URL singkat.
+        const { file_uri, preview_url } = await uploadProof(files[i], "image");
+        urls.push(preview_url);
         setPhotoUrls([...urls]);
-        setPhotoUrl(file_url);
-        const { transactions } = await scanReceipt(file_url, categories);
-        (transactions || []).forEach((t) => allTx.push({ ...t, photo_url: file_url }));
+        setPhotoUrl(preview_url);
+        setProofUri(file_uri);
+        setLegacyUrl("");
+        setProofTouched(true);
+        const { transactions } = await scanReceipt(preview_url, categories);
+        (transactions || []).forEach((t) => allTx.push({ ...t, photo_url: preview_url, photo_uri: file_uri }));
       }
       if (!allTx.length) {
         toast.error("Tidak ada transaksi terbaca", { description: "Silakan isi manual." });
@@ -161,7 +178,7 @@ export default function AddTransaction() {
       // Mode edit: satu transaksi saja → pakai hasil pertama.
       if (allTx.length === 1 || isEdit) {
         const p = allTx[0];
-        if (p.photo_url) { setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
+        if (p.photo_uri) { setProofUri(p.photo_uri); setPhotoUrl(p.photo_url); setPhotoUrls([p.photo_url]); }
         if (p.amount) setAmount(String(p.amount));
         if (p.currency) setCurrency(p.currency);
         if (p.merchant && type !== "income") setMerchant(p.merchant);
@@ -222,7 +239,8 @@ export default function AddTransaction() {
         })(),
         merchant: t.merchant || "",
         notes: t.notes || "",
-        photo_url: t.photo_url || photoUrl || "",
+        photo_uri: t.photo_uri || proofUri || "",
+        photo_url: "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags: [],
         visibility,
@@ -270,7 +288,7 @@ export default function AddTransaction() {
           date: new Date(date).toISOString(),
           merchant: type === "income" ? "" : merchant || "",
           notes: notes || "",
-          photo_url: photoUrl || "",
+          ...(proofTouched ? { photo_uri: proofUri || "", photo_url: proofUri ? "" : legacyUrl || "" } : {}),
           tags,
           visibility,
           // null = "Tidak dipilih" (lepas tautan); undefined berarti "jangan ubah".
@@ -294,7 +312,8 @@ export default function AddTransaction() {
         date: new Date(date).toISOString(),
         merchant: merchant || "",
         notes: notes || "",
-        photo_url: photoUrl || "",
+        photo_uri: proofUri || "",
+        photo_url: "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
         visibility,
@@ -314,7 +333,8 @@ export default function AddTransaction() {
         date: new Date(date).toISOString(),
         merchant: merchant || "",
         notes: notes || "",
-        photo_url: photoUrl || "",
+        photo_uri: proofUri || "",
+        photo_url: "",
         input_by_name: user?.full_name || user?.email || "Keluarga",
         tags,
         visibility,
@@ -566,7 +586,7 @@ export default function AddTransaction() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple={!isEdit} className="hidden" onChange={handleScan} />
           {photoUrls.length > 0 && !scanning && (
-            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
+            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); setProofUri(""); setLegacyUrl(""); setProofTouched(true); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
               <X className="w-3 h-3" /> {isEdit ? "Lepas bon" : "Hapus semua foto"}
             </button>
           )}

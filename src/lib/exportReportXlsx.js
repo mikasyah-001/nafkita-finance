@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { proofLinkText } from "@/lib/proofText";
 
 const TYPE_LABEL = { income: "Pemasukan", expense: "Pengeluaran", sedekah: "Sedekah" };
 
@@ -41,7 +42,7 @@ export function downloadReportXlsx({ monthName, scopeLabel, currency = "IDR", st
       t.currency || currency,
       t.notes || "",
       t.input_by_name || "",
-      t.photo_url || "",
+      proofLinkText(t),
     ]),
   ];
   const ws3 = XLSX.utils.aoa_to_sheet(txData);

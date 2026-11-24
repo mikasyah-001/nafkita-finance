@@ -32,22 +32,59 @@ async function download(url) {
     if (bytes.length > MAX_BYTES) throw new Error("too_large");
     return { bytes, type };
   }
+  return await fetchTrusted(url);
+}
+
+const checkHost = (u) => {
+  if (u.protocol !== "https:") throw new Error("not_https");
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname) || u.hostname.includes(":") || !TRUSTED_HOST.test(u.hostname)) throw new Error(`untrusted_host:${u.hostname}`);
+};
+
+// Tipe dari "magic bytes" — beberapa CDN mengirim application/octet-stream.
+function sniffType(b) {
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return "application/pdf";
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return "image/heic";
+  return "";
+}
+
+// Unduh dengan mengikuti redirect SECARA MANUAL (maks 3): setiap tujuan dicek
+// ulang (https, bukan IP, host penyimpanan dikenal) — media.base44.com bisa
+// mengalihkan ke penyimpanan/CDN.
+async function fetchTrusted(url) {
   let u;
   try { u = new URL(url); } catch { throw new Error("invalid_url"); }
-  if (u.protocol !== "https:") throw new Error("not_https");
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname) || u.hostname.includes(":") || !TRUSTED_HOST.test(u.hostname)) throw new Error("untrusted_host");
+  checkHost(u);
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15000);
+  const timer = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "error" });
+    let res;
+    for (let hop = 0; ; hop++) {
+      res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "manual" });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (!loc || hop >= 3) throw new Error("too_many_redirects");
+        u = new URL(loc, u);
+        checkHost(u);
+        continue;
+      }
+      break;
+    }
     if (!res.ok) throw new Error(`http_${res.status}`);
-    const type = String(res.headers.get("content-type") || "").split(";")[0].trim();
-    if (!ALLOWED_TYPES.test(type)) throw new Error("bad_type");
     const len = Number(res.headers.get("content-length") || 0);
     if (len > MAX_BYTES) throw new Error("too_large");
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.length > MAX_BYTES) throw new Error("too_large");
+    const header = String(res.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    const type = ALLOWED_TYPES.test(header) ? header : sniffType(bytes);
+    if (!type) throw new Error(`bad_type:${header || "kosong"}`);
     return { bytes, type };
+  } catch (e) {
+    if (e?.name === "AbortError") throw new Error("timeout");
+    throw e;
   } finally { clearTimeout(timer); }
 }
 
@@ -78,15 +115,17 @@ export default async function (req) {
       try {
         const { bytes, type } = await download(String(r[conf.url]));
         const file = new File([bytes], `bukti-${r.id}.${extFor(type)}`, { type });
-        const up = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
-        if (!up?.file_uri) throw new Error("upload_failed");
+        let up;
+        try { up = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file }); }
+        catch (e) { throw new Error(`upload_failed:${String(e?.message || "").slice(0, 40)}`); }
+        if (!up?.file_uri) throw new Error("upload_failed:tanpa_file_uri");
         // Tulis bersyarat: hanya bila URL lama masih sama (pemilik tidak mengganti/
         // menghapus bukti selama unduhan berjalan). Bila berubah → lewati.
         const w = await svc.updateMany({ id: r.id, [conf.url]: r[conf.url] }, { $set: { [conf.uri]: up.file_uri, [conf.url]: "" } });
         if (Number(w?.updated ?? w?.modified ?? 0) > 0) results.migrated++;
         else results.failed.push({ id: r.id, reason: "changed_during_migration" });
       } catch (e) {
-        results.failed.push({ id: r.id, reason: String(e?.message || "error").slice(0, 60) });
+        results.failed.push({ id: r.id, reason: String(e?.message || "error").slice(0, 80) });
       }
     }
     const remaining = candidates.length - results.migrated;

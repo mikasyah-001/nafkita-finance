@@ -15,6 +15,7 @@ export default function AdminProofMigration() {
   const [counts, setCounts] = useState(null);
   const [busy, setBusy] = useState("");
   const [log, setLog] = useState([]);
+  const [reasons, setReasons] = useState([]); // [[alasan, jumlah], ...] dari proses terakhir
 
   const call = async (args) => {
     const res = await base44.functions.invoke("migrateLegacyProofs", args);
@@ -43,6 +44,7 @@ export default function AdminProofMigration() {
     });
     if (!ok) return;
     setBusy(target);
+    setReasons([]);
     let migrated = 0;
     const failed = [];
     try {
@@ -55,7 +57,11 @@ export default function AdminProofMigration() {
         if (!r.migrated && !(r.failed || []).length) break;
         if ((r.remaining || 0) <= failed.length) break;
       }
-      toast.success(`${label}: ${migrated} dipindahkan`, { description: failed.length ? `${failed.length} gagal (mis. ${failed[0].reason})` : "Semua selesai." });
+      const grouped = {};
+      for (const f of failed) grouped[f.reason] = (grouped[f.reason] || 0) + 1;
+      setReasons(Object.entries(grouped).sort((a, b) => b[1] - a[1]));
+      if (migrated) toast.success(`${label}: ${migrated} dipindahkan`, { description: failed.length ? `${failed.length} gagal — lihat rincian di kartu.` : "Semua selesai." });
+      else toast.error(`${label}: belum ada yang dipindahkan`, { description: failed.length ? "Lihat rincian alasan di kartu." : undefined });
     } catch (e) {
       toast.error("Migrasi berhenti", { description: e?.message });
     }
@@ -84,6 +90,14 @@ export default function AdminProofMigration() {
         </div>
       )}
       {log.length > 0 && <p className="text-[11px] text-muted-foreground mt-2" aria-live="polite">{log[0]}</p>}
+      {reasons.length > 0 && (
+        <div className="mt-2 rounded-xl bg-muted p-2.5">
+          <p className="text-[11px] font-semibold mb-1">Alasan gagal (kirimkan ke pengembang bila perlu):</p>
+          <ul className="text-[11px] text-muted-foreground space-y-0.5 font-mono break-all">
+            {reasons.map(([r, n]) => <li key={r}>{n}× {r}</li>)}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

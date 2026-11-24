@@ -68,11 +68,6 @@
       "default": [],
       "description": "Mata uang kustom yang dibuat pengguna di luar katalog bawaan"
     },
-    "zakat_email_sent_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Waktu email ringkasan zakat terakhir (pembatas 10 menit)"
-    },
     "zakat_haul_date": {
       "type": "string",
       "format": "date",

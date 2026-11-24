@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { redactProof } from "../../shared/proof.ts";
 import { logAdminAction } from "../../shared/auditLog.ts";
 
 // Endpoint admin: daftar transaksi lintas keluarga dengan pagination cursor.
@@ -34,7 +35,7 @@ export default async function (req) {
     });
 
     return Response.json({
-      transactions: txs || [],
+      transactions: (txs || []).map((t) => redactProof(t, me.id)),
       has_more: (txs || []).length === pageSize,
     });
   } catch (error) {

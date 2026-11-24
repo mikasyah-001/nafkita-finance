@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { redactProof } from "../../shared/proof.ts";
 import { resolvePartnerId, txVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAllByDate } from "../../shared/fetchAll.ts";
 
@@ -31,7 +32,7 @@ export default async function(req) {
     const all = [...own, ...partnerTx];
     // Urutkan terbaru di depan
     all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return Response.json({ transactions: all, partner_id: partnerId });
+    return Response.json({ transactions: all.map((t) => redactProof(t, me.id)), partner_id: partnerId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

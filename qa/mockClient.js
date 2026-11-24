@@ -112,7 +112,23 @@ const PARTNERSHIPS = [
   { id: "p2", inviter_id: "u3", invitee_email: "lina@contoh.id", status: "pending", created_date: d(8) },
   { id: "p3", inviter_id: "u3", invitee_id: "u4", status: "ended", end_reason: "permintaan pengguna", created_date: d(1, -1) },
 ];
+// File privat tiruan: UploadPrivateFile menyimpan data URL di sini dan
+// mengembalikan referensi "private/qa/<n>" (bukan URL), seperti Base44.
+const PRIVATE_FILES = {};
 const FN = {
+  getProofUrl: ({ transaction_id, asset_id, file_uri } = {}) => {
+    if (asset_id) {
+      const a = db.assets.find((x) => x.id === asset_id);
+      if (!a) return { error: "not_found" };
+      if (a.purchase_proof_uri) return { url: PRIVATE_FILES[a.purchase_proof_uri] || "", private: true };
+      return a.purchase_proof_url ? { url: a.purchase_proof_url, private: false } : { error: "no_proof" };
+    }
+    if (file_uri) return PRIVATE_FILES[file_uri] ? { url: PRIVATE_FILES[file_uri], private: true } : { error: "not_found" };
+    const t = db.tx.find((x) => x.id === transaction_id);
+    if (!t) return { error: "not_found" };
+    if (t.photo_uri) return { url: PRIVATE_FILES[t.photo_uri] || "", private: true };
+    return t.photo_url ? { url: t.photo_url, private: false } : { error: "no_proof" };
+  },
   // Emulasi backend: lot pada aset yang terlihat (milik sendiri + bersama pasangan).
   listVisibleInvestmentLots: ({ asset_id } = {}) => {
     const visible = new Set(db.assets.filter((a) => a.created_by_id === "u1" || a.visibility !== "private").map((a) => a.id));
@@ -200,7 +216,7 @@ const FN = {
     if (args.action === "reveal") {
       if (!unlocked()) bad(403, "Buka dengan PIN dulu");
       const x = S.find((y) => y.card_id === args.card_id);
-      return { ok: true, details: x ? { exp_month: x.exp_month, exp_year: x.exp_year, holder_name: x.holder_name, photo_url: x.photo_uri } : {} };
+      return { ok: true, details: x ? { exp_month: x.exp_month, exp_year: x.exp_year, holder_name: x.holder_name, photo_url: PRIVATE_FILES[x.photo_uri] || x.photo_uri } : {} };
     }
     if (args.action === "save_details") {
       if (!unlocked()) bad(403, "Buka dengan PIN dulu");
@@ -306,7 +322,12 @@ export const base44 = {
     return { data: partial ? { ...data, errors: partial } : data };
   } },
   integrations: new Proxy({}, { get: (_, ns) => new Proxy({}, { get: (__, fn) => (ns === "Core" && fn === "UploadPrivateFile")
-    ? async ({ file }) => ({ file_uri: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
+    ? async ({ file }) => {
+      const data = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); });
+      const uri = `private/qa/${Object.keys(PRIVATE_FILES).length + 1}-${file.name || "file"}`.replace(/\s+/g, "_");
+      PRIVATE_FILES[uri] = data;
+      return { file_uri: uri };
+    }
     : (ns === "Core" && fn === "UploadFile")
     // Unggah tiruan: kembalikan data URL agar gambar benar-benar tampil di QA.
     ? async ({ file }) => ({ file_url: await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); }) })
@@ -320,5 +341,5 @@ export const base44 = {
     : async () => ({}) }) }),
 };
 // Akses dari test (window.__qa) untuk memeriksa state.
-if (typeof window !== "undefined") { window.__qa = db; window.__qaData = DATA; }
+if (typeof window !== "undefined") { window.__qa = db; window.__qaData = DATA; window.__qaPrivateFiles = PRIVATE_FILES; }
 export default base44;

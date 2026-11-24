@@ -20,7 +20,7 @@
 //    sempat dibuat dihapus lagi → tidak ada kondisi "data lama sudah hilang".
 import { BACKUP_ENTITIES, BACKUP_VERSION, txFingerprint, assetFingerprint, categoryFingerprint, budgetFingerprint } from "./backupFormat.ts";
 import { fetchAll } from "./fetchAll.ts";
-import { sanitizeTxInput, MAX_AMOUNT, isSafeUrl } from "./txInput.js";
+import { sanitizeTxInput, MAX_AMOUNT, isSafeUrl, isPrivateFileUri } from "./txInput.js";
 import { secrets } from "base44:runtime";
 
 const DROP = ["created_date", "updated_date", "created_by_id", "created_by", "is_sample"];
@@ -132,8 +132,9 @@ function cleanAsset(r) {
   const value = amt(r.value);
   const c = cur(r.currency);
   if (value === null || !c || !r.name) return { skip: "invalid_asset" };
-  const o = pick(r, ["name", "type", "quantity", "unit", "broker", "account_role", "account_number", "purchase_date", "purchase_price", "purchase_proof_url", "owner", "notes", "ticker", "exchange", "instrument", "instrument_manual", "last_price", "price_date", "value_source", "import_source"]);
+  const o = pick(r, ["name", "type", "quantity", "unit", "broker", "account_role", "account_number", "purchase_date", "purchase_price", "purchase_proof_url", "purchase_proof_uri", "owner", "notes", "ticker", "exchange", "instrument", "instrument_manual", "last_price", "price_date", "value_source", "import_source"]);
   if (o.purchase_proof_url && !isSafeUrl(o.purchase_proof_url)) delete o.purchase_proof_url;
+  if (o.purchase_proof_uri && !isPrivateFileUri(o.purchase_proof_uri)) delete o.purchase_proof_uri;
   return { data: { ...o, name: str(r.name, 120), value, currency: c, visibility: vis(r.visibility) } };
 }
 

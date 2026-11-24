@@ -1,0 +1,29 @@
+{
+  "name": "RateLimit",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Kunci pembatas, mis. refcode:<user_id> atau zakat_email:<user_id>"
+    },
+    "count": {
+      "type": "number",
+      "default": 0
+    },
+    "window_start": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "key"
+  ],
+  // Hanya server (service role) yang membaca/menulis: pengguna tidak bisa
+  // me-reset hitungannya sendiri (berbeda dengan field di User).
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

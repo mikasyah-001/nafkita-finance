@@ -25,12 +25,14 @@ async function buildServerRateMap(base44) {
     const quote = (r.quote_currency || "").toUpperCase();
     const rate = Number(r.rate) || 0;
     if (!base || rate <= 0) return;
+    // Data diurutkan terbaru dulu: kurs pertama yang ditemukan per mata uang
+    // dipakai; kurs lama tidak boleh menimpanya (dulu bisa).
     if (quote === "IDR" && base !== "IDR") {
-      map[base] = rate;
+      if (!(base in map)) map[base] = rate;
     } else if (base === "IDR" && quote !== "IDR") {
-      map[quote] = 1 / rate;
+      if (!(quote in map)) map[quote] = 1 / rate;
     } else if (base === "USD" && quote !== "IDR" && quote !== "USD") {
-      usdBridge.push({ quote, rate });
+      if (!usdBridge.some((x) => x.quote === quote)) usdBridge.push({ quote, rate });
     }
   });
   const usdToIdr = map.USD;
@@ -257,8 +259,14 @@ export async function cancelPendingApprovalsBetween(base44, userA, userB) {
     for (const a of rows || []) {
       if (userB && a.requester_id !== userB && a.approver_id !== userB) continue;
       try {
+        // Bersaing dengan approveTransaction lewat klaim atomik yang sama
+        // (pending → processing): bila penyetuju sedang memproses, lewati.
+        if (!(await claimApproval(base44, a.id))) continue;
+        const tx = a.transaction_id ? await svc.Transaction.get(a.transaction_id).catch(() => null) : null;
+        if (tx && tx.approval_id === a.id && tx.approval_status === "pending") {
+          await svc.Transaction.update(tx.id, { approval_status: "rejected" });
+        }
         await svc.TransactionApproval.update(a.id, { status: "cancelled", decided_at: new Date().toISOString() });
-        if (a.transaction_id) await svc.Transaction.update(a.transaction_id, { approval_status: "rejected" });
         n++;
       } catch (e) { console.error("[cancelPendingApprovalsBetween]", a.id, e?.message); }
     }

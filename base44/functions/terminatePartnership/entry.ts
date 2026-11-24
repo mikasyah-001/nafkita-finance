@@ -64,9 +64,9 @@ export default async function (req) {
 
     // Permintaan persetujuan yang masih menunggu antara keduanya tidak akan
     // pernah diputuskan lagi → batalkan agar tidak menggantung.
-    if (terminalStatus === "ended") {
-      const other = p.inviter_id === me.id ? p.invitee_id : p.inviter_id;
-      if (other) await cancelPendingApprovalsBetween(base44, me.id, other);
+    // Pakai kedua pihak dari record (bukan pemanggil): admin juga bisa memutus.
+    if (terminalStatus === "ended" && p.inviter_id && p.invitee_id) {
+      await cancelPendingApprovalsBetween(base44, p.inviter_id, p.invitee_id);
     }
 
     // Catat ke audit log untuk semua user (admin maupun pasangan).

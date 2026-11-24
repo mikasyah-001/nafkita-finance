@@ -13,6 +13,7 @@ import Money from "@/components/Money";
 import { formatDate, colorMap, formatMoneyShort, assetTypeLabels } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
 import AdminStats, { lastActiveLabel } from "@/components/AdminStats";
+import AdminProofMigration from "@/components/AdminProofMigration";
 import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
 import { confirmAction } from "@/components/ConfirmHost";
@@ -300,7 +301,7 @@ export default function Admin() {
       </div>
 
       {/* RINGKASAN */}
-      {tab === "ringkasan" && <AdminStats />}
+      {tab === "ringkasan" && <><AdminStats /><AdminProofMigration /></>}
 
       {/* LAPORAN PENGGUNA */}
       {tab === "laporan" && <AdminFeedback initialId={params.get("id")} />}

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CreditCard, Landmark, Tag, Trash2, Building2, Hash, ShieldCheck } from "lucide-react";
+import { CreditCard, Landmark, Tag, Trash2, Building2, Hash, ShieldCheck, Coins, Wallet } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useCardLabels } from "@/hooks/useFinance";
+import { useCardLabels, useMe, useUserCurrencies, useRefresh } from "@/hooks/useFinance";
+import { createQuickAccount, validateQuickAccount } from "@/lib/quickAccount";
+import MoneyInput from "@/components/MoneyInput";
 import { assetLabel } from "@/lib/bankAccount";
 import { normalizeLabel } from "../../base44/shared/autoIngest.js";
 import { CARD_ASSET_TYPES, cardAssetAllowed, onlyDigits } from "../../base44/shared/cards.js";
@@ -50,21 +52,43 @@ export default function CardSheet({ initial = {}, assets = [], onClose, onSaved 
   const [label, setLabel] = useState(initial.wallet_label || "");
   const [status, setStatus] = useState(initial.status && initial.status !== "unmapped" ? initial.status : "active");
   const [saving, setSaving] = useState(false);
+  // "+ Rekening baru": rekening dibuat langsung dari sini (tanpa pindah ke menu Aset).
+  const NEW = "__new";
+  const { data: me } = useMe();
+  const currencies = useUserCurrencies();
+  const refresh = useRefresh();
+  const [acc, setAcc] = useState({ bank: initial.issuer || "", number: "", currency: "", value: "", role: "harian" });
+  const creatingAccount = assetId === NEW;
+  const accCurrency = acc.currency || me?.default_currency || "IDR";
+  const accError = creatingAccount ? validateQuickAccount({ bank: acc.bank || issuer, accountNumber: acc.number, value: acc.value }, assets) : "";
 
   const options = useMemo(() => assets.filter((a) => (CARD_ASSET_TYPES[kind] || []).includes(a.type || "bank")), [assets, kind]);
   const asset = options.find((a) => a.id === assetId) || null;
   // Sama dengan aturan server: rekening wajib hanya bila kartu dicatat otomatis.
-  const assetOk = asset ? cardAssetAllowed(kind, asset) : (status !== "active" || kind === "credit");
+  const canCreateBank = (CARD_ASSET_TYPES[kind] || []).includes("bank");
+  // Belum punya rekening yang cocok → langsung tampilkan isian rekening baru.
+  useEffect(() => {
+    if (!assetId && !options.length && canCreateBank && kind !== "credit" && status === "active") setAssetId(NEW);
+  }, [assetId, options.length, canCreateBank, kind, status]);
+  const assetOk = creatingAccount ? !accError : asset ? cardAssetAllowed(kind, asset) : (status !== "active" || kind === "credit");
   const labelPreview = normalizeLabel(label);
 
   const submit = async () => {
     setSaving(true);
+    let linkedId = asset?.id || null;
     try {
+      if (creatingAccount) {
+        const res = await createQuickAccount({ bank: acc.bank || issuer, accountNumber: acc.number, currency: accCurrency, value: acc.value, role: acc.role }, { assets, me });
+        if (res.error) { toast.error(res.error); setSaving(false); return; }
+        linkedId = res.asset.id;
+        setAssetId(linkedId); // bila simpan kartu gagal, rekening baru tetap terpilih (tidak dibuat dua kali)
+        refresh();
+      }
       await manageCards({
         action: "save_card",
-        card: { id: initial.id, display_name: name, kind, network, issuer, last4, asset_id: asset?.id || null, wallet_label: label, status },
+        card: { id: initial.id, display_name: name, kind, network, issuer, last4, asset_id: linkedId, wallet_label: label, status },
       });
-      toast.success(initial.status === "unmapped" ? "Kartu terhubung" : "Kartu tersimpan");
+      toast.success(creatingAccount ? "Rekening & kartu tersimpan" : initial.status === "unmapped" ? "Kartu terhubung" : "Kartu tersimpan");
       onSaved?.();
     } catch (e) { toast.error(msg(e, "Gagal menyimpan kartu")); setSaving(false); }
   };
@@ -82,13 +106,13 @@ export default function CardSheet({ initial = {}, assets = [], onClose, onSaved 
       footer={
         <div className="flex gap-2">
           {initial.id && <button type="button" className="btn-secondary" aria-label="Hapus kartu" onClick={remove}><Trash2 className="w-4 h-4" /></button>}
-          <button type="button" className="btn-primary flex-1" disabled={saving || !name.trim() || !assetOk} onClick={submit}>{saving ? "Menyimpan…" : "Simpan"}</button>
+          <button type="button" className="btn-primary flex-1" disabled={saving || !name.trim() || !assetOk} onClick={submit}>{saving ? "Menyimpan…" : creatingAccount ? "Simpan rekening & kartu" : "Simpan"}</button>
         </div>
       }
     >
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-2">Jenis kartu</p>
-        <ChipChoice ariaLabel="Jenis kartu" value={kind} onChange={(v) => { setKind(v); setAssetId(""); }}
+        <ChipChoice ariaLabel="Jenis kartu" value={kind} onChange={(v) => { setKind(v); setAssetId((cur) => (cur === NEW && (CARD_ASSET_TYPES[v] || []).includes("bank") ? cur : "")); }}
           options={Object.entries(KIND_LABEL).map(([value, l]) => ({ value, label: l }))} />
       </div>
       <FieldGroup>
@@ -111,12 +135,31 @@ export default function CardSheet({ initial = {}, assets = [], onClose, onSaved 
       </FieldGroup>
       <FieldGroup>
         <FieldRow icon={Landmark} label="Rekening" htmlFor="cs-asset"
-          hint={kind === "credit" ? "Opsional untuk kartu kredit" : options.length ? "Transaksi kartu ini mengurangi saldo rekening ini" : "Belum ada aset yang cocok — tambahkan di menu Aset"}>
+          hint={creatingAccount ? "Rekening dibuat bersama kartu ini" : kind === "credit" ? "Opsional untuk kartu kredit" : options.length ? "Transaksi kartu ini mengurangi saldo rekening ini" : "Belum ada rekening — pilih “+ Rekening baru”"}>
           <NativeSelect id="cs-asset" className={fieldInput} value={assetId} sheetTitle="Rekening kartu" aria-label="Rekening kartu" onChange={(e) => setAssetId(e.target.value)}>
             <option value="">{kind === "credit" ? "Tanpa rekening" : "Pilih rekening…"}</option>
             {options.map((a) => <option key={a.id} value={a.id}>{assetLabel(a)} ({a.currency || "IDR"})</option>)}
+            {canCreateBank && <option value={NEW}>+ Rekening baru</option>}
           </NativeSelect>
         </FieldRow>
+        {creatingAccount && (
+          <>
+            <FieldRow icon={Building2} label="Bank" htmlFor="cs-acc-bank">
+              <input id="cs-acc-bank" className={fieldInput} value={acc.bank} maxLength={60} placeholder={issuer || "BCA / Al Rajhi"} onChange={(e) => setAcc({ ...acc, bank: e.target.value })} />
+            </FieldRow>
+            <FieldRow icon={Hash} label="No. rekening / IBAN" htmlFor="cs-acc-number" hint={acc.number && accError ? accError : "Nomor lengkap rekening (bukan nomor kartu)"}>
+              <input id="cs-acc-number" className={`${fieldInput} font-mono`} inputMode="text" autoComplete="off" value={acc.number} maxLength={40} placeholder="1234567890" onChange={(e) => setAcc({ ...acc, number: e.target.value })} />
+            </FieldRow>
+            <FieldRow icon={Coins} label="Mata uang" htmlFor="cs-acc-cur">
+              <NativeSelect id="cs-acc-cur" className={fieldInput} value={accCurrency} sheetTitle="Mata uang rekening" aria-label="Mata uang rekening" onChange={(e) => setAcc({ ...acc, currency: e.target.value })}>
+                {[...new Set([accCurrency, ...currencies.map((c) => c.code)])].map((c) => <option key={c} value={c}>{c}</option>)}
+              </NativeSelect>
+            </FieldRow>
+            <FieldRow icon={Wallet} label="Saldo saat ini" htmlFor="cs-acc-value" hint="Boleh 0 — bisa disesuaikan nanti">
+              <MoneyInput currency={accCurrency} id="cs-acc-value" className={`${fieldInput} tabular-nums`} value={acc.value} onChange={(v) => setAcc({ ...acc, value: v })} placeholder="0" />
+            </FieldRow>
+          </>
+        )}
         <FieldRow icon={Tag} label="Label Apple Pay (opsional)" htmlFor="cs-label"
           hint={labelPreview && labelPreview !== label ? `Disimpan sebagai: ${labelPreview}` : "Terisi otomatis dari nama kartu di Wallet saat pertama dipakai"}>
           <input id="cs-label" className={`${fieldInput} font-mono`} value={label} maxLength={40} autoCapitalize="none" autoCorrect="off" onChange={(e) => setLabel(e.target.value)} placeholder="classic-debit-card" />
@@ -124,7 +167,7 @@ export default function CardSheet({ initial = {}, assets = [], onClose, onSaved 
       </FieldGroup>
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-2">Catat Otomatis</p>
-        <ChipChoice ariaLabel="Status catat otomatis" value={status} onChange={setStatus}
+        <ChipChoice ariaLabel="Status catat otomatis" value={status} onChange={(v) => { setStatus(v); if (v !== "active" && assetId === NEW && !acc.number.trim()) setAssetId(""); }}
           options={[{ value: "active", label: "Catat" }, { value: "paused", label: "Jeda" }, { value: "ignored", label: "Abaikan" }]} />
       </div>
     </FormSheet>

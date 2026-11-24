@@ -1202,6 +1202,37 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await step("Kartu + rekening baru sekaligus; dari detail rekening → Tambah kartu (rekening terisi)", async () => {
+    await nav("/riwayat"); await nav("/kartu");
+    await page.getByRole("button", { name: "Kartu", exact: true }).click();
+    const sheet = page.getByRole("dialog");
+    await page.locator("#cs-name").fill("QA Debit Baru");
+    await page.locator("#cs-issuer").fill("Bank QA");
+    await page.selectOption("#cs-asset", "__new");
+    assert.ok(await page.locator("#cs-acc-number").isVisible(), "Isian rekening baru tampil di form kartu");
+    assert.equal(await sheet.getByRole("button", { name: "Simpan rekening & kartu" }).isDisabled(), true, "Belum bisa simpan tanpa no. rekening");
+    await page.locator("#cs-acc-number").fill("9876 5432 10");
+    await page.locator("#cs-acc-value").fill("250000");
+    await page.locator("#cs-last4").fill("4321");
+    await sheet.getByRole("button", { name: "Simpan rekening & kartu" }).click();
+    await page.waitForTimeout(800);
+    const st = await page.evaluate(() => {
+      const a = window.__qa.assets.find((x) => x.account_number === "9876543210");
+      return { a, c: window.__qaData.PaymentCard.find((x) => x.last4 === "4321") };
+    });
+    assert.ok(st.a, "Rekening baru tersimpan");
+    assert.equal(st.a.type, "bank"); assert.equal(st.a.value, 250000); assert.equal(st.a.broker, "Bank QA");
+    assert.ok(st.c && st.c.asset_id === st.a.id, "Kartu terhubung ke rekening baru");
+    // Sebaliknya: dari detail rekening → Tambah kartu
+    await nav(`/aset/${st.a.id}`);
+    await page.getByRole("link", { name: "Tambah kartu" }).click();
+    await page.waitForTimeout(500);
+    assert.equal(await page.locator("#cs-asset").inputValue(), st.a.id, "Rekening sudah terpilih");
+    assert.equal(await page.locator("#cs-issuer").inputValue(), "Bank QA", "Penerbit terisi dari bank rekening");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+  });
+
   await step("Catat Otomatis: SMS uang masuk disimpan sebagai pemasukan; panduan SMS tersedia", async () => {
     await nav("/riwayat"); await nav("/catat-otomatis");
     const item = page.locator("article", { hasText: "Uang masuk" });

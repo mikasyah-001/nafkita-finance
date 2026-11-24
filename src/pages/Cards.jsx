@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Lock, LockOpen, ShieldCheck, Eye, Camera, Link2, Ban, Zap, AlertTriangle, Landmark, KeyRound, ImageOff } from "lucide-react";
@@ -97,6 +97,19 @@ export default function Cards() {
   };
 
   const current = cards.find((c) => c.id === detail);
+
+  // Datang dari rekening (/kartu?rekening=<id>): langsung buka form kartu
+  // dengan rekening, penerbit & nama terisi.
+  const [params, setParams] = useSearchParams();
+  const fromAccount = params.get("rekening");
+  useEffect(() => {
+    if (!fromAccount || !assets.length || !me) return;
+    const a = own.find((x) => x.id === fromAccount);
+    setParams({}, { replace: true });
+    if (!a) return;
+    const kind = a.type === "bank" ? "debit" : "emoney";
+    setSheet({ asset_id: a.id, kind, issuer: a.broker || "", display_name: `${a.broker || a.name} ${kind === "debit" ? "debit" : ""}`.trim() });
+  }, [fromAccount, assets.length, own, me, setParams]);
 
   return (
     <div className="px-5 pt-6 pb-8">

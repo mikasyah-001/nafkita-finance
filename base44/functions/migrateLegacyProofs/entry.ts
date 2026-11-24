@@ -47,7 +47,11 @@ function sniffType(b) {
   if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
   if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
   if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return "application/pdf";
-  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return "image/heic";
+  // ISO-BMFF ("ftyp"): dipakai HEIC, AVIF, MP4, dll. → bedakan dari brand utama.
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = String.fromCharCode(b[8], b[9], b[10], b[11]);
+    return ["heic", "heix", "heim", "heis", "hevc", "hevx"].includes(brand) ? "image/heic" : "";
+  }
   return "";
 }
 
@@ -64,13 +68,9 @@ async function fetchTrusted(url) {
     let res;
     for (let hop = 0; ; hop++) {
       res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "manual" });
-      // Sebagian runtime mengembalikan redirect "opaque" (status 0, tanpa Location).
-      // Cadangan: ikuti otomatis, lalu periksa alamat AKHIR dengan aturan yang sama.
-      if (res.type === "opaqueredirect" || res.status === 0) {
-        res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "follow" });
-        if (res.url) checkHost(new URL(res.url));
-        break;
-      }
+      // Redirect "opaque" (tanpa Location) tidak bisa diperiksa sebelum diikuti →
+      // tolak; mengikutinya otomatis berarti server sempat menghubungi host apa pun.
+      if (res.type === "opaqueredirect" || res.status === 0) throw new Error("opaque_redirect");
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get("location");
         if (!loc || hop >= 3) throw new Error("too_many_redirects");

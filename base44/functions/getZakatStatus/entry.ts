@@ -1,11 +1,18 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { resolvePartnerId, assetVisibleTo } from "../../shared/partnerResolve.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
-import { fetchGoldPricesBackend, computeZakatMal, isPlausibleGoldPriceIdr } from "../../shared/zakat.ts";
+import { fetchGoldPricesBackend, computeZakatMal, isPlausibleGoldPriceIdr, haulPeriodBackend } from "../../shared/zakat.ts";
 
 // Status zakat mal (gabungan, IDR) untuk user yang login — aturan sama dengan
 // src/lib/zakat.js. Aset: milik sendiri + bersama pasangan; utang/piutang milik sendiri.
 // Halaman Zakat di aplikasi menghitung di frontend; fungsi ini untuk integrasi lain.
+//
+// { action: "email" }: kirim ringkasan zakat ke email pemanggil SENDIRI.
+// Angka dihitung di server (bukan teks dari klien) dan penerima selalu
+// me.email — dulu halaman memanggil Core.SendEmail langsung dari browser
+// dengan isi & penerima yang bisa diubah klien. Dibatasi 1x per 10 menit.
+const EMAIL_INTERVAL_MS = 10 * 60 * 1000;
+const fmtIdr = (v) => "Rp " + Math.round(Number(v) || 0).toLocaleString("id-ID");
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -39,6 +46,37 @@ export default async function (req) {
       : isPlausibleGoldPriceIdr(goldPrices.IDR) ? goldPrices.IDR : 0;
     const result = computeZakatMal({ assets, debts, goldPrice, rateMap, includeReceivables: me.zakat_include_receivables !== false });
 
+    const body = await req.json().catch(() => ({}));
+    if (body?.action === "email") {
+      if (!me.email) return Response.json({ error: "no_email" }, { status: 400 });
+      const last = me.zakat_email_sent_at ? new Date(me.zakat_email_sent_at).getTime() : 0;
+      if (last && Date.now() - last < EMAIL_INTERVAL_MS) return Response.json({ error: "too_soon" }, { status: 429 });
+      if (!goldPrice) return Response.json({ error: "no_gold_price" }, { status: 409 });
+      const period = haulPeriodBackend(me.zakat_haul_date);
+      const hijriYear = Number(new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric" }).formatToParts(new Date()).find((p) => p.type === "year")?.value || 0);
+      const payments = await fetchAll(base44.asServiceRole.entities.ZakatPayment, { created_by_id: me.id });
+      const paid = (payments || [])
+        .filter((z) => z.status === "paid" && (period.key ? z.period_key === period.key : z.zakat_type === "mal" && z.year === hijriYear))
+        .reduce((sum, z) => sum + (Number(z.amount_idr ?? z.amount) || 0), 0);
+      const remaining = Math.max(0, result.zakat - paid);
+      try { await base44.asServiceRole.entities.User.update(me.id, { zakat_email_sent_at: new Date().toISOString() }); } catch { /* pembatas terbaik-upaya */ }
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: me.email,
+        subject: "Pengingat zakat mal — NAFKITA",
+        body:
+          `Assalamu'alaikum ${String(me.full_name || "").slice(0, 80)},\n\n` +
+          "Ringkasan zakat mal (perkiraan):\n" +
+          `- Harta bersih: ${fmtIdr(result.net)}\n` +
+          `- Nisab (85 gr emas @ ${fmtIdr(goldPrice)}): ${fmtIdr(result.nisab)}\n` +
+          `- Zakat 2,5%: ${fmtIdr(result.zakat)}\n` +
+          `- Sudah dibayar periode ini: ${fmtIdr(paid)}\n` +
+          `- Sisa: ${fmtIdr(remaining)}\n` +
+          (period.due ? `- Jatuh tempo haul: ${period.due.toISOString().slice(0, 10)}\n` : "") +
+          "\nAngka ini perkiraan, bukan fatwa. Konsultasikan dengan amil/BAZNAS setempat.\n\nNAFKITA",
+      });
+      return Response.json({ ok: true, sent_to: me.email });
+    }
+
     return Response.json({
       ...result,
       currency: "IDR",
@@ -46,7 +84,8 @@ export default async function (req) {
       partner_id: partnerId,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("[getZakatStatus]", error?.message);
+    return Response.json({ error: "zakat_failed" }, { status: 500 });
   }
 }
 

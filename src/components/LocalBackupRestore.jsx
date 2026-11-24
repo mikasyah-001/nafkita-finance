@@ -1,23 +1,11 @@
 import { useRef, useState } from "react";
-import { useRefresh, useMe } from "@/hooks/useFinance";
-import { exportBackup, importBackup, BACKUP_ENTITIES } from "@/lib/backupRestore";
+import { useRefresh } from "@/hooks/useFinance";
+import { exportBackup, importBackup, createdTotal, restoreErrorMessage, BACKUP_ENTITIES, REPLACE_MIN_VERSION } from "@/lib/backupRestore";
 import { toast } from "sonner";
 import { Download, Upload, Loader2, FileJson, AlertTriangle, Check } from "lucide-react";
 
-const labelMap = {
-  transactions: "Transaksi",
-  assets: "Aset",
-  categories: "Kategori",
-  budgets: "Anggaran",
-  zakatPayments: "Zakat",
-  snapshots: "Snapshot Aset",
-  templates: "Template",
-  investmentLots: "Lot Investasi",
-};
-
 export default function LocalBackupRestore() {
   const refresh = useRefresh();
-  const { data: me } = useMe();
   const fileRef = useRef(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -34,14 +22,15 @@ export default function LocalBackupRestore() {
       const a = document.createElement("a");
       a.href = url;
       a.download = `nafkita-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       const total = Object.values(backup.counts || {}).reduce((s, n) => s + n, 0);
       toast.success("Cadangan diunduh", { description: `${total} data disimpan ke perangkat.` });
-    } catch {
-      toast.error("Gagal membuat cadangan");
+    } catch (e) {
+      toast.error("Gagal membuat cadangan", { description: restoreErrorMessage(e, "Periksa koneksi & coba lagi.") });
     }
     setExporting(false);
   };
@@ -50,6 +39,7 @@ export default function LocalBackupRestore() {
     const file = e.target.files?.[0];
     if (fileRef.current) fileRef.current.value = "";
     if (!file) return;
+    if (file.size > 25 * 1024 * 1024) return toast.error("File cadangan terlalu besar (maks. 25 MB)");
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -73,8 +63,8 @@ export default function LocalBackupRestore() {
     }
     setImporting(true);
     try {
-      const result = await importBackup(pending, mode, me?.id);
-      const total = Object.values(result).reduce((s, n) => s + (n || 0), 0);
+      const result = await importBackup(pending, mode);
+      const total = createdTotal(result);
       toast.success("Cadangan dipulihkan", {
         description: mode === "replace"
           ? `${total} data dimuat ulang (data lama dihapus).`
@@ -83,8 +73,8 @@ export default function LocalBackupRestore() {
       refresh();
       setPending(null);
       setConfirmReplace(false);
-    } catch {
-      toast.error("Gagal memulihkan cadangan");
+    } catch (e) {
+      toast.error(restoreErrorMessage(e));
     }
     setImporting(false);
   };
@@ -122,7 +112,7 @@ export default function LocalBackupRestore() {
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
               {BACKUP_ENTITIES.map((e) => (
                 <p key={e.key} className="text-[11px] text-muted-foreground flex justify-between">
-                  <span>{labelMap[e.key] || e.key}</span>
+                  <span>{e.label}</span>
                   <span className="tabular-nums font-medium text-foreground">{pending.counts?.[e.key] ?? 0}</span>
                 </p>
               ))}
@@ -137,8 +127,11 @@ export default function LocalBackupRestore() {
               Gabung
             </button>
             <button
-              onClick={() => toast.info("Mode Ganti total sementara dinonaktifkan", { description: "Sedang diperbaiki agar lot investasi & tautan rekening tidak hilang. Gunakan mode Gabung." })}
-              aria-disabled="true"
+              onClick={() => {
+                if ((Number(pending.version) || 1) < REPLACE_MIN_VERSION) return toast.info("Ganti total tidak tersedia untuk cadangan lama", { description: "Cadangan ini dibuat sebelum format baru. Gunakan Gabung, atau buat cadangan baru dulu." });
+                setMode("replace"); setConfirmReplace(false);
+              }}
+              aria-disabled={(Number(pending.version) || 1) < REPLACE_MIN_VERSION}
               className={`flex-1 py-2 rounded-lg text-xs font-medium ${mode === "replace" ? "bg-destructive text-white" : "bg-muted text-muted-foreground"}`}
             >
               Ganti total
@@ -148,7 +141,7 @@ export default function LocalBackupRestore() {
             <p className="text-[11px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
           )}
           {mode === "replace" && (
-            <p className="text-[11px] text-destructive mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
+            <p className="text-[11px] text-destructive mb-2.5">Ganti total: isi cadangan dimuat dulu, lalu seluruh data milik Anda saat ini dihapus. Bila pemuatan gagal, data lama tidak disentuh. Data pasangan tidak terpengaruh.</p>
           )}
 
           <div className="flex gap-2">

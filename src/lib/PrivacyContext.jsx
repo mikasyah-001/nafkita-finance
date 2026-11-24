@@ -16,6 +16,10 @@ export function PrivacyProvider({ children }) {
     try {
       localStorage.setItem(KEY, hidden ? "1" : "0");
     } catch {}
+    // Penyamaran global: <Money> menampilkan ••••, sedangkan angka lain yang
+    // diformat langsung (formatMoney) dikaburkan lewat CSS .privacy-on di
+    // index.css — satu sakelar untuk semua layar, tanpa mengubah data/ekspor.
+    document.documentElement.classList.toggle("privacy-on", hidden);
   }, [hidden]);
 
   const toggle = () => setHidden((h) => !h);

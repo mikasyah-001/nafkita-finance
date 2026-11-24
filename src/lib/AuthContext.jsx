@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { queryClientInstance } from '@/lib/query-client';
+import { clearLocalUserData } from '@/lib/localData';
 
 const AuthContext = createContext();
 
@@ -119,6 +120,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    clearLocalUserData();
     setUser(null);
     setIsAuthenticated(false);
     

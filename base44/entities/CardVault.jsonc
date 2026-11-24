@@ -16,6 +16,11 @@
       "type": "number",
       "default": 0
     },
+    "lock_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Berapa kali terkunci berturut-turut (kunci progresif)"
+    },
     "locked_until": {
       "type": "string",
       "format": "date-time"

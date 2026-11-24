@@ -354,3 +354,20 @@ button, [role="button"], [role="tab"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Mode sembunyikan angka (PrivacyContext → <html class="privacy-on">).
+   Mengaburkan semua angka uang yang tidak lewat <Money>: elemen bertanda
+   .tabular-nums / .amount, serta label & tooltip grafik. Kolom isian tidak
+   dikaburkan agar tetap bisa mengetik; .privacy-safe untuk pengecualian. */
+.privacy-on .tabular-nums:not(input):not(.privacy-safe),
+.privacy-on .amount:not(.privacy-safe),
+.privacy-on .recharts-cartesian-axis-tick-value,
+.privacy-on .recharts-label,
+.privacy-on .recharts-tooltip-wrapper {
+  filter: blur(7px);
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media print {
+  .privacy-on .tabular-nums, .privacy-on .amount { filter: none; }
+}

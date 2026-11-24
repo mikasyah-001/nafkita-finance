@@ -3,6 +3,7 @@ import { deleteAssetFlow } from "@/lib/assetDelete";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { useRefresh, useMe, useUserCurrencies, useRateMap, useAssets } from "@/hooks/useFinance";
 import { assetTypeLabels, formatMoney, currencySymbol, isGoldType, buildAssetPayload, switchAssetType, assetHasPurchase, goldPriceCurrencyHint, conversionPreview, amountCurrencyHint, canonicalBrokerFor, canonicalBroker, placeSuggestions, withSavedBank, BANK_LIKE_TYPES, DEFAULT_BANKS } from "@/lib/finance";
 import ProofViewer from "@/components/ProofViewer";
@@ -75,11 +76,11 @@ export default function AssetForm({ asset, onClose }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "imageOrPdf");
       setForm((f) => ({ ...f, purchase_proof_url: file_url }));
       toast.success("Bukti pembelian terunggah");
-    } catch {
-      toast.error("Gagal mengunggah bukti");
+    } catch (err) {
+      toast.error(uploadErrorText(err, "Gagal mengunggah bukti"));
     }
     setUploading(false);
   };

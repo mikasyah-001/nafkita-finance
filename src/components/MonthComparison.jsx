@@ -57,7 +57,7 @@ export default function MonthComparison({ transactions, categories, year, month,
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cm.solid}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{r.name}</p>
-                <p className="text-[11px] text-muted-foreground">{formatMoney(r.pv, currency)} → {formatMoney(r.tv, currency)}</p>
+                <p className="text-[11px] text-muted-foreground"><span className="amount">{formatMoney(r.pv, currency)}</span> → <span className="amount">{formatMoney(r.tv, currency)}</span></p>
               </div>
               <div className="text-right">
                 {isNew ? (
@@ -72,7 +72,7 @@ export default function MonthComparison({ transactions, categories, year, month,
                   <span className="text-[11px] font-medium text-success flex items-center gap-0.5 justify-end"><TrendingDown className="w-3 h-3" /> {Math.round(Math.abs(r.pct))}%</span>
                 )}
                 <p className={`text-[11px] ${up ? "text-destructive" : down ? "text-success" : "text-muted-foreground"}`}>
-                  {up ? "+" : down ? "-" : ""}{formatMoney(Math.abs(r.diff), currency)}
+                  {up ? "+" : down ? "-" : ""}<span className="amount">{formatMoney(Math.abs(r.diff), currency)}</span>
                 </p>
               </div>
             </div>

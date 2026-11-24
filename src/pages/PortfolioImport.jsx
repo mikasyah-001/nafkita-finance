@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadFile } from "@/lib/upload";
 import { toast } from "sonner";
 import {
   Upload, Loader2, Check, AlertTriangle, FileText, Image as ImageIcon, X, Pencil, RefreshCw,
@@ -51,7 +52,7 @@ export default function PortfolioImport() {
   const reading = files.some((f) => f.status === "reading");
 
   const readFile = async (file) => {
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await uploadFile(file, "imageOrPdf");
     let data;
     try {
       data = await base44.integrations.Core.InvokeLLM({ prompt: HOLDINGS_PROMPT, file_urls: [file_url], response_json_schema: HOLDINGS_SCHEMA });

@@ -71,7 +71,7 @@ export default function UserContributionChart({ transactions, currency = "IDR" }
       {total > 0 && (
         <p className="text-xs text-muted-foreground mt-3 text-center">
           {view === "expense" ? "Pengeluaran terbanyak" : "Pemasukan terbesar"} dicatat oleh{" "}
-          <span className="font-medium text-foreground">{top.name}</span> ({Math.round((top.value / total) * 100)}% dari total {formatMoney(total, currency)}).
+          <span className="font-medium text-foreground">{top.name}</span> ({Math.round((top.value / total) * 100)}% dari total <span className="amount">{formatMoney(total, currency)}</span>).
         </p>
       )}
     </div>

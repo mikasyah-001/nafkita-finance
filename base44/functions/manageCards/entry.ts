@@ -11,8 +11,10 @@ import { CARD_KINDS, CARD_NETWORKS, CARD_STATUSES, toLast4, validExpiry, contain
 //    nomor kartu/CVC.
 //  - Detail (masa berlaku, nama di kartu, foto) disimpan di PaymentCardSecret
 //    (RLS admin) dan hanya keluar lewat "reveal" dengan token buka hasil PIN.
-//  - PIN Nafkita: PBKDF2-SHA256 + garam; 5x salah → terkunci 15 menit; token
-//    buka berlaku 3 menit.
+//  - PIN Nafkita: PBKDF2-SHA256 + garam; 5x salah → terkunci 15 menit (naik
+//    berlipat tiap kali terkunci lagi, maks. 24 jam); percobaan dicatat atomik
+//    sebelum PIN dicek; token buka berlaku 3 menit.
+//  - photo_uri hanya diterima dalam bentuk id file privat yang wajar (bukan URL).
 //
 // Aksi: save_card, delete_card, pin_status, set_pin, unlock, lock,
 //       save_details, reveal, migrate_labels
@@ -38,6 +40,8 @@ function safeEqual(a, b) {
   return d === 0;
 }
 const list = (res) => res?.items || res || [];
+// Id file privat (hasil UploadPrivateFile): tanpa spasi, bukan URL/skema (http:, data:, javascript:), tanpa "..".
+const isPrivateFileUri = (u) => typeof u === "string" && u.length <= 1024 && /^\S+$/.test(u) && !/^(https?|javascript|data|vbscript|file):/i.test(u) && !u.includes("..");
 const err = (status, error, message) => Response.json({ error, message }, { status });
 
 export default async function (req) {
@@ -140,21 +144,33 @@ export default async function (req) {
     }
 
     if (action === "unlock") {
-      const v = await vaultOf();
+      let v = await vaultOf();
       if (!v?.pin_hash) return err(400, "no_pin", "Buat PIN dulu");
       if (v.locked_until && new Date(v.locked_until) > new Date())
         return err(429, "locked", `Terlalu banyak percobaan. Coba lagi setelah ${new Date(v.locked_until).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}.`);
+      // Vault lama tanpa angka fail_count → set 0 dulu agar bisa dipakai sebagai kunci CAS.
+      if (typeof v.fail_count !== "number") v = await svc.CardVault.update(v.id, { fail_count: 0 });
+      // Reservasi percobaan secara atomik SEBELUM PIN dicek: permintaan paralel
+      // dengan fail_count yang sama hanya satu yang lolos, sehingga batas 5x
+      // tidak bisa dilewati dengan menebak serentak.
+      const prev = Number(v.fail_count) || 0;
+      const claim = await svc.CardVault.updateMany({ id: v.id, fail_count: prev }, { $set: { fail_count: prev + 1 } });
+      if (!(Number(claim?.updated ?? claim?.modified ?? 0) > 0)) return err(429, "busy", "Percobaan lain sedang diproses. Coba lagi.");
+      const fails = prev + 1;
       const ok = safeEqual(await pbkdf2(String(body.pin || ""), v.pin_salt), v.pin_hash);
       if (!ok) {
-        const fails = (Number(v.fail_count) || 0) + 1;
-        const patch = { fail_count: fails };
-        if (fails >= MAX_FAILS) { patch.fail_count = 0; patch.locked_until = new Date(Date.now() + LOCK_MIN * 60000).toISOString(); }
-        await svc.CardVault.update(v.id, patch);
-        return err(403, "wrong_pin", fails >= MAX_FAILS ? `PIN salah ${MAX_FAILS}x. Terkunci ${LOCK_MIN} menit.` : `PIN salah (${MAX_FAILS - fails} percobaan lagi)`);
+        if (fails >= MAX_FAILS) {
+          // Kunci progresif: 15 mnt, 30, 60, … maks. 24 jam (direset saat PIN benar).
+          const lockCount = (Number(v.lock_count) || 0) + 1;
+          const minutes = Math.min(LOCK_MIN * 2 ** (lockCount - 1), 24 * 60);
+          await svc.CardVault.update(v.id, { fail_count: 0, lock_count: lockCount, locked_until: new Date(Date.now() + minutes * 60000).toISOString(), unlock_hash: null, unlock_expires: null });
+          return err(403, "wrong_pin", `PIN salah ${MAX_FAILS}x. Terkunci ${minutes >= 60 ? `${Math.round(minutes / 60)} jam` : `${minutes} menit`}.`);
+        }
+        return err(403, "wrong_pin", `PIN salah (${MAX_FAILS - fails} percobaan lagi)`);
       }
       const token = randomHex(32);
       const expires = new Date(Date.now() + UNLOCK_MIN * 60000).toISOString();
-      await svc.CardVault.update(v.id, { fail_count: 0, locked_until: null, unlock_hash: await sha256(token), unlock_expires: expires });
+      await svc.CardVault.update(v.id, { fail_count: 0, lock_count: 0, locked_until: null, unlock_hash: await sha256(token), unlock_expires: expires });
       return Response.json({ ok: true, unlock_token: token, expires_at: expires });
     }
 
@@ -170,6 +186,8 @@ export default async function (req) {
       const card = await ownCard(body.card_id);
       if (!card) return err(404, "not_found");
       const d = body.details || {};
+      // photo_uri harus hasil UploadPrivateFile (id file privat), bukan URL/path sembarang.
+      if (d.photo_uri && !isPrivateFileUri(d.photo_uri)) return err(400, "invalid_photo", "Foto kartu tidak valid. Unggah ulang.");
       if (containsSensitiveCardData(d.holder_name)) return err(400, "sensitive", "Jangan menulis nomor kartu atau CVC");
       const hasExp = d.exp_month || d.exp_year;
       if (hasExp && !validExpiry(d.exp_month, d.exp_year)) return err(400, "invalid_expiry", "Masa berlaku tidak valid (bulan 1–12, tahun mis. 29 atau 2029)");

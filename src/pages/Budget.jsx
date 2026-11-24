@@ -153,7 +153,7 @@ export default function Budget() {
           <Target className="w-4 h-4 opacity-80" />
           <span className="text-xs opacity-80">{scope === "private" ? "Anggaran Pribadi" : "Anggaran Bersama Keluarga"} • {currency}</span>
         </div>
-        <p className="text-2xl font-bold">{formatMoney(totalSpent, currency)} <span className="text-sm font-normal opacity-70">/ {formatMoney(totalLimit, currency)}</span></p>
+        <p className="text-2xl font-bold"><span className="amount">{formatMoney(totalSpent, currency)}</span> <span className="text-sm font-normal opacity-70">/ <span className="amount">{formatMoney(totalLimit, currency)}</span></span></p>
         {totalLimit > 0 && (
           <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
             <div
@@ -163,7 +163,7 @@ export default function Budget() {
           </div>
         )}
         {unbudgetedSpent > 0 && (
-          <p className="text-xs opacity-80 mt-2">+ {formatMoney(unbudgetedSpent, currency)} di kategori tanpa anggaran</p>
+          <p className="text-xs opacity-80 mt-2">+ <span className="amount">{formatMoney(unbudgetedSpent, currency)}</span> di kategori tanpa anggaran</p>
         )}
       </div>
 
@@ -193,10 +193,10 @@ export default function Budget() {
                   <div className="flex-1">
                     <p className="text-sm font-medium">{c.name}</p>
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs text-muted-foreground">Terpakai {formatMoney(spent, currency)}</p>
+                      <p className="text-xs text-muted-foreground">Terpakai <span className="amount">{formatMoney(spent, currency)}</span></p>
                       {rolloverAmount !== 0 && (
                         <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${rolloverAmount > 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-                          Rollover {rolloverAmount > 0 ? "+" : ""}{formatMoney(rolloverAmount, currency)}
+                          Rollover {rolloverAmount > 0 ? "+" : ""}<span className="amount">{formatMoney(rolloverAmount, currency)}</span>
                         </span>
                       )}
                     </div>
@@ -237,15 +237,15 @@ export default function Budget() {
                       <span className="text-muted-foreground">{Math.round(pct)}% terpakai</span>
                       {over ? (
                         <span className="text-destructive flex items-center gap-1 font-medium">
-                          <AlertTriangle className="w-3 h-3" /> Lebih {formatMoney(Math.abs(remaining), currency)}
+                          <AlertTriangle className="w-3 h-3" /> Lebih <span className="amount">{formatMoney(Math.abs(remaining), currency)}</span>
                         </span>
                       ) : remaining < effectiveLimit * 0.2 ? (
                         <span className="text-warning flex items-center gap-1 font-medium">
-                          <AlertTriangle className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
+                          <AlertTriangle className="w-3 h-3" /> Sisa <span className="amount">{formatMoney(remaining, currency)}</span>
                         </span>
                       ) : (
                         <span className="text-success flex items-center gap-1 font-medium">
-                          <CheckCircle2 className="w-3 h-3" /> Sisa {formatMoney(remaining, currency)}
+                          <CheckCircle2 className="w-3 h-3" /> Sisa <span className="amount">{formatMoney(remaining, currency)}</span>
                         </span>
                       )}
                     </div>

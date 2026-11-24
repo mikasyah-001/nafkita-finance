@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { ArrowRight, LogOut, User, ShieldCheck } from "lucide-react";
 import { Image as SmartImage } from "@/components/ui/image";
@@ -16,15 +15,14 @@ import SettingsAccordion from "@/components/SettingsAccordion";
 import { usePartnership } from "@/hooks/usePartnership";
 import PageHeader from "@/components/PageHeader";
 import DeleteAccountSection from "@/components/DeleteAccountSection";
+import { signOut } from "@/lib/signOut";
 
 export default function Settings() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { hasPartner } = usePartnership();
 
-  const handleLogout = async () => {
-    await base44.auth.logout();
-  };
+  const handleLogout = () => signOut(user?.id);
 
   return (
     <div className="px-5 pt-6">

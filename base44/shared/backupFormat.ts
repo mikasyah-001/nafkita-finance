@@ -1,4 +1,4 @@
-// Skema cadangan seragam (dipakai bersama oleh backupToDrive & restoreFromDrive).
+// Skema cadangan seragam (dipakai bersama oleh backupToDrive, restoreFromDrive & shared/backupCore.ts).
 export const BACKUP_ENTITIES = [
   { key: "transactions", entity: "Transaction" },
   { key: "assets", entity: "Asset" },
@@ -9,9 +9,14 @@ export const BACKUP_ENTITIES = [
   { key: "templates", entity: "TransactionTemplate" },
   { key: "investmentLots", entity: "InvestmentLot" },
   { key: "preferences", entity: "NotificationPreference" },
+  // v3: data yang dulu tidak ikut dicadangkan.
+  { key: "debts", entity: "Debt" },
+  { key: "savingsGoals", entity: "SavingsGoal" },
+  { key: "recurringBills", entity: "RecurringBill" },
 ];
 
-export const BACKUP_VERSION = 2;
+// v3: id asli disimpan (untuk memetakan ulang tautan) + Debt/SavingsGoal/RecurringBill.
+export const BACKUP_VERSION = 3;
 
 const normAmount = (n) => Number(n) || 0;
 

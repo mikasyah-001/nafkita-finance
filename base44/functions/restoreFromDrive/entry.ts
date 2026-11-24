@@ -1,153 +1,91 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { BACKUP_ENTITIES, txFingerprint, assetFingerprint, categoryFingerprint, budgetFingerprint } from "../../shared/backupFormat.ts";
-import { fetchAll } from "../../shared/fetchAll.ts";
+import { restoreBackup, openBackup } from "../../shared/backupCore.ts";
 
-// Pemulihan per-pengguna dari Google Drive: hanya file milik pemanggil
-// (nama berisi suffix user id). created_by_id di-strip & dipetakan ulang ke
-// user saat ini via user-scoped create. Mode "replace" hanya menghapus data
-// milik sendiri (bukan seluruh aplikasi).
-const STRIP = ["id", "created_date", "updated_date", "created_by_id"];
-const strip = (r) => { const c = { ...r }; STRIP.forEach((k) => delete c[k]); return c; };
+// Pemulihan cadangan milik pemanggil.
+//   - { action: "list" }: daftar cadangan Drive milik pengguna ini.
+//   - { action: "restore", file_id, mode }: pulihkan dari file Drive.
+//   - { action: "restore_data", backup, mode }: pulihkan dari file lokal yang
+//     diunggah pengguna (logika sama — shared/backupCore.ts).
+// mode: "merge" (lewati duplikat) | "replace" (ganti total; hanya cadangan v3).
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+const fail = (status, error) => Response.json({ error }, { status });
 
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     let me;
-    try { me = await base44.auth.me(); } catch {}
-    if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    try { me = await base44.auth.me(); } catch { /* tanpa sesi */ }
+    if (!me) return fail(401, "Unauthorized");
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || "list";
+    const mode = body.mode === "replace" ? "replace" : "merge";
+
+    const runRestore = async (backup, opts = {}) => {
+      try {
+        const opened = await openBackup(backup);
+        const result = await restoreBackup(base44, me, opened, mode, opts);
+        return Response.json({ status: "success", ...result });
+      } catch (e) {
+        const known = ["invalid_backup_file", "backup_not_yours", "replace_needs_v3", "backup_too_large", "backup_key_missing", "backup_decrypt_failed"];
+        if (known.includes(e?.message)) return fail(e.status || 400, e.message);
+        console.error("[restoreFromDrive] restore", e?.message);
+        return fail(500, "restore_failed");
+      }
+    };
+
+    if (action === "restore_data") {
+      return runRestore(body.backup, { allowLegacyNoOwner: true });
+    }
+
     const { accessToken } = await base44.asServiceRole.connectors.getConnection("googledrive");
 
     if (action === "list") {
-      // Cari baik format baru (full user ID) maupun format lama (8-char suffix).
+      // Format baru (id penuh) maupun lama (8 karakter terakhir). Hasil disaring
+      // lagi dengan awalan persis agar file pengguna lain tidak ikut tampil.
       const full = me.id;
       const suffix = me.id.slice(-8);
       const q = `(name contains 'nafkita-backup-${full}' or name contains 'nafkita-backup-${suffix}') and trashed = false`;
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=createdTime desc&fields=files(id,name,createdTime,size)&pageSize=50`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (!res.ok) return Response.json({ error: "drive_list_failed", details: "Google Drive menolak permintaan" }, { status: 502 });
+      if (!res.ok) return fail(502, "drive_list_failed");
       const data = await res.json();
-      return Response.json({ files: data.files || [] });
+      const mine = (data.files || []).filter((f) => {
+        const n = String(f.name || "");
+        return n.startsWith(`nafkita-backup-${full}-`) || n.startsWith(`nafkita-backup-${suffix}-`);
+      });
+      return Response.json({ files: mine });
     }
 
     if (action === "restore") {
       const fileId = body.file_id;
-      // Mode "replace" sementara dinonaktifkan: format cadangan tidak menyimpan id
-      // asli sehingga lot investasi & tautan rekening hilang permanen saat ganti total.
-      const mode: string = "merge";
-      if (!fileId) return Response.json({ error: "file_id required" }, { status: 400 });
+      if (!fileId) return fail(400, "file_id required");
       // Id file Drive hanya huruf/angka/_/- (mencegah penyisipan path/parameter API).
-      if (!/^[A-Za-z0-9_-]{10,200}$/.test(String(fileId))) return Response.json({ error: "invalid_file_id" }, { status: 400 });
+      if (!/^[A-Za-z0-9_-]{10,200}$/.test(String(fileId))) return fail(400, "invalid_file_id");
+
+      // Hanya file cadangan (nama berawalan nafkita-backup-<id pengguna>).
+      const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!meta.ok) return fail(404, "backup_not_found");
+      const info = await meta.json();
+      const name = String(info.name || "");
+      if (!name.startsWith(`nafkita-backup-${me.id}-`) && !name.startsWith(`nafkita-backup-${me.id.slice(-8)}-`)) return fail(403, "backup_not_yours");
+      if (Number(info.size) > MAX_FILE_BYTES) return fail(413, "backup_too_large");
 
       const dl = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (!dl.ok) return Response.json({ error: "drive_download_failed", details: "Gagal mengunduh cadangan" }, { status: 502 });
-      const text = await dl.text();
+      if (!dl.ok) return fail(502, "drive_download_failed");
       let backup;
-      try { backup = JSON.parse(text); } catch { return Response.json({ error: "invalid_backup_file" }, { status: 400 }); }
-
-      // Validasi: file ini benar-benar milik pemanggil.
-      // Cadangan wajib milik pengguna ini (cadangan tanpa user_id ditolak).
-      if (!backup.user_id || backup.user_id !== me.id) {
-        return Response.json({ error: "backup_not_yours" }, { status: 403 });
-      }
-
-      const d = backup.data || {};
-
-      // Muat data existing milik user untuk dedup.
-      const existing = {};
-      for (const e of BACKUP_ENTITIES) {
-        const all = await fetchAll(base44.asServiceRole.entities[e.entity]);
-        existing[e.key] = (all || []).filter((r) =>
-          e.key === "snapshots" ? r.owner_id === me.id : r.created_by_id === me.id
-        );
-      }
-
-      // Mode Ganti total: hapus data milik sendiri saja.
-      if (mode === "replace") {
-        for (const e of BACKUP_ENTITIES) {
-          const filter = e.key === "snapshots" ? { owner_id: me.id } : { created_by_id: me.id };
-          try { await base44.asServiceRole.entities[e.entity].deleteMany(filter); } catch {}
-        }
-        for (const e of BACKUP_ENTITIES) existing[e.key] = [];
-      }
-
-      // Buat ulang via user-scoped agar created_by_id = me.id (mapping eksplisit).
-      // 1) Aset lebih dulu — bangun peta oldId -> newId.
-      const assetIdMap = {};
-      const existingAssetFps = new Set(existing.assets.map(assetFingerprint));
-      const assetsToCreate = [];
-      for (const a of (d.assets || [])) {
-        const fp = assetFingerprint(a);
-        if (mode === "merge" && existingAssetFps.has(fp)) {
-          const ex = existing.assets.find((x) => assetFingerprint(x) === fp);
-          if (a.id && ex?.id) assetIdMap[a.id] = ex.id;
-          continue;
-        }
-        assetsToCreate.push(a);
-      }
-      const createdAssets = assetsToCreate.length
-        ? await base44.entities.Asset.bulkCreate(assetsToCreate.map(strip))
-        : [];
-      createdAssets.forEach((na, i) => {
-        const oldId = assetsToCreate[i].id;
-        if (oldId && na?.id) assetIdMap[oldId] = na.id;
-      });
-
-      // 2) Kategori.
-      const existingCatFps = new Set(existing.categories.map(categoryFingerprint));
-      const catsToCreate = (d.categories || []).filter((c) => !existingCatFps.has(categoryFingerprint(c)));
-      if (catsToCreate.length) await base44.entities.Category.bulkCreate(catsToCreate.map(strip));
-
-      // 3) Transaksi.
-      const existingTxFps = new Set(existing.transactions.map(txFingerprint));
-      const txToCreate = (d.transactions || []).filter((t) => !existingTxFps.has(txFingerprint(t)));
-      if (txToCreate.length) {
-        const restoreBatch = "restore-" + Date.now();
-        await base44.entities.Transaction.bulkCreate(txToCreate.map((t) => ({ ...strip(t), notif_batch_id: restoreBatch })));
-      }
-
-      // 4) Anggaran.
-      const existingBudgetFps = new Set(existing.budgets.map(budgetFingerprint));
-      const budgetsToCreate = (d.budgets || []).filter((b) => !existingBudgetFps.has(budgetFingerprint(b)));
-      if (budgetsToCreate.length) await base44.entities.Budget.bulkCreate(budgetsToCreate.map(strip));
-
-      // 5) Entitas lain (zakat, snapshot, template, preferensi).
-      for (const key of ["zakatPayments", "snapshots", "templates", "preferences"]) {
-        const e = BACKUP_ENTITIES.find((x) => x.key === key);
-        const recs = (d[key] || []).map(strip);
-        if (recs.length) await base44.entities[e.entity].bulkCreate(recs);
-      }
-
-      // 6) Lot investasi — remap asset_id; lewati lot yatim.
-      const lotsToCreate = (d.investmentLots || []).map((l) => {
-        if (l.asset_id && !assetIdMap[l.asset_id]) return null;
-        return { ...l, asset_id: l.asset_id ? assetIdMap[l.asset_id] : l.asset_id };
-      }).filter(Boolean).map(strip);
-      if (lotsToCreate.length) await base44.entities.InvestmentLot.bulkCreate(lotsToCreate);
-
-      return Response.json({
-        status: "success",
-        mode,
-        created: {
-          transactions: txToCreate.length,
-          assets: assetsToCreate.length,
-          categories: catsToCreate.length,
-          budgets: budgetsToCreate.length,
-          zakatPayments: (d.zakatPayments || []).length,
-          snapshots: (d.snapshots || []).length,
-          templates: (d.templates || []).length,
-          preferences: (d.preferences || []).length,
-          investmentLots: lotsToCreate.length,
-        },
-      });
+      try { backup = JSON.parse(await dl.text()); } catch { return fail(400, "invalid_backup_file"); }
+      return runRestore(backup);
     }
 
-    return Response.json({ error: "unknown action" }, { status: 400 });
+    return fail(400, "unknown action");
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("[restoreFromDrive]", error?.message);
+    return fail(500, "restore_failed");
   }
 }

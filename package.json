@@ -14,7 +14,8 @@
     "qa:serve": "vite --config qa/vite.config.mjs",
     "qa": "node qa/screenshots.mjs",
     "qa:flows": "node qa/flows.mjs",
-    "qa:flicker": "node qa/flicker.mjs"
+    "qa:flicker": "node qa/flicker.mjs",
+    "qa:welcome-shots": "node qa/welcome-shots.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.63",

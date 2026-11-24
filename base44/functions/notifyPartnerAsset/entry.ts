@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { verifyWorkflowToken } from "../../shared/workflowAuth.ts";
 import {
   getActorName, getPreference, shouldSkipInstant, createNotificationIdempotent,
   maybeSendEmail, resolvePartner, formatMoney,
@@ -10,6 +11,7 @@ import {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    if (!(await verifyWorkflowToken(req.clone()))) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json().catch(() => ({}));
 
     const assetId = body.asset_id;

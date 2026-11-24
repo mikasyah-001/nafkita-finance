@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { toast } from "sonner";
 import {
   Bug, Lightbulb, MessageSquare, MoreHorizontal, Send, Loader2, CheckCircle2, Type,
@@ -76,10 +77,10 @@ function SendForm({ onSent }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "image");
       setShot(file_url);
-    } catch {
-      toast.error("Gagal mengunggah gambar");
+    } catch (err) {
+      toast.error(uploadErrorText(err, "Gagal mengunggah gambar"));
     }
     setUploading(false);
   };

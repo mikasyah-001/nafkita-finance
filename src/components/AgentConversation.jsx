@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadFile } from "@/lib/upload";
 import ReactMarkdown from "react-markdown";
 import { Loader2, Send, Paperclip, X, Bot, User as UserIcon, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 
@@ -59,7 +60,7 @@ export default function AgentConversation({ agentName, title }) {
     try {
       let fileUrls;
       if (pendingFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: pendingFile });
+        const { file_url } = await uploadFile(pendingFile, "image");
         fileUrls = [file_url];
       }
       await base44.agents.addMessage(conversation, {

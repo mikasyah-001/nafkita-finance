@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { verifyWorkflowToken } from "../../shared/workflowAuth.ts";
 import {
   getActorName, getPreference, shouldSkipInstant, createNotificationIdempotent,
   maybeSendEmail, resolvePartner, formatMoney, maskAmount,
@@ -9,13 +10,15 @@ import { evaluateNotificationRules } from "../../shared/notificationRules.ts";
 // atau dihapus. Menangani transisi visibility (shared<->private), idempoten
 // berdasarkan event_key, dan menghormati preferensi notifikasi penerima.
 //
-// Tidak memeriksa token workflow — fungsi memvalidasi data entitas.
+// Wajib token workflow: dulu siapa pun bisa memanggil fungsi ini dengan data
+// palsu (actor_id, merchant) untuk mengirim notifikasi/email ke pasangan orang lain.
 // Dipicu oleh workflow entity trigger (create/update/delete).
 const typeLabel = (t) => (t === "income" ? "pemasukan" : t === "sedekah" ? "sedekah" : "pengeluaran");
 
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    if (!(await verifyWorkflowToken(req.clone()))) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json().catch(() => ({}));
 
     const txId = body.transaction_id;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { Image as ImageIcon, Check, Loader2, Tag, CalendarDays, Palette, Users, Lock, ShieldCheck, GraduationCap, Home as HomeIcon, Plane, Target, Wallet } from "lucide-react";
 import { currencySymbol, formatMoneyPlain, accountRole } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
@@ -49,10 +50,10 @@ export default function SavingsGoalForm({ goal, assets, onClose, onSaved }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "image");
       setForm((f) => ({ ...f, cover_url: file_url }));
-    } catch {
-      toast.error("Gagal mengunggah foto");
+    } catch (err) {
+      toast.error(uploadErrorText(err, "Gagal mengunggah foto"));
     }
     setUploading(false);
   };

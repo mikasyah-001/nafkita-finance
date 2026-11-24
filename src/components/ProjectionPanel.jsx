@@ -178,15 +178,15 @@ export default function ProjectionPanel({ scope = "shared" }) {
           <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
             <div className="rounded-xl bg-muted/50 p-2">
               <p className="text-muted-foreground text-[11px]">Rata-rata pemasukan</p>
-              <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgIncome, cur)}</p>
+              <p className="font-semibold tabular-nums truncate"><span className="amount">{formatMoneyShort(avgIncome, cur)}</span></p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
               <p className="text-muted-foreground text-[11px]">Rata-rata arus keluar</p>
-              <p className="font-semibold tabular-nums truncate">{formatMoneyShort(avgOutflow, cur)}</p>
+              <p className="font-semibold tabular-nums truncate"><span className="amount">{formatMoneyShort(avgOutflow, cur)}</span></p>
             </div>
             <div className="rounded-xl bg-muted/50 p-2">
               <p className="text-muted-foreground text-[11px]">Saldo proyeksi</p>
-              <p className={`font-semibold tabular-nums truncate ${forecastEnd >= 0 ? "text-success" : "text-destructive"}`}>{formatMoneyShort(forecastEnd, cur)}</p>
+              <p className={`font-semibold tabular-nums truncate ${forecastEnd >= 0 ? "text-success" : "text-destructive"}`}><span className="amount">{formatMoneyShort(forecastEnd, cur)}</span></p>
             </div>
           </div>
           <div className="h-52">

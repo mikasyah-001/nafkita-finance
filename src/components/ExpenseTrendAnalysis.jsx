@@ -58,16 +58,16 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
       <div className="rounded-xl bg-muted/50 p-3 mb-4 grid grid-cols-2 gap-3">
         <div>
           <p className="text-[11px] text-muted-foreground">Bulan ini</p>
-          <p className="text-sm font-semibold tabular-nums">{formatMoney(total, currency)}</p>
+          <p className="text-sm font-semibold tabular-nums"><span className="amount">{formatMoney(total, currency)}</span></p>
         </div>
         <div>
           <p className="text-[11px] text-muted-foreground">{prevName}</p>
-          <p className="text-sm font-semibold tabular-nums">{formatMoney(prevTotal, currency)}</p>
+          <p className="text-sm font-semibold tabular-nums"><span className="amount">{formatMoney(prevTotal, currency)}</span></p>
         </div>
         <div className="col-span-2 flex items-center gap-1.5 pt-2 border-t border-border">
           {totalDiff > 0 ? <TrendingUp className="w-3.5 h-3.5 text-destructive" /> : totalDiff < 0 ? <TrendingDown className="w-3.5 h-3.5 text-success" /> : null}
           <span className={`text-xs font-medium ${totalDiff > 0 ? "text-destructive" : totalDiff < 0 ? "text-success" : "text-muted-foreground"}`}>
-            {totalDiff > 0 ? "Naik" : totalDiff < 0 ? "Turun" : "Stabil"} {prevTotal > 0 ? `${Math.abs(totalPct).toFixed(0)}%` : ""} ({totalDiff >= 0 ? "+" : ""}{formatMoney(totalDiff, currency)})
+            {totalDiff > 0 ? "Naik" : totalDiff < 0 ? "Turun" : "Stabil"} {prevTotal > 0 ? `${Math.abs(totalPct).toFixed(0)}%` : ""} ({totalDiff >= 0 ? "+" : ""}<span className="amount">{formatMoney(totalDiff, currency)}</span>)
           </span>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{r.name}</p>
                 <p className="text-[11px] text-muted-foreground tabular-nums truncate">
-                  {formatMoney(r.value, currency)} • {share.toFixed(0)}% {r.prev > 0 && <>• dari {formatMoneyShort(r.prev, currency)}</>}
+                  <span className="amount">{formatMoney(r.value, currency)}</span> • {share.toFixed(0)}% {r.prev > 0 && <>• dari <span className="amount">{formatMoneyShort(r.prev, currency)}</span></>}
                 </p>
               </div>
               <div className="text-right shrink-0">
@@ -121,7 +121,7 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
                 )}
                 {r.prev > 0 && (
                   <p className={`text-[11px] tabular-nums ${up ? "text-destructive" : down ? "text-success" : "text-muted-foreground"}`}>
-                    {up ? "+" : down ? "-" : ""}{formatMoney(Math.abs(r.diff), currency)}
+                    {up ? "+" : down ? "-" : ""}<span className="amount">{formatMoney(Math.abs(r.diff), currency)}</span>
                   </p>
                 )}
               </div>
@@ -133,10 +133,10 @@ export default function ExpenseTrendAnalysis({ transactions, categories, year, m
       <div className="mt-4 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground space-y-1.5">
         <p>📊 Pengeluaran terbesar: <span className="font-medium text-foreground">{top.name}</span> ({((top.value / total) * 100).toFixed(0)}% dari total).</p>
         {biggestRiser && (
-          <p>📈 Kenaikan tertinggi: <span className="font-medium text-foreground">{biggestRiser.name}</span> naik {((biggestRiser.diff / biggestRiser.prev) * 100).toFixed(0)}% (+{formatMoneyShort(biggestRiser.diff, currency)}).</p>
+          <p>📈 Kenaikan tertinggi: <span className="font-medium text-foreground">{biggestRiser.name}</span> naik {((biggestRiser.diff / biggestRiser.prev) * 100).toFixed(0)}% (+<span className="amount">{formatMoneyShort(biggestRiser.diff, currency)}</span>).</p>
         )}
         {biggestSaver && (
-          <p>📉 Penurunan terbesar: <span className="font-medium text-foreground">{biggestSaver.name}</span> turun {Math.abs((biggestSaver.diff / biggestSaver.prev) * 100).toFixed(0)}% ({formatMoneyShort(biggestSaver.diff, currency)}).</p>
+          <p>📉 Penurunan terbesar: <span className="font-medium text-foreground">{biggestSaver.name}</span> turun {Math.abs((biggestSaver.diff / biggestSaver.prev) * 100).toFixed(0)}% (<span className="amount">{formatMoneyShort(biggestSaver.diff, currency)}</span>).</p>
         )}
         {newCats.length > 0 && (
           <p>🆕 Kategori baru bulan ini: <span className="font-medium text-foreground">{newCats.map((c) => c.name).join(", ")}</span>.</p>

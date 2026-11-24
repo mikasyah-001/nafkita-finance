@@ -64,7 +64,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
             <div key={d.type} className="flex items-center gap-2 text-xs">
               <span className="w-3 h-3 rounded-full" style={{ background: typeColors[d.type] || "#64748b" }} />
               <span className="flex-1 text-muted-foreground truncate">{d.label}</span>
-              <span className="font-medium">{formatMoney(d.total, currency)}</span>
+              <span className="font-medium amount">{formatMoney(d.total, currency)}</span>
             </div>
           ))}
         </div>
@@ -86,11 +86,11 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   {hasPurchase ? (
-                    <p className="text-xs text-muted-foreground truncate">{formatMoney(a.purchase, currency)} → {formatMoney(a.current, currency)}</p>
+                    <p className="text-xs text-muted-foreground truncate"><span className="amount">{formatMoney(a.purchase, currency)}</span> → <span className="amount">{formatMoney(a.current, currency)}</span></p>
                   ) : a.currencySuspect ? (
                     <p className="text-xs text-warning truncate"><Link to="/kesehatan-data" className="underline">Mata uang harga beli tampak keliru — periksa</Link></p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Nilai {formatMoney(a.current, currency)}</p>
+                    <p className="text-xs text-muted-foreground">Nilai <span className="amount">{formatMoney(a.current, currency)}</span></p>
                   )}
                 </div>
                 {hasPurchase && (
@@ -99,7 +99,7 @@ export default function AssetGrowthChart({ assets, goldPrice = 0, currency = "ID
                       {isGain ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {isGain ? "+" : ""}{a.gainPct.toFixed(1)}%
                     </p>
-                    <p>{isGain ? "+" : ""}{formatMoney(a.gain, currency)}</p>
+                    <p>{isGain ? "+" : ""}<span className="amount">{formatMoney(a.gain, currency)}</span></p>
                   </div>
                 )}
               </div>

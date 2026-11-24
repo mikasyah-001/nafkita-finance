@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { useCategories, useRefresh, useTransactions, useAssets, useRateMap } from "@/hooks/useFinance";
 import { formatMoney, formatDate, colorMap, conversionPreview, EXTRAORDINARY_TAG } from "@/lib/finance";
 import CategoryIcon from "@/components/CategoryIcon";
@@ -11,6 +12,7 @@ import { usePartnership } from "@/hooks/usePartnership";
 import { Pencil, X, Loader2, User, Receipt, AlertCircle, Lock, Users, Clock, CalendarDays, Wallet, NotebookPen, Tag, Sparkles, Heart, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, ImagePlus, ImageOff, FileText, Maximize2, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { confirmAction } from "@/components/ConfirmHost";
+import { safeUrl } from "../../base44/shared/txInput.js";
 
 const isPdfUrl = (u) => /\.pdf($|\?)/i.test(u || "");
 
@@ -106,15 +108,14 @@ export default function TransactionDetail() {
     const file = e.target.files?.[0];
     if (proofRef.current) proofRef.current.value = "";
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) return toast.error("File terlalu besar", { description: "Maksimal 10 MB." });
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "imageOrPdf");
       await base44.entities.Transaction.update(id, { photo_url: file_url });
       refresh();
       toast.success("Bukti transaksi disimpan");
-    } catch {
-      toast.error("Gagal mengunggah bukti");
+    } catch (err) {
+      toast.error(uploadErrorText(err, "Gagal mengunggah bukti"));
     }
     setUploading(false);
   };
@@ -294,7 +295,7 @@ export default function TransactionDetail() {
               imgFailed === tx.photo_url ? (
               <span className="h-32 flex flex-col items-center justify-center gap-1.5 text-muted-foreground"><ImageOff className="w-7 h-7" /><span className="text-xs font-medium">Pratinjau tidak bisa dimuat · ketuk untuk membuka</span></span>
             ) : (
-              <img src={tx.photo_url} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
+              <img src={safeUrl(tx.photo_url)} alt="Bukti transaksi" className="w-full max-h-80 object-contain" onError={() => setImgFailed(tx.photo_url)} />
             )
             )}
             <span className="absolute bottom-2 right-2 h-7 px-2.5 rounded-full bg-black/55 text-white text-[11px] font-semibold inline-flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Lihat penuh</span>

@@ -17,7 +17,7 @@ export default async function (req) {
     const { debt_id, payment_amount, linked_asset_id, payment_date } = body;
     if (!debt_id) return Response.json({ error: "debt_id wajib diisi" }, { status: 400 });
     const payAmt = Number(payment_amount) || 0;
-    if (payAmt <= 0) return Response.json({ error: "payment_amount harus > 0" }, { status: 400 });
+    if (!(payAmt > 0) || !Number.isFinite(payAmt) || payAmt > 1e13) return Response.json({ error: "payment_amount harus > 0" }, { status: 400 });
 
     const debt = await base44.entities.Debt.get(debt_id);
     if (!debt) return Response.json({ error: "debt_not_found" }, { status: 404 });
@@ -38,6 +38,9 @@ export default async function (req) {
       if (!asset) return Response.json({ error: "asset_not_found" }, { status: 404 });
       if (asset.created_by_id !== me.id)
         return Response.json({ error: "forbidden" }, { status: 403 });
+      // Tanpa konversi kurs: rekening harus bermata uang sama dengan utang/piutang.
+      if ((asset.currency || "IDR").toUpperCase() !== (debt.currency || "IDR").toUpperCase())
+        return Response.json({ error: "currency_mismatch", message: "Mata uang rekening berbeda dengan utang/piutang" }, { status: 409 });
 
       // Utang -> expense (uang keluar); Piutang -> income (uang masuk).
       const txType = debt.type === "utang" ? "expense" : "income";

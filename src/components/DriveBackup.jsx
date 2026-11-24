@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useRefresh } from "@/hooks/useFinance";
+import { createdTotal, restoreErrorMessage } from "@/lib/backupRestore";
 import { toast } from "sonner";
 import { Cloud, Loader2, AlertTriangle, Check } from "lucide-react";
 
@@ -36,7 +37,7 @@ export default function DriveBackup() {
       toast.success("Cadangan tersimpan ke Google Drive", { description: `${total} data dicadangkan.` });
       loadFiles();
     } catch (e) {
-      toast.error("Gagal mencadangkan ke Drive", { description: e?.message || "Periksa koneksi & coba lagi." });
+      toast.error("Gagal mencadangkan ke Drive", { description: restoreErrorMessage(e, "Periksa koneksi & coba lagi.") });
     }
     setBacking(false);
   };
@@ -55,8 +56,7 @@ export default function DriveBackup() {
         mode,
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      const created = res?.data?.created || {};
-      const total = Object.values(created).reduce((s, n) => s + (n || 0), 0);
+      const total = createdTotal(res?.data);
       toast.success("Cadangan dipulihkan", {
         description: mode === "replace"
           ? `${total} data dimuat ulang (data lama dihapus).`
@@ -66,12 +66,7 @@ export default function DriveBackup() {
       setRestoreFile(null);
       setConfirmReplace(false);
     } catch (e) {
-      const msg = e?.message || "Gagal memulihkan";
-      if (msg.includes("backup_not_yours")) {
-        toast.error("File ini bukan cadangan Anda");
-      } else {
-        toast.error(msg);
-      }
+      toast.error(restoreErrorMessage(e));
     }
     setRestoring(false);
   };
@@ -142,7 +137,7 @@ export default function DriveBackup() {
             <p className="text-[11px] text-muted-foreground mb-2.5">Gabung: lewati data yang sudah ada (duplikat dilewati).</p>
           )}
           {mode === "replace" && (
-            <p className="text-[11px] text-destructive mb-2.5">Ganti total: seluruh data milik Anda saat ini dihapus lalu diganti dengan isi cadangan. Tindakan ini tidak dapat dibatalkan.</p>
+            <p className="text-[11px] text-destructive mb-2.5">Ganti total: isi cadangan dimuat dulu, lalu seluruh data milik Anda saat ini dihapus. Bila pemuatan gagal, data lama tidak disentuh. Hanya untuk cadangan format baru.</p>
           )}
           <div className="flex gap-2">
             <button

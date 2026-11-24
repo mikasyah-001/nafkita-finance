@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Lock, LockOpen, ShieldCheck, Eye, Camera, Link2, Ban, Zap, AlertTriangle, Landmark, KeyRound, ImageOff } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { uploadPrivateFile } from "@/lib/upload";
 import { useAssets, useMe, usePaymentCards } from "@/hooks/useFinance";
 import { assetLabel } from "@/lib/bankAccount";
 import { expiryState, validExpiry } from "../../base44/shared/cards.js";
@@ -315,7 +315,7 @@ function DetailsForm({ card, token, initial, onClose, onSaved }) {
       let photo_uri;
       if (img && canvasRef.current) {
         const file = await canvasToFile(canvasRef.current, `kartu-${card.id}.jpg`);
-        photo_uri = (await base44.integrations.Core.UploadPrivateFile({ file }))?.file_uri;
+        photo_uri = (await uploadPrivateFile(file, "image"))?.file_uri;
         if (!photo_uri) throw new Error("Gagal mengunggah foto");
       } else if (removePhoto) photo_uri = null;
       await manageCards({ action: "save_details", card_id: card.id, unlock_token: token, details: { exp_month: month, exp_year: year, holder_name: holder, ...(photo_uri !== undefined ? { photo_uri } : {}) } });

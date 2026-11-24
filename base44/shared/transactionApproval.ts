@@ -194,3 +194,42 @@ export async function notifyApprovalResult(base44, approverName, approval, trans
     tx_type: transaction.type,
   });
 }
+// ── Validasi keputusan persetujuan (approve/reject) ─────────────────────
+// Dulu hanya approval.approver_id yang dicek; TransactionApproval bisa dibuat
+// klien sehingga seseorang bisa "menyetujui" transaksi mana pun dan mengubah
+// saldo rekening orang lain lewat service role. Kini:
+//  - pengaju ≠ penyetuju, dan pengaju = pasangan AKTIF penyetuju;
+//  - transaksi milik pengaju, masih pending, dan menunjuk approval ini;
+//  - rekening yang ditautkan milik pengaju.
+// Lalu klaim approval secara atomik (pending → processing) agar dua klik
+// bersamaan tidak menerapkan efek saldo dua kali.
+export async function validateApprovalDecision(base44, me, approval, tx) {
+  const svc = base44.asServiceRole.entities;
+  if (!approval || !tx) return { status: 404, error: "not_found" };
+  if (approval.approver_id !== me.id || approval.requester_id === me.id) return { status: 403, error: "forbidden" };
+  if (tx.created_by_id !== approval.requester_id) return { status: 403, error: "forbidden" };
+  if (tx.approval_status !== "pending") return { status: 400, error: "sudah_diproses" };
+  if (tx.approval_id && tx.approval_id !== approval.id) return { status: 409, error: "approval_mismatch" };
+  const partners = await svc.Partnership.filter({ status: "active" }, "-created_date", 500).catch(() => []);
+  const linked = (partners || []).some((p) =>
+    (p.inviter_id === me.id && p.invitee_id === approval.requester_id) ||
+    (p.invitee_id === me.id && p.inviter_id === approval.requester_id));
+  if (!linked) return { status: 403, error: "not_partner", message: "Koneksi pasangan sudah tidak aktif" };
+  if (tx.linked_asset_id) {
+    const asset = await svc.Asset.get(tx.linked_asset_id).catch(() => null);
+    if (asset && asset.created_by_id !== tx.created_by_id) return { status: 403, error: "forbidden", message: "Rekening bukan milik pengaju" };
+  }
+  return { ok: true };
+}
+
+export async function claimApproval(base44, approvalId) {
+  const res = await base44.asServiceRole.entities.TransactionApproval.updateMany(
+    { id: approvalId, status: "pending" },
+    { $set: { status: "processing" } },
+  );
+  return Number(res?.updated ?? res?.modified ?? 0) > 0;
+}
+
+export async function releaseApproval(base44, approvalId) {
+  try { await base44.asServiceRole.entities.TransactionApproval.update(approvalId, { status: "pending" }); } catch { /* biarkan */ }
+}

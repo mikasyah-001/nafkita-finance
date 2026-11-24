@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { queryClientInstance } from "@/lib/query-client";
+import { clearLocalUserData } from "@/lib/localData";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import {
@@ -30,8 +30,7 @@ export default function DeleteAccountSection() {
     try {
       const res = await base44.functions.invoke("deleteMyAccount", { confirm: CONFIRM_WORD });
       if (res?.data?.error) throw new Error(res.data.error);
-      queryClientInstance.clear();
-      try { localStorage.clear(); sessionStorage.clear(); } catch { /* abaikan */ }
+      clearLocalUserData();
       toast.success("Akun Anda telah dihapus", { description: "Terima kasih telah memakai NAFKITA." });
       setTimeout(() => base44.auth.logout("/selamat-datang"), 900);
     } catch (e) {

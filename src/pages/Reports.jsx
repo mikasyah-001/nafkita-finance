@@ -384,7 +384,7 @@ function ReportsAnalysis() {
               <div key={c.name} className="flex items-center gap-2 text-sm">
                 <span className="w-3 h-3 rounded-full" style={{ background: chartColors[i % chartColors.length] }} />
                 <span className="flex-1 text-muted-foreground">{c.name}</span>
-                <span className="font-medium">{formatMoney(c.value, cur)}</span>
+                <span className="font-medium"><span className="amount">{formatMoney(c.value, cur)}</span></span>
               </div>
             ))}
           </div>

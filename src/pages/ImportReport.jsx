@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { useCategories, useRefresh, useTransactions, useUserCurrencies, useMe } from "@/hooks/useFinance";
 import { formatMoney, colorMap } from "@/lib/finance";
 import { dedupeBatch, filterAgainstExisting } from "@/lib/duplicateDetect";
@@ -108,7 +109,7 @@ export default function ImportReport() {
     setError("");
     setParsing(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "document");
       const isText = file.type.startsWith("text") || file.name.endsWith(".txt");
       let transactions = [];
       if (isText) {
@@ -149,7 +150,7 @@ export default function ImportReport() {
         toast.success(`${transactions.length} transaksi terbaca`, { description: "Periksa data sebelum disimpan." });
       }
     } catch (err) {
-      setError("Gagal membaca file. Pastikan format didukung (PDF/TXT).");
+      setError(uploadErrorText(err, "Gagal membaca file. Pastikan format didukung (PDF/TXT)."));
     }
     setParsing(false);
   };

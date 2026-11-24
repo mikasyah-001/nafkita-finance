@@ -35,13 +35,32 @@ export default async function (req) {
     if (!canDeleteTransfer(legs, assetsById, me.id))
       return Response.json({ error: "forbidden", message: "Hanya pengirim atau pemilik rekening yang bisa menghapus transfer ini" }, { status: 403 });
 
+    // Keaslian transfer: field transfer_pair_id bisa diisi pemilik transaksi
+    // lewat RLS update, jadi "pasangan transfer" bisa dipalsukan. Bukti yang
+    // tidak bisa dipalsukan klien = jejak AssetMutation (create hanya service
+    // role) dengan source_ref = pairId untuk setiap rekening yang tersentuh.
+    // Saldo dibalik sesuai jejak itu, bukan sesuai angka di transaksi.
+    if (legs.length !== 2 || new Set(legs.map((l) => l.created_by_id)).size !== 1 || new Set(legs.map((l) => l.type)).size !== 2)
+      return Response.json({ error: "invalid_transfer", message: "Data transfer tidak utuh — hubungi admin" }, { status: 409 });
+    const muts = await svc.AssetMutation.filter({ source_ref: pairId }, "-created_date", 20).catch(() => []);
+    const mutByAsset = {};
+    for (const m of muts || []) if (m.change_type === "transfer" && !mutByAsset[m.asset_id]) mutByAsset[m.asset_id] = m;
+    const onlyMine = legs.every((l) => !l.linked_asset_id || assetsById[l.linked_asset_id]?.created_by_id === me.id);
+    for (const leg of legs) {
+      if (!leg.linked_asset_id || !assetsById[leg.linked_asset_id]) continue;
+      const m = mutByAsset[leg.linked_asset_id];
+      if (m) leg._reverse = -((Number(m.new_value) || 0) - (Number(m.previous_value) || 0));
+      else if (onlyMine) leg._reverse = leg.type === "income" ? -(Number(leg.amount) || 0) : (Number(leg.amount) || 0); // data lama, hanya rekening sendiri
+      else return Response.json({ error: "unverified_transfer", message: "Transfer ini tidak bisa diverifikasi — saldo rekening pasangan tidak diubah. Hubungi admin." }, { status: 409 });
+    }
+
     // Kembalikan saldo tiap sisi (keluar → tambah, masuk → kurangi).
     const restored = [];
     try {
       for (const leg of legs) {
         const asset = assetsById[leg.linked_asset_id];
         if (!asset) continue;
-        const reverse = leg.type === "income" ? -(Number(leg.amount) || 0) : (Number(leg.amount) || 0);
+        const reverse = leg._reverse;
         const prev = Number(asset.value) || 0;
         const next = roundForCurrency(prev + reverse, asset.currency);
         await svc.Asset.update(asset.id, { value: next });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { uploadFile, uploadErrorText } from "@/lib/upload";
 import { toast } from "sonner";
 import {
   Camera, Loader2, Check, User, Hash, Copy, Heart, ChevronRight, Settings, Bell,
@@ -60,10 +61,10 @@ export default function Profile() {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await uploadFile(file, "image");
       setPhotoUrl(file_url);
-    } catch {
-      toast.error("Gagal mengunggah foto");
+    } catch (err) {
+      toast.error(uploadErrorText(err, "Gagal mengunggah foto"));
     }
     setUploading(false);
   };

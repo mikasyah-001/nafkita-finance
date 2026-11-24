@@ -6,13 +6,41 @@ const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
 }
 
+// Validasi parameter dari URL: tanpa ini, tautan seperti
+// ?app_base_url=https://situs-palsu membelokkan halaman login ke situs phishing
+// (dan nilainya tersimpan permanen di localStorage). Hanya asal aplikasi ini
+// sendiri yang dipercaya: host halaman saat ini atau VITE_BASE44_APP_BASE_URL.
+// Subdomain *.base44.app/*.base44.com lain TIDAK dipercaya — domain itu dipakai
+// bersama oleh aplikasi Base44 milik siapa pun.
+const ownHosts = () => {
+	const hosts = new Set([window.location.hostname.toLowerCase()]);
+	try { const env = import.meta.env.VITE_BASE44_APP_BASE_URL; if (env) hosts.add(new URL(env).hostname.toLowerCase()); } catch { /* abaikan */ }
+	return hosts;
+};
+const isTrustedBaseUrl = (v) => {
+	try {
+		const u = new URL(v);
+		if (u.protocol !== 'https:' && !(u.protocol === 'http:' && u.hostname === 'localhost')) return false;
+		return ownHosts().has(u.hostname.toLowerCase());
+	} catch {
+		return false;
+	}
+};
+const VALIDATORS = {
+	app_base_url: isTrustedBaseUrl,
+	app_id: (v) => /^[a-f0-9]{24}$/i.test(v),
+	functions_version: (v) => /^[A-Za-z0-9._-]{1,64}$/.test(v),
+};
+
 const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl = false } = {}) => {
 	if (isNode) {
 		return defaultValue;
 	}
 	const storageKey = `base44_${toSnakeCase(paramName)}`;
 	const urlParams = new URLSearchParams(window.location.search);
-	const searchParam = urlParams.get(paramName);
+	const rawParam = urlParams.get(paramName);
+	const isValid = VALIDATORS[paramName] || (() => true);
+	const searchParam = rawParam && isValid(rawParam) ? rawParam : null;
 	if (removeFromUrl) {
 		urlParams.delete(paramName);
 		const newUrl = `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ""
@@ -28,7 +56,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		return defaultValue;
 	}
 	const storedValue = storage.getItem(storageKey);
-	if (storedValue) {
+	if (storedValue && isValid(storedValue)) {
 		return storedValue;
 	}
 	return null;

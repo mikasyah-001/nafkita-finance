@@ -28,7 +28,10 @@
         "send_reminders": {
           "call": "invoke_backend_function",
           "with": {
-            "function_name": "debtDueReminder"
+            "function_name": "debtDueReminder",
+            "args": {
+              "token": "nafkita-wf-8f3a2c7e9b1d4e6f"
+            }
           },
           "then": "end",
           "x-base44": {

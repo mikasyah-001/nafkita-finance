@@ -16,7 +16,10 @@ export default async function (req) {
     if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const target_currencies: string[] = (body?.target_currencies || []).map((c: string) => c.toUpperCase());
+    // Hanya kode ISO 4217 (3 huruf), maksimal 12 — teks bebas dulu masuk ke
+    // prompt AI (prompt injection) dan hasilnya ditulis global untuk semua pengguna.
+    const raw = Array.isArray(body?.target_currencies) ? body.target_currencies : [];
+    const target_currencies: string[] = [...new Set(raw.map((c: unknown) => String(c || "").trim().toUpperCase()).filter((c: string) => /^[A-Z]{3}$/.test(c)))].slice(0, 12) as string[];
 
     const targetList = target_currencies.length
       ? ["IDR", ...target_currencies].join(", ")

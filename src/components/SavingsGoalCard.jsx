@@ -136,8 +136,8 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
         <div className="flex items-end justify-between gap-3 mt-3">
           <p className="font-heading font-extrabold text-3xl tabular-nums leading-none">{progress.toFixed(0)}<span className="text-base font-bold">%</span><span className="sr-only"> tercapai</span></p>
           <div className="text-right min-w-0">
-            <p className="text-sm font-bold tabular-nums truncate">{formatMoney(gp.current, goal.currency)}</p>
-            <p className="text-[11px] opacity-75 tabular-nums truncate">dari {formatMoney(goal.target_amount || 0, goal.currency)}</p>
+            <p className="text-sm font-bold tabular-nums truncate"><span className="amount">{formatMoney(gp.current, goal.currency)}</span></p>
+            <p className="text-[11px] opacity-75 tabular-nums truncate">dari <span className="amount">{formatMoney(goal.target_amount || 0, goal.currency)}</span></p>
           </div>
         </div>
         <div className="mt-2 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
@@ -152,13 +152,13 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
           <p className="text-[11px] mt-1 leading-snug">
             {proj.eta ? (
               <>
-                Laju {formatMoney(proj.perMonth, goal.currency)}/bln → tercapai ±{formatDate(proj.eta, "MMM yyyy")}
+                Laju <span className="amount">{formatMoney(proj.perMonth, goal.currency)}</span>/bln → tercapai ±{formatDate(proj.eta, "MMM yyyy")}
                 {proj.onTrack === true && <span className="font-semibold"> · tepat waktu ✓</span>}
                 {proj.onTrack === false && <span className="font-semibold text-destructive"> · lewat target</span>}
               </>
             ) : "Belum ada setoran 3 bulan terakhir"}
             {proj.neededPerMonth && proj.onTrack !== true && (
-              <span className="block opacity-80">Perlu {formatMoney(proj.neededPerMonth, goal.currency)}/bln agar tepat waktu</span>
+              <span className="block opacity-80">Perlu <span className="amount">{formatMoney(proj.neededPerMonth, goal.currency)}</span>/bln agar tepat waktu</span>
             )}
           </p>
         )}
@@ -169,7 +169,7 @@ export default function SavingsGoalCard({ goal, assets, onEdit, onDelete, onRefr
             <p className="font-semibold flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Disimpan di {gp.assets.length} aset · otomatis</p>
             <ul className="mt-1 space-y-0.5 opacity-85">
               {gp.assets.map((a) => (
-                <li key={a.id} className="flex justify-between gap-2"><span className="truncate">{assetLabel(a)}</span><span className="tabular-nums shrink-0">{formatMoneyPlain(a.value || 0, a.currency)}</span></li>
+                <li key={a.id} className="flex justify-between gap-2"><span className="truncate">{assetLabel(a)}</span><span className="tabular-nums shrink-0"><span className="amount">{formatMoneyPlain(a.value || 0, a.currency)}</span></span></li>
               ))}
             </ul>
             {(gp.missing > 0 || gp.unconverted.length > 0) && (

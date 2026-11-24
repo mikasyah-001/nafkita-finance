@@ -60,7 +60,9 @@ export default async function (req) {
           read: false,
         });
       } catch (e) { console.error("[respondFeedback] notify", e); }
-      const to = fb.sender_email || fb.created_by;
+      // Pakai email akun dari platform (created_by), bukan sender_email yang bisa
+      // diisi sembarang bila record dibuat langsung oleh klien.
+      const to = fb.created_by || "";
       if (reply && to) {
         try {
           await base44.asServiceRole.integrations.Core.SendEmail({

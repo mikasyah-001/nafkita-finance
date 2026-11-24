@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { isAuthorizedCall } from "../../shared/workflowAuth.ts";
 import { fetchAll } from "../../shared/fetchAll.ts";
 
 // Dipanggil workflow terjadwal harian.
@@ -9,6 +10,9 @@ import { fetchAll } from "../../shared/fetchAll.ts";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    // Hanya workflow terjadwal (token) atau admin. Dulu siapa pun bisa memanggil
+    // fungsi service-role ini dan memicu pemrosesan data semua pengguna.
+    if (!(await isAuthorizedCall(req.clone(), base44))) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const today = new Date().toISOString().slice(0, 10);
     const todayTime = new Date(today + "T00:00:00.000Z").getTime();
     const threeDaysLater = new Date(todayTime + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

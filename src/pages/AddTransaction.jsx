@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadFile } from "@/lib/upload";
 import { useCategories, useRefresh, useTemplates, useTransactions, useAssets, useUserCurrencies, useRateMap, useMe } from "@/hooks/useFinance";
 import { colorMap, formatMoney, formatDate, currencySymbol, isMoneyAsset, EXTRAORDINARY_TAG, formatMoneyPlain, conversionPreview, amountCurrencyHint } from "@/lib/finance";
 import { assetLabel } from "@/lib/bankAccount";
@@ -145,7 +146,7 @@ export default function AddTransaction() {
       const urls = [];
       const allTx = [];
       for (let i = 0; i < files.length; i++) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: files[i] });
+        const { file_url } = await uploadFile(files[i], "image");
         urls.push(file_url);
         setPhotoUrls([...urls]);
         setPhotoUrl(file_url);
@@ -272,7 +273,8 @@ export default function AddTransaction() {
           photo_url: photoUrl || "",
           tags,
           visibility,
-          linked_asset_id: linkedAssetId || undefined,
+          // null = "Tidak dipilih" (lepas tautan); undefined berarti "jangan ubah".
+          linked_asset_id: linkedAssetId || null,
         }, editId);
         refresh();
         toast.success("Transaksi diperbarui");

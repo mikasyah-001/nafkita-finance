@@ -49,18 +49,17 @@ export default function Zakat() {
     below: { label: "Belum mencapai nisab", tone: "bg-white/15 text-white" },
   }[status];
 
+  // Email dikirim dari server (angka dihitung ulang di server, penerima = email akun).
   const handleEmailReminder = async () => {
     if (!z.me?.email) return toast.error("Email tidak ditemukan");
     setSending(true);
     try {
-      await base44.integrations.Core.SendEmail({
-        to: z.me.email,
-        subject: "Pengingat zakat mal — NAFKITA",
-        body: `Assalamu'alaikum ${z.me.full_name || ""},\n\nRingkasan zakat mal (perkiraan):\n- Harta bersih: ${formatMoney(z.net, cur)}\n- Nisab (${NISAB_GOLD_GRAM} gr emas @ ${formatMoney(z.goldPrice, cur)}): ${formatMoney(z.nisab, cur)}\n- Zakat 2,5%: ${formatMoney(z.zakat, cur)}\n- Sudah dibayar periode ini: ${formatMoney(z.paidTotal, cur)}\n- Sisa: ${formatMoney(z.remaining, cur)}\n${z.period.due ? `- Jatuh tempo haul: ${formatDate(z.period.due, "d MMMM yyyy")} (${formatHijri(z.period.due)})\n` : ""}\nAngka ini perkiraan, bukan fatwa. Konsultasikan dengan amil/BAZNAS setempat.\n\nNAFKITA`,
-      });
+      const res = await base44.functions.invoke("getZakatStatus", { action: "email" });
+      if (res?.data?.error) throw Object.assign(new Error(res.data.error), { code: res.data.error });
       toast.success("Pengingat zakat dikirim", { description: `Ke ${z.me.email}` });
-    } catch {
-      toast.error("Gagal mengirim pengingat");
+    } catch (e) {
+      const code = e?.code || e?.response?.data?.error;
+      toast.error(code === "too_soon" ? "Pengingat baru saja dikirim. Coba lagi beberapa menit lagi." : code === "no_gold_price" ? "Isi harga emas dulu" : "Gagal mengirim pengingat");
     }
     setSending(false);
   };

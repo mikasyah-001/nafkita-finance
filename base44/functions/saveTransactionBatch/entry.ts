@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { sanitizeTxInput } from "../../shared/txInput.js";
 import { needsApproval, createApprovalRequest, notifyApprovalRequest } from "../../shared/transactionApproval.ts";
 import { resolvePartnerId } from "../../shared/partnerResolve.ts";
 
@@ -20,13 +21,17 @@ export default async function (req) {
     if (!list.length) return Response.json({ error: "missing_transactions" }, { status: 400 });
     if (list.length > 500) return Response.json({ error: "too_many" }, { status: 400 });
 
+    // Validasi yang sama dengan transaksi tunggal (shared/txInput.js): nominal
+    // wajar, jenis sah, URL bukti hanya https. Item tidak sah dilewati.
     const clean = list.map((t) => {
       const o = {};
       for (const k of ALLOWED) if (t[k] !== undefined) o[k] = t[k];
-      o.amount = Number(o.amount) || 0;
-      o.input_by_name = o.input_by_name || me.full_name || me.email;
-      return o;
-    }).filter((t) => t.amount > 0 && t.type && t.date);
+      const r = sanitizeTxInput(o);
+      if (r.error) return null;
+      r.data.input_by_name = r.data.input_by_name || me.full_name || me.email;
+      delete r.data.linked_asset_id; // impor massal tidak menautkan rekening
+      return r.data;
+    }).filter((t) => t && t.date);
 
     const normal = [];
     const pending = [];

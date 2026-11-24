@@ -64,6 +64,13 @@ async function fetchTrusted(url) {
     let res;
     for (let hop = 0; ; hop++) {
       res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "manual" });
+      // Sebagian runtime mengembalikan redirect "opaque" (status 0, tanpa Location).
+      // Cadangan: ikuti otomatis, lalu periksa alamat AKHIR dengan aturan yang sama.
+      if (res.type === "opaqueredirect" || res.status === 0) {
+        res = await fetch(u.toString(), { signal: ctrl.signal, redirect: "follow" });
+        if (res.url) checkHost(new URL(res.url));
+        break;
+      }
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get("location");
         if (!loc || hop >= 3) throw new Error("too_many_redirects");

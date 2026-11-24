@@ -7,7 +7,7 @@ import { resolvePartnerId } from "../../shared/partnerResolve.ts";
 // Menerapkan ambang persetujuan pasangan per transaksi: yang melewati ambang
 // dibuat sebagai pending + permintaan persetujuan; sisanya dibuat normal.
 // Tidak menautkan aset (jalur massal tidak mengubah saldo).
-const ALLOWED = ["type", "amount", "currency", "category", "date", "merchant", "notes", "photo_url", "tags", "visibility", "input_by_name", "notif_batch_id"];
+const ALLOWED = ["type", "amount", "currency", "category", "date", "merchant", "notes", "photo_url", "photo_uri", "tags", "visibility", "input_by_name", "notif_batch_id"];
 
 export default async function (req) {
   try {

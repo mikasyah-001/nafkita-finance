@@ -80,8 +80,11 @@ export default async function (req) {
         const file = new File([bytes], `bukti-${r.id}.${extFor(type)}`, { type });
         const up = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
         if (!up?.file_uri) throw new Error("upload_failed");
-        await svc.update(r.id, { [conf.uri]: up.file_uri, [conf.url]: "" });
-        results.migrated++;
+        // Tulis bersyarat: hanya bila URL lama masih sama (pemilik tidak mengganti/
+        // menghapus bukti selama unduhan berjalan). Bila berubah → lewati.
+        const w = await svc.updateMany({ id: r.id, [conf.url]: r[conf.url] }, { $set: { [conf.uri]: up.file_uri, [conf.url]: "" } });
+        if (Number(w?.updated ?? w?.modified ?? 0) > 0) results.migrated++;
+        else results.failed.push({ id: r.id, reason: "changed_during_migration" });
       } catch (e) {
         results.failed.push({ id: r.id, reason: String(e?.message || "error").slice(0, 60) });
       }

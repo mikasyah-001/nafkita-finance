@@ -66,6 +66,10 @@ export default function AddTransaction() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [proofUri, setProofUri] = useState("");
   const [legacyUrl, setLegacyUrl] = useState("");
+  // Mode edit: kolom bukti hanya dikirim bila diubah (scan baru / lepas bon).
+  // Non-pemilik (mis. admin) tidak menerima referensi file privat, jadi
+  // mengirim nilai kosong akan menghapus bukti pemilik.
+  const [proofTouched, setProofTouched] = useState(false);
   const [photoUrls, setPhotoUrls] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -162,6 +166,7 @@ export default function AddTransaction() {
         setPhotoUrl(preview_url);
         setProofUri(file_uri);
         setLegacyUrl("");
+        setProofTouched(true);
         const { transactions } = await scanReceipt(preview_url, categories);
         (transactions || []).forEach((t) => allTx.push({ ...t, photo_url: preview_url, photo_uri: file_uri }));
       }
@@ -283,8 +288,7 @@ export default function AddTransaction() {
           date: new Date(date).toISOString(),
           merchant: type === "income" ? "" : merchant || "",
           notes: notes || "",
-          photo_uri: proofUri || "",
-          photo_url: proofUri ? "" : legacyUrl || "",
+          ...(proofTouched ? { photo_uri: proofUri || "", photo_url: proofUri ? "" : legacyUrl || "" } : {}),
           tags,
           visibility,
           // null = "Tidak dipilih" (lepas tautan); undefined berarti "jangan ubah".
@@ -582,7 +586,7 @@ export default function AddTransaction() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple={!isEdit} className="hidden" onChange={handleScan} />
           {photoUrls.length > 0 && !scanning && (
-            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); setProofUri(""); setLegacyUrl(""); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
+            <button onClick={() => { setPhotoUrl(""); setPhotoUrls([]); setProofUri(""); setLegacyUrl(""); setProofTouched(true); if (fileRef.current) fileRef.current.value = ""; }} className="mt-2 text-xs text-destructive flex items-center gap-1">
               <X className="w-3 h-3" /> {isEdit ? "Lepas bon" : "Hapus semua foto"}
             </button>
           )}

@@ -20,8 +20,10 @@ export async function hitRateLimit(base44, key, max, windowMs) {
     }
     const count = Number(r.count) || 0;
     if (count >= max) return false;
-    await svc.update(r.id, { count: count + 1 });
-    return true;
+    // Tambah atomik (compare-and-set): permintaan paralel dengan hitungan yang
+    // sama hanya satu yang lolos; sisanya ditolak (dihitung sebagai percobaan).
+    const w = await svc.updateMany({ id: r.id, count }, { $set: { count: count + 1 } });
+    return Number(w?.updated ?? w?.modified ?? 0) > 0;
   } catch (e) {
     console.error("[rateLimit]", key, e?.message);
     return true;

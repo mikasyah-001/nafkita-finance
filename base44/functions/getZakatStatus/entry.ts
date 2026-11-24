@@ -50,8 +50,9 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     if (body?.action === "email") {
       if (!me.email) return Response.json({ error: "no_email" }, { status: 400 });
-      if (!(await hitRateLimit(base44, `zakat_email:${me.id}`, 1, EMAIL_INTERVAL_MS))) return Response.json({ error: "too_soon" }, { status: 429 });
       if (!goldPrice) return Response.json({ error: "no_gold_price" }, { status: 409 });
+      // Kuota dipakai hanya setelah prasyarat siap (permintaan yang tak terkirim tidak memulai jeda).
+      if (!(await hitRateLimit(base44, `zakat_email:${me.id}`, 1, EMAIL_INTERVAL_MS))) return Response.json({ error: "too_soon" }, { status: 429 });
       const period = haulPeriodBackend(me.zakat_haul_date);
       const hijriYear = Number(new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric" }).formatToParts(new Date()).find((p) => p.type === "year")?.value || 0);
       const payments = await fetchAll(base44.asServiceRole.entities.ZakatPayment, { created_by_id: me.id });

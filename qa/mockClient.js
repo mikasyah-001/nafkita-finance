@@ -8,6 +8,7 @@ const MOCK_VAULT = {};
 
 const ME = { id: "u1", email: "keluarga@contoh.id", full_name: "Ahmad Fauzi", role: "admin", default_currency: "IDR", enabled_currencies: ["IDR", "SAR"], active_currencies: ["IDR", "SAR"], ref_code: "NAF123" };
 try { const c = localStorage.getItem("qaDefaultCur"); if (c) ME.default_currency = c; } catch { /* abaikan */ }
+try { const g = Number(localStorage.getItem("qa:goldPrice")); if (g > 0) ME.zakat_gold_price = g; } catch { /* abaikan */ }
 const now = new Date();
 const Y = now.getUTCFullYear(), M = now.getUTCMonth();
 const d = (dd, mOff = 0, h = 10) => new Date(Date.UTC(Y, M + mOff, dd, h)).toISOString();

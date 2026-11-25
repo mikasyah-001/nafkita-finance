@@ -1,3 +1,4 @@
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,7 +7,7 @@ import {
   RefreshCw, BellRing, CheckCheck, History, Activity, FileSpreadsheet, Copy,
   CalendarClock, HandCoins, Share2, ClipboardCheck, ArrowLeftRight, Scale, Receipt,
   Gem, Vault, TrendingUp, ChevronRight, Zap, CreditCard, Lock, MessageSquareText,
-  KeyRound, UserX, FileLock2, Inbox,
+  KeyRound, UserX, FileLock2, Inbox, X, Maximize2,
 } from "lucide-react";
 import { SAR_SIGN } from "@/lib/finance";
 
@@ -211,10 +212,16 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const inView = { initial: "hidden", whileInView: "show", viewport: { once: true, margin: "-40px" } };
 
+// Ketuk screenshot → tampil layar penuh (teks kecil di dalamnya jadi terbaca).
+const ZoomContext = createContext(() => {});
+
 export default function Welcome() {
   const navigate = useNavigate();
+  const [zoom, setZoom] = useState(null); // { src, alt, returnFocus }
+  const closeZoom = useCallback(() => setZoom(null), []);
 
   return (
+    <ZoomContext.Provider value={setZoom}>
     <div className="min-h-screen bg-background pb-32 md:pb-16 overflow-x-hidden">
       {/* ───────── TOP BAR ───────── */}
       <header className="px-5 pt-[max(1.25rem,env(safe-area-inset-top))] max-w-5xl mx-auto flex items-center justify-between">
@@ -358,6 +365,8 @@ export default function Welcome() {
         </p>
       </Section>
 
+      {zoom && <ShotLightbox shot={zoom} onClose={closeZoom} />}
+
       {/* ───────── CTA MENEMPEL (mobile) ───────── */}
       <div className="fixed bottom-0 inset-x-0 z-20 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-background/90 backdrop-blur-xl border-t border-border md:hidden">
         <button onClick={() => navigate("/register")} className="w-full btn-gold">
@@ -368,17 +377,56 @@ export default function Welcome() {
         </button>
       </div>
     </div>
+    </ZoomContext.Provider>
   );
 }
 
 // Bingkai HP berisi screenshot asli aplikasi.
 function PhoneFrame({ src, alt, className = "", eager = false }) {
+  const openZoom = useContext(ZoomContext);
   return (
     <figure className={`${/\babsolute\b/.test(className) ? "" : "relative "}rounded-[30px] bg-[#0f1f1a] p-[6px] shadow-[0_18px_40px_-18px_rgba(15,79,66,0.55)] ring-1 ring-black/10 ${className}`}>
-      <div className="absolute top-[11px] left-1/2 -translate-x-1/2 w-14 h-[5px] rounded-full bg-white/15 z-10" aria-hidden="true" />
-      <img src={src} alt={alt} loading={eager ? "eager" : "lazy"} decoding="async" width={390} height={800}
-        className="block w-full h-auto rounded-[24px] bg-muted aspect-[390/800] object-cover object-top" />
+      <button type="button" onClick={(e) => openZoom({ src, alt, returnFocus: e.currentTarget })}
+        aria-label={`Perbesar: ${alt}`}
+        className="group relative block w-full rounded-[24px] overflow-hidden focus-visible:outline-none focus-visible:ring-4 ring-[hsl(var(--gold))] cursor-zoom-in">
+        <span className="absolute top-[5px] left-1/2 -translate-x-1/2 w-14 h-[5px] rounded-full bg-white/15 z-10" aria-hidden="true" />
+        <img src={src} alt="" loading={eager ? "eager" : "lazy"} decoding="async" width={390} height={800}
+          className="block w-full h-auto bg-muted aspect-[390/800] object-cover object-top" />
+        <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center opacity-80 group-hover:opacity-100" aria-hidden="true">
+          <Maximize2 className="w-3.5 h-3.5" />
+        </span>
+      </button>
     </figure>
+  );
+}
+
+// Tampilan layar penuh satu screenshot. Tutup: tombol, Esc, atau ketuk latar;
+// fokus kembali ke gambar yang dibuka.
+function ShotLightbox({ shot, onClose }) {
+  const closeRef = useRef(null);
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") { e.preventDefault(); closeRef.current?.focus(); } // satu-satunya kontrol
+    };
+    window.addEventListener("keydown", onKey);
+    const ret = shot.returnFocus;
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); ret?.focus?.(); };
+  }, [shot, onClose]);
+  return (
+    <div role="dialog" aria-modal="true" aria-label={shot.alt} onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <button ref={closeRef} type="button" onClick={onClose} aria-label="Tutup"
+        className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 ring-white">
+        <X className="w-5 h-5" />
+      </button>
+      <img src={shot.src} alt={shot.alt} onClick={(e) => e.stopPropagation()}
+        className="mt-10 max-h-[80vh] w-auto max-w-full rounded-[22px] shadow-2xl" />
+      <p className="mt-3 text-xs text-white/80 text-center">{shot.alt}</p>
+    </div>
   );
 }
 

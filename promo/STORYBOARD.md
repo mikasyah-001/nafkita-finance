@@ -185,9 +185,8 @@ dan komentar berisi pertanyaan fitur. Setelah 2 minggu, perbanyak format & hook 
 
 ## 8. Catatan sebelum publikasi
 
-1. **Domain.** Materi memakai `nafkita.base44.app`. Untuk aplikasi keuangan, domain sendiri (mis. nafkita.id) jauh lebih
-   dipercaya dan tidak mengikat promosi ke penyedia platform. Bila domain berganti, ubah `APP_URL` di `promo/mockup.mjs`
-   lalu render ulang.
+1. **Domain.** Materi memakai `nafkita.mikaiel.com`. Pastikan domain ini sudah mengarah ke aplikasi sebelum posting.
+   Bila domain berganti, ubah `APP_URL` di `promo/mockup.mjs` lalu render ulang poster & video.
 2. **Klaim zakat.** Selalu sertakan "perkiraan, bukan fatwa", sama seperti di aplikasi. Hindari "pasti sah" atau "sesuai fatwa X"
    kecuali sudah ditinjau ahli.
 3. **Merek pihak ketiga.** Bingkai ponsel dibuat generik tanpa logo Apple/Google. Penyebutan "Apple Pay" dan "mada" hanya

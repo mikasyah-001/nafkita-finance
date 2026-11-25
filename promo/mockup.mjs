@@ -12,7 +12,7 @@ const { chromium } = loadPlaywright();
 const OUT = path.join(ROOT, "promo/out");
 const SHOTS = path.join(OUT, "screens");
 const TMP = path.join(OUT, ".tmp"); fs.mkdirSync(TMP, { recursive: true });
-export const APP_URL = "nafkita.base44.app";
+export const APP_URL = "nafkita.mikaiel.com";
 const shot = (kind, mode, n) => "file://" + path.join(SHOTS, kind, mode, `${n}.png`);
 const brand = (f) => "file://" + path.join(ROOT, "public/brand", f);
 
